@@ -16,7 +16,7 @@ O painel junta tudo isso num lugar só e não usa IA nem gasta tokens: ele só l
 
 ## Telas
 
-O menu tem um grupo, Workspace (fonte em `panel/ui/src/dados/contexto.js`):
+O menu tem um grupo, Workspace (fonte em `panel/ui/src/data/context.js`):
 
 - **Visão geral:** números do topo (pendências por severidade, uso do plano, eventos de hoje), atividade e resultados de 7 dias por agente, último evento de cada agente e atividade recente. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) com os motivos: hooks parados, arquivos ilegíveis.
 - **Pendências:** a fila do dono, com filtros por severidade e status; cada pendência mostra contexto, opções e recomendação, e o dono responde ali mesmo (opção + comentário, Ctrl+Enter envia).
@@ -212,7 +212,7 @@ A fonte da página fica em `panel/ui/` (Preact, compilado pelo Vite num HTML ún
 ```
 cd panel/ui
 npm ci
-npm run build      # vite build + scripts/publicar.js, que grava ../index.html
+npm run build      # vite build + scripts/publish.js, que grava ../index.html
 npm run check      # confere o index.html: um único script, nada externo
 npm run dev        # http://127.0.0.1:5173, com /api apontando para o painel em 127.0.0.1:4777
 ```
@@ -249,11 +249,12 @@ painel-maestro/
 │   ├── README.md             documentação técnica do servidor e da página
 │   ├── ui/                   fonte da página (Preact + Vite)
 │   │   ├── src/app/          casca, menu e topo
-│   │   ├── src/telas/        uma tela por arquivo
-│   │   ├── src/componentes/  cartões, KPIs, gráficos em SVG, modal
-│   │   ├── src/dados/        API, modo de teste, consultas, formatação e a ponte provisória com a API em inglês (compat.js)
-│   │   ├── src/estilo/       CSS por tela
-│   │   └── scripts/publicar.js  junta o build num HTML único
+│   │   ├── src/screens/      uma tela por arquivo
+│   │   ├── src/components/   cartões, KPIs, gráficos em SVG, modal
+│   │   ├── src/data/         API, modo de teste, consultas e formatação (datas e números no padrão brasileiro)
+│   │   ├── src/i18n/         dicionário pt-BR (todo texto da página) e o idioma ativo
+│   │   ├── src/styles/       CSS por tela
+│   │   └── scripts/publish.js   junta o build num HTML único
 │   └── tests/                testes, mocks e servidores de demonstração
 ├── skills/
 │   ├── cerebro/              orquestracao, pendencias, painel, onboarding-agente

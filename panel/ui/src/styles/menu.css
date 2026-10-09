@@ -1,0 +1,6 @@
+/* Side menu in blocks by group (Workspace, ...): small label on top and a stripe between the blocks. */
+.nav { gap: 0; }
+.nav-block { display: flex; flex-direction: column; gap: 2px; }
+.nav-block.separated { margin-top: 14px; }
+.nav-block.separated::before { content: ''; display: block; height: 1px; background: var(--border); margin: 0 10px 14px; }
+.nav-group { font-size: 9.5px; color: var(--faint); padding: 0 12px 6px; }

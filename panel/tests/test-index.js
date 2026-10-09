@@ -71,7 +71,7 @@ suite.test('API text enters as text: no innerHTML, eval or handlers built from s
 
 suite.test('the embedded script compiles and only uses the contract routes', () => {
   new vm.Script(js, { filename: 'index.html#script' });
-  const api = source['dados/api.js'];
+  const api = source['data/api.js'];
   for (const route of ["api('/api/state')", '`/api/events?', '`/api/event/${encodeURIComponent(id)}`', "api('/api/recalculate', { method: 'POST' })",
     'api(`/api/pending-decisions/${encodeURIComponent(p.id)}/answer`']) {
     assert.ok(api.includes(route), `the page calls ${route}`);
@@ -82,9 +82,9 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions\/)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
-  assert.ok(/export const INTERVALO_MS = 20000;/.test(api), 'refreshes every 20 s');
-  assert.ok(/export const POR_PAGINA = 50;/.test(api), 'pages of 50');
-  assert.ok(/timeZone: TZ/.test(source['dados/formato.js']) && /export const TZ = 'America\/Sao_Paulo'/.test(source['dados/formato.js']), 'dates in America/Sao_Paulo');
+  assert.ok(/export const REFRESH_MS = 20000;/.test(api), 'refreshes every 20 s');
+  assert.ok(/export const PAGE_SIZE = 50;/.test(api), 'pages of 50');
+  assert.ok(/timeZone: TZ/.test(source['data/format.js']) && /export const TZ = 'America\/Sao_Paulo'/.test(source['data/format.js']), 'dates in America/Sao_Paulo');
   assert.ok(/<meta name="color-scheme" content="dark">/.test(html), 'the brand dark theme');
   assert.ok(/<html lang="pt-BR">/.test(html));
 });

@@ -55,7 +55,7 @@ Com `taskkill /F` o processo morre sem chance de limpar, então o `panel.pid` an
 | `POST /api/brain` | 501: reservado para uma fase futura (conversa com o Cérebro pelo painel) |
 | `POST /api/pending-decisions/<P-NNNN>/answer` | corpo `{"option": "A", "text": "..."}` (pelo menos um; texto até 2000 caracteres): grava a resposta pelo `pendencia.js responder` (status `respondida`, evento `decisao` no fluxo da pendência) e avisa o Cérebro no terminal dele. Devolve `{ok, pending_decision, brain_notice: {sent, to \| reason}}`; 409 se a pendência não estiver aberta, 404 se não existir, 400 para corpo ou opção inválidos |
 
-**Códigos em vez de frases (ADR 0004).** Nenhuma resposta traz frase pronta: motivos de saúde, avisos, notas, bases de período e erros vêm como `{code, ...params}` (ex.: `{"code": "hook_stale", "agent": "b", "name": "Agente B", "minutes": 1500}`) e a página traduz. Erros sempre no formato `{"error": {code, ...params}}` (ex.: `{"error": {"code": "event_not_found", "id": "EV-…"}}`, `{"error": {"code": "invalid_param", "param": "since", "value": "lixo", "expected": "date"}}`). Os registros do modelo antigo (eventos de `bin/registrar.js` e pendências de `bin/pendencia.js`) saem com os nomes de campo em inglês (`panel/legacy-records.js`), mas os valores guardados (tipos, resultados, origens, severidades e status) seguem os do modelo antigo, que sai na #18. Enquanto as telas não passam para o inglês (#4), a página converte as respostas em `ui/src/dados/compat.js`.
+**Códigos em vez de frases (ADR 0004).** Nenhuma resposta traz frase pronta: motivos de saúde, avisos, notas, bases de período e erros vêm como `{code, ...params}` (ex.: `{"code": "hook_stale", "agent": "b", "name": "Agente B", "minutes": 1500}`) e a página traduz. Erros sempre no formato `{"error": {code, ...params}}` (ex.: `{"error": {"code": "event_not_found", "id": "EV-…"}}`, `{"error": {"code": "invalid_param", "param": "since", "value": "lixo", "expected": "date"}}`). Os registros do modelo antigo (eventos de `bin/registrar.js` e pendências de `bin/pendencia.js`) saem com os nomes de campo em inglês (`panel/legacy-records.js`), mas os valores guardados (tipos, resultados, origens, severidades e status) seguem os do modelo antigo, que sai na #18. A página lê as respostas como vêm e traduz os códigos pelo mesmo dicionário dos textos dela (`ui/src/i18n/pt-BR.js`, seção `codes`).
 
 Detalhes dos filtros de `/api/events`:
 - `since` e `until` em `AAAA-MM-DD`, pelo dia de São Paulo (valor inválido → 400). `hours=N` traz só as últimas N horas (o "24 h" do Log).
@@ -73,15 +73,17 @@ Log bruto grande: cada arquivo do log bruto vira um índice compacto na memória
 
 App Preact (a API do React em 4 KB) com componentes próprios e gráficos em SVG desenhados no código, compilado pelo Vite num **arquivo único**: o JS, o CSS e a fonte Manrope 300/400 (subconjunto latino, como `data:`) vão dentro do HTML. Nada externo, então a CSP do servidor continua a mesma. Medido para um portal do canvas de **1520 × 1095**: nenhuma tela rola a página; listas e tabelas rolam por dentro dos cartões.
 
-**Identidade visual:** fundo `#000`, cartões `#101010` com borda `1px #242424` e raio 14px, texto `#F5F5F5`, secundário `#888`, azul `#0000FF` só como acento (`#4F6BFF` quando é texto), rótulos em caixa alta com `.3em`, ícones Lucide com traço 1,75, sem emoji e sem gradiente. As cores ficam em variáveis no topo de `ui/src/estilo/base.css`.
+**Identidade visual:** fundo `#000`, cartões `#101010` com borda `1px #242424` e raio 14px, texto `#F5F5F5`, secundário `#888`, azul `#0000FF` só como acento (`#4F6BFF` quando é texto), rótulos em caixa alta com `.3em`, ícones Lucide com traço 1,75, sem emoji e sem gradiente. As cores ficam em variáveis no topo de `ui/src/styles/base.css`.
 
 **Menu = telas.** Toda tela nova é um item do menu, nunca uma página separada:
-1. um item em `ABAS` (`ui/src/dados/contexto.js`), com `id`, `nome`, `titulo` e `grupo` (hoje só `workspace`; um bloco novo do menu é um item novo em `GRUPOS`, no mesmo arquivo);
-2. um componente em `TELAS` (`ui/src/app/App.jsx`) e um ícone em `ICONES` (`ui/src/app/Lateral.jsx`);
-3. a tela em `ui/src/telas/<Nome>.jsx`, com o CSS dela em `ui/src/estilo/<nome>.css`, importado pela própria tela.
+1. um item em `SCREENS` (`ui/src/data/context.js`), com `id` e `group` (hoje só `workspace`; um bloco novo do menu é um item novo em `GROUPS`, no mesmo arquivo), e o nome no menu e o título no dicionário (`nav.<id>` e `screens.<id>` em `ui/src/i18n/pt-BR.js`);
+2. um componente em `SCREEN_COMPONENTS` (`ui/src/app/App.jsx`) e um ícone em `ICONS` (`ui/src/app/Sidebar.jsx`);
+3. a tela em `ui/src/screens/<Name>.jsx`, com o CSS dela em `ui/src/styles/<name>.css`, importado pela própria tela.
 A tela fica em `#<id>` na URL (com sub-abas, `#<id>/<sub>`: o App entrega a sub-aba em `subrota`); as setas ↑ ↓ com o foco no menu passam de uma tela para outra, de um grupo para o outro.
 
-**Componentes prontos** (`ui/src/componentes/`): `Cartao` (com `rotulo`, `info`, `acoes`, `rola`), `Kpi` (número grande, `info`, `destaque`, clicável), `InfoDica` (ícone (i) com balão; é onde vão os textos explicativos, nunca dentro do cartão), `Selo`, `Segmentado`, `Medidor`, `Anel`, `Modal`, `Vazio`, `Recolhivel`, `Esqueleto`; gráficos em `graficos.jsx` (barras empilhadas, linhas, rosca, barrinha de 7 dias); campos de filtro em `campos.jsx`.
+**Componentes prontos** (`ui/src/components/`): `Card` (com `label`, `info`, `actions`, `scroll`), `Kpi` (número grande, `info`, `highlight`, clicável), `InfoHint` (ícone (i) com balão; é onde vão os textos explicativos, nunca dentro do cartão), `Badge`, `Segmented`, `Meter`, `Ring`, `Modal`, `Empty`, `Collapsible`, `Skeleton`; gráficos em `charts.jsx` (barras empilhadas, linhas, rosca, barrinha de 7 dias); campos de filtro em `fields.jsx`.
+
+**Textos (ADR 0004).** O código da página é em inglês (identificadores, arquivos, classes CSS e comentários) e nenhum texto visível fica escrito em componente ou tela: tudo vem do dicionário `ui/src/i18n/pt-BR.js`, pela função `t(chave, parâmetros)` de `ui/src/i18n/index.js` (ex.: `t('log.page', { page: 2, pages: 7 })` → "Página 2 de 7"). Uma entrada é um texto com `{parâmetro}`, um plural `{ one, other }` escolhido por `count` (que sai formatado como número) ou uma função, quando o texto precisa de lógica. Os códigos do servidor ficam na seção `codes` e saem por `translateCode(código)`; `txt(valor)` (`ui/src/data/format.js`) mostra qualquer valor da API, traduzindo o que for código. O idioma ativo é um ponto só, `ui/src/i18n/locale.js` (fixo em `pt-BR`), que também decide o formato de datas e números (padrão brasileiro). Acrescentar o inglês é escrever outro dicionário com as mesmas chaves e registrá-lo em `index.js`. Os endereços antigos das telas (`#visao`, `#pendencias`, `#agentes`, `#uso`) continuam abrindo a tela certa.
 
 **Telas** (o menu tem um grupo, Workspace):
 - **Visão geral:** números do topo (pendências por severidade, uso 5 h e semanal, eventos de hoje), atividade de 7 dias por agente, resultados de 7 dias, último evento de cada agente e atividade recente.
@@ -97,7 +99,8 @@ Consulta `/api/state` a cada 20 s; a tela, os filtros, o modal e o que está abe
 ```
 cd panel/ui
 npm run dev      # http://127.0.0.1:5173, com /api apontando para o painel real (4777); ?mock=1 usa os dados de teste
-npm run build    # compila e grava ../index.html (scripts/publicar.js junta tudo num arquivo só)
+npm run build    # compila e grava ../index.html (scripts/publish.js junta tudo num arquivo só)
+npm run check    # confere o ../index.html (um único script, nada externo)
 ```
 Depois do build, a página nova aparece no próximo carregamento (o servidor lê o `index.html` a cada pedido); reinicie o servidor só quando mudar o `server.js` ou os `api-*.js`.
 
@@ -206,6 +209,7 @@ node panel/tests/run-all.js server   # só os arquivos com "server" no nome
 - `test-performance.js`: 50 mil eventos e log bruto grande e um fluxo aberto há 31 dias, cuja 2ª consulta usa o índice sem reler o log (`HEAVY_TEST=1` multiplica o log bruto).
 - `test-time-window.js`: `time-window.js`.
 - `test-pending-decisions.js`: resposta de pendência pelo painel numa raiz falsa, com um `maestri` falso (opção + comentário, só texto, 409 na segunda resposta e em pendência fechada, 400/404, sem `X-Panel` → 403, GET → 405, aviso desligado, mensagem ao Cérebro numa linha só, sem barra invertida nem aspas retas).
+- `test-i18n.js`: o dicionário sem navegador: o idioma ativo é um ponto só (pt-BR), `t()` com parâmetros e plural, todo código que o servidor pode devolver tem tradução (com os mesmos textos de antes), toda chave usada existe e toda chave existe porque é usada, e nenhum texto visível escrito direto em componente ou tela.
 - `test-index.js`: a página sem navegador. No build: arquivo único (fonte embutida, `url()` só `data:`, nenhuma URL além dos namespaces XML do Preact), script compila, só rotas do contrato. Na fonte (`ui/src`): nenhum `innerHTML`/`dangerouslySetInnerHTML`/`eval`, nenhum `href` para fora, intervalos e fuso do contrato. Mais o cenário do mock e o servidor real numa raiz montada do mock com dados hostis (campos que a página lê, filtros, modal, 404, POST sem `X-Panel` → 403, Recalcular, `/api/brain` → 501). Rode depois de cada `npm run build`.
 
 Tudo é gravado em `panel/tests/tmp/<teste>-<pid>/` e apagado no fim (`KEEP_TMP=1` guarda para inspeção). Os servidores de teste são derrubados pelo PID que eles mesmos imprimem.

@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/publicar.js",
-    "check": "node scripts/publicar.js --so-conferir"
+    "build": "vite build && node scripts/publish.js",
+    "check": "node scripts/publish.js --check"
   },
   "dependencies": {
     "@fontsource/manrope": "^5.3.0",

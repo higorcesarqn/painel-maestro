@@ -1,7 +1,7 @@
 # Dependências
 node_modules/
 
-# Build da página: o Vite gera panel/ui/dist/ e o scripts/publicar.js junta tudo em panel/index.html
+# Build da página: o Vite gera panel/ui/dist/ e o scripts/publish.js junta tudo em panel/index.html
 # (o index.html compilado É versionado; o dist/ não)
 panel/ui/dist/
 
