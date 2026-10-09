@@ -22,8 +22,8 @@ O menu tem um grupo, Workspace (fonte em `panel/ui/src/data/context.js`). No top
 - **Visão geral:** números do topo (pendências por severidade, uso do plano, eventos de hoje), atividade e resultados de 7 dias por agente, último evento de cada agente e atividade recente. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) com os motivos: hooks parados, arquivos ilegíveis.
 - **Pendências** (modelo novo, só leitura): o que espera uma decisão do dono, com filtros por severidade e status (a empresa vem do seletor do topo); cada pendência mostra o item, a task, contexto, opções, recomendação e **onde responder** (workspace e terminal do maestro no Maestri) e, depois de fechada, a decisão. O dono responde no terminal do maestro, não no painel.
 - **Log** (modelo novo): os eventos do fluxo de cada item, do mais recente ao mais antigo, com filtros por período, projeto, item e tipo (a empresa vem do seletor do topo). Clicar numa linha abre o **evento**: o que foi gravado e os comandos brutos das sessões do Claude Code ligadas a ele (pela branch da sessão e pela janela de tempo).
-- **Agentes:** um cartão por agente (último evento, eventos de hoje, fluxos abertos, consumo) e a ficha completa num modal, com o log bruto de cada um.
-- **Uso:** o plano do Claude (janela de 5 h e semanal, com o horário de reinício) e a participação de cada agente no consumo de tokens.
+- **Agentes:** os maestros e trabalhadores ativos, sem cadastro fixo: o maestro de cada item ainda não concluído e o trabalhador de cada task em andamento, com o item, a task (estado, floor, progresso), o último evento do fluxo, a última atividade vista pelo hook e o consumo da janela de 5 h. A empresa escolhida no topo filtra a lista.
+- **Uso:** o plano do Claude (janela de 5 h e semanal, com o horário de reinício), o consumo de cada item em cada período e os tokens de cada agente (o maestro do item, o trabalhador da task); a empresa escolhida no topo filtra as linhas.
 
 A página se atualiza sozinha a cada 20 segundos.
 
@@ -219,7 +219,7 @@ Os dados (`registro/`, `logs/`, `state/`, `estado/`, `.segredos/`) ficam fora do
 | comandos brutos (tela Log) | `bruto.db` (modelo novo; padrão `~/.painel-maestro/bruto.db`) | `bin/hook-log.js` (hook do Claude Code) |
 | saúde dos hooks por agente | `logs/raw/<agente>/AAAA-MM-DD.jsonl`: o hook não grava mais aqui (#12) | ninguém; sai na #18 |
 | pendências do dono | `estado/pendencias.json` | `bin/pendencia.js` (e o painel, ao responder) |
-| uso do Claude | `state/usage.json` | `bin/collect-usage.js` (o servidor roda sozinho) |
+| uso do Claude por item e por agente | `state/usage.json` (na pasta do modelo novo, ao lado do `bruto.db`) | `bin/collect-usage.js` (o servidor roda sozinho) |
 
 Arquivo ausente não quebra nada: a parte correspondente aparece vazia, com o motivo. A API é em inglês (rotas, campos e variáveis) e nunca devolve frases: motivos, avisos e erros vêm como códigos `{code, ...params}` que a página traduz (ADR 0004). O formato completo de cada arquivo está nos mocks (`panel/tests/mock-state.json` e `mock-details.json`) e o `panel/tests/build-mock-root.js` mostra em que arquivo cada parte vai. A documentação técnica do servidor (rotas, filtros, saúde, uso, variáveis) está em [`panel/README.md`](panel/README.md).
 
@@ -286,7 +286,7 @@ O `bin/hook-log.js` lê o evento do hook pela entrada padrão e grava um registr
 }
 ```
 
-O hook entende esses sete eventos; se a sua versão do Claude Code não tiver algum deles, deixe-o de fora. Instale-o no `settings.json` do usuário (`~/.claude/settings.json`), para valer em qualquer pasta: ele só grava sessões de **projetos cadastrados** no `maestro.db` (um repositório entra no cadastro na primeira vez que o maestro roda o `flow` nele). As outras saem em poucos milissegundos, lendo só os arquivos do `.git` da pasta, sem gravar nada. O hook e o servidor precisam ver o mesmo `MAESTRO_DIR` (ou nenhum). Até a #13, ele também grava `state/sessions/<session_id>.json` (na pasta de dados do modelo antigo) nos eventos `SessionStart`, `UserPromptSubmit` e `Stop`, com um dono tirado da ligação (`<projeto>/<item>` para o maestro, `<projeto>/task-<id>` para um trabalhador, `<projeto>` nas outras branches): é o que o coletor de uso lê para atribuir o consumo de tokens.
+O hook entende esses sete eventos; se a sua versão do Claude Code não tiver algum deles, deixe-o de fora. Instale-o no `settings.json` do usuário (`~/.claude/settings.json`), para valer em qualquer pasta: ele só grava sessões de **projetos cadastrados** no `maestro.db` (um repositório entra no cadastro na primeira vez que o maestro roda o `flow` nele). As outras saem em poucos milissegundos, lendo só os arquivos do `.git` da pasta, sem gravar nada. O hook e o servidor precisam ver o mesmo `MAESTRO_DIR` (ou nenhum). Cada sessão fica na tabela `sessions` do `bruto.db` com a ligação (projeto, item, task), a pasta e o caminho da transcrição: é o que o coletor de uso lê para dividir o consumo de tokens por item e por agente (#13). Os arquivos `state/sessions/<session_id>.json` do modelo antigo não são mais gravados.
 
 ### 4. Suba o painel
 
@@ -297,7 +297,7 @@ node panel/server.js            # ou: npm start
 Abra **http://127.0.0.1:4777** (use `127.0.0.1`, não `localhost`). Outra porta: `--port 4780` ou a variável `PANEL_PORT`. O servidor grava o PID em `state/panel.pid` e roda o coletor de uso ao subir e a cada 5 minutos.
 
 Sobre o uso do Claude:
-- a **participação de cada agente** vem das transcrições locais do Claude Code (`~/.claude`, ou `CLAUDE_CONFIG_DIR`), só das sessões que o hook atribuiu a um agente;
+- a **participação de cada item e de cada agente** vem das transcrições locais do Claude Code (`~/.claude`, ou `CLAUDE_CONFIG_DIR`), só das sessões que o hook ligou a um projeto cadastrado: a branch do item (`feature/issue-<n>`, `feature/pbi-<id>`) é o maestro do item, a branch de uma task (`task/<id>-…`) é o trabalhador dela, e as outras branches do projeto contam como "sem item";
 - o **% do plano** (5 h e semanal) vem do arquivo que o Maestri grava em `~/.maestri/usage/providers/.status.json` (ou `MAESTRI_DATA_DIR`). Fora do Maestri, essa parte aparece como indisponível, com o motivo.
 
 O painel não responde pendências (#10): o dono responde no terminal do maestro, e a resposta pelo painel e o aviso ao Cérebro (`PANEL_NOTIFY_BRAIN`) saíram.
@@ -373,9 +373,9 @@ npm test                                   # node panel/tests/run-all.js
 node panel/tests/run-all.js server       # só os arquivos com "server" no nome
 ```
 
-Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das tasks usa uma CLI do Maestri falsa, que só grava os argumentos. São 16 arquivos: coletor de uso, modelo novo (`test-flow.js`, `test-flow-tasks.js`, `test-flow-delivery.js`, PR, ajuste final, HML e conclusão, `test-flow-pending.js`, pendências, `test-flow-reports.js`, relatórios, achados e linha do tempo, e `test-companies.js`, empresas e projetos), hook do log bruto (`bruto.db`), tela Log (`test-log.js`), dicionário, desempenho (`maestro.db` com 20 mil eventos e `bruto.db` com 400 mil registros), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária), filtro de horário, verificador de merge (`test-merge-check.js`, com `gh`, `az` e REST do Azure DevOps falsos) e servidor. Eles conferem códigos, não frases. O `test-flow.js`, o `test-flow-tasks.js`, o `test-flow-delivery.js`, o `test-flow-pending.js` e o `test-flow-reports.js` seguem uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
+Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das tasks usa uma CLI do Maestri falsa, que só grava os argumentos. São 17 arquivos: coletor de uso, uso e agentes por item (`test-usage-agents.js`), modelo novo (`test-flow.js`, `test-flow-tasks.js`, `test-flow-delivery.js`, PR, ajuste final, HML e conclusão, `test-flow-pending.js`, pendências, `test-flow-reports.js`, relatórios, achados e linha do tempo, e `test-companies.js`, empresas e projetos), hook do log bruto (`bruto.db`), tela Log (`test-log.js`), dicionário, desempenho (`maestro.db` com 20 mil eventos e `bruto.db` com 400 mil registros), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária), filtro de horário, verificador de merge (`test-merge-check.js`, com `gh`, `az` e REST do Azure DevOps falsos) e servidor. Eles conferem códigos, não frases. O `test-flow.js`, o `test-flow-tasks.js`, o `test-flow-delivery.js`, o `test-flow-pending.js`, o `test-flow-reports.js` e o `test-usage-agents.js` (que também roda o hook e o coletor como processos) seguem uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
 
-Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, para os itens e as pendências, `node panel/tests/generate-mock-items.js` (usa a mesma projeção do servidor).
+Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, para os itens e as pendências, `node panel/tests/generate-mock-items.js` (usa a mesma projeção do servidor; o uso por item e por agente e os agentes ativos saem do coletor e da API de verdade, sobre um `bruto.db` temporário).
 
 ## Estrutura
 
@@ -393,7 +393,7 @@ painel-maestro/
 │   ├── pendencia.js          fila de pendências do modelo antigo (sai na #18)
 │   ├── hook-log.js           hook do Claude Code → log bruto (bruto.db)
 │   ├── raw-store.js          bruto.db (node:sqlite, WAL, retenção de 90 dias)
-│   ├── collect-usage.js      uso do plano e tokens por agente
+│   ├── collect-usage.js      uso do plano e tokens por item e por agente
 │   ├── time-window.js        filtro de horário para rotinas
 │   └── lib.js                biblioteca comum
 ├── panel/
@@ -401,6 +401,7 @@ painel-maestro/
 │   ├── api-items.js          itens do modelo novo (/api/items)
 │   ├── api-projects.js       empresas e projetos (/api/companies, /api/projects, mover de empresa)
 │   ├── merge-check.js        verificador de merge do PR (gh / REST do Azure DevOps) e "marcar como mergeado"
+│   ├── api-usage.js          uso e agentes por item (/api/usage, /api/agents)
 │   ├── legacy-records.js     nomes em inglês para os registros do modelo antigo
 │   ├── api-pending-decisions.js  pendências do modelo novo, só leitura (/api/pending-decisions)
 │   ├── index.html            a página compilada (não edite à mão)

@@ -1,20 +1,26 @@
 #!/usr/bin/env node
 'use strict';
-// collect-usage.js · Claude usage metrics (Maestri plan and tokens per agent)
+// collect-usage.js · Claude usage metrics (Maestri plan and tokens per item and per agent, #13)
 //
 // Two measures, always separate and with the source stated:
 //  1. Plan (whole account): % of the 5 h window and of the weekly one, reset time and data age.
 //     Source: <MAESTRI_DATA_DIR>/usage/providers/.status.json, the same file as the Maestri rings.
 //     Without the file, without the Claude provider or without the windows, the plan is
 //     "unavailable" with a reason code; no number is made up.
-//  2. Share of each agent: tokens from the Claude Code transcripts. Each transcript is attributed by
-//     the file state/sessions/<session_id>.json (agent + transcript_path, written by the hook),
-//     together with the subagents of the folder <session_id>/subagents next to it (any depth,
-//     agent-<id>.jsonl files). A session without owner is left out. Each message.id counts once,
-//     with the usage of the LAST line of that id (in subagents the first line carries partial usage).
+//  2. Share of each item and each agent: tokens from the Claude Code transcripts. Each transcript is attributed by
+//     the session the hook (bin/hook-log.js) linked to it in bruto.db (sessions table: project, item, task, cwd and
+//     transcript_path), together with the subagents of the folder <session_id>/subagents next to it (any depth,
+//     agent-<id>.jsonl files). Each message.id counts once, with the usage of the LAST line of that id (in
+//     subagents the first line carries partial usage). The agent of a session comes from its link:
+//       task/<id> branch                      the worker of task <id>    key <project>/<item>/task-<id>
+//       feature/pbi-<id>, feature/issue-<n>    the maestro of the item    key <project>/<item>/maestro
+//       any other branch of the project        no item ("other")          key <project>/-/other
+//     A task's item missing in the session (the task was not in maestro.db yet when the hook ran) is looked up in
+//     maestro.db on every round. The items are <project>/<item> (or <project>/- for the sessions without one).
+//     Only sessions inside a registered project exist in bruto.db: nothing else is counted.
 //
 // relative consumption = input + 5 × output + 1.25 × cache write + 0.1 × cache read
-// consumption %        = relative consumption of the agent ÷ sum of all in the period
+// consumption %        = relative consumption of the item (or agent) ÷ sum of all in the period
 // estimated plan %     = consumption % × plan % in the matching window
 //                        (window_5h → 5 h window; 7d → weekly; "today" has no window of its own)
 // Periods: window_5h (from reset_5h − 5 h until now; without a valid reset, the last 5 h),
@@ -31,8 +37,9 @@
 //   --json       prints usage.json to stdout (without the flag, prints a readable summary)
 //   --no-write   does not write state/usage.json nor state/usage-cache.json
 //   --now        pins "now" (tests; the MAESTRO_NOW variable also works)
-// Variables: MAESTRO_DIR (default: the folder above this script), MAESTRI_DATA_DIR
-//   (default ~/.maestri) and CLAUDE_CONFIG_DIR (default ~/.claude; only for sessions without transcript_path).
+// Variables: MAESTRO_DIR (the new model's data folder, with maestro.db and bruto.db; default ~/.painel-maestro),
+//   MAESTRI_DATA_DIR (default ~/.maestri) and CLAUDE_CONFIG_DIR (default ~/.claude; only for sessions without
+//   transcript_path). usage.json and the cache go to <MAESTRO_DIR>/state/.
 // Exit: 0 ok (even with the plan unavailable) · 2 invalid usage · 1 unexpected error.
 // Exports collect() for the panel server (panel/server.js).
 
@@ -41,6 +48,8 @@ const fsp = fs.promises;
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+const { openStore, flowDir } = require('./flow-store');
+const { openRawStore } = require('./raw-store');
 
 const TIME_ZONE = 'America/Sao_Paulo';
 const MIN_MS = 60 * 1000;
@@ -211,17 +220,14 @@ async function writeAtomic(file, content) {
 
 function paths(options = {}) {
   const env = options.env || process.env;
-  const maestroDir = path.resolve(options.maestroDir || env.MAESTRO_DIR || path.join(__dirname, '..'));
+  const dataDir = path.resolve(options.maestroDir || flowDir(env));
   const maestriDir = path.resolve(options.maestriDataDir || env.MAESTRI_DATA_DIR || path.join(os.homedir(), '.maestri'));
   const claudeDir = path.resolve(options.claudeDir || env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude'));
   return {
-    maestroDir, maestriDir, claudeDir,
+    dataDir, maestriDir, claudeDir,
     status: path.join(maestriDir, 'usage', 'providers', '.status.json'),
-    // The agent registry belongs to the old model (bin/registrar.js); it goes away in #18.
-    agents: path.join(maestroDir, 'registro', 'agentes.json'),
-    sessions: path.join(maestroDir, 'state', 'sessions'),
-    usage: path.join(maestroDir, 'state', 'usage.json'),
-    cache: path.join(maestroDir, 'state', 'usage-cache.json'),
+    usage: path.join(dataDir, 'state', 'usage.json'),
+    cache: path.join(dataDir, 'state', 'usage-cache.json'),
   };
 }
 
@@ -330,40 +336,57 @@ async function readPlan(file, now) {
 
 const RE_SESSION_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
-/** Sessions with an owner: [{id, agent, transcript}]. Counts the ownerless and unreadable ones in diag. */
-async function readSessions(dir, claudeDir, diag) {
-  let names;
-  try {
-    names = await withRetries(() => fsp.readdir(dir));
-  } catch (e) {
-    if (e && (e.code === 'ENOENT' || e.code === 'ENOTDIR')) return [];
-    throw e;
+/** Who a session's tokens belong to, from its link (see the header): agent and item keys. */
+function ownerOf(project, item, task) {
+  const role = task !== null ? 'worker' : item !== null ? 'maestro' : 'other';
+  const itemPart = item === null ? '-' : String(item);
+  return {
+    agent: `${project}/${itemPart}/${role === 'worker' ? `task-${task}` : role}`,
+    item: `${project}/${itemPart}`,
+    role, project_id: project, item_number: item, task_number: role === 'worker' ? task : null,
+  };
+}
+
+/**
+ * Sessions seen by the hook since sinceMs, from bruto.db: [{id, owner, transcript}]. Never creates a database:
+ * without bruto.db there is no session (diag.raw_log = 'missing'). A task without item is looked up in maestro.db.
+ */
+function readSessions(dir, claudeDir, sinceMs, diag) {
+  const raw = openRawStore({ dir, create: false });
+  if (!raw) {
+    diag.raw_log = 'missing';
+    return [];
   }
+  let rows;
+  try {
+    rows = raw.sessions({ sinceMs });
+  } finally {
+    raw.close();
+  }
+  diag.raw_log = 'found';
+  let flow;
+  const itemOfTask = (project, task) => {
+    if (flow === undefined) flow = openStore({ dir, readOnly: true });
+    return flow ? flow.itemOfTask(project, task) : null;
+  };
   const sessions = [];
-  for (const name of names.sort()) {
-    if (!/\.json$/i.test(name)) continue; // ignores .tmp and .lock
-    const r = await readJson(path.join(dir, name), { attempts: 2 });
-    const s = r.data;
-    if (!s || typeof s !== 'object' || Array.isArray(s)) {
-      if (r.exists) diag.unreadable_sessions++;
-      continue;
+  try {
+    for (const s of rows) {
+      const id = s.session_id;
+      let transcript = s.transcript_path ? path.resolve(s.transcript_path) : null;
+      if (!transcript && s.cwd && RE_SESSION_ID.test(id)) {
+        // Same folder rule as Claude Code: every character outside [A-Za-z0-9] becomes "-".
+        transcript = path.join(claudeDir, 'projects', s.cwd.replace(/[^A-Za-z0-9]/g, '-'), `${id}.jsonl`);
+      }
+      if (!transcript) {
+        diag.sessions_without_transcript++;
+        continue;
+      }
+      const item = s.task_number !== null && s.item_number === null ? itemOfTask(s.project_id, s.task_number) : s.item_number;
+      sessions.push({ id, owner: ownerOf(s.project_id, item, s.task_number), transcript });
     }
-    const agent = typeof s.agent === 'string' ? s.agent.trim() : '';
-    if (!agent) {
-      diag.sessions_without_owner++;
-      continue;
-    }
-    const id = typeof s.session_id === 'string' && s.session_id ? s.session_id : name.replace(/\.json$/i, '');
-    let transcript = typeof s.transcript_path === 'string' && s.transcript_path.trim() ? path.resolve(s.transcript_path.trim()) : null;
-    if (!transcript && typeof s.cwd === 'string' && s.cwd && RE_SESSION_ID.test(id)) {
-      // Same folder rule as Claude Code: every character outside [A-Za-z0-9] becomes "-".
-      transcript = path.join(claudeDir, 'projects', s.cwd.replace(/[^A-Za-z0-9]/g, '-'), `${id}.jsonl`);
-    }
-    if (!transcript) {
-      diag.sessions_without_transcript++;
-      continue;
-    }
-    sessions.push({ id, agent, transcript });
+  } finally {
+    if (flow) flow.close();
   }
   return sessions;
 }
@@ -576,8 +599,17 @@ function computePeriods(now, plan) {
   };
 }
 
-/** Dedups by message.id across all owned transcripts and sums per agent and period. */
-function aggregate(cache, owners, periods, plan, registered) {
+// The two lists of usage.json: each line carries its key and the link fields, then the sums of the period.
+const GROUPS = {
+  by_item: { key: (o) => o.item, fields: (o) => ({ key: o.item, project_id: o.project_id, item_number: o.item_number }) },
+  by_agent: {
+    key: (o) => o.agent,
+    fields: (o) => ({ key: o.agent, role: o.role, project_id: o.project_id, item_number: o.item_number, task_number: o.task_number }),
+  },
+};
+
+/** Dedups by message.id across all owned transcripts and sums per item and per agent, in each period. */
+function aggregate(cache, owners, periods, plan) {
   const msgs = new Map();
   for (const [key, e] of Object.entries(cache.files)) {
     const owner = owners.get(key);
@@ -586,56 +618,58 @@ function aggregate(cache, owners, periods, plan, registered) {
       if (!Array.isArray(m) || m.length < 5) continue;
       const current = msgs.get(id);
       // The same message copied into another file (forked session) has the same usage: counts once.
-      if (!current || m[0] > current.m[0] || (m[0] === current.m[0] && m[2] > current.m[2])) msgs.set(id, { m, agent: owner.agent });
+      if (!current || m[0] > current.m[0] || (m[0] === current.m[0] && m[2] > current.m[2])) msgs.set(id, { m, owner: owner.owner });
     }
   }
-  const sumPeriod = (start, end) => {
-    const sums = new Map(registered.map((slug) => [slug, newTotal()]));
+  const sumPeriod = (start, end, keyOf) => {
+    const sums = new Map();
     const total = newTotal();
-    for (const { m, agent } of msgs.values()) {
+    for (const { m, owner } of msgs.values()) {
       if (m[0] < start || m[0] > end + MIN_MS) continue;
-      if (!sums.has(agent)) sums.set(agent, newTotal());
-      for (const s of [sums.get(agent), total]) {
+      const k = keyOf(owner);
+      if (!sums.has(k)) sums.set(k, { owner, s: newTotal() });
+      for (const s of [sums.get(k).s, total]) {
         s.input += m[1]; s.output += m[2]; s.cache_write += m[3]; s.cache_read += m[4]; s.messages++;
       }
     }
     return { sums, total };
   };
-  const byAgent = {};
+  const out = { by_item: {}, by_agent: {} };
   const totals = {};
   for (const name of PERIODS) {
     const { start, end } = periods[name];
-    const { sums, total } = sumPeriod(start, end);
-    const totalConsumption = relativeConsumption(total);
     const planPct = !plan.available ? null : name === 'window_5h' ? plan.window_5h_pct : name === '7d' ? plan.weekly_pct : null;
     // "7d": the share for the plan % is measured in the plan week (the same base as weekly_pct);
     // the bars stay on the 7 calendar days.
-    const planBase = name === '7d' && periods[name].plan ? sumPeriod(periods[name].plan.start, periods[name].plan.end) : null;
-    const planConsumption = planBase ? relativeConsumption(planBase.total) : null;
-    for (const slug of planBase ? planBase.sums.keys() : []) if (!sums.has(slug)) sums.set(slug, newTotal());
-    byAgent[name] = [...sums].map(([agent, s]) => {
-      const consumption = relativeConsumption(s);
-      const fraction = totalConsumption > 0 ? consumption / totalConsumption : 0;
-      let planFraction = fraction;
-      const extra = {};
-      if (planBase) {
-        const sp = planBase.sums.get(agent);
-        planFraction = planConsumption > 0 && sp ? relativeConsumption(sp) / planConsumption : 0;
-        extra.plan_week_consumption_pct = round(100 * planFraction, 1);
-      }
-      return Object.assign({
-        agent,
-        registered: registered.includes(agent),
-        input: s.input, output: s.output, cache_write: s.cache_write, cache_read: s.cache_read,
-        messages: s.messages,
-        relative_consumption: round(consumption, 1),
-        consumption_pct: round(100 * fraction, 1),
-        estimated_plan_pct: typeof planPct === 'number' ? round(planFraction * planPct, 1) : null,
-      }, extra);
-    }).sort((a, b) => b.relative_consumption - a.relative_consumption || a.agent.localeCompare(b.agent));
-    totals[name] = Object.assign({}, total, { relative_consumption: round(totalConsumption, 1) });
+    const week = name === '7d' ? periods[name].plan : null;
+    for (const [group, g] of Object.entries(GROUPS)) {
+      const { sums, total } = sumPeriod(start, end, g.key);
+      const totalConsumption = relativeConsumption(total);
+      const planBase = week ? sumPeriod(week.start, week.end, g.key) : null;
+      const planConsumption = planBase ? relativeConsumption(planBase.total) : null;
+      if (planBase) for (const [k, v] of planBase.sums) if (!sums.has(k)) sums.set(k, { owner: v.owner, s: newTotal() });
+      out[group][name] = [...sums].map(([k, { owner, s }]) => {
+        const consumption = relativeConsumption(s);
+        const fraction = totalConsumption > 0 ? consumption / totalConsumption : 0;
+        let planFraction = fraction;
+        const extra = {};
+        if (planBase) {
+          const sp = planBase.sums.get(k);
+          planFraction = planConsumption > 0 && sp ? relativeConsumption(sp.s) / planConsumption : 0;
+          extra.plan_week_consumption_pct = round(100 * planFraction, 1);
+        }
+        return Object.assign(g.fields(owner), {
+          input: s.input, output: s.output, cache_write: s.cache_write, cache_read: s.cache_read,
+          messages: s.messages,
+          relative_consumption: round(consumption, 1),
+          consumption_pct: round(100 * fraction, 1),
+          estimated_plan_pct: typeof planPct === 'number' ? round(planFraction * planPct, 1) : null,
+        }, extra);
+      }).sort((a, b) => b.relative_consumption - a.relative_consumption || a.key.localeCompare(b.key));
+      totals[name] = Object.assign({}, total, { relative_consumption: round(totalConsumption, 1) });
+    }
   }
-  return { byAgent, totals, messages: msgs.size };
+  return { byItem: out.by_item, byAgent: out.by_agent, totals, messages: msgs.size };
 }
 
 // ---------- collection ----------
@@ -653,30 +687,25 @@ async function collect(options = {}) {
   const write = options.write !== false;
   const warnings = [];
   const diag = {
-    sessions: 0, sessions_without_owner: 0, unreadable_sessions: 0, sessions_without_transcript: 0,
+    raw_log: null, sessions: 0, sessions_without_transcript: 0,
     transcripts: 0, missing_transcripts: 0, old_transcripts: 0, restarted_transcripts: 0,
     bytes_read: 0, lines_with_usage: 0, invalid_lines: 0, messages: 0, cache: null, duration_ms: 0,
   };
 
   const plan = await readPlan(p.status, now);
-  const registry = await readJson(p.agents);
-  if (registry.error) warnings.push({ code: 'registry_unreadable', error: registry.error });
-  const registered = registry.data && Array.isArray(registry.data.agentes)
-    ? registry.data.agentes.filter((a) => a && typeof a.slug === 'string' && a.slug).map((a) => a.slug)
-    : [];
-
   const { cache, fresh } = await loadCache(p.cache, diag);
   let changed = fresh;
 
-  // Owner of each file in this round (the session rules; if the hook fixes the agent, the attribution follows).
-  const sessions = await readSessions(p.sessions, p.claudeDir, diag);
+  // Owner of each file in this round (the session's link rules; if the hook relinks it, the attribution follows).
+  // A session the hook has not seen within the retention has nothing in the periods.
+  const sessions = readSessions(p.dataDir, p.claudeDir, t - RETENTION_MS, diag);
   diag.sessions = sessions.length;
   const owners = new Map();
   for (const s of sessions) {
     const files = [s.transcript, ...(await listSubagents(subagentsFolder(s.transcript)))];
     for (const f of files) {
       const k = fileKey(f);
-      if (!owners.has(k)) owners.set(k, { agent: s.agent, file: f });
+      if (!owners.has(k)) owners.set(k, { owner: s.owner, file: f });
     }
   }
   for (const k of Object.keys(cache.files)) {
@@ -703,10 +732,10 @@ async function collect(options = {}) {
   }
 
   const periods = computePeriods(now, plan);
-  const ag = aggregate(cache, owners, periods, plan, registered);
+  const ag = aggregate(cache, owners, periods, plan);
   diag.messages = ag.messages;
   diag.duration_ms = Date.now() - startedAt;
-  if (diag.sessions_without_owner) warnings.push({ code: 'sessions_without_agent', count: diag.sessions_without_owner });
+  if (diag.raw_log === 'missing') warnings.push({ code: 'raw_log_missing' });
   if (diag.invalid_lines) warnings.push({ code: 'invalid_transcript_lines', count: diag.invalid_lines });
 
   const usage = {
@@ -722,6 +751,7 @@ async function collect(options = {}) {
       else if (name === '7d') x.plan_basis = null;
       return [name, x];
     })),
+    by_item: ag.byItem,
     by_agent: ag.byAgent,
     totals: ag.totals,
     collection: diag,
@@ -741,12 +771,12 @@ async function collect(options = {}) {
 // ---------- command line (messages for people in Portuguese, ADR 0004) ----------
 
 const HELP = `Uso: node collect-usage.js [--json] [--no-write] [--now <ISO>]
-  Coleta o uso do Claude: o % do plano (Maestri) e a participação de cada agente
-  (transcrições do Claude Code), e grava state/usage.json.
+  Coleta o uso do Claude: o % do plano (Maestri) e a participação de cada item e de cada
+  agente (transcrições das sessões que o hook ligou no bruto.db), e grava state/usage.json.
   --json       imprime o usage.json no stdout
   --no-write   não grava state/usage.json nem state/usage-cache.json
   --now        fixa o "agora" (testes), ex.: 2026-10-08T15:50:00-03:00
-Variáveis: MAESTRO_DIR, MAESTRI_DATA_DIR (padrão ~/.maestri), CLAUDE_CONFIG_DIR (padrão ~/.claude).`;
+Variáveis: MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DIR (padrão ~/.maestri), CLAUDE_CONFIG_DIR (padrão ~/.claude).`;
 
 /** Portuguese text of a reason/warning code, for the CLI summary only. */
 function describe(c, ref) {
@@ -768,11 +798,10 @@ function describe(c, ref) {
     case 'window_missing': return `O Maestri não trouxe a janela ${win(c.window)}.`;
     case 'window_without_pct': return `A janela ${win(c.window)} veio sem o percentual usado.`;
     case 'window_reset': return `A janela ${win(c.window)} reiniciou às ${shortTime(c.reset_at, ref)}, depois da última leitura do Maestri${c.read_at ? ` (${shortTime(c.read_at, ref)})` : ''}; o % novo aparece na próxima leitura.`;
-    case 'sessions_without_agent': return `${c.count} sessão(ões) sem agente em state/sessions ficaram de fora.`;
+    case 'raw_log_missing': return 'Ainda não há log bruto (bruto.db): o hook não gravou nenhuma sessão de projeto cadastrado.';
     case 'invalid_transcript_lines': return `${c.count} linha(s) de transcrição ilegível(is) ignorada(s).`;
     case 'transcript_unreadable': return `Não consegui ler ${c.file}: ${c.error}`;
     case 'transcript_read_interrupted': return `Leitura interrompida em ${c.file}: ${c.error}`;
-    case 'registry_unreadable': return `registro/agentes.json: ${err(c.error)}`;
     default: return c.code;
   }
 }
@@ -812,17 +841,19 @@ function readableSummary(usage, wrote) {
     L.push(`Plano: indisponível. ${describe(p.reason, ref)}`);
   }
   for (const w of p.warnings || []) L.push(`  Aviso: ${describe(w, ref)}`);
-  const slugs = [...new Set(PERIODS.flatMap((x) => usage.by_agent[x].map((l) => l.agent)))];
-  L.push('Por agente, % do consumo (janela de 5 h · hoje · 7 dias):');
-  if (!slugs.length) L.push('  nenhum agente com sessão registrada');
-  for (const s of slugs) {
-    const v = PERIODS.map((x) => (usage.by_agent[x].find((l) => l.agent === s) || {}).consumption_pct);
-    L.push(`  ${s.padEnd(24)} ${v.map(pct).join(' · ')}`);
+  for (const [list, title] of [['by_item', 'Por item'], ['by_agent', 'Por agente']]) {
+    const keys = [...new Set(PERIODS.flatMap((x) => usage[list][x].map((l) => l.key)))];
+    L.push(`${title}, % do consumo (janela de 5 h · hoje · 7 dias):`);
+    if (!keys.length) L.push('  nenhuma sessão com consumo');
+    for (const k of keys) {
+      const v = PERIODS.map((x) => (usage[list][x].find((l) => l.key === k) || {}).consumption_pct);
+      L.push(`  ${k.padEnd(32)} ${v.map(pct).join(' · ')}`);
+    }
   }
   const d = usage.collection;
   const mb = (d.bytes_read / 1048576).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
   const cache = { new: 'novo', reused: 'reaproveitado', recreated: 'recriado' }[d.cache] || d.cache;
-  L.push(`Sessões: ${d.sessions} com dono, ${d.sessions_without_owner} sem dono · transcrições: ${d.transcripts} (${d.missing_transcripts} ainda sem arquivo) · ${mb} MB lidos · cache ${cache}`);
+  L.push(`Sessões: ${d.sessions} · transcrições: ${d.transcripts} (${d.missing_transcripts} ainda sem arquivo) · ${mb} MB lidos · cache ${cache}`);
   for (const w of usage.warnings) L.push(`Aviso: ${describe(w, ref)}`);
   L.push(wrote ? 'Gravado em state/usage.json' : 'Nada gravado (--no-write)');
   return L.join('\n') + '\n';

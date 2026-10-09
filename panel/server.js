@@ -19,6 +19,7 @@
 //         Companies and projects (api-projects.js): GET /api/companies, GET /api/projects[?company=],
 //         POST /api/projects/<id>/company {company}; GET /api/items also takes ?company= and ?project=.
 //         Merge check (merge-check.js, #11): POST /api/items/<project>/<number>/merged ("mark as merged").
+//         Usage and agents per item (api-usage.js, #13): GET /api/usage, GET /api/agents (?company=&project=).
 // The API never returns sentences: reasons, warnings and errors are codes with parameters
 // ({code, ...params}) and the page translates them (ADR 0004). Old-model records (events and pending
 // decisions written by bin/registrar.js and bin/pendencia.js) go out with English field names
@@ -47,6 +48,7 @@ const pendingApi = require(path.join(__dirname, 'api-pending-decisions.js'));
 const logApi = require(path.join(__dirname, 'api-log.js'));
 const projectsApi = require(path.join(__dirname, 'api-projects.js'));
 const mergeCheck = require(path.join(__dirname, 'merge-check.js'));
+const usageApi = require(path.join(__dirname, 'api-usage.js'));
 const { eventToApi, pendingDecisionToApi } = require(path.join(__dirname, 'legacy-records.js'));
 const { asDate, isoSP, spDay, readJson, readText, withRetries, writeAtomic } = collector.util;
 
@@ -878,16 +880,6 @@ function cleanUsage(usage) {
   return Object.assign({}, usage, { by_agent: ba });
 }
 
-function usageLine(usage, slug, period) {
-  const list = usage && obj(usage.by_agent) && Array.isArray(usage.by_agent[period]) ? usage.by_agent[period] : [];
-  const l = list.find((x) => x && x.agent === slug);
-  if (!l) return { consumption_pct: 0, relative_consumption: 0, estimated_plan_pct: null, input: 0, output: 0, cache_write: 0, cache_read: 0, messages: 0 };
-  const r = Object.assign({}, l);
-  delete r.agent;
-  delete r.registered;
-  return r;
-}
-
 function flowRecord(data, id) {
   const d = obj(data);
   if (!d) return null;
@@ -990,6 +982,8 @@ function createContext(cfg) {
   };
   ctx.setPort(cfg.port);
   ctx.mergeCheck = mergeCheck.createMergeCheck({ config: cfg.mergeCheck, env: cfg.env, items: ctx.items, now: ctx.now, log: ctx.log, logError: ctx.logError });
+  // usage.json lives with the new model's data (maestro.db, bruto.db): the collector reads the sessions there (#13).
+  ctx.data.p.usage = path.join(ctx.items.dir, 'state', 'usage.json');
   /** Runs the usage collector; calls during a collection wait for the same collection. */
   ctx.runCollector = (trigger) => {
     if (ctx.currentRun) return ctx.currentRun;
@@ -998,7 +992,7 @@ function createContext(cfg) {
       const startedAt = Date.now();
       try {
         const usage = await collector.collect({
-          maestroDir: cfg.maestroDir,
+          maestroDir: ctx.items.dir,
           maestriDataDir: cfg.env.MAESTRI_DATA_DIR,
           claudeDir: cfg.env.CLAUDE_CONFIG_DIR,
           env: cfg.env,
@@ -1009,7 +1003,7 @@ function createContext(cfg) {
         if (trigger !== 'periodic') {
           const pl = usage.plan;
           const plan = pl.available ? `plano 5 h ${pl.window_5h_pct ?? '—'}% · semanal ${pl.weekly_pct ?? '—'}%` : 'plano indisponível';
-          ctx.log(`Uso coletado (${trigger}): ${plan} · ${usage.collection.sessions} sessão(ões) com dono · ${ctx.lastRun.duration_ms} ms`);
+          ctx.log(`Uso coletado (${trigger}): ${plan} · ${usage.collection.sessions} sessão(ões) · ${ctx.lastRun.duration_ms} ms`);
         }
       } catch (e) {
         ctx.lastRun = { at: isoSP(new Date()), trigger, ok: false, duration_ms: Date.now() - startedAt, error: e && e.message ? e.message : String(e) };
@@ -1100,7 +1094,6 @@ async function buildState(ctx) {
       events_today: events.reduce((n, e) => n + (e.agente === a.slug && e._day === today ? 1 : 0), 0),
       open_flows: (openByAgent.get(a.slug) || new Set()).size,
       last_raw: lastRaw,
-      usage: usage ? { window_5h: usageLine(usage, a.slug, 'window_5h'), today: usageLine(usage, a.slug, 'today'), '7d': usageLine(usage, a.slug, '7d') } : null,
     });
   }
   const known = new Set(agentList.map((a) => agentFolder(a.slug)));
@@ -1160,9 +1153,21 @@ async function buildState(ctx) {
     pending_decisions: pendingDecisions,
     usage: usageAnswer,
     events: events.slice(0, STATE_EVENT_LIMIT).map(tableFields),
-    collector: { interval_min: COLLECTOR_INTERVAL_MS / MIN_MS, active: cfg.collectorActive, last: ctx.lastRun, running: !!ctx.currentRun },
+    collector: collectorState(ctx),
     warnings,
   };
+}
+
+function collectorState(ctx) {
+  return { interval_min: COLLECTOR_INTERVAL_MS / MIN_MS, active: ctx.cfg.collectorActive, last: ctx.lastRun, running: !!ctx.currentRun };
+}
+
+// ---------- GET /api/usage and /api/agents (#13) ----------
+
+async function usageAnswer(ctx, query) {
+  const t = ctx.now().getTime();
+  const file = await ctx.data.json(ctx.data.p.usage);
+  return usageApi.usageAnswer(ctx.items, file, query, { plan: (p) => planNow(p, t), collector: collectorState(ctx) });
 }
 
 // ---------- GET /api/events ----------
@@ -1625,6 +1630,8 @@ const FIXED_ROUTES = {
   '/api/raw': { name: 'raw', methods: ['GET', 'HEAD'] },
   '/api/companies': { name: 'companies', methods: ['GET', 'HEAD'] },
   '/api/projects': { name: 'projects', methods: ['GET', 'HEAD'] },
+  '/api/usage': { name: 'usage', methods: ['GET', 'HEAD'] },
+  '/api/agents': { name: 'agents', methods: ['GET', 'HEAD'] },
 };
 
 function findRoute(urlPath) {
@@ -1754,6 +1761,10 @@ async function route(ctx, req, res) {
     }
     case 'raw':
       return respondJson(req, res, 200, logApi.listRaw(ctx.raw, query));
+    case 'usage':
+      return respondJson(req, res, 200, await usageAnswer(ctx, query));
+    case 'agents':
+      return respondJson(req, res, 200, usageApi.listAgents(ctx.items, ctx.raw, await ctx.data.json(ctx.data.p.usage), query));
     case 'recalculate': {
       const run = await ctx.runCollector('recalculate');
       const state = await buildState(ctx);
@@ -1777,7 +1788,7 @@ function createHandler(ctx) {
   return (req, res) => {
     route(ctx, req, res).catch((e) => {
       const known = e instanceof RequestError || e instanceof pendingApi.PendingFilterError || e instanceof logApi.LogError
-        || e instanceof projectsApi.ProjectsError;
+        || e instanceof projectsApi.ProjectsError || e instanceof usageApi.UsageApiError;
       const status = known ? e.status : 500;
       if (status === 500) ctx.logError(`Erro em ${req.method} ${String(req.url).slice(0, 200)}: ${e && e.stack ? e.stack : e}`);
       if (res.headersSent) {

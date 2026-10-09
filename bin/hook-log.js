@@ -15,9 +15,8 @@
 // Entry in bruto.db (bin/raw-store.js): {at, t, session_id, project_id, item_number, task_number, branch,
 //   hook_event, tool?, input?, ok?, output_summary?, error?, duration_ms?, prompt?, detail?, agent_id?,
 //   agent_type?, cwd, version?}.
-// Until #13 the usage collector still reads the old model's session files: on SessionStart, UserPromptSubmit and
-// Stop the hook keeps state/sessions/<session_id>.json (under the old data root) with an owner label derived from
-// the link ("<project>/<item>" for the maestro, "<project>/task-<id>" for a worker, "<project>" otherwise).
+// The session row (sessions table: link, cwd, transcript_path, last seen) is what the usage collector
+// (bin/collect-usage.js) reads to split the tokens by item and by agent (#13).
 
 // ---- total silence and guaranteed exit with code 0
 process.stdout.write = () => true;
@@ -38,10 +37,8 @@ setTimeout(leave, 1500); // total time limit: never holds Claude Code
 const INPUT_LIMIT = 600;
 const OUTPUT_LIMIT = 300;
 const PROMPT_LIMIT = 1000;
-const LOCK_WAIT_MS = 300;
 const READ_WAIT_MS = 300;  // maestro.db busy: gives up after this
 const WRITE_WAIT_MS = 500; // bruto.db busy: gives up after this
-const SESSION_EVENTS = ['SessionStart', 'UserPromptSubmit', 'Stop'];
 
 const RE_TASK_BRANCH = /^task\/(\d{1,9})(?:[-_/.].*)?$/i;
 const RE_ITEM_BRANCH = /^feature\/(?:pbi|issue)-(\d{1,9})(?:[-_/.].*)?$/i;
@@ -52,13 +49,6 @@ function branchLink(branch) {
   if (task) return { item: null, task: Number(task[1]) };
   const item = RE_ITEM_BRANCH.exec(branch || '');
   return { item: item ? Number(item[1]) : null, task: null };
-}
-
-/** Owner label of the session for the usage collector (old model, until #13). */
-function ownerLabel(project, item, task) {
-  if (task !== null) return `${project}/task-${task}`;
-  if (item !== null) return `${project}/${item}`;
-  return project;
 }
 
 /** "input" of the line: command (Bash/PowerShell), file + size (Read/Write/Edit) or truncated JSON. */
@@ -214,26 +204,6 @@ function handle(text) {
     raw.record(entry, { cwd, transcript_path: transcript });
   } finally {
     raw.close();
-  }
-
-  // 4) Session file of the old model for the usage collector (until #13). Never waits for a lock longer than ~300 ms.
-  if (sid && SESSION_EVENTS.includes(hookEvent)) {
-    lib.updateSession(sid, (current) => {
-      const a = current && typeof current === 'object' && !Array.isArray(current) ? current : {};
-      return {
-        ...a,
-        session_id: sid,
-        agent: ownerLabel(link.project, link.item, link.task),
-        project: link.project,
-        item_number: link.item,
-        task_number: link.task,
-        branch: link.branch,
-        cwd,
-        transcript_path: transcript || a.transcript_path || null,
-        started_at: a.started_at || at,
-        seen_at: at,
-      };
-    }, { timeoutMs: LOCK_WAIT_MS, sync: false, cleanTemps: false }); // the session is derived state: no fsync
   }
 }
 

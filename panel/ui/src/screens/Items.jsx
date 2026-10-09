@@ -180,7 +180,8 @@ function ItemPage({ project, number: itemNumber }) {
   );
 }
 
-function eventText(e) {
+/** One line about an item's event (also the "last event" of the Agents screen). */
+export function eventText(e) {
   const p = obj(e.payload) || {};
   if (e.type === 'item-started') return t('items.events.itemStarted', { stage: stageName(p.stage) });
   if (e.type === 'stage-changed') return t('items.events.stageChanged', { stage: stageName(p.stage) });

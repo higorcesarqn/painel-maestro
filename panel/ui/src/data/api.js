@@ -51,6 +51,9 @@ export const readLogEvent = (id) => api(`/api/log/${encodeURIComponent(id)}`);
 export const readPendingDecisions = (params) => api(`/api/pending-decisions?${new URLSearchParams(params).toString()}`);
 // "Mark as merged" (#11): records the PR merge by hand when the merge check cannot read it. Returns { item }.
 export const markItemMerged = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}/merged`, { method: 'POST' });
+// Usage and agents per item (#13). filters: the company selector's companyFilter ({ company }) and/or { project }.
+export const readUsage = (filters) => api(withQuery('/api/usage', filters));
+export const readAgents = (filters) => api(withQuery('/api/agents', filters));
 
 // Companies and projects (#6). The company selector reaches each list as ?company=<id> (see companyFilter).
 export const readCompanies = () => api('/api/companies');

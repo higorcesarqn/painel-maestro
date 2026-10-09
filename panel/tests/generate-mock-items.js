@@ -5,13 +5,20 @@
 // for fictitious companies, projects and events. The answers come out of the server's own code (panel/api-items.js,
 // api-projects.js, api-pending-decisions.js and the projection in bin/flow-projection.js) over an in-memory store,
 // so the mock never drifts from the API shape. Run: node panel/tests/generate-mock-items.js
+// Usage and agents per item (#13): fictitious sessions linked to the items' maestros and the tasks' workers go into a
+// temporary bruto.db with their transcripts; the real collector (bin/collect-usage.js) reads them with the plan of
+// tests/mock-state.json, and the real API (panel/api-usage.js) writes the answers of GET /api/usage and /api/agents.
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { listItems, itemDetail } = require('../api-items.js');
 const { listPendingDecisions } = require('../api-pending-decisions.js');
 const { listCompanies, listProjects } = require('../api-projects.js');
+const { usageAnswer, listAgents } = require('../api-usage.js');
 const { STAGES } = require('../../bin/flow-store.js');
+const { openRawStore } = require('../../bin/raw-store.js');
+const { collect } = require('../../bin/collect-usage.js');
 
 const OUT = path.join(__dirname, 'mock-items.json');
 const GENERATED_AT = '2026-10-09T10:24:30-03:00';
@@ -278,17 +285,81 @@ const store = {
 };
 const source = { store: () => store };
 
-const { items } = listItems(source);
-const details = {};
-for (const it of items) details[it.key] = itemDetail(source, it.project.id, it.number).item;
-const pending = listPendingDecisions(source);
-// Companies and projects (#6): the answers of GET /api/companies and GET /api/projects (the page filters them by company).
-const { companies: companyList } = listCompanies(source);
-const { projects: projectList } = listProjects(source, new URLSearchParams());
-fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, companies: companyList, projects: projectList, items, details, pending_decisions: pending }, null, 2)}\n`);
-const taskStates = new Set(Object.values(details).flatMap((d) => d.tasks.map((x) => x.state)));
-const pd = pending.pending_decisions;
-console.log(`mock-items.json: ${items.length} itens em ${new Set(items.map((i) => i.stage)).size} etapas; tasks em ${taskStates.size} estados (${[...taskStates].join(", ")}); `
-  + `${pd.length} pendências de ${new Set(pd.map((p) => p.kind)).size} tipos (${Object.entries(pending.counts.status).map(([s, n]) => `${n} ${s}`).join(', ')})`);
-const all = Object.values(details);
-console.log(`  ${all.reduce((n, d) => n + d.reports.length, 0)} relatórios e ${all.reduce((n, d) => n + d.findings.length, 0)} achados`);
+// ---------- usage and agents per item (#13) ----------
+
+// [session, project, item, task (worker) | null (maestro or no item), last seen, [[moment, input, output, cache write, cache read], ...]]
+const SESSIONS = [
+  ['s-3112-maestro', 'portal', 3112, null, '2026-10-09T10:15:00', [['2026-10-08T10:10:00', 900, 4200, 52000, 380000], ['2026-10-09T09:55:00', 700, 3100, 41000, 520000]]],
+  ['s-3113', 'portal', 3112, 3113, '2026-10-08T13:20:00', [['2026-10-08T12:30:00', 1500, 14000, 120000, 1900000]]],
+  ['s-3114', 'portal', 3112, 3114, '2026-10-09T10:22:00', [['2026-10-08T16:00:00', 1100, 9000, 90000, 1200000], ['2026-10-09T09:10:00', 1800, 16500, 140000, 2600000]]],
+  ['s-3115', 'portal', 3112, 3115, '2026-10-09T08:45:00', [['2026-10-09T08:30:00', 1300, 11000, 95000, 1700000]]],
+  ['s-3116', 'portal', 3112, 3116, '2026-10-09T10:06:00', [['2026-10-09T10:00:00', 400, 2600, 30000, 310000]]],
+  ['s-3100-maestro', 'portal', 3100, null, '2026-10-08T09:10:00', [['2026-10-06T10:00:00', 600, 5200, 60000, 700000], ['2026-10-08T09:05:00', 300, 1800, 22000, 260000]]],
+  ['s-2875-maestro', 'billing-api', 2875, null, '2026-10-08T18:15:00', [['2026-10-08T15:30:00', 1000, 8800, 70000, 1100000]]],
+  ['s-48-maestro', 'storefront', 48, null, '2026-10-09T09:45:00', [['2026-10-09T09:41:00', 500, 3900, 36000, 500000]]],
+  ['s-5-maestro', 'painel-maestro', 5, null, '2026-10-09T07:40:00', [['2026-10-09T07:32:00', 400, 2500, 28000, 240000]]],
+  ['s-5-worker', 'painel-maestro', 5, 5, '2026-10-09T10:20:00', [['2026-10-09T08:15:00', 2100, 18000, 160000, 3100000], ['2026-10-09T10:12:00', 900, 7200, 64000, 1300000]]],
+  ['s-scratch', 'scratch', null, null, '2026-10-09T10:05:00', [['2026-10-09T10:02:00', 200, 900, 12000, 90000]]],
+];
+
+function assistant(id, at, [i, o, cw, cr]) {
+  return JSON.stringify({
+    type: 'assistant', timestamp: new Date(at).toISOString(),
+    message: { id, role: 'assistant', usage: { input_tokens: i, output_tokens: o, cache_creation_input_tokens: cw, cache_read_input_tokens: cr } },
+  });
+}
+
+/** The /api/usage and /api/agents answers of the mock: the real collector over a temporary bruto.db and transcripts. */
+async function usageAndAgents(source) {
+  const plan = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-state.json'), 'utf8')).usage.plan;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mock-usage-'));
+  const raw = openRawStore({ dir });
+  try {
+    const status = path.join(dir, 'maestri', 'usage', 'providers', '.status.json');
+    fs.mkdirSync(path.dirname(status), { recursive: true });
+    fs.writeFileSync(status, JSON.stringify({ providers: [{ id: 'claude', enabled: true, state: 'ready', plan: 'max', lastSuccessAt: plan.updated_at, meters: [{ id: 'plan', windows: [
+      { id: 'five_hour', usedPercent: plan.window_5h_pct, resetsAt: plan.reset_5h, durationSeconds: 18000 },
+      { id: 'seven_day', usedPercent: plan.weekly_pct, resetsAt: plan.weekly_reset, durationSeconds: 604800 },
+    ] }] }], updatedAt: plan.updated_at }));
+    for (const [id, project, item, task, seen, messages] of SESSIONS) {
+      const transcript = path.join(dir, 'claude', 'projects', 'mock', `${id}.jsonl`);
+      fs.mkdirSync(path.dirname(transcript), { recursive: true });
+      fs.writeFileSync(transcript, `${messages.map(([at, ...u], n) => assistant(`${id}-${n}`, `${at}-03:00`, u)).join('\n')}\n`);
+      const branch = task !== null ? `task/${task}` : item !== null ? `feature/issue-${item}` : 'main';
+      raw.record({ at: `${seen}-03:00`, t: Date.parse(`${seen}-03:00`), session_id: id, project_id: project, item_number: item, task_number: task, branch, hook_event: 'PostToolUse', cwd: 'C:/mock' },
+        { transcript_path: transcript, cwd: 'C:/mock' });
+    }
+    const data = await collect({ maestroDir: dir, maestriDataDir: path.join(dir, 'maestri'), claudeDir: path.join(dir, 'claude'), env: {}, now: GENERATED_AT, write: false });
+    data.plan.file = plan.source.file;
+    data.collection.duration_ms = 42;
+    const file = { exists: true, data, error: null };
+    const collector = { interval_min: 5, active: true, last: { at: GENERATED_AT, trigger: 'periodic', ok: true, duration_ms: 42, error: null }, running: false };
+    const none = new URLSearchParams();
+    return { usage: usageAnswer(source, file, none, { collector }), agents: listAgents(source, { store: () => raw }, file, none) };
+  } finally {
+    raw.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+(async () => {
+  const { items } = listItems(source);
+  const details = {};
+  for (const it of items) details[it.key] = itemDetail(source, it.project.id, it.number).item;
+  const pending = listPendingDecisions(source);
+  // Companies and projects (#6): the answers of GET /api/companies and GET /api/projects (the page filters them by company).
+  const { companies: companyList } = listCompanies(source);
+  const { projects: projectList } = listProjects(source, new URLSearchParams());
+  const { usage, agents } = await usageAndAgents(source);
+  fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, companies: companyList, projects: projectList, items, details, pending_decisions: pending, usage, agents }, null, 2)}
+`);
+  const taskStates = new Set(Object.values(details).flatMap((d) => d.tasks.map((x) => x.state)));
+  const pd = pending.pending_decisions;
+  console.log(`mock-items.json: ${items.length} itens em ${new Set(items.map((i) => i.stage)).size} etapas; tasks em ${taskStates.size} estados (${[...taskStates].join(", ")}); `
+    + `${pd.length} pendências de ${new Set(pd.map((p) => p.kind)).size} tipos (${Object.entries(pending.counts.status).map(([s, n]) => `${n} ${s}`).join(', ')})`);
+  const all = Object.values(details);
+  console.log(`  ${all.reduce((n, d) => n + d.reports.length, 0)} relatórios e ${all.reduce((n, d) => n + d.findings.length, 0)} achados; ${agents.agents.length} agentes ativos; uso de ${usage.by_item['7d'].length} itens`);
+})().catch((e) => {
+  console.error(e);
+  process.exitCode = 1;
+});

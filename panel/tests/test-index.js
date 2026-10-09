@@ -81,14 +81,15 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
     'api(`/api/pending-decisions?${', "api(withQuery('/api/items', filters))",
     'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', '`/api/log?', 'api(`/api/log/${encodeURIComponent(id)}`)',
     "api('/api/companies')", "api(withQuery('/api/projects', filters))",
-    "api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } })"]) {
+    "api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } })",
+    "api(withQuery('/api/usage', filters))", "api(withQuery('/api/agents', filters))"]) {
     assert.ok(api.includes(route), `the page calls ${route}`);
   }
   for (const route of ['/api/state', '/api/events?', '/api/event/', '/api/recalculate', '/api/pending-decisions?', '/api/items', '/api/log?', '/api/log/',
-    '/api/companies', '/api/projects']) {
+    '/api/companies', '/api/projects', '/api/usage', '/api/agents']) {
     assert.ok(js.includes(route), `the build calls ${route}`);
   }
-  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions|items|items\/|log|log\/|companies|projects|projects\/)$/;
+  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions|items|items\/|log|log\/|companies|projects|projects\/|usage|agents)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
   assert.ok(/export const REFRESH_MS = 20000;/.test(api), 'refreshes every 20 s');
@@ -205,6 +206,20 @@ suite.test('mock-items.json: reports by task (ok and blocked) and findings of ev
   assert.ok(/reviewEventText/.test(source['screens/Items.jsx']), 'the timeline names the report and finding events');
 });
 
+suite.test('mock-items.json: usage per item and per agent and the active agents (#13), from the real collector and API', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const u = m.usage;
+  assert.strictEqual(u.plan.window_5h_pct, 37, 'the plan of mock-state.json');
+  for (const period of ['window_5h', 'today', '7d']) assert.ok(u.by_item[period].length >= 3 && u.by_agent[period].length >= 4, period);
+  assert.ok(new Set(u.by_item['7d'].map((l) => l.project.company && l.project.company.id)).size >= 3, 'items of several companies');
+  assert.ok(u.by_item['7d'].some((l) => l.item === null), 'a session outside any item');
+  assert.deepStrictEqual([...new Set(u.by_agent['7d'].map((l) => l.role))].sort(), ['maestro', 'other', 'worker']);
+  const agents = m.agents.agents;
+  assert.ok(agents.some((a) => a.role === 'maestro') && agents.some((a) => a.role === 'worker' && a.task && a.task.state === 'blocked'), 'maestros and workers');
+  assert.ok(agents.some((a) => a.last_activity_at && a.usage) && agents.some((a) => !a.last_activity_at), 'with and without sessions');
+  assert.ok(js.includes('/api/usage') && js.includes('/api/agents'), 'the screens read the usage and agents API');
+});
+
 let port = null;
 let pid = null;
 let root = null;
@@ -239,7 +254,7 @@ suite.test('the real server on a fake root (mock + hostile data) delivers what t
   assert.strictEqual(st.pending_decisions[0].severity, 'critica', 'open ones first, by severity');
   assert.ok(st.pending_decisions.some((x) => x.id === 'P-0099'), 'the hostile pending decision is in the list');
   for (const a of st.agents) {
-    for (const k of ['slug', 'name', 'color', 'responsibility', 'status', 'model', 'effort', 'skills', 'connected_to', 'events_today', 'open_flows', 'last_raw', 'usage']) assert.ok(k in a, `agent.${k}`);
+    for (const k of ['slug', 'name', 'color', 'responsibility', 'status', 'model', 'effort', 'skills', 'connected_to', 'events_today', 'open_flows', 'last_raw']) assert.ok(k in a, `agent.${k}`);
     assert.ok(a.last_event && a.last_event.id, 'last_event.id to open the modal');
   }
   const ev0 = st.events[0];
