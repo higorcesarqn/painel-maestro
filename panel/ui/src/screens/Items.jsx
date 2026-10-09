@@ -111,7 +111,7 @@ function ItemList() {
                     onKeyDown={(e) => { if (e.key === 'Enter') open(it); }}>
                     <td class="col-ref mono">{txt(it.tracker_ref)}</td>
                     <td title={txt(it.title)}>{txt(it.title)}</td>
-                    <td class="col-stage"><StageBadge stage={it.stage} /></td>
+                    <td class="col-stage"><StageBadge stage={it.stage} doneState={it.done_state} /></td>
                     <td class="col-project" title={companyName(it)}>{projectName(it)}<span class="muted"> · {companyName(it)}</span></td>
                     <td class="col-updated" title={dateTime(it.updated_at)}>{age(it.updated_at)}</td>
                   </tr>
@@ -125,8 +125,10 @@ function ItemList() {
   );
 }
 
-function StageBadge({ stage }) {
-  return <Badge tone={stage === 'done' ? 'ok' : 'blue'}>{stageName(stage)}</Badge>;
+/** The stage; a done item also says the state its tracker uses for done, as the project declared it (never "Done"). */
+function StageBadge({ stage, doneState }) {
+  const declared = stage === 'done' && txt(doneState);
+  return <Badge tone={stage === 'done' ? 'ok' : 'blue'}>{declared ? t('items.doneInTracker', { stage: stageName(stage), state: declared }) : stageName(stage)}</Badge>;
 }
 
 function ItemPage({ project, number: itemNumber }) {
@@ -159,7 +161,7 @@ function ItemPage({ project, number: itemNumber }) {
           <h2 class="item-title">{txt(item.title)}</h2>
           <div class="item-current">
             <span class="label">{t('items.currentStage')}</span>
-            <StageBadge stage={item.stage} />
+            <StageBadge stage={item.stage} doneState={item.done_state} />
             <span class="muted small">{t('items.since', { when: dateTime(item.stage_since), age: age(item.stage_since) })}</span>
           </div>
         </div>

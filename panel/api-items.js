@@ -42,6 +42,9 @@ function summary(project, state) {
     tracker_ref: trackerRef(project.tracker, state.number),
     title: state.title,
     stage: state.stage,
+    // The state the project's tracker uses for a done item ("Committed", "Closed"...; null when not declared): the
+    // page shows it next to Concluído, never replacing it by "Done" (#1, story 7).
+    done_state: project.done_state || null,
     stage_since: state.stage_since,
     started_at: state.started_at,
     updated_at: state.updated_at,

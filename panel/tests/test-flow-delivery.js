@@ -142,15 +142,10 @@ suite.test('the whole end of the flow: Final adjustment → PR ready → Merge �
 
 suite.test('a project without HML validation skips that stage: Merge → Done, and an HML result is refused', async () => {
   const r = buildRoot('no-hml');
-  // Arrange only: no subcommand declares a project's stages yet, so the project is registered straight in the store.
-  const { openStore, STAGES } = require(path.join(REPO, 'bin', 'flow-store.js'));
-  const store = openStore({ dir: r.data });
-  store.transaction(() => {
-    store.ensureCompany('personal', 'Pessoal', '2026-10-01T09:00:00-03:00');
-    store.addProject({ id: 'widgets', name: 'Widgets', companyId: 'personal', tracker: 'github', stages: STAGES.filter((s) => s !== 'hml_validation'),
-      remote: 'github.com/acme/widgets', at: '2026-10-01T09:00:00-03:00' });
-  });
-  store.close();
+  // The project declares its stages (no HML) and the state its tracker uses for done items.
+  ok(flow(r, ['company', 'add', 'personal', '--name', 'Pessoal']));
+  ok(flow(r, ['project', 'add', 'widgets', '--name', 'Widgets', '--company', 'personal', '--done-state', 'Committed',
+    '--stages', 'specification,implementation,final_adjustment,pr_ready,merge,done']));
   ok(flow(r, ['item', 'start', '40', '--title', 'Sem HML', '--stage', 'implementation']));
   ok(flow(r, ['pr', '40', 'ready', '--url', 'https://github.com/acme/widgets/pull/41']));
   ok(flow(r, ['pr', '40', 'merged']));
@@ -159,6 +154,8 @@ suite.test('a project without HML validation skips that stage: Merge → Done, a
   await withServer(r, async (get) => {
     const item = (await get('/api/items/widgets/40')).item;
     assert.strictEqual(item.project.company.name, 'Pessoal', 'the registered project was used');
+    assert.strictEqual(item.done_state, 'Committed', 'the page shows the tracker state the project declared, never "Done"');
+    assert.deepStrictEqual((await get('/api/items')).items.map((i) => [i.key, i.stage, i.done_state]), [['widgets/40', 'done', 'Committed']]);
     assert.strictEqual(item.stage, 'done');
     assert.strictEqual(item.hml, null);
     assert.deepStrictEqual(item.stages.map((s) => [s.id, s.status]), [

@@ -5,7 +5,7 @@
 .items-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 4px 18px 10px; }
 .items-error { padding: 4px 18px 10px; color: var(--danger); font-size: 13px; }
 table.items th.col-ref, table.items td.col-ref { width: 110px; }
-table.items .col-stage { width: 160px; }
+table.items .col-stage { width: 240px; }
 table.items .col-project { width: 260px; }
 table.items .col-updated { width: 130px; }
 table.items td.col-ref { color: var(--text); }

@@ -144,6 +144,7 @@ export default {
     itemLabel: 'Item {key}',
     projectOf: '{project} · {company}',
     currentStage: 'Etapa atual',
+    doneInTracker: '{stage} · {state} no tracker',
     since: 'desde {when} ({age})',
     flowTitle: 'Etapas do fluxo',
     flowInfo: 'As etapas que este projeto usa, em ordem. As anteriores à atual contam como concluídas.',
