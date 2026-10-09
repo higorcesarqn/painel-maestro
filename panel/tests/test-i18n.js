@@ -39,9 +39,9 @@ function leafKeys(o, prefix = '', acc = []) {
   return acc;
 }
 
-/** Codes the server writes ({code: '...'}) in the API, the pending decision answer and the usage collector. */
+/** Codes the server writes ({code: '...'}) in the API (pending decisions included) and the usage collector. */
 function serverCodes() {
-  const files = ['panel/server.js', 'panel/api-pendencias.js', 'panel/api-log.js', 'bin/collect-usage.js'];
+  const files = ['panel/server.js', 'panel/api-pending-decisions.js', 'panel/api-log.js', 'bin/collect-usage.js'];
   const codes = new Set();
   for (const f of files) {
     for (const m of fs.readFileSync(path.join(REPO, f), 'utf8').matchAll(/\bcode: '([a-z][a-z0-9_]*)'/g)) codes.add(m[1]);
@@ -104,7 +104,7 @@ suite.test('the relative times and durations keep the texts of before', async ()
 
 suite.test('every code the server can return has a pt-BR translation', () => {
   const codes = [...serverCodes()];
-  assert.ok(codes.length >= 60, `codes found in the server: ${codes.length}`);
+  assert.ok(codes.length >= 50, `codes found in the server: ${codes.length}`);
   const missing = codes.filter((c) => !i18n.has(`codes.${c}`));
   assert.deepStrictEqual(missing, [], `codes without translation: ${missing.join(', ')}`);
   // A code made only of other codes needs them to say anything.
@@ -136,10 +136,10 @@ suite.test('server codes keep the texts the page showed before', () => {
   assert.strictEqual(c({ code: 'plan_read_failed', state: 'error', error: 'timeout' }), 'O Maestri não conseguiu ler o uso do Claude (estado "error": timeout).');
   assert.strictEqual(c({ code: 'event_lines_ignored', file: 'logs/eventos/2026-10.jsonl', count: 2 }),
     'logs/eventos/2026-10.jsonl: 2 linha(s) ilegível(is) ou sem id válido ignorada(s)');
-  assert.strictEqual(c({ code: 'pending_decision_not_open', id: 'P-0001', status: 'respondida' }), 'P-0001 já está respondida. Para mudar a resposta, fale com o Cérebro.');
-  assert.strictEqual(c({ code: 'brain_notice_off', variable: 'PANEL_NOTIFY_BRAIN' }), 'aviso desligado (PANEL_NOTIFY_BRAIN=0)');
-  assert.strictEqual(c({ code: 'brain_notice_off' }), 'desligado');
   assert.strictEqual(c({ code: 'maestri_claude_provider' }), 'provedor Claude do Maestri');
+  assert.strictEqual(c({ code: 'invalid_filter', param: 'severity', value: 'alta', allowed: ['critical', 'high', 'normal', 'low'] }),
+    'Filtro "severity" inválido: "alta" (use critical, high, normal ou low).');
+  assert.strictEqual(c({ code: 'invalid_filter', param: 'project', value: 'X Y', allowed: null }), 'Filtro "project" inválido: "X Y".');
   assert.ok(/^Host não permitido\. Abra o painel em http:\/\/127\.0\.0\.1:4777\.$/.test(c({ code: 'host_not_allowed', port: 4777 })));
 });
 

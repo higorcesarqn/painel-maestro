@@ -13,6 +13,7 @@
  *     stages: [{ id, status: 'done' | 'current' | 'pending', entered_at }],   the project's flow, in order
  *     started_at, updated_at, stage_since       moments taken from the events
  *     tasks: [TaskState]                        the item's tasks, in the order of the task graph
+ *     pending_decisions: [PendingDecisionState] in the order they were opened (see the end of this file)
  *   }
  *
  *   TaskState = {
@@ -50,6 +51,10 @@ const EVENT_TYPES = {
   taskDispatched: 'task-dispatched',
   taskStatus: 'task-status',
   taskIntegrated: 'task-integrated',
+  // pending decisions (#10)
+  pendingDecisionOpened: 'pending-decision-opened',
+  pendingDecisionResolved: 'pending-decision-resolved',
+  pendingDecisionCanceled: 'pending-decision-canceled',
 };
 const TASK_STATES = ['waiting', 'working', 'review', 'blocked', 'integrated', 'out'];
 /** What a worker posts (the states of "maestri floor status") → the state of the task. */
@@ -166,6 +171,7 @@ function projectItem(events, project) {
     stage_since: stageSince,
     tasks: projectTasks(own, start.item_number, title),
     ...delivery.result(stage, stageSince),
+    pending_decisions: projectPendingDecisions(own),
   };
 }
 
@@ -279,4 +285,80 @@ function deliveryState() {
   return { apply, result };
 }
 
-module.exports = { projectItem, trackerRef, EVENT_TYPES, TASK_STATES, WORKER_STATES, trackerUrl, PR_STATES, FINAL_ADJUSTMENT_OUTCOMES };
+// ---------- pending decisions (#10) ----------
+//
+//   PendingDecisionState = {
+//     id,                       the id of its pending-decision-opened event (unique in maestro.db)
+//     kind,                     PENDING_DECISION_KINDS
+//     severity,                 PENDING_DECISION_SEVERITIES (unknown → normal)
+//     status,                   open | resolved | canceled
+//     title, context, options: [text], recommendation,
+//     task_number,              the task it is about, or null (the item as a whole)
+//     maestri: { workspace, terminal },   where the owner answers (the maestro's Maestri terminal)
+//     opened_at, opened_by: { role, name },
+//     closed_at, closed_by: { role, name } | null,
+//     resolution,               'decision' (resolved with the owner's decision) | 'task_integrated' | null
+//     decision,                 what the owner decided (pending-decision-resolved), or null
+//     reason,                   why it was canceled (pending-decision-canceled), or null
+//   }
+//
+// Events:
+//   pending-decision-opened    task_number?, payload { kind, severity, title, context, options, recommendation,
+//                              maestri: { workspace, terminal } }
+//   pending-decision-resolved  payload { pending_decision: id, decision }
+//   pending-decision-canceled  payload { pending_decision: id, reason }
+//   task-integrated            also resolves the open task_review of that task (the review and the OK to integrate are
+//                              the same pending decision): resolution 'task_integrated', no extra event is written.
+// Only an open pending decision changes; a second resolution or a cancel after it is ignored.
+
+const PENDING_DECISION_KINDS = ['task_review', 'worker_blocked', 'decision', 'finding', 'parallelize', 'hml'];
+const PENDING_DECISION_SEVERITIES = ['critical', 'high', 'normal', 'low'];
+const PENDING_DECISION_STATUSES = ['open', 'resolved', 'canceled'];
+
+function projectPendingDecisions(list) {
+  const byId = new Map();
+  const agentOf = (e) => ({ role: (e.agent && e.agent.role) || null, name: (e.agent && e.agent.name) || null });
+  const close = (p, e, fields) => Object.assign(p, { closed_at: e.at, closed_by: agentOf(e) }, fields);
+  for (const e of list) {
+    const p = payloadOf(e);
+    if (e.type === EVENT_TYPES.pendingDecisionOpened) {
+      const maestri = p.maestri && typeof p.maestri === 'object' ? p.maestri : {};
+      byId.set(e.id, {
+        id: e.id,
+        kind: textOrNull(p.kind),
+        severity: PENDING_DECISION_SEVERITIES.includes(p.severity) ? p.severity : 'normal',
+        status: 'open',
+        title: textOrNull(p.title),
+        context: textOrNull(p.context),
+        options: Array.isArray(p.options) ? p.options.filter((o) => typeof o === 'string' && o.trim()) : [],
+        recommendation: textOrNull(p.recommendation),
+        task_number: isNumber(e.task_number) ? e.task_number : null,
+        maestri: { workspace: textOrNull(maestri.workspace), terminal: textOrNull(maestri.terminal) },
+        opened_at: e.at,
+        opened_by: agentOf(e),
+        closed_at: null,
+        closed_by: null,
+        resolution: null,
+        decision: null,
+        reason: null,
+      });
+    } else if (e.type === EVENT_TYPES.pendingDecisionResolved || e.type === EVENT_TYPES.pendingDecisionCanceled) {
+      const pd = byId.get(p.pending_decision);
+      if (!pd || pd.status !== 'open') continue;
+      if (e.type === EVENT_TYPES.pendingDecisionResolved) close(pd, e, { status: 'resolved', resolution: 'decision', decision: textOrNull(p.decision) });
+      else close(pd, e, { status: 'canceled', reason: textOrNull(p.reason) });
+    } else if (e.type === EVENT_TYPES.taskIntegrated && isNumber(e.task_number)) {
+      for (const pd of byId.values()) {
+        if (pd.status === 'open' && pd.kind === 'task_review' && pd.task_number === e.task_number) {
+          close(pd, e, { status: 'resolved', resolution: 'task_integrated' });
+        }
+      }
+    }
+  }
+  return [...byId.values()];
+}
+
+module.exports = {
+  projectItem, trackerRef, EVENT_TYPES, TASK_STATES, WORKER_STATES, trackerUrl, PR_STATES, FINAL_ADJUSTMENT_OUTCOMES,
+  PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES, PENDING_DECISION_STATUSES,
+};

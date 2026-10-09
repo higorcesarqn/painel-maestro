@@ -23,9 +23,46 @@ const WORKER_STATES = {
 
 const PR_STATES = { draft: 'em rascunho', ready: 'pronto', merged: 'mergeado' };
 
+// Pending decisions (#10): kinds and severities of "flow pending open".
+const PENDING_KINDS = {
+  task_review: 'revisão de task',
+  worker_blocked: 'trabalhador bloqueado',
+  decision: 'decisão',
+  finding: 'achado que depende do dono',
+  parallelize: 'paralelizar tasks',
+  hml: 'Validação HML',
+};
+const PENDING_SEVERITIES = { critical: 'crítica', high: 'alta', normal: 'normal', low: 'baixa' };
+
+const PENDING = {
+  kinds: PENDING_KINDS,
+  severities: PENDING_SEVERITIES,
+  done: {
+    opened: (p) => `Pendência P-${p.id} (${PENDING_KINDS[p.kind] || p.kind}) aberta no item ${p.key} (${p.ref})${p.task ? `, task ${p.task}` : ''}.`
+      + (p.workspace || p.terminal ? ` Responder em: ${[p.workspace && `workspace "${p.workspace}"`, p.terminal && `terminal "${p.terminal}"`].filter(Boolean).join(', ')}.` : ' Sem workspace/terminal do Maestri: informe --workspace e --terminal para o dono saber onde responder.'),
+    resolved: 'Pendência P-{id} do item {key} resolvida; a decisão ficou na linha do tempo do item.',
+    canceled: 'Pendência P-{id} do item {key} cancelada.',
+  },
+  errors: {
+    missingKind: 'falta o tipo da pendência (--kind): {allowed}.',
+    invalidKind: 'tipo de pendência inválido: "{value}" (use {allowed}).',
+    invalidSeverity: 'severidade inválida: "{value}" (use {allowed}).',
+    missingTitle: 'falta o título da pendência (--title "..." ou "title" no JSON).',
+    tooManyOptions: 'opções demais (máximo {max}).',
+    reviewNeedsTask: 'a pendência de revisão (task_review) precisa da task: --task <número>.',
+    textTooLong: 'o campo "{field}" tem {length} caracteres; o máximo é {max}.',
+    missingId: 'falta o id da pendência (ex.: flow pending resolve P-7 --decision "...").',
+    invalidId: 'id de pendência inválido: "{value}" (use P-<número> ou só o número, como o flow pending open mostrou).',
+    missingDecision: 'falta a decisão do dono (--decision "..." ou "decision" no JSON).',
+    notFound: 'a pendência P-{id} não existe no projeto "{project}". Rode o comando no repositório do projeto da pendência.',
+    notOpen: (p) => `a pendência P-${p.id} já está ${p.status === 'canceled' ? 'cancelada' : 'resolvida'}${p.at ? ` (desde ${p.at})` : ''}.`,
+  },
+};
+
 module.exports = {
   stages: STAGES,
   workerStates: WORKER_STATES,
+  pending: PENDING,
   companies: {
     unassigned: 'Sem empresa',
   },
@@ -206,6 +243,20 @@ STATUS (trabalhador)
       com esta branch ou, senão, task/<task>-… (--item resolve quando a task existe em mais de um item).
       Papel padrão: worker. Se o maestri falhar, o evento é gravado e o comando sai com 1.
 
+PENDÊNCIAS (maestro)
+  node bin/flow.js pending open <número> --kind <tipo> --title "..." [--task <task>] [--severity <severidade>]
+        [--context "..."] [--option "A: ..."]... [--recommendation "..."] [--workspace "<workspace>"] [--terminal "<terminal>"]
+      Abre uma pendência para o dono, ligada ao item e, opcional, a uma task; mostra o id (P-<n>).
+      Tipos: ${Object.entries(PENDING_KINDS).map(([id, name]) => `${id} (${name})`).join(', ')}.
+      Severidades: ${Object.entries(PENDING_SEVERITIES).map(([id, name]) => `${id} (${name})`).join(', ')}; padrão normal.
+      Onde o dono responde: --workspace/--terminal, senão o terminal do Maestri onde o comando roda
+      (MAESTRI_WORKSPACE_NAME ou MAESTRI_WORKSPACE_ID, MAESTRI_TERMINAL_NAME ou MAESTRI_TERMINAL_ID).
+      A revisão de uma task (task_review, exige --task) se resolve sozinha quando a task é integrada.
+  node bin/flow.js pending resolve <id> --decision "..."
+      Resolve a pendência com o que o dono decidiu; a decisão fica na linha do tempo do item.
+  node bin/flow.js pending cancel <id> [--reason "..."]
+      Cancela a pendência.
+
 OPÇÕES DO AGENTE
   --role maestro|worker|owner     quem grava (padrão: maestro; no status, worker)
   --agent "<nome>"                codinome do agente (opcional)
@@ -215,6 +266,8 @@ JSON PELA ENTRADA PADRÃO (texto com acentos, aspas e várias linhas chega intac
   Campos: number (o item), title, stage, role, agent; task, tasks ([{number, title, blocked_by, out}]), floor,
   worker, branch, sha, sha_before, text, state, progress (tasks e status); state, url, pr, branch (pr);
   action, outcome, summary (final-adjustment); passed, failed, blocked, card, summary (hml).
+  Pendências: id, kind, severity, title, context, options (lista de textos), recommendation, workspace, terminal,
+  decision, reason.
   ex.: node bin/flow.js item start --json - < item.json
 
 ETAPAS

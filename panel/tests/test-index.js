@@ -78,14 +78,14 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   new vm.Script(js, { filename: 'index.html#script' });
   const api = source['data/api.js'];
   for (const route of ["api('/api/state')", '`/api/events?', '`/api/event/${encodeURIComponent(id)}`', "api('/api/recalculate', { method: 'POST' })",
-    'api(`/api/pending-decisions/${encodeURIComponent(p.id)}/answer`', "api('/api/items')",
+    'api(`/api/pending-decisions?${', "api('/api/items')",
     'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', '`/api/log?', 'api(`/api/log/${encodeURIComponent(id)}`)']) {
     assert.ok(api.includes(route), `the page calls ${route}`);
   }
-  for (const route of ['/api/state', '/api/events?', '/api/event/', '/api/recalculate', '/api/pending-decisions/', '/api/items', '/api/log?', '/api/log/']) {
+  for (const route of ['/api/state', '/api/events?', '/api/event/', '/api/recalculate', '/api/pending-decisions?', '/api/items', '/api/log?', '/api/log/']) {
     assert.ok(js.includes(route), `the build calls ${route}`);
   }
-  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions\/|items|items\/|log|log\/)$/;
+  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions|items|items\/|log|log\/)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
   assert.ok(/export const REFRESH_MS = 20000;/.test(api), 'refreshes every 20 s');
@@ -136,6 +136,13 @@ suite.test('mock-items.json: items in different stages, both trackers, several c
   assert.ok(/RE_ITEM = \/\^\(\[a-z0-9\]\[a-z0-9-\]\*\)\\\/\(\[1-9\]\\d\*\)\$\//.test(source['screens/Items.jsx']), 'Items reads <project>/<number> from the address');
   assert.ok(/goTo\('items', it\.key\)/.test(source['screens/Items.jsx']), 'a click on an item opens #items/<key>');
   assert.ok(js.includes('mock-items.json'), 'the test mode reads mock-items.json');
+  // Pending decisions (#10): open and closed ones of every kind, with where to answer.
+  const pd = m.pending_decisions.pending_decisions;
+  assert.deepStrictEqual([...new Set(pd.map((p) => p.kind))].sort(), ['decision', 'finding', 'hml', 'parallelize', 'task_review', 'worker_blocked']);
+  assert.deepStrictEqual([...new Set(pd.map((p) => p.status))].sort(), ['canceled', 'open', 'resolved']);
+  assert.ok(pd.some((p) => p.resolution === 'task_integrated') && pd.some((p) => p.resolution === 'decision' && p.decision), 'resolved by integration and by decision');
+  assert.ok(pd.filter((p) => p.status === 'open').every((p) => p.maestri.workspace && p.maestri.terminal), 'open ones say where to answer');
+  assert.ok(js.includes('/api/pending-decisions'), 'the Pending decisions screen reads the new model');
 });
 
 suite.test('links of the item page only go to the trackers (github.com, dev.azure.com, *.visualstudio.com)', async () => {

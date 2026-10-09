@@ -47,28 +47,5 @@ export const readItem = (project, number) => api(`/api/items/${encodeURIComponen
 // New model Log: the events of maestro.db with filters and, for one event, the raw commands of bruto.db linked to it.
 export const readLog = (params) => api(`/api/log?${new URLSearchParams(params).toString()}`);
 export const readLogEvent = (id) => api(`/api/log/${encodeURIComponent(id)}`);
-
-// Option letter at the start of an option of the old model ("A: ...", or the Portuguese word for "option" + "B) ...");
-// the word is data written by the agents, in Portuguese.
-export const OPTION_LETTER = /^\s*(?:op[\u00e7c][a\u00e3]o\s+)?([A-Z])\s*[:).\-\u2013]\s*/i;
-
-/**
- * Owner's answer to a pending decision: { option: 'A' | null, text }. The server writes it (pendencia.js responder)
- * and notifies the Brain in its terminal. Returns { ok, pending_decision, brain_notice: { sent, to | reason } }.
- * With ?mock=1 nothing leaves the page: the answer is simulated over the pending decision itself (p).
- */
-export async function answerPendingDecision(p, { option, text }) {
-  if (MOCK) {
-    const options = Array.isArray(p.options) ? p.options : [];
-    const fromOption = option
-      ? options.find((o) => { const m = OPTION_LETTER.exec(o); return m && m[1].toUpperCase() === option; }) || options[option.charCodeAt(0) - 65]
-      : null;
-    const answer = fromOption ? (text ? t('pending.mockAnswer', { option: fromOption, comment: text }) : fromOption) : text;
-    return {
-      ok: true,
-      pending_decision: { ...p, status: 'respondida', answer, answered_at: new Date().toISOString() },
-      brain_notice: { sent: false, reason: t('pending.mockNotice') },
-    };
-  }
-  return api(`/api/pending-decisions/${encodeURIComponent(p.id)}/answer`, { method: 'POST', body: { option: option || null, text: text || '' } });
-}
+// Pending decisions of the new model, read only: params { company, project, severity, status }.
+export const readPendingDecisions = (params) => api(`/api/pending-decisions?${new URLSearchParams(params).toString()}`);

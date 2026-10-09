@@ -10,7 +10,7 @@ No workspace, um agente principal, o **Cérebro Principal**, recebe os pedidos d
 
 Todo pedido abre um **fluxo** (`F-AAAAMMDD-NNNN`), e tudo que acontece nele vira um **evento** num log: quem fez, de onde veio o pedido, o tipo, o resultado e a **direção**, isto é, o caminho que o agente tomou e por quê. Em paralelo, hooks do Claude Code gravam o **log bruto** de cada agente (prompts, comandos, ferramentas usadas), que o painel liga ao evento certo pelo id do fluxo ou pela janela de tempo.
 
-As decisões que só o dono pode tomar entram numa **fila de pendências**, sempre com contexto, opções e uma recomendação. O dono responde pelo próprio painel, e a resposta fica gravada na pendência e vira evento no fluxo de origem.
+As decisões que só o dono pode tomar entram numa **fila de pendências**, sempre com contexto, opções e uma recomendação. O painel mostra a fila e diz em qual workspace e terminal do Maestri responder; o dono responde ao maestro ali, e o maestro grava a decisão, que fica na linha do tempo do item.
 
 O painel junta tudo isso num lugar só e não usa IA nem gasta tokens: ele só lê arquivos.
 
@@ -20,7 +20,7 @@ O menu tem um grupo, Workspace (fonte em `panel/ui/src/data/context.js`):
 
 - **Itens** (modelo novo): a lista de itens (Issues do GitHub e PBIs do Azure DevOps) com a etapa de cada um, e a **página do item**, com a etapa atual, as etapas do fluxo e a linha do tempo. A página de um item tem endereço fixo, `http://127.0.0.1:4777/#items/<projeto>/<número>` (ex.: `#items/cidax/3100`), que o portal do Maestri abre direto.
 - **Visão geral:** números do topo (pendências por severidade, uso do plano, eventos de hoje), atividade e resultados de 7 dias por agente, último evento de cada agente e atividade recente. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) com os motivos: hooks parados, arquivos ilegíveis.
-- **Pendências:** a fila do dono, com filtros por severidade e status; cada pendência mostra contexto, opções e recomendação, e o dono responde ali mesmo (opção + comentário, Ctrl+Enter envia).
+- **Pendências** (modelo novo, só leitura): o que espera uma decisão do dono, com filtros por empresa, severidade e status; cada pendência mostra o item, a task, contexto, opções, recomendação e **onde responder** (workspace e terminal do maestro no Maestri) e, depois de fechada, a decisão. O dono responde no terminal do maestro, não no painel.
 - **Log** (modelo novo): os eventos do fluxo de cada item, do mais recente ao mais antigo, com filtros por período, empresa, projeto, item e tipo. Clicar numa linha abre o **evento**: o que foi gravado e os comandos brutos das sessões do Claude Code ligadas a ele (pela branch da sessão e pela janela de tempo).
 - **Agentes:** um cartão por agente (último evento, eventos de hoje, fluxos abertos, consumo) e a ficha completa num modal, com o log bruto de cada um.
 - **Uso:** o plano do Claude (janela de 5 h e semanal, com o horário de reinício) e a participação de cada agente no consumo de tokens.
@@ -37,7 +37,7 @@ cd painel-maestro
 npm run demo
 ```
 
-Abra **http://127.0.0.1:4795/?mock=1**. O `?mock=1` faz a página ler dados fictícios de `panel/tests/mock-*.json` (um workspace "Exemplo" com dois agentes, pendências, eventos e comandos brutos, e, na tela Itens, itens de três empresas e de "Sem empresa" em todas as etapas, no GitHub e no Azure DevOps); uma faixa azul avisa que são dados de teste. Para parar, Ctrl+C.
+Abra **http://127.0.0.1:4795/?mock=1**. O `?mock=1` faz a página ler dados fictícios de `panel/tests/mock-*.json` (um workspace "Exemplo" com dois agentes, pendências, eventos e comandos brutos, e, na tela Itens, itens de três empresas e de "Sem empresa" em todas as etapas, no GitHub e no Azure DevOps, e, na tela Pendências, pendências abertas e fechadas dos seis tipos); uma faixa azul avisa que são dados de teste. Para parar, Ctrl+C.
 
 O servidor da demonstração aceita só as portas 4790 a 4799 (padrão 4795). Outra porta: `npm run demo -- 4794`.
 
@@ -49,7 +49,7 @@ Para ver o `server.js` real (a API inteira, com os filtros e o modal calculados 
 node panel/tests/build-mock-root.js
 R=panel/tests/tmp/mock-root
 MAESTRO_DIR=$R MAESTRI_DATA_DIR=$R/maestri CLAUDE_CONFIG_DIR=$R/claude \
-  PANEL_NOW=2026-10-09T10:24:30-03:00 PANEL_COLLECTOR=0 PANEL_NOTIFY_BRAIN=0 \
+  PANEL_NOW=2026-10-09T10:24:30-03:00 PANEL_COLLECTOR=0 \
   node panel/server.js --port 4793
 ```
 
@@ -104,6 +104,22 @@ node .../bin/flow.js item done 12                                               
 - **Links** (`--url`, `--card`): só `https` de `github.com`, `dev.azure.com` ou `*.visualstudio.com`; outro endereço é recusado (código 2), e a página só mostra links desses domínios.
 - **Etapas do projeto:** um evento cuja etapa o projeto não usa é recusado (por exemplo, `hml` num projeto sem Validação HML, que vai de Merge direto a Concluído).
 - **JSON:** os mesmos campos (`state`, `url`, `pr`, `branch`; `action`, `outcome`, `summary`; `passed`, `failed`, `blocked`, `card`, `summary`) vêm por `--json -`.
+
+Pendências (#10): o maestro abre, resolve e cancela; o dono responde no terminal do maestro e o painel só mostra.
+
+```
+node .../bin/flow.js pending open 12 --kind task_review --task 13 --severity high --title "Revisar e integrar a task 13" \
+     --context "..." --option "A: Integrar" --option "B: Pedir ajuste" --recommendation "A: testes verdes"   # mostra o id: P-<n>
+node .../bin/flow.js pending open --json - < pendencia.json   # {"number": 12, "kind": "decision", "title": "...", "context": "...", "options": ["A: ...", "B: ..."], ...}
+node .../bin/flow.js pending resolve P-7 --decision "A, com a ressalva X"   # a decisão fica na linha do tempo do item
+node .../bin/flow.js pending cancel P-7 [--reason "..."]
+```
+
+- **Tipos** (`--kind`): `task_review` revisão de task (a revisão e o OK para integrar são a mesma pendência; exige `--task`), `worker_blocked` trabalhador bloqueado, `decision` decisão, `finding` achado que depende do dono, `parallelize` paralelizar tasks, `hml` cenário de Validação HML reprovado ou bloqueado. **Severidades** (`--severity`): `critical`, `high`, `normal` (padrão), `low`. **Status:** `open`, `resolved`, `canceled`.
+- **Onde responder:** `--workspace`/`--terminal`; sem eles, o terminal do Maestri onde o comando roda (`MAESTRI_WORKSPACE_NAME` ou `MAESTRI_WORKSPACE_ID`, `MAESTRI_TERMINAL_NAME` ou `MAESTRI_TERMINAL_ID`) e, para o workspace, o do projeto.
+- **Integração resolve a revisão:** `task integrate` resolve sozinha a pendência `task_review` aberta daquela task (calculado dos eventos, sem gravar evento a mais).
+- O id da pendência (`P-<n>`) é o do evento que a abriu; `resolve` e `cancel` rodam no repositório do projeto dela. Pendência já fechada, id inexistente, tipo ou severidade inválidos: **código 2**.
+- **API:** `GET /api/pending-decisions?company=&project=&severity=&status=` (cada filtro aceita uma lista separada por vírgula) devolve `{pending_decisions, counts, companies}`; ver `panel/README.md`.
 
 - **Projeto:** sai do `git remote origin` da pasta atual (também dentro do worktree de um floor; as formas SSH e HTTPS do mesmo repositório dão o mesmo projeto). Um repositório sem cadastro é cadastrado sozinho na empresa **"Sem empresa"** (id e nome tirados do nome do repositório; GitHub ou Azure DevOps pelo endereço) e o comando segue. A chave de um item é `projeto/número` (`cidax/3100`); o número aparece como no tracker: `PBI 3100` no Azure DevOps, `#12` no GitHub.
 - **Etapas** (ids em inglês, nomes em português): `specification` Especificação, `implementation` Implementação, `final_adjustment` Ajuste final, `pr_ready` PR pronto, `merge` Merge, `hml_validation` Validação HML, `done` Concluído. Etapa fora da lista do projeto é recusada.
@@ -212,6 +228,8 @@ node bin/pendencia.js abrir --agente cerebro --fluxo F-20261009-0001 --tipo deci
 
 Dentro de uma sessão do Claude Code com o hook instalado, `--agente` e `--fluxo` podem ser omitidos: o agente sai do cadastro e o fluxo, da sessão. Texto com aspas ou acentos vai melhor em JSON pela entrada padrão (`--json -`). Todas as opções: `node bin/registrar.js --help` e `node bin/pendencia.js --help`.
 
+A tela Pendências já lê só o modelo novo (`flow pending`, #10); as pendências do `pendencia.js` continuam só na contagem da Visão geral, até o modelo antigo sair (#18).
+
 ### 3. Instale o hook do Claude Code
 
 O `bin/hook-log.js` lê o evento do hook pela entrada padrão e grava um registro no `bruto.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)). Ele nunca escreve no stdout nem no stderr, sai sempre com 0, desiste em cerca de 1,5 s, trunca entradas e saídas e redige segredos. Exemplo para o `settings.json` do Claude Code (troque o caminho):
@@ -244,7 +262,7 @@ Sobre o uso do Claude:
 - a **participação de cada agente** vem das transcrições locais do Claude Code (`~/.claude`, ou `CLAUDE_CONFIG_DIR`), só das sessões que o hook atribuiu a um agente;
 - o **% do plano** (5 h e semanal) vem do arquivo que o Maestri grava em `~/.maestri/usage/providers/.status.json` (ou `MAESTRI_DATA_DIR`). Fora do Maestri, essa parte aparece como indisponível, com o motivo.
 
-Quando o dono responde uma pendência pelo painel, o servidor pode avisar o Cérebro no terminal dele pela CLI do Maestri (`maestri ask`). Isso liga sozinho só quando o servidor roda dentro de um terminal do Maestri; `PANEL_NOTIFY_BRAIN=0` desliga e `1` força.
+O painel não responde pendências (#10): o dono responde no terminal do maestro, e a resposta pelo painel e o aviso ao Cérebro (`PANEL_NOTIFY_BRAIN`) saíram.
 
 ### Variáveis de ambiente (nomes novos)
 
@@ -256,8 +274,6 @@ As variáveis passaram para o inglês (#3). Quem tinha as antigas no ambiente pr
 | `PANEL_COLLECTOR` | `PAINEL_COLETOR` |
 | `PANEL_INDEX` | `PAINEL_INDEX` |
 | `PANEL_NOW` | `PAINEL_AGORA` |
-| `PANEL_NOTIFY_BRAIN` | `PAINEL_AVISAR_CEREBRO` |
-| `PANEL_MAESTRI_CLI` | `PAINEL_MAESTRI_CLI` |
 | `MAESTRO_NOW` | `MAESTRO_AGORA` |
 | `MAESTRO_LOCK` | `MAESTRO_TRAVA` |
 | `MAESTRO_LOCK_WAIT_MS` | `MAESTRO_TRAVA_ESPERA_MS` |
@@ -273,11 +289,11 @@ Todos usam só a biblioteca padrão do Node e respeitam `MAESTRO_DIR` (o `flow.j
 
 | Script | Para que serve |
 |---|---|
-| `flow.js` | **modelo novo**: `item start`, `stage`, `pr`, `final-adjustment`, `hml`, `item done`, `task graph`/`dispatch`/`integrate` e `status` gravam os eventos de um item e das tasks dele no `maestro.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)) |
+| `flow.js` | **modelo novo**: `item start`, `stage`, `pr`, `final-adjustment`, `hml`, `item done`, `task graph`/`dispatch`/`integrate`, `status` e `pending open`/`resolve`/`cancel` gravam os eventos de um item, das tasks e das pendências dele no `maestro.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)) |
 | `install-skills.js` | liga as skills do dono declaradas em `skills/links.json` ao `~/.claude`, com backup e `--undo` (veja [Instalar as skills](#instalar-as-skills-do-dono-painel_maestro-e-install-skillsjs)) |
 | `flow-store.js`, `flow-projection.js`, `flow-repo.js`, `i18n/` | banco do modelo novo (`node:sqlite`, WAL, migrações), projeção pura do estado do item, projeto pelo `git remote origin` e o dicionário pt-BR do CLI |
 | `registrar.js` | log semântico: `novo-fluxo`, `evento`, `ultimos`, `fluxo` |
-| `pendencia.js` | fila de pendências do dono: `abrir`, `listar`, `mostrar`, `responder`, `resolver`, `cancelar` |
+| `pendencia.js` | modelo antigo (sai na #18): fila de pendências do dono, `abrir`, `listar`, `mostrar`, `responder`, `resolver`, `cancelar`; as pendências do modelo novo são do `flow.js pending` |
 | `hook-log.js` | hook do Claude Code que grava o log bruto no `bruto.db` (só sessões de projetos cadastrados, ligadas ao item e à task pela branch) |
 | `collect-usage.js` | coletor de uso do Claude (`--json`, `--no-write`); o servidor já o chama |
 | `time-window.js` | sai 0 dentro de uma faixa de horário e 1 fora (`node bin/time-window.js 8 22`), útil como pré-condição de rotinas agendadas |
@@ -317,9 +333,9 @@ npm test                                   # node panel/tests/run-all.js
 node panel/tests/run-all.js server       # só os arquivos com "server" no nome
 ```
 
-Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das pendências e o das tasks usam uma CLI do Maestri falsa, que só grava os argumentos. São 13 arquivos: coletor de uso, modelo novo (`test-flow.js`, `test-flow-tasks.js` e `test-flow-delivery.js`, PR, ajuste final, HML e conclusão), hook do log bruto (`bruto.db`), tela Log (`test-log.js`), dicionário, desempenho (`maestro.db` com 20 mil eventos e `bruto.db` com 400 mil registros), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária), filtro de horário, pendências e servidor. Eles conferem códigos, não frases. O `test-flow.js`, o `test-flow-tasks.js` e o `test-flow-delivery.js` seguem uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
+Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das tasks usa uma CLI do Maestri falsa, que só grava os argumentos. São 13 arquivos: coletor de uso, modelo novo (`test-flow.js`, `test-flow-tasks.js`, `test-flow-delivery.js`, PR, ajuste final, HML e conclusão, e `test-flow-pending.js`, pendências), hook do log bruto (`bruto.db`), tela Log (`test-log.js`), dicionário, desempenho (`maestro.db` com 20 mil eventos e `bruto.db` com 400 mil registros), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária), filtro de horário e servidor. Eles conferem códigos, não frases. O `test-flow.js`, o `test-flow-tasks.js`, o `test-flow-delivery.js` e o `test-flow-pending.js` seguem uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
 
-Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, para os itens, `node panel/tests/generate-mock-items.js` (usa a mesma projeção do servidor).
+Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, para os itens e as pendências, `node panel/tests/generate-mock-items.js` (usa a mesma projeção do servidor).
 
 ## Estrutura
 
@@ -333,7 +349,7 @@ painel-maestro/
 │   ├── install-skills.js     liga as skills do dono ao ~/.claude (backup e --undo)
 │   ├── i18n/                 dicionário pt-BR das mensagens do CLI
 │   ├── registrar.js          log de eventos e fluxos
-│   ├── pendencia.js          fila de pendências do dono
+│   ├── pendencia.js          fila de pendências do modelo antigo (sai na #18)
 │   ├── hook-log.js           hook do Claude Code → log bruto (bruto.db)
 │   ├── raw-store.js          bruto.db (node:sqlite, WAL, retenção de 90 dias)
 │   ├── collect-usage.js      uso do plano e tokens por agente
@@ -343,7 +359,7 @@ painel-maestro/
 │   ├── server.js             servidor HTTP e API (em inglês, devolve códigos)
 │   ├── api-items.js          itens do modelo novo (/api/items)
 │   ├── legacy-records.js     nomes em inglês para os registros do modelo antigo
-│   ├── api-pendencias.js     resposta de pendência pelo painel
+│   ├── api-pending-decisions.js  pendências do modelo novo, só leitura (/api/pending-decisions)
 │   ├── index.html            a página compilada (não edite à mão)
 │   ├── README.md             documentação técnica do servidor e da página
 │   ├── ui/                   fonte da página (Preact + Vite)
