@@ -192,6 +192,28 @@ export default {
     },
   },
 
+  // Companies and projects (#6): the company selector of the header and the projects in "Sem empresa".
+  companies: {
+    selectorLabel: 'Empresa',
+    selectorTitle: 'Mostra só o que é desta empresa nas telas do fluxo (lembrado neste navegador)',
+    all: 'Todas',
+    option: '{name} ({count})',
+    unassignedTitle: 'Projetos sem empresa',
+    unassignedInfo: 'Repositórios onde o comando flow rodou sem cadastro entram em "Sem empresa". Escolha a empresa de cada um; o cadastro completo (etapas, repositórios, estado de concluído) é feito com node bin/flow.js project edit.',
+    unassignedCount: { one: '{count} projeto', other: '{count} projetos' },
+    projectItems: { one: '{count} item', other: '{count} itens' },
+    moveTo: 'Mover para',
+    moveLabel: 'Empresa para o projeto {project}',
+    choose: 'Escolha a empresa…',
+    move: 'Mover',
+    moving: 'Movendo…',
+    moved: 'Projeto {project} movido para {company}.',
+    moveFailed: 'Não consegui mover {project}: {message}',
+    noTarget: 'Nenhuma empresa cadastrada. Cadastre com: node bin/flow.js company add <id> --name "<nome>".',
+    filtered: 'Mostrando só {company}.',
+    showAll: 'Ver todas',
+  },
+
   flow: {
     none: 'sem fluxo',
     filterLog: 'Filtrar o Log por este fluxo',
@@ -645,5 +667,11 @@ export default {
     pending_decision_not_open: '{id} já está {status}. Para mudar a resposta, fale com o Cérebro.',
     option_not_found: '{id} não tem a opção {option}.',
     answer_command_failed: 'pendencia.js responder falhou: {detail}',
+    // companies and projects (#6)
+    invalid_filter: (c) => `Filtro "${c.param === 'company' ? 'empresa' : c.param === 'project' ? 'projeto' : c.param}" inválido: "${c.value}".`,
+    json_object_required: 'Corpo inválido: envie um objeto JSON.',
+    invalid_field: 'Campo "{field}" inválido: "{value}".',
+    company_not_found: 'Empresa não encontrada: {company}. Cadastre com: node bin/flow.js company add.',
+    project_not_found: 'Projeto não encontrado: {project}.',
   },
 };

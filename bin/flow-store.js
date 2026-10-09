@@ -12,6 +12,8 @@
  *   projects(id, name, company_id, tracker, stages JSON, done_state, maestri_workspace, created_at)
  *   project_repos(remote, project_id)            normalized remote URL → project (a project may have many repos)
  *   events(id, at, type, project_id, item_number, task_number, agent_role, agent_name, source, payload JSON)
+ * Companies and projects are the owner's register (flow company / flow project, bin/flow-admin.js; the panel only
+ * moves a project to another company): they may change, unlike the events.
  * The events table is append-only (triggers refuse UPDATE and DELETE) and is the only source of the state of
  * items: nothing derived is stored (the projection is computed by flow-projection.js).
  *
@@ -189,9 +191,9 @@ function openStore({ dir, create = true } = {}) {
       db.prepare('INSERT OR IGNORE INTO companies (id, name, created_at) VALUES (?, ?, ?)').run(id, name, at);
     },
     /** New project with its first repository. The id must be free (see freeProjectId). */
-    addProject({ id, name, companyId, tracker, stages = STAGES, remote, at }) {
-      db.prepare('INSERT INTO projects (id, name, company_id, tracker, stages, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-        .run(id, name, companyId, tracker, JSON.stringify(stages), at);
+    addProject({ id, name, companyId, tracker, stages = STAGES, remote, at, doneState = null, maestriWorkspace = null }) {
+      db.prepare('INSERT INTO projects (id, name, company_id, tracker, stages, done_state, maestri_workspace, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(id, name, companyId, tracker, JSON.stringify(stages), doneState, maestriWorkspace, at);
       if (remote) db.prepare('INSERT INTO project_repos (remote, project_id) VALUES (?, ?)').run(remote, id);
       return store.project(id);
     },
@@ -200,6 +202,43 @@ function openStore({ dir, create = true } = {}) {
       const taken = (id) => !!db.prepare('SELECT 1 FROM projects WHERE id = ?').get(id);
       if (!taken(base)) return base;
       for (let n = 2; ; n++) if (!taken(`${base}-${n}`)) return `${base}-${n}`;
+    },
+
+    // ---- companies and projects (#6) ----
+    company(id) {
+      return db.prepare('SELECT id, name, created_at FROM companies WHERE id = ?').get(id) || null;
+    },
+    companies() {
+      return db.prepare('SELECT id, name, created_at FROM companies ORDER BY id').all().map((c) => ({ id: c.id, name: c.name, created_at: c.created_at }));
+    },
+    addCompany({ id, name, at }) {
+      db.prepare('INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)').run(id, name, at);
+      return store.company(id);
+    },
+    /** Normalized remotes of a project, in alphabetical order. */
+    projectRepos(projectId) {
+      return db.prepare('SELECT remote FROM project_repos WHERE project_id = ? ORDER BY remote').all(projectId).map((r) => r.remote);
+    },
+    /** The project a remote belongs to (id), or null. */
+    repoOwner(remote) {
+      const row = db.prepare('SELECT project_id FROM project_repos WHERE remote = ?').get(remote);
+      return row ? row.project_id : null;
+    },
+    addRepo(projectId, remote) {
+      db.prepare('INSERT OR IGNORE INTO project_repos (remote, project_id) VALUES (?, ?)').run(remote, projectId);
+    },
+    removeRepo(projectId, remote) {
+      db.prepare('DELETE FROM project_repos WHERE remote = ? AND project_id = ?').run(remote, projectId);
+    },
+    /** Changes the given fields of a project (name, companyId, tracker, stages, doneState, maestriWorkspace). */
+    updateProject(id, change) {
+      const columns = { name: 'name', companyId: 'company_id', tracker: 'tracker', stages: 'stages', doneState: 'done_state', maestriWorkspace: 'maestri_workspace' };
+      for (const [key, column] of Object.entries(columns)) {
+        if (change[key] === undefined) continue;
+        const value = key === 'stages' ? JSON.stringify(change[key]) : change[key];
+        db.prepare(`UPDATE projects SET ${column} = ? WHERE id = ?`).run(value, id);
+      }
+      return store.project(id);
     },
 
     appendEvent({ at, type, projectId, itemNumber, taskNumber = null, agentRole = null, agentName = null, source, payload = {} }) {

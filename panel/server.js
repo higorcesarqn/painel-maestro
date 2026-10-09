@@ -14,6 +14,8 @@
 //         POST /api/recalculate, POST /api/brain (future phase: 501). Pending decisions (api-pendencias.js):
 //         POST /api/pending-decisions/<P-NNNN>/answer {option, text}. Details in README.md.
 //         New model (api-items.js, maestro.db): GET /api/items, GET /api/items/<project>/<number>.
+//         Companies and projects (api-projects.js): GET /api/companies, GET /api/projects[?company=],
+//         POST /api/projects/<id>/company {company}; GET /api/items also takes ?company= and ?project=.
 // The API never returns sentences: reasons, warnings and errors are codes with parameters
 // ({code, ...params}) and the page translates them (ADR 0004). Old-model records (events and pending
 // decisions written by bin/registrar.js and bin/pendencia.js) go out with English field names
@@ -40,6 +42,7 @@ const zlib = require('zlib');
 const collector = require(path.join(__dirname, '..', 'bin', 'collect-usage.js'));
 const pendingApi = require(path.join(__dirname, 'api-pendencias.js'));
 const itemsApi = require(path.join(__dirname, 'api-items.js'));
+const projectsApi = require(path.join(__dirname, 'api-projects.js'));
 const { eventToApi, pendingDecisionToApi } = require(path.join(__dirname, 'legacy-records.js'));
 const { asDate, isoSP, spDay, readJson, readText, withRetries, writeAtomic } = collector.util;
 
@@ -1615,10 +1618,17 @@ const FIXED_ROUTES = {
   '/api/recalculate': { name: 'recalculate', methods: ['POST'] },
   '/api/brain': { name: 'brain', methods: ['POST'] },
   '/api/items': { name: 'items', methods: ['GET', 'HEAD'] },
+  '/api/companies': { name: 'companies', methods: ['GET', 'HEAD'] },
+  '/api/projects': { name: 'projects', methods: ['GET', 'HEAD'] },
 };
 
 function findRoute(urlPath) {
   if (Object.prototype.hasOwnProperty.call(FIXED_ROUTES, urlPath)) return FIXED_ROUTES[urlPath];
+  const mc = /^\/api\/projects\/([^/]+)\/company$/.exec(urlPath);
+  if (mc) {
+    const id = projectsApi.parseProjectId(mc[1]);
+    return id ? { name: 'project-company', methods: ['POST'], project: id } : null;
+  }
   const mi = /^\/api\/items\/([^/]+)\/([^/]+)$/.exec(urlPath);
   if (mi) {
     const it = itemsApi.parseItemPath(mi[1], mi[2]);
@@ -1698,7 +1708,18 @@ async function route(ctx, req, res) {
       return respondJson(req, res, 200, x);
     }
     case 'items':
-      return respondJson(req, res, 200, itemsApi.listItems(ctx.items));
+      return respondJson(req, res, 200, projectsApi.filterItems(itemsApi.listItems(ctx.items), query));
+    case 'companies':
+      return respondJson(req, res, 200, projectsApi.listCompanies(ctx.items));
+    case 'projects':
+      return respondJson(req, res, 200, projectsApi.listProjects(ctx.items, query));
+    case 'project-company': {
+      const buf = await body;
+      if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });
+      const x = projectsApi.moveProject(ctx.items, r.project, buf);
+      ctx.log(`Projeto ${r.project} movido pelo painel para a empresa ${x.project.company.id}`);
+      return respondJson(req, res, 200, x);
+    }
     case 'item': {
       const x = itemsApi.itemDetail(ctx.items, r.project, r.number);
       if (!x) return respondError(req, res, 404, { code: 'item_not_found', project: r.project, number: r.number });
@@ -1728,7 +1749,7 @@ async function route(ctx, req, res) {
 function createHandler(ctx) {
   return (req, res) => {
     route(ctx, req, res).catch((e) => {
-      const known = e instanceof RequestError || e instanceof pendingApi.PendingDecisionError;
+      const known = e instanceof RequestError || e instanceof pendingApi.PendingDecisionError || e instanceof projectsApi.ProjectsError;
       const status = known ? e.status : 500;
       if (status === 500) ctx.logError(`Erro em ${req.method} ${String(req.url).slice(0, 200)}: ${e && e.stack ? e.stack : e}`);
       if (res.headersSent) {

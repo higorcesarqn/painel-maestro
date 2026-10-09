@@ -5,6 +5,7 @@ import { usePanel } from '../data/context.js';
 import { time, elapsedText, dateTime, arr, obj, objs, txt } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Popover } from '../components/Modal.jsx';
+import { CompanySelect } from './CompanySelect.jsx';
 import { Dot } from '../components/base.jsx';
 import { Agent } from '../components/domain.jsx';
 import { Icon, RefreshCw, Send, Clock, TriangleAlert, CircleCheck, CircleAlert } from '../components/Icon.jsx';
@@ -31,6 +32,7 @@ export function Header() {
         <span class="label">{state && state.workspace && state.workspace.name ? t('header.panelOf', { name: state.workspace.name }) : t('header.panel')}</span>
         <h1>{t(`screens.${screen}`)}</h1>
       </div>
+      <CompanySelect />
       <span class="spacer" />
       {actionStatus && <span class="action-status truncate" aria-live="polite" title={actionStatus}>{actionStatus}</span>}
       <span class={`updated${connectionError ? ' error' : ''}`} aria-live="polite"><Icon of={Clock} size={14} />{updated}</span>

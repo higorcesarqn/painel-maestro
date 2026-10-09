@@ -21,11 +21,71 @@ const WORKER_STATES = {
   done: 'pronta (revisão)',
 };
 
+// Help of "flow company" and "flow project" (#6), a section of the flow help.
+const ADMIN_HELP = `EMPRESAS E PROJETOS (dono; não precisam rodar dentro de um repositório)
+  node bin/flow.js company list
+  node bin/flow.js company add <id> --name "<nome>"
+      Cadastra uma empresa. O trabalho pessoal é uma empresa como as outras (ex.: personal, "Pessoal").
+  node bin/flow.js project list [--company <id>]
+  node bin/flow.js project add <id> --company <id> [--name "<nome>"] [--tracker github|azure_devops]
+        [--repo <url do remote>]... [--stages <etapa,...>] [--done-state "<estado>"] [--workspace "<workspace>"]
+      Cadastra um projeto. Repita --repo para cada repositório (um projeto do Azure DevOps costuma ter vários);
+      sem --repo, vale o remote da pasta atual. O tracker vem do remote quando não é informado. --stages: as
+      etapas que o projeto usa (padrão: todas); --done-state: o estado do tracker que significa concluído (ex.:
+      Committed); --workspace: o workspace do Maestri do projeto.
+  node bin/flow.js project edit <id> [--name] [--company] [--tracker] [--repo <url>]... [--remove-repo <url>]...
+        [--stages] [--done-state] [--workspace]
+      Muda o cadastro (um --done-state ou --workspace vazio apaga o valor). O id não muda.
+  node bin/flow.js project move <id> <empresa>
+      Move o projeto para outra empresa (o painel também faz isso, para os projetos em "Sem empresa").
+  JSON (--json -): id, name, company, tracker, repos, remove_repos, stages, done_state, maestri_workspace.
+`;
+
 module.exports = {
   stages: STAGES,
   workerStates: WORKER_STATES,
   companies: {
     unassigned: 'Sem empresa',
+  },
+  // flow company / flow project (bin/flow-admin.js, #6)
+  admin: {
+    kinds: { company: 'empresa', project: 'projeto' },
+    trackers: { github: 'GitHub', azure_devops: 'Azure DevOps' },
+    done: {
+      companyAdded: 'Empresa "{company}" ({name}) cadastrada.',
+      companyLine: (p) => `${p.id.padEnd(20)} ${p.name} · ${p.count} projeto${p.count === 1 ? '' : 's'}`,
+      noCompanies: 'Nenhuma empresa cadastrada. Cadastre com: flow company add <id> --name "<nome>".',
+      projectAdded: 'Projeto "{project}" cadastrado.',
+      projectEdited: 'Projeto "{project}" alterado.',
+      projectMoved: 'Projeto "{project}" movido de "{from}" para "{to}".',
+      projectLine: (p) => `${p.id.padEnd(20)} ${p.name} · ${p.company} · ${p.tracker} · etapas: ${p.stages}`
+        + `${p.doneState ? ` · concluído no tracker: ${p.doneState}` : ''}${p.workspace ? ` · workspace do Maestri: ${p.workspace}` : ''}`,
+      repoLine: '    repositório: {remote}',
+      noProjects: 'Nenhum projeto cadastrado.',
+    },
+    errors: {
+      missingCompanyId: 'falta o id da empresa (ex.: flow company add contoso --name "Contoso").',
+      missingProjectId: 'falta o id do projeto (ex.: flow project add cidax --company contoso --repo <url>).',
+      invalidId: 'id de {kind} inválido: "{value}" (use letras minúsculas, números e "-", começando por letra ou número).',
+      emptyText: 'o campo --{field} não pode ficar vazio.',
+      invalidText: 'o campo --{field} precisa ter até {max} caracteres, numa linha só.',
+      invalidTracker: 'tracker inválido: "{value}" (use {allowed}).',
+      missingStages: 'informe ao menos uma etapa em --stages (separadas por vírgula).',
+      tooManyRepos: 'repositórios demais (máximo {max}).',
+      invalidRepo: 'URL de repositório inválida: "{value}" (use a URL do "git remote", HTTPS ou SSH).',
+      missingCompanyName: 'falta o nome da empresa (--name "<nome>").',
+      companyExists: 'a empresa "{company}" já existe ({name}).',
+      unknownCompany: 'a empresa "{company}" não existe (empresas: {known}). Cadastre com: flow company add {company} --name "<nome>".',
+      unknownProject: 'o projeto "{project}" não existe (projetos: {known}).',
+      projectExists: 'o projeto "{project}" já existe. Para mudá-lo, use: flow project edit {project} ...',
+      missingCompany: 'falta a empresa do projeto (--company <id>; o trabalho pessoal é uma empresa como as outras).',
+      missingRepo: 'falta o repositório do projeto: use --repo <url do remote> ou rode o comando dentro do repositório.',
+      repoTaken: 'o repositório {remote} já é do projeto "{project}". Para juntá-lo a outro, remova-o antes com: flow project edit {project} --remove-repo <url>.',
+      repoTracker: 'o repositório {remote} é do {repoTracker}, mas o projeto usa o {tracker}.',
+      repoNotInProject: 'o repositório {remote} não é do projeto "{project}".',
+      lastRepo: 'o projeto "{project}" precisa de ao menos um repositório.',
+      nothingToChange: 'nada para mudar: informe ao menos uma opção (veja flow --help).',
+    },
   },
   // bin/install-skills.js (#15)
   installSkills: {
@@ -164,6 +224,7 @@ STATUS (trabalhador)
       com esta branch ou, senão, task/<task>-… (--item resolve quando a task existe em mais de um item).
       Papel padrão: worker. Se o maestri falhar, o evento é gravado e o comando sai com 1.
 
+${ADMIN_HELP}
 OPÇÕES DO AGENTE
   --role maestro|worker|owner     quem grava (padrão: maestro; no status, worker)
   --agent "<nome>"                codinome do agente (opcional)

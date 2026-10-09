@@ -5,6 +5,7 @@ import { PanelContext, SCREENS, OLD_SCREEN_IDS, newFilter } from '../data/contex
 import { REFRESH_MS, ANALYSIS_REFRESH_MS, MOCK, readState, recalculateUsage, readEvents } from '../data/api.js';
 import { syncClock, now, spDay, time, txt, obj, arr } from '../data/format.js';
 import { logParams, analyze } from '../data/queries.js';
+import { useCompanies } from '../data/companies.js';
 import { t } from '../i18n/index.js';
 import { Sidebar } from './Sidebar.jsx';
 import { Header } from './Header.jsx';
@@ -192,7 +193,11 @@ export function App() {
     setPendingTarget({ id, at: Date.now() });
   }, []);
 
+  // ---------- company selector (#6) ----------
+  const companySelector = useCompanies();
+
   const ctx = {
+    ...companySelector,
     state, connectionError, failingSince, screen, goTo, actionStatus, setActionStatus, recalculating, recalculate,
     modal, openModal, closeModal, setModal, filterByFlow, goToPendingDecision, pendingTarget,
     filters, setFilters, setRawFilters, page, setPage, log, loadLog,

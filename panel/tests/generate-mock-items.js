@@ -8,6 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const { listItems, itemDetail } = require('../api-items.js');
+const { listCompanies, listProjects } = require('../api-projects.js');
 const { STAGES } = require('../../bin/flow-store.js');
 
 const OUT = path.join(__dirname, 'mock-items.json');
@@ -20,13 +21,21 @@ const companies = {
   personal: 'Pessoal',
   unassigned: 'Sem empresa',
 };
+// Two companies and "Pessoal", with GitHub and Azure DevOps projects (an Azure DevOps project with several
+// repositories is a single project), and two repositories that landed in "Sem empresa" (#6).
 const projects = [
-  { id: 'portal', name: 'Portal Contoso', company_id: 'contoso', tracker: 'azure_devops', stages: STAGES },
-  { id: 'billing-api', name: 'Cobrança', company_id: 'contoso', tracker: 'azure_devops', stages: STAGES },
-  { id: 'storefront', name: 'Loja', company_id: 'fabrikam', tracker: 'github', stages: NO_HML },
-  { id: 'painel-maestro', name: 'painel-maestro', company_id: 'personal', tracker: 'github', stages: NO_HML },
-  { id: 'scratch', name: 'scratch', company_id: 'unassigned', tracker: 'github', stages: STAGES },
-].map((p) => ({ ...p, company_name: companies[p.company_id], done_state: null, maestri_workspace: null, created_at: '2026-10-01T09:00:00-03:00' }));
+  { id: 'portal', name: 'Portal Contoso', company_id: 'contoso', tracker: 'azure_devops', stages: STAGES, done_state: 'Committed', maestri_workspace: 'Contoso Portal',
+    repos: ['dev.azure.com/contoso/portal/_git/portal-api', 'dev.azure.com/contoso/portal/_git/portal-web'] },
+  { id: 'billing-api', name: 'Cobrança', company_id: 'contoso', tracker: 'azure_devops', stages: STAGES, done_state: 'Done', maestri_workspace: 'Contoso Cobrança',
+    repos: ['dev.azure.com/contoso/billing/_git/billing-api'] },
+  { id: 'design-system', name: 'Design system', company_id: 'contoso', tracker: 'github', stages: NO_HML, repos: ['github.com/contoso/design-system'] },
+  { id: 'storefront', name: 'Loja', company_id: 'fabrikam', tracker: 'github', stages: NO_HML, maestri_workspace: 'Fabrikam', repos: ['github.com/fabrikam/storefront'] },
+  { id: 'erp', name: 'ERP Fabrikam', company_id: 'fabrikam', tracker: 'azure_devops', stages: STAGES, done_state: 'Closed',
+    repos: ['fabrikam.visualstudio.com/erp/_git/erp-core', 'fabrikam.visualstudio.com/erp/_git/erp-fiscal', 'fabrikam.visualstudio.com/erp/_git/erp-web'] },
+  { id: 'painel-maestro', name: 'painel-maestro', company_id: 'personal', tracker: 'github', stages: NO_HML, repos: ['github.com/higorcesarqn/painel-maestro'] },
+  { id: 'scratch', name: 'scratch', company_id: 'unassigned', tracker: 'github', stages: STAGES, repos: ['github.com/higorcesarqn/scratch'] },
+  { id: 'relatorios-bi', name: 'relatorios-bi', company_id: 'unassigned', tracker: 'azure_devops', stages: STAGES, repos: ['dev.azure.com/fabrikam/bi/_git/relatorios-bi'] },
+].map((p) => ({ done_state: null, maestri_workspace: null, ...p, company_name: companies[p.company_id], created_at: '2026-10-01T09:00:00-03:00' }));
 
 // [project, number, title, [ [ISO moment, stage], ... ] ]: the first moment starts the item at that stage.
 const ITEMS = [
@@ -39,6 +48,9 @@ const ITEMS = [
   ['painel-maestro', 5, 'Item ponta a ponta (tracer bullet)', [['2026-10-09T07:30:00', 'implementation']]],
   ['painel-maestro', 2, 'Remover Trello e Prospecção', [['2026-10-06T09:00:00', 'implementation'], ['2026-10-06T18:30:00', 'pr_ready'], ['2026-10-07T08:10:00', 'merge'], ['2026-10-07T08:12:00', 'done']]],
   ['scratch', 3, 'Testar o layout do relatório', [['2026-10-09T10:05:00', 'specification']]],
+  ['design-system', 31, 'Tokens de cor para o modo escuro', [['2026-10-06T14:00:00', 'implementation'], ['2026-10-08T11:30:00', 'pr_ready']]],
+  ['erp', 1204, 'Nota fiscal de serviço eletrônica', [['2026-10-05T09:00:00', 'specification'], ['2026-10-06T10:00:00', 'implementation']]],
+  ['relatorios-bi', 77, 'Painel de vendas por região', [['2026-10-08T15:20:00', 'implementation']]],
 ];
 
 const events = [];
@@ -106,6 +118,8 @@ events.forEach((e, i) => { e.id = i + 1; });
 const store = {
   projects: () => projects,
   project: (id) => projects.find((p) => p.id === id) || null,
+  companies: () => Object.entries(companies).map(([id, name]) => ({ id, name, created_at: '2026-10-01T09:00:00-03:00' })),
+  projectRepos: (id) => projects.find((p) => p.id === id).repos.slice().sort(),
   allEvents: () => events,
   itemEvents: (projectId, number) => events.filter((e) => e.project_id === projectId && e.item_number === number),
 };
@@ -114,6 +128,9 @@ const source = { store: () => store };
 const { items } = listItems(source);
 const details = {};
 for (const it of items) details[it.key] = itemDetail(source, it.project.id, it.number).item;
-fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, items, details }, null, 2)}\n`);
+// Companies and projects (#6): the answers of GET /api/companies and GET /api/projects (the page filters them by company).
+const { companies: companyList } = listCompanies(source);
+const { projects: projectList } = listProjects(source, new URLSearchParams());
+fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, companies: companyList, projects: projectList, items, details }, null, 2)}\n`);
 const taskStates = new Set(Object.values(details).flatMap((d) => d.tasks.map((x) => x.state)));
 console.log(`mock-items.json: ${items.length} itens em ${new Set(items.map((i) => i.stage)).size} etapas; tasks em ${taskStates.size} estados (${[...taskStates].join(", ")})`);

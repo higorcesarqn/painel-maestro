@@ -94,6 +94,28 @@ node .../bin/flow.js status "Pronto para revisar" --state review          # ou: 
 - **Erros:** dado inválido (número, etapa, título, item já iniciado ou ainda não iniciado, pasta sem `remote origin`) sai com **código 2** e a mensagem no stderr; outros erros, código 1. As mensagens vêm do dicionário pt-BR do CLI (`bin/i18n/pt-BR.js`).
 - **Dados:** cada passo vira um **evento** no `maestro.db` (SQLite embutido do Node, `node:sqlite`, Node 22.13+), em `MAESTRO_DIR`, cujo padrão para o modelo novo é **`~/.painel-maestro`** (`C:\Users\<você>\.painel-maestro`). O banco usa WAL e espera a vez (`busy_timeout`), então o maestro e os trabalhadores gravam ao mesmo tempo sem perder eventos; a versão do esquema fica no próprio banco e é migrada ao abrir. O estado do item nunca é gravado: o painel o calcula dos eventos (ADR 0002). O aviso de módulo experimental do SQLite é silenciado.
 
+#### Empresas e projetos (#6)
+
+O dono organiza os projetos por **empresa**; o trabalho pessoal é a empresa "Pessoal", uma empresa como as outras. Estes comandos não precisam rodar dentro de um repositório (o `project add` sem `--repo` usa o remote da pasta atual):
+
+```
+node .../bin/flow.js company add contoso --name "Contoso"
+node .../bin/flow.js company add personal --name "Pessoal"
+node .../bin/flow.js company list
+node .../bin/flow.js project add cidax --name "CIDAX" --company contoso --tracker azure_devops \
+  --repo https://dev.azure.com/contoso/CIDAX/_git/cidax-api --repo https://dev.azure.com/contoso/CIDAX/_git/cidax-web \
+  --stages specification,implementation,final_adjustment,pr_ready,merge,hml_validation,done --done-state Committed --workspace "CIDAX"
+node .../bin/flow.js project edit cidax --repo <url> --remove-repo <url> --stages ... --done-state "" --workspace "..."
+node .../bin/flow.js project move scratch personal
+node .../bin/flow.js project list [--company contoso]
+```
+
+- **Repositórios:** um projeto tem um ou mais repositórios, guardados pela URL do remote normalizada (SSH e HTTPS iguais). Um projeto do Azure DevOps com vários repositórios é **um projeto só**: o CLI rodado em qualquer um deles (ou num worktree deles) resolve o mesmo projeto. Um repositório pertence a um projeto só; o tracker do projeto precisa bater com o do endereço.
+- **Etapas usadas** (`--stages`, na ordem do fluxo; padrão: todas) e **estado de concluído no tracker** (`--done-state`, ex.: `Committed` no CIDAX). `flow stage` ou `item start` numa etapa que o projeto não usa sai com **código 2**.
+- **"Sem empresa":** um repositório sem cadastro entra sozinho em "Sem empresa" (`unassigned`). O painel mostra esses projetos em destaque no topo da tela Itens, com a escolha da empresa e o botão **Mover** (`POST /api/projects/<id>/company`); pelo CLI, `project move` ou `project edit --company`. O id do projeto não muda (a chave dos itens continua valendo).
+- **Seletor de empresa:** no topo do painel, **Todas** ou uma empresa. Ele filtra as telas do modelo novo (hoje, a lista de Itens; as próximas telas migradas seguem o mesmo filtro) e fica lembrado neste navegador.
+- JSON pela entrada padrão: `id`, `name`, `company`, `tracker`, `repos`, `remove_repos`, `stages`, `done_state`, `maestri_workspace`. Dado inválido (empresa ou projeto que não existe ou já existe, id fora de `[a-z0-9-]`, repositório de outro projeto, tracker que não bate, etapa desconhecida, último repositório removido) sai com **código 2**.
+
 Com `MAESTRO_DIR` definido, o modelo antigo e o novo usam a mesma pasta; sem ele, o antigo continua na pasta do repositório e o novo vai para `~/.painel-maestro`. O servidor lê o `maestro.db` do mesmo jeito: suba-o com o mesmo `MAESTRO_DIR` (ou nenhum) que os agentes usam.
 
 ### Instalar as skills do dono (`PAINEL_MAESTRO` e `install-skills.js`)
@@ -253,7 +275,7 @@ Todos usam só a biblioteca padrão do Node e respeitam `MAESTRO_DIR` (o `flow.j
 
 | Script | Para que serve |
 |---|---|
-| `flow.js` | **modelo novo**: `item start`, `stage`, `task graph`/`dispatch`/`integrate` e `status` gravam os eventos de um item e das tasks dele no `maestro.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)) |
+| `flow.js` | **modelo novo**: `item start`, `stage`, `task graph`/`dispatch`/`integrate` e `status` gravam os eventos de um item e das tasks dele no `maestro.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)); `company` e `project` (em `flow-admin.js`) cadastram empresas e projetos |
 | `install-skills.js` | liga as skills do dono declaradas em `skills/links.json` ao `~/.claude`, com backup e `--undo` (veja [Instalar as skills](#instalar-as-skills-do-dono-painel_maestro-e-install-skillsjs)) |
 | `flow-store.js`, `flow-projection.js`, `flow-repo.js`, `i18n/` | banco do modelo novo (`node:sqlite`, WAL, migrações), projeção pura do estado do item, projeto pelo `git remote origin` e o dicionário pt-BR do CLI |
 | `registrar.js` | log semântico: `novo-fluxo`, `evento`, `ultimos`, `fluxo` |
@@ -307,6 +329,7 @@ Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, 
 painel-maestro/
 ├── bin/                      scripts de linha de comando (só biblioteca padrão do Node)
 │   ├── flow.js               modelo novo: CLI que grava os eventos de cada item no maestro.db
+│   ├── flow-admin.js         flow company / flow project: cadastro de empresas e projetos
 │   ├── flow-store.js         maestro.db (node:sqlite, WAL, esquema e migrações)
 │   ├── flow-projection.js    estado do item calculado dos eventos (função pura)
 │   ├── flow-repo.js          projeto pelo git remote origin
@@ -321,6 +344,7 @@ painel-maestro/
 ├── panel/
 │   ├── server.js             servidor HTTP e API (em inglês, devolve códigos)
 │   ├── api-items.js          itens do modelo novo (/api/items)
+│   ├── api-projects.js       empresas e projetos (/api/companies, /api/projects, mover de empresa)
 │   ├── legacy-records.js     nomes em inglês para os registros do modelo antigo
 │   ├── api-pendencias.js     resposta de pendência pelo painel
 │   ├── index.html            a página compilada (não edite à mão)
