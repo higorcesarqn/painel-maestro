@@ -12,6 +12,7 @@ import { Icon, Workflow, ArrowLeft, Check, CircleDashed } from '../components/Ic
 import { ItemTasks } from './ItemTasks.jsx';
 import { ItemDelivery, deliveryEventText, useDoneFilter } from './ItemDelivery.jsx';
 import { UnassignedProjects } from './UnassignedProjects.jsx';
+import { ItemReports, ItemFindings, reviewEventText } from './ItemReview.jsx';
 import '../styles/items.css';
 
 const RE_ITEM = /^([a-z0-9][a-z0-9-]*)\/([1-9]\d*)$/;
@@ -143,6 +144,10 @@ function ItemPage({ project, number: itemNumber }) {
       </Card>
       <ItemDelivery item={item} />
       <ItemTasks item={item} />
+      <div class="item-review-grid">
+        <ItemReports item={item} />
+        <ItemFindings item={item} />
+      </div>
       <div class="item-grid">
         <Card label={t('items.flowTitle')} info={t('items.flowInfo')}>
           <ol class="stage-list">
@@ -191,7 +196,9 @@ function eventText(e) {
   if (e.type === 'pending-decision-canceled') {
     return p.reason ? t('items.events.pendingCanceledWhy', { id: p.pending_decision, reason: txt(p.reason) }) : t('items.events.pendingCanceled', { id: p.pending_decision });
   }
-  return txt(e.type);
+  const review = reviewEventText(e);
+  if (review) return review;
+  return t('items.events.unknown', { type: txt(e.type) });
 }
 
 function agentText(agent) {

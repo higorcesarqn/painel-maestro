@@ -192,6 +192,19 @@ suite.test('companies (#6): the demo has two companies and "Pessoal" with GitHub
   assert.ok(js.includes('painel-maestro.company'));
 });
 
+suite.test('mock-items.json: reports by task (ok and blocked) and findings of every classification, one of them an "out" task', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const details = Object.values(m.details);
+  const reports = details.flatMap((d) => d.reports);
+  const findings = details.flatMap((d) => d.findings);
+  assert.deepStrictEqual([...new Set(reports.map((r) => r.status))].sort(), ['blocked', 'ok']);
+  assert.ok(reports.some((r) => r.decisions.length && r.shared_files.length && /\n/.test(r.text)), 'a full report with many lines');
+  assert.deepStrictEqual([...new Set(findings.map((f) => f.classification))].sort(), ['defect', 'discarded', 'owner_decision']);
+  assert.ok(details.some((d) => d.findings.some((f) => f.new_task && d.tasks.some((x) => x.number === f.new_task.number && x.state === 'out' && x.finding === f.number))),
+    'a finding that became an "out" task of its item');
+  assert.ok(/reviewEventText/.test(source['screens/Items.jsx']), 'the timeline names the report and finding events');
+});
+
 let port = null;
 let pid = null;
 let root = null;

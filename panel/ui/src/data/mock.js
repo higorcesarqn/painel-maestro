@@ -148,6 +148,9 @@ function mockRaw(ev, start) {
     'hml-recorded': `hml ${n}`, 'item-done': `item done ${n}`, 'pending-decision-opened': `pending open ${n}`,
     'pending-decision-resolved': `pending resolve P-${(ev.payload || {}).pending_decision}`,
     'pending-decision-canceled': `pending cancel P-${(ev.payload || {}).pending_decision}`,
+    'task-report': `report --item ${n} --task ${task} --json - < relatorio.json`,
+    'finding-recorded': `finding add ${n} --title "…"`,
+    'finding-linked': `finding link ${n} ${(ev.payload || {}).finding} --new-task ${((ev.payload || {}).new_task || {}).number}`,
   }[ev.type] || `stage ${n}`;
   const commands = ['git status --short', 'npm test', `node bin/flow.js ${flowCommand}`];
   return commands.map((input, i) => ({

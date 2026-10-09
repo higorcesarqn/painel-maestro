@@ -16,7 +16,7 @@ import { LogEventModal, eventTypeName, eventDetail, agentText } from './LogEvent
 const PERIODS = ['today', '24h', '7d', '30d', 'all', 'custom'];
 const KNOWN_TYPES = ['item-started', 'stage-changed', 'task-graph', 'task-dispatched', 'task-status', 'task-integrated',
   'pr-changed', 'final-adjustment-opened', 'final-adjustment-finished', 'hml-recorded', 'item-done',
-  'pending-decision-opened', 'pending-decision-resolved', 'pending-decision-canceled'];
+  'pending-decision-opened', 'pending-decision-resolved', 'pending-decision-canceled', 'task-report', 'finding-recorded', 'finding-linked'];
 const withCount = (name, counts, key) => (counts ? `${name} · ${number(counts[key] || 0)}` : name);
 
 export function Log() {

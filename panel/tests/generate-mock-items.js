@@ -138,6 +138,74 @@ const TASKS = [
   ['painel-maestro', 5, '2026-10-09T07:35:00', 'task-dispatched', 5, MAESTRO, { floor: 'Item ponta a ponta', worker: 'Ária', branch: 'task/5-item-ponta-a-ponta' }],
   ['painel-maestro', 5, '2026-10-09T10:10:00', 'task-status', 5, ['worker', 'Ária'], { state: 'working', text: 'API e telas prontas, faltam os testes', progress: { done: 4, total: 6 }, maestri: 'posted' }],
 ];
+// Reports and findings (#8): [project, number, ISO moment, type, task (the origin, for a finding), [role, name], payload].
+const report = (status, fields) => ({
+  status, blocked_reason: null, branch: null, sha: null, tests: null, changes: null, decisions: [], risks: null, shared_files: [], text: null, ...fields,
+});
+const reportText = (lines) => lines.join('\n');
+const finding = (n, title, classification, origin, newTask, description) => ({
+  finding: n, title, description: description || null, classification, origin_task: origin, new_task: newTask,
+});
+TASKS.push(
+  ['portal', 3112, '2026-10-08T13:12:00', 'task-report', 3113, ['worker', 'Ária'], report('ok', {
+    branch: 'task/3113-modelo-pdf', sha: 'e41f0a6b3c2d',
+    tests: 'npm test: 2 rodadas seguidas, 0 falhas (banco portal-3113.db recriado vazio)\nnpm run check: ok',
+    changes: 'O extrato ganhou o modelo de PDF: cabeçalho com o logo, tabela de lançamentos e rodapé com a página.',
+    decisions: ['Fonte embutida "Noto Sans": o servidor de HML não tem fontes do sistema.', 'A4 retrato por padrão; paisagem fica para a 3114, se precisar.'],
+    risks: 'Tabelas com mais de 200 linhas quebram a página no meio da linha (ver achado).',
+    shared_files: ['src/report/layout.ts', 'package.json'],
+    text: reportText([
+      'Task 3113, branch task/3113-modelo-pdf, SHA final e41f0a6, sobre a integradora (sem push, sem tracker, sem merge). Status: ok.',
+      'Testes: npm test, duas rodadas seguidas, banco portal-3113.db recriado vazio; 0 falhas. npm run check: ok.',
+      'O que mudou: o extrato ganhou o modelo de PDF (cabeçalho com o logo, tabela de lançamentos, rodapé com a página).',
+      'Decisões:',
+      '  1. Fonte embutida "Noto Sans": o servidor de HML não tem fontes do sistema.',
+      '  2. A4 retrato por padrão; paisagem fica para a 3114, se precisar.',
+      'Riscos: tabelas com mais de 200 linhas quebram a página no meio da linha.',
+      'Arquivos compartilhados: src/report/layout.ts e package.json (a 3114 também mexe).',
+    ]),
+  })],
+  ['portal', 3112, '2026-10-08T13:50:00', 'finding-recorded', 3113, MAESTRO, finding(1, 'Quebra de página no meio de uma linha da tabela', 'defect', 3113,
+    { number: 3119, title: 'Não quebrar linhas da tabela entre páginas' }, 'Com mais de 200 lançamentos a linha 201 aparece cortada entre duas páginas.')],
+  ['portal', 3112, '2026-10-08T13:52:00', 'finding-recorded', 3113, MAESTRO, finding(2, 'Nome do arquivo exportado', 'owner_decision', 3113, null,
+    '"extrato.pdf" ou "extrato-<conta>-<mês>.pdf"? Depende do que o banco aceita no upload.')],
+  ['portal', 3112, '2026-10-08T13:55:00', 'finding-recorded', 3113, MAESTRO, finding(3, 'Renomear a variável "tmp" do gerador', 'discarded', 3113, null)],
+  ['portal', 3112, '2026-10-09T08:42:00', 'task-report', 3115, ['worker', 'Dora'], report('ok', {
+    branch: 'task/3115-botao-exportar', sha: '9c8b7a6d5e4f',
+    tests: 'npm test: 0 falhas (2 rodadas)\nTeste manual no Chrome e no Edge',
+    changes: 'Botão "Exportar PDF" na tela do extrato; fica desabilitado enquanto o PDF é gerado.',
+    decisions: ['O botão chama a rota da 3114 por um adaptador; enquanto ela não integra, devolve um PDF de exemplo.'],
+    risks: 'Depende da rota da 3114 para funcionar de verdade.',
+    shared_files: ['src/screens/Statement.tsx'],
+    text: reportText([
+      'Task 3115, branch task/3115-botao-exportar, SHA final 9c8b7a6. Status: ok.',
+      'Testes: npm test, 0 falhas nas 2 rodadas; teste manual no Chrome e no Edge.',
+      'O que mudou: botão "Exportar PDF" na tela do extrato, desabilitado enquanto o PDF é gerado.',
+      'Decisões: 1. adaptador para a rota da 3114, com PDF de exemplo até ela integrar.',
+      'Riscos: depende da 3114. Arquivos compartilhados: src/screens/Statement.tsx.',
+    ]),
+  })],
+  ['portal', 3112, '2026-10-09T10:06:00', 'task-report', 3116, ['worker', 'subagente'], report('blocked', {
+    blocked_reason: 'Falta o certificado A1 de homologação para assinar o PDF.',
+    branch: 'task/3116-assinatura', sha: '2a3b4c5d6e7f',
+    tests: 'Testes da assinatura com certificado de teste: ok. Sem o certificado de HML, nada para rodar lá.',
+    changes: 'Assinatura digital pronta com certificado autoassinado.',
+    text: 'Task 3116 bloqueada: falta o certificado A1 de homologação.\nCom ele, falta só trocar a configuração e rodar os testes de HML.',
+  })],
+  ['billing-api', 2875, '2026-10-08T11:35:00', 'finding-recorded', null, MAESTRO, finding(1, 'Cobrança duplicada quando duas tentativas correm juntas', 'defect', null,
+    { number: 2880, title: 'Trava de concorrência no reprocessamento' }, 'O teste de concorrência do ajuste final reprovou: duas tentativas simultâneas cobram duas vezes.')],
+  ['storefront', 48, '2026-10-05T11:20:00', 'task-report', 49, ['worker', 'Ária'], report('ok', {
+    branch: 'task/49-carrinho', sha: '0b7a6c5d4e3f',
+    tests: 'npm test: 0 falhas', changes: 'O carrinho fica salvo na conta do cliente.', decisions: ['Carrinho guardado por 30 dias.'],
+    text: 'Task 49 pronta: o carrinho fica salvo na conta (30 dias). npm test: 0 falhas.',
+  })],
+  ['storefront', 48, '2026-10-08T16:50:00', 'task-report', 50, ['worker', 'Caio'], report('ok', {
+    branch: 'task/50-juntar', sha: '5f4e3d2c1b0a', tests: 'npm test: 0 falhas', changes: 'Ao entrar, o carrinho do visitante se junta ao da conta.',
+    text: 'Task 50 pronta: ao entrar, o carrinho do visitante se junta ao da conta.',
+  })],
+  ['storefront', 48, '2026-10-08T17:05:00', 'finding-recorded', 50, MAESTRO, finding(1, 'Itens repetidos somam a quantidade', 'owner_decision', 50,
+    { number: 64, title: 'Regra para itens repetidos ao juntar carrinhos' }, 'Ao juntar, o mesmo produto nos dois carrinhos soma as quantidades. É o esperado?')],
+);
 for (const [projectId, number, at, type, task, [role, name], payload] of TASKS) {
   events.push({ id: 0, at: `${at}-03:00`, project_id: projectId, item_number: number, task_number: task, agent: { role, name }, source: 'cli', type, payload });
 }
@@ -222,3 +290,5 @@ const taskStates = new Set(Object.values(details).flatMap((d) => d.tasks.map((x)
 const pd = pending.pending_decisions;
 console.log(`mock-items.json: ${items.length} itens em ${new Set(items.map((i) => i.stage)).size} etapas; tasks em ${taskStates.size} estados (${[...taskStates].join(", ")}); `
   + `${pd.length} pendências de ${new Set(pd.map((p) => p.kind)).size} tipos (${Object.entries(pending.counts.status).map(([s, n]) => `${n} ${s}`).join(', ')})`);
+const all = Object.values(details);
+console.log(`  ${all.reduce((n, d) => n + d.reports.length, 0)} relatórios e ${all.reduce((n, d) => n + d.findings.length, 0)} achados`);

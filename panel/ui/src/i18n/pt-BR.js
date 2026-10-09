@@ -176,6 +176,7 @@ export default {
       pendingResolved: 'Pendência P-{id} resolvida · decisão: {decision}',
       pendingCanceled: 'Pendência P-{id} cancelada',
       pendingCanceledWhy: 'Pendência P-{id} cancelada: {reason}',
+      unknown: 'Evento {type}',
     },
     tasks: {
       title: 'Tasks',
@@ -278,6 +279,43 @@ export default {
     noTarget: 'Nenhuma empresa cadastrada. Cadastre com: node bin/flow.js company add <id> --name "<nome>".',
     filtered: 'Mostrando só {company}.',
     showAll: 'Ver todas',
+  },
+
+  // Workers' reports and maestro's findings of an item (#8, screens/ItemReview.jsx).
+  review: {
+    reports: {
+      title: 'Relatórios',
+      info: 'O relatório completo que cada trabalhador gravou (flow report) antes de enviá-lo ao maestro, agrupado por task. O último de cada task vem aberto; clique num anterior para abrir. Os textos aparecem como foram escritos.',
+      count: { one: '{count} relatório', other: '{count} relatórios' },
+      none: 'Nenhum relatório ainda. O trabalhador grava o dele com: node bin/flow.js report --json - < relatorio.json',
+    },
+    reportStatus: { ok: 'ok', blocked: 'bloqueado' },
+    fields: {
+      blockedReason: 'Motivo do bloqueio',
+      tests: 'Testes',
+      changes: 'O que mudou',
+      decisions: 'Decisões',
+      risks: 'Riscos e pendências',
+      sharedFiles: 'Arquivos compartilhados',
+      text: 'Relatório completo',
+    },
+    findings: {
+      title: 'Achados',
+      info: 'O que o maestro encontrou nas revisões (flow finding add), com a classificação e a task de origem. Um achado que virou task nova aparece também nas tasks, com o estado "fora", até a triagem trazê-la para o item.',
+      count: { one: '{count} achado', other: '{count} achados' },
+      none: 'Nenhum achado registrado.',
+      number: 'Achado {finding}',
+      origin: 'origem: task {task}',
+      newTask: 'virou a task {task}',
+      recorded: '{age} · {agent}',
+    },
+    classes: { defect: 'Defeito claro', owner_decision: 'Depende do dono', discarded: 'Descartado' },
+    events: {
+      report: 'Relatório da task {task}: {status}',
+      finding: 'Achado {finding} ({classification}): {title}',
+      findingWithTask: 'Achado {finding} ({classification}): {title} → task {task} (fora)',
+      findingLinked: 'Achado {finding} virou a task {task} (fora, para triagem)',
+    },
   },
 
   flow: {
@@ -445,6 +483,9 @@ export default {
       'pending-decision-opened': 'Pendência aberta',
       'pending-decision-resolved': 'Pendência resolvida',
       'pending-decision-canceled': 'Pendência cancelada',
+      'task-report': 'Relatório da task',
+      'finding-recorded': 'Achado registrado',
+      'finding-linked': 'Achado virou task',
     },
     detail: { itemStarted: 'em {stage}' },
     eventCount: { one: '{count} evento', other: '{count} eventos' },

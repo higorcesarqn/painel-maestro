@@ -587,16 +587,19 @@
           },
           "dispatched_at": "2026-10-09T07:35:00-03:00",
           "integrated_at": null,
-          "updated_at": "2026-10-09T10:10:00-03:00"
+          "updated_at": "2026-10-09T10:10:00-03:00",
+          "finding": null
         }
       ],
       "completed_at": null,
       "pr": null,
       "final_adjustment": null,
       "hml": null,
+      "reports": [],
+      "findings": [],
       "timeline": [
         {
-          "id": 64,
+          "id": 72,
           "at": "2026-10-09T07:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -611,7 +614,7 @@
           }
         },
         {
-          "id": 65,
+          "id": 73,
           "at": "2026-10-09T07:35:00-03:00",
           "type": "task-dispatched",
           "task_number": 5,
@@ -627,7 +630,7 @@
           }
         },
         {
-          "id": 66,
+          "id": 74,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 5,
@@ -651,7 +654,7 @@
           }
         },
         {
-          "id": 71,
+          "id": 80,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": 5,
@@ -661,12 +664,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 66,
+            "pending_decision": 74,
             "decision": "B: vira task nova para triagem."
           }
         },
         {
-          "id": 80,
+          "id": 90,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -763,7 +766,8 @@
           },
           "dispatched_at": "2026-10-08T10:30:00-03:00",
           "integrated_at": "2026-10-08T14:02:00-03:00",
-          "updated_at": "2026-10-08T14:02:00-03:00"
+          "updated_at": "2026-10-08T14:02:00-03:00",
+          "finding": null
         },
         {
           "number": 3114,
@@ -785,7 +789,8 @@
           },
           "dispatched_at": "2026-10-08T14:10:00-03:00",
           "integrated_at": null,
-          "updated_at": "2026-10-09T09:15:00-03:00"
+          "updated_at": "2026-10-09T09:15:00-03:00",
+          "finding": null
         },
         {
           "number": 3115,
@@ -807,7 +812,8 @@
           },
           "dispatched_at": "2026-10-08T14:12:00-03:00",
           "integrated_at": null,
-          "updated_at": "2026-10-09T08:40:00-03:00"
+          "updated_at": "2026-10-09T08:40:00-03:00",
+          "finding": null
         },
         {
           "number": 3116,
@@ -826,7 +832,8 @@
           "progress": null,
           "dispatched_at": "2026-10-09T09:50:00-03:00",
           "integrated_at": null,
-          "updated_at": "2026-10-09T10:05:00-03:00"
+          "updated_at": "2026-10-09T10:05:00-03:00",
+          "finding": null
         },
         {
           "number": 3117,
@@ -846,7 +853,8 @@
           "progress": null,
           "dispatched_at": null,
           "integrated_at": null,
-          "updated_at": "2026-10-08T10:25:00-03:00"
+          "updated_at": "2026-10-08T10:25:00-03:00",
+          "finding": null
         },
         {
           "number": 3118,
@@ -863,7 +871,26 @@
           "progress": null,
           "dispatched_at": null,
           "integrated_at": null,
-          "updated_at": "2026-10-08T10:25:00-03:00"
+          "updated_at": "2026-10-08T10:25:00-03:00",
+          "finding": null
+        },
+        {
+          "number": 3119,
+          "title": "Não quebrar linhas da tabela entre páginas",
+          "self": false,
+          "state": "out",
+          "blocked_by": [],
+          "worker": null,
+          "floor": null,
+          "branch": null,
+          "sha": null,
+          "sha_before": null,
+          "status_text": null,
+          "progress": null,
+          "dispatched_at": null,
+          "integrated_at": null,
+          "updated_at": "2026-10-08T13:50:00-03:00",
+          "finding": 1
         }
       ],
       "completed_at": null,
@@ -878,9 +905,125 @@
       },
       "final_adjustment": null,
       "hml": null,
+      "reports": [
+        {
+          "id": 53,
+          "at": "2026-10-08T13:12:00-03:00",
+          "task_number": 3113,
+          "agent": {
+            "role": "worker",
+            "name": "Ária"
+          },
+          "status": "ok",
+          "blocked_reason": null,
+          "branch": "task/3113-modelo-pdf",
+          "sha": "e41f0a6b3c2d",
+          "tests": "npm test: 2 rodadas seguidas, 0 falhas (banco portal-3113.db recriado vazio)\nnpm run check: ok",
+          "changes": "O extrato ganhou o modelo de PDF: cabeçalho com o logo, tabela de lançamentos e rodapé com a página.",
+          "decisions": [
+            "Fonte embutida \"Noto Sans\": o servidor de HML não tem fontes do sistema.",
+            "A4 retrato por padrão; paisagem fica para a 3114, se precisar."
+          ],
+          "risks": "Tabelas com mais de 200 linhas quebram a página no meio da linha (ver achado).",
+          "shared_files": [
+            "src/report/layout.ts",
+            "package.json"
+          ],
+          "text": "Task 3113, branch task/3113-modelo-pdf, SHA final e41f0a6, sobre a integradora (sem push, sem tracker, sem merge). Status: ok.\nTestes: npm test, duas rodadas seguidas, banco portal-3113.db recriado vazio; 0 falhas. npm run check: ok.\nO que mudou: o extrato ganhou o modelo de PDF (cabeçalho com o logo, tabela de lançamentos, rodapé com a página).\nDecisões:\n  1. Fonte embutida \"Noto Sans\": o servidor de HML não tem fontes do sistema.\n  2. A4 retrato por padrão; paisagem fica para a 3114, se precisar.\nRiscos: tabelas com mais de 200 linhas quebram a página no meio da linha.\nArquivos compartilhados: src/report/layout.ts e package.json (a 3114 também mexe)."
+        },
+        {
+          "id": 76,
+          "at": "2026-10-09T08:42:00-03:00",
+          "task_number": 3115,
+          "agent": {
+            "role": "worker",
+            "name": "Dora"
+          },
+          "status": "ok",
+          "blocked_reason": null,
+          "branch": "task/3115-botao-exportar",
+          "sha": "9c8b7a6d5e4f",
+          "tests": "npm test: 0 falhas (2 rodadas)\nTeste manual no Chrome e no Edge",
+          "changes": "Botão \"Exportar PDF\" na tela do extrato; fica desabilitado enquanto o PDF é gerado.",
+          "decisions": [
+            "O botão chama a rota da 3114 por um adaptador; enquanto ela não integra, devolve um PDF de exemplo."
+          ],
+          "risks": "Depende da rota da 3114 para funcionar de verdade.",
+          "shared_files": [
+            "src/screens/Statement.tsx"
+          ],
+          "text": "Task 3115, branch task/3115-botao-exportar, SHA final 9c8b7a6. Status: ok.\nTestes: npm test, 0 falhas nas 2 rodadas; teste manual no Chrome e no Edge.\nO que mudou: botão \"Exportar PDF\" na tela do extrato, desabilitado enquanto o PDF é gerado.\nDecisões: 1. adaptador para a rota da 3114, com PDF de exemplo até ela integrar.\nRiscos: depende da 3114. Arquivos compartilhados: src/screens/Statement.tsx."
+        },
+        {
+          "id": 88,
+          "at": "2026-10-09T10:06:00-03:00",
+          "task_number": 3116,
+          "agent": {
+            "role": "worker",
+            "name": "subagente"
+          },
+          "status": "blocked",
+          "blocked_reason": "Falta o certificado A1 de homologação para assinar o PDF.",
+          "branch": "task/3116-assinatura",
+          "sha": "2a3b4c5d6e7f",
+          "tests": "Testes da assinatura com certificado de teste: ok. Sem o certificado de HML, nada para rodar lá.",
+          "changes": "Assinatura digital pronta com certificado autoassinado.",
+          "decisions": [],
+          "risks": null,
+          "shared_files": [],
+          "text": "Task 3116 bloqueada: falta o certificado A1 de homologação.\nCom ele, falta só trocar a configuração e rodar os testes de HML."
+        }
+      ],
+      "findings": [
+        {
+          "number": 1,
+          "title": "Quebra de página no meio de uma linha da tabela",
+          "description": "Com mais de 200 lançamentos a linha 201 aparece cortada entre duas páginas.",
+          "classification": "defect",
+          "origin_task": 3113,
+          "new_task": {
+            "number": 3119,
+            "title": "Não quebrar linhas da tabela entre páginas"
+          },
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "recorded_at": "2026-10-08T13:50:00-03:00",
+          "linked_at": null
+        },
+        {
+          "number": 2,
+          "title": "Nome do arquivo exportado",
+          "description": "\"extrato.pdf\" ou \"extrato-<conta>-<mês>.pdf\"? Depende do que o banco aceita no upload.",
+          "classification": "owner_decision",
+          "origin_task": 3113,
+          "new_task": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "recorded_at": "2026-10-08T13:52:00-03:00",
+          "linked_at": null
+        },
+        {
+          "number": 3,
+          "title": "Renomear a variável \"tmp\" do gerador",
+          "description": null,
+          "classification": "discarded",
+          "origin_task": 3113,
+          "new_task": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "recorded_at": "2026-10-08T13:55:00-03:00",
+          "linked_at": null
+        }
+      ],
       "timeline": [
         {
-          "id": 38,
+          "id": 39,
           "at": "2026-10-07T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -895,7 +1038,7 @@
           }
         },
         {
-          "id": 44,
+          "id": 45,
           "at": "2026-10-08T10:20:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -909,7 +1052,7 @@
           }
         },
         {
-          "id": 45,
+          "id": 46,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -925,7 +1068,7 @@
           }
         },
         {
-          "id": 46,
+          "id": 47,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "task-graph",
           "task_number": null,
@@ -985,7 +1128,7 @@
           }
         },
         {
-          "id": 47,
+          "id": 48,
           "at": "2026-10-08T10:30:00-03:00",
           "type": "task-dispatched",
           "task_number": 3113,
@@ -1001,7 +1144,7 @@
           }
         },
         {
-          "id": 50,
+          "id": 52,
           "at": "2026-10-08T13:10:00-03:00",
           "type": "task-status",
           "task_number": 3113,
@@ -1021,7 +1164,36 @@
           }
         },
         {
-          "id": 51,
+          "id": 53,
+          "at": "2026-10-08T13:12:00-03:00",
+          "type": "task-report",
+          "task_number": 3113,
+          "agent": {
+            "role": "worker",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "status": "ok",
+            "blocked_reason": null,
+            "branch": "task/3113-modelo-pdf",
+            "sha": "e41f0a6b3c2d",
+            "tests": "npm test: 2 rodadas seguidas, 0 falhas (banco portal-3113.db recriado vazio)\nnpm run check: ok",
+            "changes": "O extrato ganhou o modelo de PDF: cabeçalho com o logo, tabela de lançamentos e rodapé com a página.",
+            "decisions": [
+              "Fonte embutida \"Noto Sans\": o servidor de HML não tem fontes do sistema.",
+              "A4 retrato por padrão; paisagem fica para a 3114, se precisar."
+            ],
+            "risks": "Tabelas com mais de 200 linhas quebram a página no meio da linha (ver achado).",
+            "shared_files": [
+              "src/report/layout.ts",
+              "package.json"
+            ],
+            "text": "Task 3113, branch task/3113-modelo-pdf, SHA final e41f0a6, sobre a integradora (sem push, sem tracker, sem merge). Status: ok.\nTestes: npm test, duas rodadas seguidas, banco portal-3113.db recriado vazio; 0 falhas. npm run check: ok.\nO que mudou: o extrato ganhou o modelo de PDF (cabeçalho com o logo, tabela de lançamentos, rodapé com a página).\nDecisões:\n  1. Fonte embutida \"Noto Sans\": o servidor de HML não tem fontes do sistema.\n  2. A4 retrato por padrão; paisagem fica para a 3114, se precisar.\nRiscos: tabelas com mais de 200 linhas quebram a página no meio da linha.\nArquivos compartilhados: src/report/layout.ts e package.json (a 3114 também mexe)."
+          }
+        },
+        {
+          "id": 54,
           "at": "2026-10-08T13:12:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3113,
@@ -1047,7 +1219,67 @@
           }
         },
         {
-          "id": 52,
+          "id": 55,
+          "at": "2026-10-08T13:50:00-03:00",
+          "type": "finding-recorded",
+          "task_number": 3113,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "finding": 1,
+            "title": "Quebra de página no meio de uma linha da tabela",
+            "description": "Com mais de 200 lançamentos a linha 201 aparece cortada entre duas páginas.",
+            "classification": "defect",
+            "origin_task": 3113,
+            "new_task": {
+              "number": 3119,
+              "title": "Não quebrar linhas da tabela entre páginas"
+            }
+          }
+        },
+        {
+          "id": 56,
+          "at": "2026-10-08T13:52:00-03:00",
+          "type": "finding-recorded",
+          "task_number": 3113,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "finding": 2,
+            "title": "Nome do arquivo exportado",
+            "description": "\"extrato.pdf\" ou \"extrato-<conta>-<mês>.pdf\"? Depende do que o banco aceita no upload.",
+            "classification": "owner_decision",
+            "origin_task": 3113,
+            "new_task": null
+          }
+        },
+        {
+          "id": 57,
+          "at": "2026-10-08T13:55:00-03:00",
+          "type": "finding-recorded",
+          "task_number": 3113,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "finding": 3,
+            "title": "Renomear a variável \"tmp\" do gerador",
+            "description": null,
+            "classification": "discarded",
+            "origin_task": 3113,
+            "new_task": null
+          }
+        },
+        {
+          "id": 58,
           "at": "2026-10-08T14:02:00-03:00",
           "type": "task-integrated",
           "task_number": 3113,
@@ -1062,7 +1294,7 @@
           }
         },
         {
-          "id": 53,
+          "id": 59,
           "at": "2026-10-08T14:04:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1088,7 +1320,7 @@
           }
         },
         {
-          "id": 54,
+          "id": 60,
           "at": "2026-10-08T14:08:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -1098,12 +1330,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 53,
+            "pending_decision": 59,
             "decision": "Pode paralelizar. A 3115 integra primeiro."
           }
         },
         {
-          "id": 55,
+          "id": 61,
           "at": "2026-10-08T14:10:00-03:00",
           "type": "task-dispatched",
           "task_number": 3114,
@@ -1119,7 +1351,7 @@
           }
         },
         {
-          "id": 56,
+          "id": 62,
           "at": "2026-10-08T14:12:00-03:00",
           "type": "task-dispatched",
           "task_number": 3115,
@@ -1135,7 +1367,7 @@
           }
         },
         {
-          "id": 67,
+          "id": 75,
           "at": "2026-10-09T08:40:00-03:00",
           "type": "task-status",
           "task_number": 3115,
@@ -1155,7 +1387,34 @@
           }
         },
         {
-          "id": 68,
+          "id": 76,
+          "at": "2026-10-09T08:42:00-03:00",
+          "type": "task-report",
+          "task_number": 3115,
+          "agent": {
+            "role": "worker",
+            "name": "Dora"
+          },
+          "source": "cli",
+          "payload": {
+            "status": "ok",
+            "blocked_reason": null,
+            "branch": "task/3115-botao-exportar",
+            "sha": "9c8b7a6d5e4f",
+            "tests": "npm test: 0 falhas (2 rodadas)\nTeste manual no Chrome e no Edge",
+            "changes": "Botão \"Exportar PDF\" na tela do extrato; fica desabilitado enquanto o PDF é gerado.",
+            "decisions": [
+              "O botão chama a rota da 3114 por um adaptador; enquanto ela não integra, devolve um PDF de exemplo."
+            ],
+            "risks": "Depende da rota da 3114 para funcionar de verdade.",
+            "shared_files": [
+              "src/screens/Statement.tsx"
+            ],
+            "text": "Task 3115, branch task/3115-botao-exportar, SHA final 9c8b7a6. Status: ok.\nTestes: npm test, 0 falhas nas 2 rodadas; teste manual no Chrome e no Edge.\nO que mudou: botão \"Exportar PDF\" na tela do extrato, desabilitado enquanto o PDF é gerado.\nDecisões: 1. adaptador para a rota da 3114, com PDF de exemplo até ela integrar.\nRiscos: depende da 3114. Arquivos compartilhados: src/screens/Statement.tsx."
+          }
+        },
+        {
+          "id": 77,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3115,
@@ -1182,7 +1441,7 @@
           }
         },
         {
-          "id": 72,
+          "id": 81,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "task_number": 3114,
@@ -1202,7 +1461,7 @@
           }
         },
         {
-          "id": 76,
+          "id": 85,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "task_number": 3116,
@@ -1218,7 +1477,7 @@
           }
         },
         {
-          "id": 78,
+          "id": 87,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "task_number": 3116,
@@ -1235,7 +1494,30 @@
           }
         },
         {
-          "id": 79,
+          "id": 88,
+          "at": "2026-10-09T10:06:00-03:00",
+          "type": "task-report",
+          "task_number": 3116,
+          "agent": {
+            "role": "worker",
+            "name": "subagente"
+          },
+          "source": "cli",
+          "payload": {
+            "status": "blocked",
+            "blocked_reason": "Falta o certificado A1 de homologação para assinar o PDF.",
+            "branch": "task/3116-assinatura",
+            "sha": "2a3b4c5d6e7f",
+            "tests": "Testes da assinatura com certificado de teste: ok. Sem o certificado de HML, nada para rodar lá.",
+            "changes": "Assinatura digital pronta com certificado autoassinado.",
+            "decisions": [],
+            "risks": null,
+            "shared_files": [],
+            "text": "Task 3116 bloqueada: falta o certificado A1 de homologação.\nCom ele, falta só trocar a configuração e rodar os testes de HML."
+          }
+        },
+        {
+          "id": 89,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -1335,16 +1617,19 @@
           "progress": null,
           "dispatched_at": null,
           "integrated_at": null,
-          "updated_at": null
+          "updated_at": null,
+          "finding": null
         }
       ],
       "completed_at": null,
       "pr": null,
       "final_adjustment": null,
       "hml": null,
+      "reports": [],
+      "findings": [],
       "timeline": [
         {
-          "id": 77,
+          "id": 86,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1428,7 +1713,8 @@
           "progress": null,
           "dispatched_at": "2026-10-02T16:10:00-03:00",
           "integrated_at": "2026-10-05T11:30:00-03:00",
-          "updated_at": "2026-10-05T11:30:00-03:00"
+          "updated_at": "2026-10-05T11:30:00-03:00",
+          "finding": null
         },
         {
           "number": 50,
@@ -1447,7 +1733,26 @@
           "progress": null,
           "dispatched_at": "2026-10-05T11:40:00-03:00",
           "integrated_at": "2026-10-08T17:00:00-03:00",
-          "updated_at": "2026-10-08T17:00:00-03:00"
+          "updated_at": "2026-10-08T17:00:00-03:00",
+          "finding": null
+        },
+        {
+          "number": 64,
+          "title": "Regra para itens repetidos ao juntar carrinhos",
+          "self": false,
+          "state": "out",
+          "blocked_by": [],
+          "worker": null,
+          "floor": null,
+          "branch": null,
+          "sha": null,
+          "sha_before": null,
+          "status_text": null,
+          "progress": null,
+          "dispatched_at": null,
+          "integrated_at": null,
+          "updated_at": "2026-10-08T17:05:00-03:00",
+          "finding": 1
         }
       ],
       "completed_at": null,
@@ -1467,6 +1772,67 @@
         "summary": null
       },
       "hml": null,
+      "reports": [
+        {
+          "id": 27,
+          "at": "2026-10-05T11:20:00-03:00",
+          "task_number": 49,
+          "agent": {
+            "role": "worker",
+            "name": "Ária"
+          },
+          "status": "ok",
+          "blocked_reason": null,
+          "branch": "task/49-carrinho",
+          "sha": "0b7a6c5d4e3f",
+          "tests": "npm test: 0 falhas",
+          "changes": "O carrinho fica salvo na conta do cliente.",
+          "decisions": [
+            "Carrinho guardado por 30 dias."
+          ],
+          "risks": null,
+          "shared_files": [],
+          "text": "Task 49 pronta: o carrinho fica salvo na conta (30 dias). npm test: 0 falhas."
+        },
+        {
+          "id": 66,
+          "at": "2026-10-08T16:50:00-03:00",
+          "task_number": 50,
+          "agent": {
+            "role": "worker",
+            "name": "Caio"
+          },
+          "status": "ok",
+          "blocked_reason": null,
+          "branch": "task/50-juntar",
+          "sha": "5f4e3d2c1b0a",
+          "tests": "npm test: 0 falhas",
+          "changes": "Ao entrar, o carrinho do visitante se junta ao da conta.",
+          "decisions": [],
+          "risks": null,
+          "shared_files": [],
+          "text": "Task 50 pronta: ao entrar, o carrinho do visitante se junta ao da conta."
+        }
+      ],
+      "findings": [
+        {
+          "number": 1,
+          "title": "Itens repetidos somam a quantidade",
+          "description": "Ao juntar, o mesmo produto nos dois carrinhos soma as quantidades. É o esperado?",
+          "classification": "owner_decision",
+          "origin_task": 50,
+          "new_task": {
+            "number": 64,
+            "title": "Regra para itens repetidos ao juntar carrinhos"
+          },
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "recorded_at": "2026-10-08T17:05:00-03:00",
+          "linked_at": null
+        }
+      ],
       "timeline": [
         {
           "id": 11,
@@ -1560,6 +1926,31 @@
         },
         {
           "id": 27,
+          "at": "2026-10-05T11:20:00-03:00",
+          "type": "task-report",
+          "task_number": 49,
+          "agent": {
+            "role": "worker",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "status": "ok",
+            "blocked_reason": null,
+            "branch": "task/49-carrinho",
+            "sha": "0b7a6c5d4e3f",
+            "tests": "npm test: 0 falhas",
+            "changes": "O carrinho fica salvo na conta do cliente.",
+            "decisions": [
+              "Carrinho guardado por 30 dias."
+            ],
+            "risks": null,
+            "shared_files": [],
+            "text": "Task 49 pronta: o carrinho fica salvo na conta (30 dias). npm test: 0 falhas."
+          }
+        },
+        {
+          "id": 28,
           "at": "2026-10-05T11:30:00-03:00",
           "type": "task-integrated",
           "task_number": 49,
@@ -1574,7 +1965,7 @@
           }
         },
         {
-          "id": 28,
+          "id": 29,
           "at": "2026-10-05T11:40:00-03:00",
           "type": "task-dispatched",
           "task_number": 50,
@@ -1590,7 +1981,30 @@
           }
         },
         {
-          "id": 60,
+          "id": 66,
+          "at": "2026-10-08T16:50:00-03:00",
+          "type": "task-report",
+          "task_number": 50,
+          "agent": {
+            "role": "worker",
+            "name": "Caio"
+          },
+          "source": "cli",
+          "payload": {
+            "status": "ok",
+            "blocked_reason": null,
+            "branch": "task/50-juntar",
+            "sha": "5f4e3d2c1b0a",
+            "tests": "npm test: 0 falhas",
+            "changes": "Ao entrar, o carrinho do visitante se junta ao da conta.",
+            "decisions": [],
+            "risks": null,
+            "shared_files": [],
+            "text": "Task 50 pronta: ao entrar, o carrinho do visitante se junta ao da conta."
+          }
+        },
+        {
+          "id": 67,
           "at": "2026-10-08T17:00:00-03:00",
           "type": "task-integrated",
           "task_number": 50,
@@ -1605,7 +2019,29 @@
           }
         },
         {
-          "id": 74,
+          "id": 68,
+          "at": "2026-10-08T17:05:00-03:00",
+          "type": "finding-recorded",
+          "task_number": 50,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "finding": 1,
+            "title": "Itens repetidos somam a quantidade",
+            "description": "Ao juntar, o mesmo produto nos dois carrinhos soma as quantidades. É o esperado?",
+            "classification": "owner_decision",
+            "origin_task": 50,
+            "new_task": {
+              "number": 64,
+              "title": "Regra para itens repetidos ao juntar carrinhos"
+            }
+          }
+        },
+        {
+          "id": 83,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -1617,7 +2053,7 @@
           "payload": {}
         },
         {
-          "id": 75,
+          "id": 84,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1717,16 +2153,19 @@
           "progress": null,
           "dispatched_at": null,
           "integrated_at": null,
-          "updated_at": null
+          "updated_at": null,
+          "finding": null
         }
       ],
       "completed_at": null,
       "pr": null,
       "final_adjustment": null,
       "hml": null,
+      "reports": [],
+      "findings": [],
       "timeline": [
         {
-          "id": 69,
+          "id": 78,
           "at": "2026-10-09T08:50:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1741,7 +2180,7 @@
           }
         },
         {
-          "id": 70,
+          "id": 79,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1765,7 +2204,7 @@
           }
         },
         {
-          "id": 73,
+          "id": 82,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "task_number": null,
@@ -1775,7 +2214,7 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 70,
+            "pending_decision": 79,
             "reason": "Entrou na especificação do item."
           }
         }
@@ -1849,7 +2288,8 @@
           "progress": null,
           "dispatched_at": null,
           "integrated_at": null,
-          "updated_at": null
+          "updated_at": null,
+          "finding": null
         }
       ],
       "completed_at": null,
@@ -1864,6 +2304,8 @@
       },
       "final_adjustment": null,
       "hml": null,
+      "reports": [],
+      "findings": [],
       "timeline": [
         {
           "id": 23,
@@ -1881,7 +2323,7 @@
           }
         },
         {
-          "id": 33,
+          "id": 34,
           "at": "2026-10-06T13:20:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -1897,7 +2339,7 @@
           }
         },
         {
-          "id": 63,
+          "id": 71,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -1985,7 +2427,26 @@
           "progress": null,
           "dispatched_at": null,
           "integrated_at": null,
-          "updated_at": null
+          "updated_at": null,
+          "finding": null
+        },
+        {
+          "number": 2880,
+          "title": "Trava de concorrência no reprocessamento",
+          "self": false,
+          "state": "out",
+          "blocked_by": [],
+          "worker": null,
+          "floor": null,
+          "branch": null,
+          "sha": null,
+          "sha_before": null,
+          "status_text": null,
+          "progress": null,
+          "dispatched_at": null,
+          "integrated_at": null,
+          "updated_at": "2026-10-08T11:35:00-03:00",
+          "finding": 1
         }
       ],
       "completed_at": null,
@@ -2005,6 +2466,26 @@
         "summary": null
       },
       "hml": null,
+      "reports": [],
+      "findings": [
+        {
+          "number": 1,
+          "title": "Cobrança duplicada quando duas tentativas correm juntas",
+          "description": "O teste de concorrência do ajuste final reprovou: duas tentativas simultâneas cobram duas vezes.",
+          "classification": "defect",
+          "origin_task": null,
+          "new_task": {
+            "number": 2880,
+            "title": "Trava de concorrência no reprocessamento"
+          },
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "recorded_at": "2026-10-08T11:35:00-03:00",
+          "linked_at": null
+        }
+      ],
       "timeline": [
         {
           "id": 18,
@@ -2038,7 +2519,7 @@
           }
         },
         {
-          "id": 39,
+          "id": 40,
           "at": "2026-10-07T16:45:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2050,7 +2531,7 @@
           "payload": {}
         },
         {
-          "id": 40,
+          "id": 41,
           "at": "2026-10-07T17:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2076,7 +2557,7 @@
           }
         },
         {
-          "id": 42,
+          "id": 43,
           "at": "2026-10-07T18:20:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -2086,12 +2567,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 40,
+            "pending_decision": 41,
             "decision": "A: 3 retentativas, com intervalo de 24 h."
           }
         },
         {
-          "id": 48,
+          "id": 49,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -2106,7 +2587,29 @@
           }
         },
         {
-          "id": 57,
+          "id": 51,
+          "at": "2026-10-08T11:35:00-03:00",
+          "type": "finding-recorded",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "finding": 1,
+            "title": "Cobrança duplicada quando duas tentativas correm juntas",
+            "description": "O teste de concorrência do ajuste final reprovou: duas tentativas simultâneas cobram duas vezes.",
+            "classification": "defect",
+            "origin_task": null,
+            "new_task": {
+              "number": 2880,
+              "title": "Trava de concorrência no reprocessamento"
+            }
+          }
+        },
+        {
+          "id": 63,
           "at": "2026-10-08T15:00:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2118,7 +2621,7 @@
           "payload": {}
         },
         {
-          "id": 61,
+          "id": 69,
           "at": "2026-10-08T17:50:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -2132,7 +2635,7 @@
           }
         },
         {
-          "id": 62,
+          "id": 70,
           "at": "2026-10-08T18:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2220,7 +2723,8 @@
           "progress": null,
           "dispatched_at": "2026-10-01T16:00:00-03:00",
           "integrated_at": "2026-10-02T18:20:00-03:00",
-          "updated_at": "2026-10-02T18:20:00-03:00"
+          "updated_at": "2026-10-02T18:20:00-03:00",
+          "finding": null
         },
         {
           "number": 3102,
@@ -2239,7 +2743,8 @@
           "progress": null,
           "dispatched_at": "2026-10-03T09:00:00-03:00",
           "integrated_at": "2026-10-05T10:40:00-03:00",
-          "updated_at": "2026-10-05T10:40:00-03:00"
+          "updated_at": "2026-10-05T10:40:00-03:00",
+          "finding": null
         }
       ],
       "completed_at": null,
@@ -2267,6 +2772,8 @@
         "summary": "Cenário 4 reprovado: o extrato de outubro veio sem a tarifa.\nCenário 6 bloqueado: sem massa de boletos vencidos em HML.",
         "recorded_at": "2026-10-08T09:05:00-03:00"
       },
+      "reports": [],
+      "findings": [],
       "timeline": [
         {
           "id": 6,
@@ -2417,7 +2924,7 @@
           "payload": {}
         },
         {
-          "id": 29,
+          "id": 30,
           "at": "2026-10-05T16:20:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -2432,7 +2939,7 @@
           }
         },
         {
-          "id": 32,
+          "id": 33,
           "at": "2026-10-06T10:15:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2446,7 +2953,7 @@
           }
         },
         {
-          "id": 41,
+          "id": 42,
           "at": "2026-10-07T17:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2460,7 +2967,7 @@
           }
         },
         {
-          "id": 43,
+          "id": 44,
           "at": "2026-10-08T09:05:00-03:00",
           "type": "hml-recorded",
           "task_number": null,
@@ -2478,7 +2985,7 @@
           }
         },
         {
-          "id": 59,
+          "id": 65,
           "at": "2026-10-08T16:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2578,16 +3085,19 @@
           "progress": null,
           "dispatched_at": null,
           "integrated_at": null,
-          "updated_at": null
+          "updated_at": null,
+          "finding": null
         }
       ],
       "completed_at": null,
       "pr": null,
       "final_adjustment": null,
       "hml": null,
+      "reports": [],
+      "findings": [],
       "timeline": [
         {
-          "id": 58,
+          "id": 64,
           "at": "2026-10-08T15:20:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2671,16 +3181,19 @@
           "progress": null,
           "dispatched_at": null,
           "integrated_at": null,
-          "updated_at": null
+          "updated_at": null,
+          "finding": null
         }
       ],
       "completed_at": null,
       "pr": null,
       "final_adjustment": null,
       "hml": null,
+      "reports": [],
+      "findings": [],
       "timeline": [
         {
-          "id": 34,
+          "id": 35,
           "at": "2026-10-06T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2695,7 +3208,7 @@
           }
         },
         {
-          "id": 49,
+          "id": 50,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -2778,7 +3291,8 @@
           "progress": null,
           "dispatched_at": null,
           "integrated_at": null,
-          "updated_at": null
+          "updated_at": null,
+          "finding": null
         }
       ],
       "completed_at": "2026-10-07T08:12:00-03:00",
@@ -2793,9 +3307,11 @@
       },
       "final_adjustment": null,
       "hml": null,
+      "reports": [],
+      "findings": [],
       "timeline": [
         {
-          "id": 30,
+          "id": 31,
           "at": "2026-10-06T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2810,7 +3326,7 @@
           }
         },
         {
-          "id": 35,
+          "id": 36,
           "at": "2026-10-06T18:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2826,7 +3342,7 @@
           }
         },
         {
-          "id": 36,
+          "id": 37,
           "at": "2026-10-07T08:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2840,7 +3356,7 @@
           }
         },
         {
-          "id": 37,
+          "id": 38,
           "at": "2026-10-07T08:12:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -2926,13 +3442,16 @@
           "progress": null,
           "dispatched_at": null,
           "integrated_at": null,
-          "updated_at": null
+          "updated_at": null,
+          "finding": null
         }
       ],
       "completed_at": null,
       "pr": null,
       "final_adjustment": null,
       "hml": null,
+      "reports": [],
+      "findings": [],
       "timeline": [
         {
           "id": 24,
@@ -2950,7 +3469,7 @@
           }
         },
         {
-          "id": 31,
+          "id": 32,
           "at": "2026-10-06T10:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -3038,7 +3557,8 @@
           "progress": null,
           "dispatched_at": null,
           "integrated_at": null,
-          "updated_at": null
+          "updated_at": null,
+          "finding": null
         }
       ],
       "completed_at": "2026-10-03T16:00:00-03:00",
@@ -3066,6 +3586,8 @@
         "summary": null,
         "recorded_at": "2026-10-03T15:40:00-03:00"
       },
+      "reports": [],
+      "findings": [],
       "timeline": [
         {
           "id": 1,
@@ -3187,7 +3709,7 @@
   "pending_decisions": {
     "pending_decisions": [
       {
-        "id": 79,
+        "id": 89,
         "kind": "worker_blocked",
         "severity": "critical",
         "status": "open",
@@ -3235,7 +3757,7 @@
         }
       },
       {
-        "id": 59,
+        "id": 65,
         "kind": "hml",
         "severity": "high",
         "status": "open",
@@ -3279,7 +3801,7 @@
         "task": null
       },
       {
-        "id": 68,
+        "id": 77,
         "kind": "task_review",
         "severity": "high",
         "status": "open",
@@ -3328,7 +3850,7 @@
         }
       },
       {
-        "id": 75,
+        "id": 84,
         "kind": "finding",
         "severity": "normal",
         "status": "open",
@@ -3372,7 +3894,7 @@
         "task": null
       },
       {
-        "id": 70,
+        "id": 79,
         "kind": "decision",
         "severity": "low",
         "status": "canceled",
@@ -3419,7 +3941,7 @@
         "task": null
       },
       {
-        "id": 66,
+        "id": 74,
         "kind": "finding",
         "severity": "low",
         "status": "resolved",
@@ -3470,7 +3992,7 @@
         }
       },
       {
-        "id": 53,
+        "id": 59,
         "kind": "parallelize",
         "severity": "normal",
         "status": "resolved",
@@ -3517,7 +4039,7 @@
         "task": null
       },
       {
-        "id": 51,
+        "id": 54,
         "kind": "task_review",
         "severity": "normal",
         "status": "resolved",
@@ -3568,7 +4090,7 @@
         }
       },
       {
-        "id": 40,
+        "id": 41,
         "kind": "decision",
         "severity": "normal",
         "status": "resolved",
