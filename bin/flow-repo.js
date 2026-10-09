@@ -8,7 +8,10 @@
  *   normalizeRemote(url)   → "github.com/acme/widgets": host + path, lower case, without credentials, scheme,
  *                            ".git" or the "_git" of Azure DevOps; SSH and HTTPS forms give the same key
  *   describeRemote(url)    → { remote, tracker: 'github' | 'azure_devops', repo }  (repo: the repository name)
+ *   repoInfo(cwd)          → { origin, branch } read from the .git files (the hook's fast path), or null
  */
+const fs = require('fs');
+const path = require('path');
 const { spawnSync } = require('child_process');
 
 function originOf(cwd) {
@@ -55,4 +58,68 @@ function describeRemote(url) {
   return { remote, tracker: azure ? 'azure_devops' : 'github', repo: parts[parts.length - 1] || host };
 }
 
-module.exports = { originOf, branchOf, normalizeRemote, describeRemote };
+// ---------- fast reading for the hook (no process: spawning git costs ~65 ms on Windows) ----------
+
+const samePath = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
+
+/** The .git of the folder (or of a parent), stopping at GIT_CEILING_DIRECTORIES like git: { gitDir, commonDir } or null. */
+function findGitDir(cwd, env = process.env) {
+  const ceilings = String(env.GIT_CEILING_DIRECTORIES || '').split(path.delimiter).filter(Boolean);
+  let dir = path.resolve(cwd);
+  for (;;) {
+    const dotGit = path.join(dir, '.git');
+    let st = null;
+    try { st = fs.statSync(dotGit); } catch (_) { st = null; }
+    if (st && st.isDirectory()) return { gitDir: dotGit, commonDir: dotGit };
+    if (st && st.isFile()) {
+      // A worktree: ".git" is a file "gitdir: <path>" and <path>/commondir points to the main repository's .git.
+      const m = /^gitdir:\s*(.+?)\s*$/m.exec(fs.readFileSync(dotGit, 'utf8'));
+      if (!m) return null;
+      const gitDir = path.resolve(dir, m[1]);
+      let commonDir = gitDir;
+      try { commonDir = path.resolve(gitDir, fs.readFileSync(path.join(gitDir, 'commondir'), 'utf8').trim()); } catch (_) { /* not a worktree */ }
+      return { gitDir, commonDir };
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir || ceilings.some((c) => samePath(parent, c))) return null;
+    dir = parent;
+  }
+}
+
+/** url of [remote "origin"] in a git config text; undefined when the config needs git itself (insteadOf, include). */
+function originInConfig(text) {
+  if (/insteadof|^\s*\[include/im.test(text)) return undefined;
+  let inOrigin = false;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    const section = /^\[\s*([^\]\s]+)(?:\s+"([^"]*)")?\s*\]/.exec(line);
+    if (section) {
+      inOrigin = section[1].toLowerCase() === 'remote' && section[2] === 'origin';
+      continue;
+    }
+    const kv = inOrigin && /^url\s*=\s*(.*)$/i.exec(line);
+    if (kv) return kv[1].replace(/^"(.*)"$/, '$1').trim() || null;
+  }
+  return null;
+}
+
+/**
+ * Origin URL and current branch of the folder, reading the .git files (falls back to git for the origin when the
+ * config is not plain). { origin, branch } (branch null when detached), or null outside a repository.
+ */
+function repoInfo(cwd, env = process.env) {
+  let found;
+  try { found = findGitDir(cwd, env); } catch (_) { return null; }
+  if (!found) return null;
+  let branch = null;
+  try {
+    const head = /^ref:\s*refs\/heads\/(.+?)\s*$/.exec(fs.readFileSync(path.join(found.gitDir, 'HEAD'), 'utf8'));
+    branch = head ? head[1] : null;
+  } catch (_) { branch = null; }
+  let origin;
+  try { origin = originInConfig(fs.readFileSync(path.join(found.commonDir, 'config'), 'utf8')); } catch (_) { origin = undefined; }
+  if (origin === undefined) origin = originOf(cwd);
+  return { origin: origin || null, branch };
+}
+
+module.exports = { originOf, branchOf, normalizeRemote, describeRemote, repoInfo };
