@@ -2272,5 +2272,2129 @@
         }
       ]
     }
+  },
+  "usage": {
+    "collected_at": "2026-10-09T10:24:30-03:00",
+    "reason": null,
+    "plan": {
+      "available": true,
+      "source": {
+        "code": "maestri_claude_provider"
+      },
+      "file": "~/.maestri/usage/providers/.status.json",
+      "window_5h_pct": 37,
+      "reset_5h": "2026-10-09T13:00:00-03:00",
+      "weekly_pct": 22,
+      "weekly_reset": "2026-10-13T09:00:00-03:00",
+      "window_5h_duration_s": 18000,
+      "weekly_duration_s": 604800,
+      "window_5h_reason": null,
+      "weekly_reason": null,
+      "updated_at": "2026-10-09T10:21:30-03:00",
+      "age_min": 3,
+      "plan": "max",
+      "state": "ready",
+      "reason": null,
+      "warnings": []
+    },
+    "periods": {
+      "window_5h": {
+        "start": "2026-10-09T08:00:00-03:00",
+        "end": "2026-10-09T10:24:30-03:00",
+        "basis": {
+          "code": "since_5h_window_start"
+        }
+      },
+      "today": {
+        "start": "2026-10-09T00:00:00-03:00",
+        "end": "2026-10-09T10:24:30-03:00",
+        "basis": {
+          "code": "since_midnight"
+        }
+      },
+      "7d": {
+        "start": "2026-10-02T10:24:30-03:00",
+        "end": "2026-10-09T10:24:30-03:00",
+        "basis": {
+          "code": "last_7_days"
+        },
+        "plan_basis": {
+          "start": "2026-10-06T09:00:00-03:00",
+          "end": "2026-10-09T10:24:30-03:00",
+          "basis": {
+            "code": "plan_week"
+          }
+        }
+      }
+    },
+    "totals": {
+      "window_5h": {
+        "input": 7900,
+        "output": 63200,
+        "cache_write": 578000,
+        "cache_read": 10120000,
+        "messages": 8,
+        "relative_consumption": 2058400
+      },
+      "today": {
+        "input": 8300,
+        "output": 65700,
+        "cache_write": 606000,
+        "cache_read": 10360000,
+        "messages": 9,
+        "relative_consumption": 2130300
+      },
+      "7d": {
+        "input": 13700,
+        "output": 108700,
+        "cache_write": 1020000,
+        "cache_read": 15900000,
+        "messages": 15,
+        "relative_consumption": 3422200
+      }
+    },
+    "note": {
+      "code": "usage_note"
+    },
+    "formula": {
+      "code": "usage_formula"
+    },
+    "source": {
+      "code": "usage_source"
+    },
+    "collection": {
+      "raw_log": "found",
+      "sessions": 11,
+      "sessions_without_transcript": 0,
+      "transcripts": 11,
+      "missing_transcripts": 0,
+      "old_transcripts": 0,
+      "restarted_transcripts": 0,
+      "bytes_read": 3470,
+      "lines_with_usage": 15,
+      "invalid_lines": 0,
+      "messages": 15,
+      "cache": "new",
+      "duration_ms": 42
+    },
+    "warnings": [],
+    "collector": {
+      "interval_min": 5,
+      "active": true,
+      "last": {
+        "at": "2026-10-09T10:24:30-03:00",
+        "trigger": "periodic",
+        "ok": true,
+        "duration_ms": 42,
+        "error": null
+      },
+      "running": false
+    },
+    "by_item": {
+      "window_5h": [
+        {
+          "key": "portal/3112",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "input": 4200,
+          "output": 33200,
+          "cache_write": 306000,
+          "cache_read": 5130000,
+          "messages": 4,
+          "relative_consumption": 1065700,
+          "consumption_pct": 51.8,
+          "estimated_plan_pct": 19.2
+        },
+        {
+          "key": "painel-maestro/5",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item": {
+            "key": "painel-maestro/5",
+            "number": 5,
+            "tracker_ref": "#5",
+            "title": "Item ponta a ponta (tracer bullet)",
+            "stage": "implementation",
+            "active": true
+          },
+          "input": 3000,
+          "output": 25200,
+          "cache_write": 224000,
+          "cache_read": 4400000,
+          "messages": 2,
+          "relative_consumption": 849000,
+          "consumption_pct": 41.2,
+          "estimated_plan_pct": 15.3
+        },
+        {
+          "key": "storefront/48",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item": {
+            "key": "storefront/48",
+            "number": 48,
+            "tracker_ref": "#48",
+            "title": "Carrinho salvo entre dispositivos",
+            "stage": "final_adjustment",
+            "active": true
+          },
+          "input": 500,
+          "output": 3900,
+          "cache_write": 36000,
+          "cache_read": 500000,
+          "messages": 1,
+          "relative_consumption": 115000,
+          "consumption_pct": 5.6,
+          "estimated_plan_pct": 2.1
+        },
+        {
+          "key": "scratch/-",
+          "project": {
+            "id": "scratch",
+            "name": "scratch",
+            "tracker": "github",
+            "company": {
+              "id": "unassigned",
+              "name": "Sem empresa"
+            }
+          },
+          "item": null,
+          "input": 200,
+          "output": 900,
+          "cache_write": 12000,
+          "cache_read": 90000,
+          "messages": 1,
+          "relative_consumption": 28700,
+          "consumption_pct": 1.4,
+          "estimated_plan_pct": 0.5
+        }
+      ],
+      "today": [
+        {
+          "key": "portal/3112",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "input": 4200,
+          "output": 33200,
+          "cache_write": 306000,
+          "cache_read": 5130000,
+          "messages": 4,
+          "relative_consumption": 1065700,
+          "consumption_pct": 50,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "painel-maestro/5",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item": {
+            "key": "painel-maestro/5",
+            "number": 5,
+            "tracker_ref": "#5",
+            "title": "Item ponta a ponta (tracer bullet)",
+            "stage": "implementation",
+            "active": true
+          },
+          "input": 3400,
+          "output": 27700,
+          "cache_write": 252000,
+          "cache_read": 4640000,
+          "messages": 3,
+          "relative_consumption": 920900,
+          "consumption_pct": 43.2,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "storefront/48",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item": {
+            "key": "storefront/48",
+            "number": 48,
+            "tracker_ref": "#48",
+            "title": "Carrinho salvo entre dispositivos",
+            "stage": "final_adjustment",
+            "active": true
+          },
+          "input": 500,
+          "output": 3900,
+          "cache_write": 36000,
+          "cache_read": 500000,
+          "messages": 1,
+          "relative_consumption": 115000,
+          "consumption_pct": 5.4,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "scratch/-",
+          "project": {
+            "id": "scratch",
+            "name": "scratch",
+            "tracker": "github",
+            "company": {
+              "id": "unassigned",
+              "name": "Sem empresa"
+            }
+          },
+          "item": null,
+          "input": 200,
+          "output": 900,
+          "cache_write": 12000,
+          "cache_read": 90000,
+          "messages": 1,
+          "relative_consumption": 28700,
+          "consumption_pct": 1.3,
+          "estimated_plan_pct": null
+        }
+      ],
+      "7d": [
+        {
+          "key": "portal/3112",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "input": 7700,
+          "output": 60400,
+          "cache_write": 568000,
+          "cache_read": 8610000,
+          "messages": 7,
+          "relative_consumption": 1880700,
+          "consumption_pct": 55,
+          "estimated_plan_pct": 12.1,
+          "plan_week_consumption_pct": 55
+        },
+        {
+          "key": "painel-maestro/5",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item": {
+            "key": "painel-maestro/5",
+            "number": 5,
+            "tracker_ref": "#5",
+            "title": "Item ponta a ponta (tracer bullet)",
+            "stage": "implementation",
+            "active": true
+          },
+          "input": 3400,
+          "output": 27700,
+          "cache_write": 252000,
+          "cache_read": 4640000,
+          "messages": 3,
+          "relative_consumption": 920900,
+          "consumption_pct": 26.9,
+          "estimated_plan_pct": 5.9,
+          "plan_week_consumption_pct": 26.9
+        },
+        {
+          "key": "billing-api/2875",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "billing-api/2875",
+            "number": 2875,
+            "tracker_ref": "PBI 2875",
+            "title": "Reprocessar cobranças recusadas pelo gateway",
+            "stage": "pr_ready",
+            "active": true
+          },
+          "input": 1000,
+          "output": 8800,
+          "cache_write": 70000,
+          "cache_read": 1100000,
+          "messages": 1,
+          "relative_consumption": 242500,
+          "consumption_pct": 7.1,
+          "estimated_plan_pct": 1.6,
+          "plan_week_consumption_pct": 7.1
+        },
+        {
+          "key": "portal/3100",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3100",
+            "number": 3100,
+            "tracker_ref": "PBI 3100",
+            "title": "Conciliação de boletos com o extrato do banco",
+            "stage": "hml_validation",
+            "active": true
+          },
+          "input": 900,
+          "output": 7000,
+          "cache_write": 82000,
+          "cache_read": 960000,
+          "messages": 2,
+          "relative_consumption": 234400,
+          "consumption_pct": 6.8,
+          "estimated_plan_pct": 1.5,
+          "plan_week_consumption_pct": 6.8
+        },
+        {
+          "key": "storefront/48",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item": {
+            "key": "storefront/48",
+            "number": 48,
+            "tracker_ref": "#48",
+            "title": "Carrinho salvo entre dispositivos",
+            "stage": "final_adjustment",
+            "active": true
+          },
+          "input": 500,
+          "output": 3900,
+          "cache_write": 36000,
+          "cache_read": 500000,
+          "messages": 1,
+          "relative_consumption": 115000,
+          "consumption_pct": 3.4,
+          "estimated_plan_pct": 0.7,
+          "plan_week_consumption_pct": 3.4
+        },
+        {
+          "key": "scratch/-",
+          "project": {
+            "id": "scratch",
+            "name": "scratch",
+            "tracker": "github",
+            "company": {
+              "id": "unassigned",
+              "name": "Sem empresa"
+            }
+          },
+          "item": null,
+          "input": 200,
+          "output": 900,
+          "cache_write": 12000,
+          "cache_read": 90000,
+          "messages": 1,
+          "relative_consumption": 28700,
+          "consumption_pct": 0.8,
+          "estimated_plan_pct": 0.2,
+          "plan_week_consumption_pct": 0.8
+        }
+      ]
+    },
+    "by_agent": {
+      "window_5h": [
+        {
+          "key": "painel-maestro/5/task-5",
+          "role": "worker",
+          "name": "Ária",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item": {
+            "key": "painel-maestro/5",
+            "number": 5,
+            "tracker_ref": "#5",
+            "title": "Item ponta a ponta (tracer bullet)",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 5,
+            "title": "Item ponta a ponta (tracer bullet)",
+            "state": "working",
+            "floor": "Item ponta a ponta",
+            "branch": "task/5-item-ponta-a-ponta",
+            "status_text": "API e telas prontas, faltam os testes",
+            "progress": {
+              "done": 4,
+              "total": 6
+            },
+            "updated_at": "2026-10-09T10:10:00-03:00"
+          },
+          "input": 3000,
+          "output": 25200,
+          "cache_write": 224000,
+          "cache_read": 4400000,
+          "messages": 2,
+          "relative_consumption": 849000,
+          "consumption_pct": 41.2,
+          "estimated_plan_pct": 15.3
+        },
+        {
+          "key": "portal/3112/task-3114",
+          "role": "worker",
+          "name": "Caio",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 3114,
+            "title": "Gerar o PDF no servidor",
+            "state": "working",
+            "floor": "PDF no servidor",
+            "branch": "task/3114-pdf-servidor",
+            "status_text": "Layout gerado, faltam as fontes",
+            "progress": {
+              "done": 2,
+              "total": 5
+            },
+            "updated_at": "2026-10-09T09:15:00-03:00"
+          },
+          "input": 1800,
+          "output": 16500,
+          "cache_write": 140000,
+          "cache_read": 2600000,
+          "messages": 1,
+          "relative_consumption": 519300,
+          "consumption_pct": 25.2,
+          "estimated_plan_pct": 9.3
+        },
+        {
+          "key": "portal/3112/task-3115",
+          "role": "worker",
+          "name": "Dora",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 3115,
+            "title": "Botão de exportar na tela do extrato",
+            "state": "review",
+            "floor": "Botão exportar",
+            "branch": "task/3115-botao-exportar",
+            "status_text": "Botão pronto, aguardando revisão",
+            "progress": {
+              "done": 4,
+              "total": 4
+            },
+            "updated_at": "2026-10-09T08:40:00-03:00"
+          },
+          "input": 1300,
+          "output": 11000,
+          "cache_write": 95000,
+          "cache_read": 1700000,
+          "messages": 1,
+          "relative_consumption": 345050,
+          "consumption_pct": 16.8,
+          "estimated_plan_pct": 6.2
+        },
+        {
+          "key": "portal/3112/maestro",
+          "role": "maestro",
+          "name": "Bento",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": null,
+          "input": 700,
+          "output": 3100,
+          "cache_write": 41000,
+          "cache_read": 520000,
+          "messages": 1,
+          "relative_consumption": 119450,
+          "consumption_pct": 5.8,
+          "estimated_plan_pct": 2.1
+        },
+        {
+          "key": "storefront/48/maestro",
+          "role": "maestro",
+          "name": "Ária",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item": {
+            "key": "storefront/48",
+            "number": 48,
+            "tracker_ref": "#48",
+            "title": "Carrinho salvo entre dispositivos",
+            "stage": "final_adjustment",
+            "active": true
+          },
+          "task": null,
+          "input": 500,
+          "output": 3900,
+          "cache_write": 36000,
+          "cache_read": 500000,
+          "messages": 1,
+          "relative_consumption": 115000,
+          "consumption_pct": 5.6,
+          "estimated_plan_pct": 2.1
+        },
+        {
+          "key": "portal/3112/task-3116",
+          "role": "worker",
+          "name": "subagente",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 3116,
+            "title": "Assinatura digital do PDF",
+            "state": "blocked",
+            "floor": null,
+            "branch": "task/3116-assinatura",
+            "status_text": "Preciso do certificado de homologação",
+            "progress": null,
+            "updated_at": "2026-10-09T10:05:00-03:00"
+          },
+          "input": 400,
+          "output": 2600,
+          "cache_write": 30000,
+          "cache_read": 310000,
+          "messages": 1,
+          "relative_consumption": 81900,
+          "consumption_pct": 4,
+          "estimated_plan_pct": 1.5
+        },
+        {
+          "key": "scratch/-/other",
+          "role": "other",
+          "name": null,
+          "project": {
+            "id": "scratch",
+            "name": "scratch",
+            "tracker": "github",
+            "company": {
+              "id": "unassigned",
+              "name": "Sem empresa"
+            }
+          },
+          "item": null,
+          "task": null,
+          "input": 200,
+          "output": 900,
+          "cache_write": 12000,
+          "cache_read": 90000,
+          "messages": 1,
+          "relative_consumption": 28700,
+          "consumption_pct": 1.4,
+          "estimated_plan_pct": 0.5
+        }
+      ],
+      "today": [
+        {
+          "key": "painel-maestro/5/task-5",
+          "role": "worker",
+          "name": "Ária",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item": {
+            "key": "painel-maestro/5",
+            "number": 5,
+            "tracker_ref": "#5",
+            "title": "Item ponta a ponta (tracer bullet)",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 5,
+            "title": "Item ponta a ponta (tracer bullet)",
+            "state": "working",
+            "floor": "Item ponta a ponta",
+            "branch": "task/5-item-ponta-a-ponta",
+            "status_text": "API e telas prontas, faltam os testes",
+            "progress": {
+              "done": 4,
+              "total": 6
+            },
+            "updated_at": "2026-10-09T10:10:00-03:00"
+          },
+          "input": 3000,
+          "output": 25200,
+          "cache_write": 224000,
+          "cache_read": 4400000,
+          "messages": 2,
+          "relative_consumption": 849000,
+          "consumption_pct": 39.9,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "portal/3112/task-3114",
+          "role": "worker",
+          "name": "Caio",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 3114,
+            "title": "Gerar o PDF no servidor",
+            "state": "working",
+            "floor": "PDF no servidor",
+            "branch": "task/3114-pdf-servidor",
+            "status_text": "Layout gerado, faltam as fontes",
+            "progress": {
+              "done": 2,
+              "total": 5
+            },
+            "updated_at": "2026-10-09T09:15:00-03:00"
+          },
+          "input": 1800,
+          "output": 16500,
+          "cache_write": 140000,
+          "cache_read": 2600000,
+          "messages": 1,
+          "relative_consumption": 519300,
+          "consumption_pct": 24.4,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "portal/3112/task-3115",
+          "role": "worker",
+          "name": "Dora",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 3115,
+            "title": "Botão de exportar na tela do extrato",
+            "state": "review",
+            "floor": "Botão exportar",
+            "branch": "task/3115-botao-exportar",
+            "status_text": "Botão pronto, aguardando revisão",
+            "progress": {
+              "done": 4,
+              "total": 4
+            },
+            "updated_at": "2026-10-09T08:40:00-03:00"
+          },
+          "input": 1300,
+          "output": 11000,
+          "cache_write": 95000,
+          "cache_read": 1700000,
+          "messages": 1,
+          "relative_consumption": 345050,
+          "consumption_pct": 16.2,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "portal/3112/maestro",
+          "role": "maestro",
+          "name": "Bento",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": null,
+          "input": 700,
+          "output": 3100,
+          "cache_write": 41000,
+          "cache_read": 520000,
+          "messages": 1,
+          "relative_consumption": 119450,
+          "consumption_pct": 5.6,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "storefront/48/maestro",
+          "role": "maestro",
+          "name": "Ária",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item": {
+            "key": "storefront/48",
+            "number": 48,
+            "tracker_ref": "#48",
+            "title": "Carrinho salvo entre dispositivos",
+            "stage": "final_adjustment",
+            "active": true
+          },
+          "task": null,
+          "input": 500,
+          "output": 3900,
+          "cache_write": 36000,
+          "cache_read": 500000,
+          "messages": 1,
+          "relative_consumption": 115000,
+          "consumption_pct": 5.4,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "portal/3112/task-3116",
+          "role": "worker",
+          "name": "subagente",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 3116,
+            "title": "Assinatura digital do PDF",
+            "state": "blocked",
+            "floor": null,
+            "branch": "task/3116-assinatura",
+            "status_text": "Preciso do certificado de homologação",
+            "progress": null,
+            "updated_at": "2026-10-09T10:05:00-03:00"
+          },
+          "input": 400,
+          "output": 2600,
+          "cache_write": 30000,
+          "cache_read": 310000,
+          "messages": 1,
+          "relative_consumption": 81900,
+          "consumption_pct": 3.8,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "painel-maestro/5/maestro",
+          "role": "maestro",
+          "name": "Bento",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item": {
+            "key": "painel-maestro/5",
+            "number": 5,
+            "tracker_ref": "#5",
+            "title": "Item ponta a ponta (tracer bullet)",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": null,
+          "input": 400,
+          "output": 2500,
+          "cache_write": 28000,
+          "cache_read": 240000,
+          "messages": 1,
+          "relative_consumption": 71900,
+          "consumption_pct": 3.4,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "scratch/-/other",
+          "role": "other",
+          "name": null,
+          "project": {
+            "id": "scratch",
+            "name": "scratch",
+            "tracker": "github",
+            "company": {
+              "id": "unassigned",
+              "name": "Sem empresa"
+            }
+          },
+          "item": null,
+          "task": null,
+          "input": 200,
+          "output": 900,
+          "cache_write": 12000,
+          "cache_read": 90000,
+          "messages": 1,
+          "relative_consumption": 28700,
+          "consumption_pct": 1.3,
+          "estimated_plan_pct": null
+        }
+      ],
+      "7d": [
+        {
+          "key": "painel-maestro/5/task-5",
+          "role": "worker",
+          "name": "Ária",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item": {
+            "key": "painel-maestro/5",
+            "number": 5,
+            "tracker_ref": "#5",
+            "title": "Item ponta a ponta (tracer bullet)",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 5,
+            "title": "Item ponta a ponta (tracer bullet)",
+            "state": "working",
+            "floor": "Item ponta a ponta",
+            "branch": "task/5-item-ponta-a-ponta",
+            "status_text": "API e telas prontas, faltam os testes",
+            "progress": {
+              "done": 4,
+              "total": 6
+            },
+            "updated_at": "2026-10-09T10:10:00-03:00"
+          },
+          "input": 3000,
+          "output": 25200,
+          "cache_write": 224000,
+          "cache_read": 4400000,
+          "messages": 2,
+          "relative_consumption": 849000,
+          "consumption_pct": 24.8,
+          "estimated_plan_pct": 5.5,
+          "plan_week_consumption_pct": 24.8
+        },
+        {
+          "key": "portal/3112/task-3114",
+          "role": "worker",
+          "name": "Caio",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 3114,
+            "title": "Gerar o PDF no servidor",
+            "state": "working",
+            "floor": "PDF no servidor",
+            "branch": "task/3114-pdf-servidor",
+            "status_text": "Layout gerado, faltam as fontes",
+            "progress": {
+              "done": 2,
+              "total": 5
+            },
+            "updated_at": "2026-10-09T09:15:00-03:00"
+          },
+          "input": 2900,
+          "output": 25500,
+          "cache_write": 230000,
+          "cache_read": 3800000,
+          "messages": 2,
+          "relative_consumption": 797900,
+          "consumption_pct": 23.3,
+          "estimated_plan_pct": 5.1,
+          "plan_week_consumption_pct": 23.3
+        },
+        {
+          "key": "portal/3112/task-3113",
+          "role": "worker",
+          "name": "Ária",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 3113,
+            "title": "Modelo do extrato em PDF",
+            "state": "integrated",
+            "floor": "Modelo PDF",
+            "branch": "task/3113-modelo-pdf",
+            "status_text": "Modelo pronto, testes verdes",
+            "progress": {
+              "done": 3,
+              "total": 3
+            },
+            "updated_at": "2026-10-08T14:02:00-03:00"
+          },
+          "input": 1500,
+          "output": 14000,
+          "cache_write": 120000,
+          "cache_read": 1900000,
+          "messages": 1,
+          "relative_consumption": 411500,
+          "consumption_pct": 12,
+          "estimated_plan_pct": 2.6,
+          "plan_week_consumption_pct": 12
+        },
+        {
+          "key": "portal/3112/task-3115",
+          "role": "worker",
+          "name": "Dora",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 3115,
+            "title": "Botão de exportar na tela do extrato",
+            "state": "review",
+            "floor": "Botão exportar",
+            "branch": "task/3115-botao-exportar",
+            "status_text": "Botão pronto, aguardando revisão",
+            "progress": {
+              "done": 4,
+              "total": 4
+            },
+            "updated_at": "2026-10-09T08:40:00-03:00"
+          },
+          "input": 1300,
+          "output": 11000,
+          "cache_write": 95000,
+          "cache_read": 1700000,
+          "messages": 1,
+          "relative_consumption": 345050,
+          "consumption_pct": 10.1,
+          "estimated_plan_pct": 2.2,
+          "plan_week_consumption_pct": 10.1
+        },
+        {
+          "key": "portal/3112/maestro",
+          "role": "maestro",
+          "name": "Bento",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": null,
+          "input": 1600,
+          "output": 7300,
+          "cache_write": 93000,
+          "cache_read": 900000,
+          "messages": 2,
+          "relative_consumption": 244350,
+          "consumption_pct": 7.1,
+          "estimated_plan_pct": 1.6,
+          "plan_week_consumption_pct": 7.1
+        },
+        {
+          "key": "billing-api/2875/maestro",
+          "role": "maestro",
+          "name": "Bento",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "billing-api/2875",
+            "number": 2875,
+            "tracker_ref": "PBI 2875",
+            "title": "Reprocessar cobranças recusadas pelo gateway",
+            "stage": "pr_ready",
+            "active": true
+          },
+          "task": null,
+          "input": 1000,
+          "output": 8800,
+          "cache_write": 70000,
+          "cache_read": 1100000,
+          "messages": 1,
+          "relative_consumption": 242500,
+          "consumption_pct": 7.1,
+          "estimated_plan_pct": 1.6,
+          "plan_week_consumption_pct": 7.1
+        },
+        {
+          "key": "portal/3100/maestro",
+          "role": "maestro",
+          "name": "Bento",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3100",
+            "number": 3100,
+            "tracker_ref": "PBI 3100",
+            "title": "Conciliação de boletos com o extrato do banco",
+            "stage": "hml_validation",
+            "active": true
+          },
+          "task": null,
+          "input": 900,
+          "output": 7000,
+          "cache_write": 82000,
+          "cache_read": 960000,
+          "messages": 2,
+          "relative_consumption": 234400,
+          "consumption_pct": 6.8,
+          "estimated_plan_pct": 1.5,
+          "plan_week_consumption_pct": 6.8
+        },
+        {
+          "key": "storefront/48/maestro",
+          "role": "maestro",
+          "name": "Ária",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item": {
+            "key": "storefront/48",
+            "number": 48,
+            "tracker_ref": "#48",
+            "title": "Carrinho salvo entre dispositivos",
+            "stage": "final_adjustment",
+            "active": true
+          },
+          "task": null,
+          "input": 500,
+          "output": 3900,
+          "cache_write": 36000,
+          "cache_read": 500000,
+          "messages": 1,
+          "relative_consumption": 115000,
+          "consumption_pct": 3.4,
+          "estimated_plan_pct": 0.7,
+          "plan_week_consumption_pct": 3.4
+        },
+        {
+          "key": "portal/3112/task-3116",
+          "role": "worker",
+          "name": "subagente",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item": {
+            "key": "portal/3112",
+            "number": 3112,
+            "tracker_ref": "PBI 3112",
+            "title": "Exportar o extrato em PDF",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": {
+            "number": 3116,
+            "title": "Assinatura digital do PDF",
+            "state": "blocked",
+            "floor": null,
+            "branch": "task/3116-assinatura",
+            "status_text": "Preciso do certificado de homologação",
+            "progress": null,
+            "updated_at": "2026-10-09T10:05:00-03:00"
+          },
+          "input": 400,
+          "output": 2600,
+          "cache_write": 30000,
+          "cache_read": 310000,
+          "messages": 1,
+          "relative_consumption": 81900,
+          "consumption_pct": 2.4,
+          "estimated_plan_pct": 0.5,
+          "plan_week_consumption_pct": 2.4
+        },
+        {
+          "key": "painel-maestro/5/maestro",
+          "role": "maestro",
+          "name": "Bento",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item": {
+            "key": "painel-maestro/5",
+            "number": 5,
+            "tracker_ref": "#5",
+            "title": "Item ponta a ponta (tracer bullet)",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": null,
+          "input": 400,
+          "output": 2500,
+          "cache_write": 28000,
+          "cache_read": 240000,
+          "messages": 1,
+          "relative_consumption": 71900,
+          "consumption_pct": 2.1,
+          "estimated_plan_pct": 0.5,
+          "plan_week_consumption_pct": 2.1
+        },
+        {
+          "key": "scratch/-/other",
+          "role": "other",
+          "name": null,
+          "project": {
+            "id": "scratch",
+            "name": "scratch",
+            "tracker": "github",
+            "company": {
+              "id": "unassigned",
+              "name": "Sem empresa"
+            }
+          },
+          "item": null,
+          "task": null,
+          "input": 200,
+          "output": 900,
+          "cache_write": 12000,
+          "cache_read": 90000,
+          "messages": 1,
+          "relative_consumption": 28700,
+          "consumption_pct": 0.8,
+          "estimated_plan_pct": 0.2,
+          "plan_week_consumption_pct": 0.8
+        }
+      ]
+    }
+  },
+  "agents": {
+    "agents": [
+      {
+        "key": "painel-maestro/5/maestro",
+        "role": "maestro",
+        "name": "Bento",
+        "project": {
+          "id": "painel-maestro",
+          "name": "painel-maestro",
+          "tracker": "github",
+          "company": {
+            "id": "personal",
+            "name": "Pessoal"
+          }
+        },
+        "item": {
+          "key": "painel-maestro/5",
+          "number": 5,
+          "tracker_ref": "#5",
+          "title": "Item ponta a ponta (tracer bullet)",
+          "stage": "implementation",
+          "active": true
+        },
+        "task": null,
+        "active_tasks": 1,
+        "last_event": {
+          "id": 54,
+          "at": "2026-10-09T07:35:00-03:00",
+          "type": "task-dispatched",
+          "task_number": 5,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "payload": {
+            "floor": "Item ponta a ponta",
+            "worker": "Ária",
+            "branch": "task/5-item-ponta-a-ponta"
+          }
+        },
+        "last_activity_at": "2026-10-09T07:40:00-03:00",
+        "usage": {
+          "window_5h": null,
+          "today": {
+            "consumption_pct": 3.4,
+            "estimated_plan_pct": null,
+            "relative_consumption": 71900
+          },
+          "7d": {
+            "consumption_pct": 2.1,
+            "estimated_plan_pct": 0.5,
+            "relative_consumption": 71900
+          }
+        }
+      },
+      {
+        "key": "painel-maestro/5/task-5",
+        "role": "worker",
+        "name": "Ária",
+        "project": {
+          "id": "painel-maestro",
+          "name": "painel-maestro",
+          "tracker": "github",
+          "company": {
+            "id": "personal",
+            "name": "Pessoal"
+          }
+        },
+        "item": {
+          "key": "painel-maestro/5",
+          "number": 5,
+          "tracker_ref": "#5",
+          "title": "Item ponta a ponta (tracer bullet)",
+          "stage": "implementation",
+          "active": true
+        },
+        "task": {
+          "number": 5,
+          "title": "Item ponta a ponta (tracer bullet)",
+          "state": "working",
+          "floor": "Item ponta a ponta",
+          "branch": "task/5-item-ponta-a-ponta",
+          "status_text": "API e telas prontas, faltam os testes",
+          "progress": {
+            "done": 4,
+            "total": 6
+          },
+          "updated_at": "2026-10-09T10:10:00-03:00"
+        },
+        "active_tasks": null,
+        "last_event": {
+          "id": 62,
+          "at": "2026-10-09T10:10:00-03:00",
+          "type": "task-status",
+          "task_number": 5,
+          "agent": {
+            "role": "worker",
+            "name": "Ária"
+          },
+          "payload": {
+            "state": "working",
+            "text": "API e telas prontas, faltam os testes",
+            "progress": {
+              "done": 4,
+              "total": 6
+            },
+            "maestri": "posted"
+          }
+        },
+        "last_activity_at": "2026-10-09T10:20:00-03:00",
+        "usage": {
+          "window_5h": {
+            "consumption_pct": 41.2,
+            "estimated_plan_pct": 15.3,
+            "relative_consumption": 849000
+          },
+          "today": {
+            "consumption_pct": 39.9,
+            "estimated_plan_pct": null,
+            "relative_consumption": 849000
+          },
+          "7d": {
+            "consumption_pct": 24.8,
+            "estimated_plan_pct": 5.5,
+            "relative_consumption": 849000
+          }
+        }
+      },
+      {
+        "key": "portal/3112/maestro",
+        "role": "maestro",
+        "name": "Bento",
+        "project": {
+          "id": "portal",
+          "name": "Portal Contoso",
+          "tracker": "azure_devops",
+          "company": {
+            "id": "contoso",
+            "name": "Contoso"
+          }
+        },
+        "item": {
+          "key": "portal/3112",
+          "number": 3112,
+          "tracker_ref": "PBI 3112",
+          "title": "Exportar o extrato em PDF",
+          "stage": "implementation",
+          "active": true
+        },
+        "task": null,
+        "active_tasks": 3,
+        "last_event": {
+          "id": 59,
+          "at": "2026-10-09T09:50:00-03:00",
+          "type": "task-dispatched",
+          "task_number": 3116,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "payload": {
+            "floor": null,
+            "worker": "subagente",
+            "branch": "task/3116-assinatura"
+          }
+        },
+        "last_activity_at": "2026-10-09T10:15:00-03:00",
+        "usage": {
+          "window_5h": {
+            "consumption_pct": 5.8,
+            "estimated_plan_pct": 2.1,
+            "relative_consumption": 119450
+          },
+          "today": {
+            "consumption_pct": 5.6,
+            "estimated_plan_pct": null,
+            "relative_consumption": 119450
+          },
+          "7d": {
+            "consumption_pct": 7.1,
+            "estimated_plan_pct": 1.6,
+            "relative_consumption": 244350
+          }
+        }
+      },
+      {
+        "key": "portal/3112/task-3114",
+        "role": "worker",
+        "name": "Caio",
+        "project": {
+          "id": "portal",
+          "name": "Portal Contoso",
+          "tracker": "azure_devops",
+          "company": {
+            "id": "contoso",
+            "name": "Contoso"
+          }
+        },
+        "item": {
+          "key": "portal/3112",
+          "number": 3112,
+          "tracker_ref": "PBI 3112",
+          "title": "Exportar o extrato em PDF",
+          "stage": "implementation",
+          "active": true
+        },
+        "task": {
+          "number": 3114,
+          "title": "Gerar o PDF no servidor",
+          "state": "working",
+          "floor": "PDF no servidor",
+          "branch": "task/3114-pdf-servidor",
+          "status_text": "Layout gerado, faltam as fontes",
+          "progress": {
+            "done": 2,
+            "total": 5
+          },
+          "updated_at": "2026-10-09T09:15:00-03:00"
+        },
+        "active_tasks": null,
+        "last_event": {
+          "id": 57,
+          "at": "2026-10-09T09:15:00-03:00",
+          "type": "task-status",
+          "task_number": 3114,
+          "agent": {
+            "role": "worker",
+            "name": "Caio"
+          },
+          "payload": {
+            "state": "working",
+            "text": "Layout gerado, faltam as fontes",
+            "progress": {
+              "done": 2,
+              "total": 5
+            },
+            "maestri": "posted"
+          }
+        },
+        "last_activity_at": "2026-10-09T10:22:00-03:00",
+        "usage": {
+          "window_5h": {
+            "consumption_pct": 25.2,
+            "estimated_plan_pct": 9.3,
+            "relative_consumption": 519300
+          },
+          "today": {
+            "consumption_pct": 24.4,
+            "estimated_plan_pct": null,
+            "relative_consumption": 519300
+          },
+          "7d": {
+            "consumption_pct": 23.3,
+            "estimated_plan_pct": 5.1,
+            "relative_consumption": 797900
+          }
+        }
+      },
+      {
+        "key": "portal/3112/task-3115",
+        "role": "worker",
+        "name": "Dora",
+        "project": {
+          "id": "portal",
+          "name": "Portal Contoso",
+          "tracker": "azure_devops",
+          "company": {
+            "id": "contoso",
+            "name": "Contoso"
+          }
+        },
+        "item": {
+          "key": "portal/3112",
+          "number": 3112,
+          "tracker_ref": "PBI 3112",
+          "title": "Exportar o extrato em PDF",
+          "stage": "implementation",
+          "active": true
+        },
+        "task": {
+          "number": 3115,
+          "title": "Botão de exportar na tela do extrato",
+          "state": "review",
+          "floor": "Botão exportar",
+          "branch": "task/3115-botao-exportar",
+          "status_text": "Botão pronto, aguardando revisão",
+          "progress": {
+            "done": 4,
+            "total": 4
+          },
+          "updated_at": "2026-10-09T08:40:00-03:00"
+        },
+        "active_tasks": null,
+        "last_event": {
+          "id": 55,
+          "at": "2026-10-09T08:40:00-03:00",
+          "type": "task-status",
+          "task_number": 3115,
+          "agent": {
+            "role": "worker",
+            "name": "Dora"
+          },
+          "payload": {
+            "state": "review",
+            "text": "Botão pronto, aguardando revisão",
+            "progress": {
+              "done": 4,
+              "total": 4
+            },
+            "maestri": "posted"
+          }
+        },
+        "last_activity_at": "2026-10-09T08:45:00-03:00",
+        "usage": {
+          "window_5h": {
+            "consumption_pct": 16.8,
+            "estimated_plan_pct": 6.2,
+            "relative_consumption": 345050
+          },
+          "today": {
+            "consumption_pct": 16.2,
+            "estimated_plan_pct": null,
+            "relative_consumption": 345050
+          },
+          "7d": {
+            "consumption_pct": 10.1,
+            "estimated_plan_pct": 2.2,
+            "relative_consumption": 345050
+          }
+        }
+      },
+      {
+        "key": "portal/3112/task-3116",
+        "role": "worker",
+        "name": "subagente",
+        "project": {
+          "id": "portal",
+          "name": "Portal Contoso",
+          "tracker": "azure_devops",
+          "company": {
+            "id": "contoso",
+            "name": "Contoso"
+          }
+        },
+        "item": {
+          "key": "portal/3112",
+          "number": 3112,
+          "tracker_ref": "PBI 3112",
+          "title": "Exportar o extrato em PDF",
+          "stage": "implementation",
+          "active": true
+        },
+        "task": {
+          "number": 3116,
+          "title": "Assinatura digital do PDF",
+          "state": "blocked",
+          "floor": null,
+          "branch": "task/3116-assinatura",
+          "status_text": "Preciso do certificado de homologação",
+          "progress": null,
+          "updated_at": "2026-10-09T10:05:00-03:00"
+        },
+        "active_tasks": null,
+        "last_event": {
+          "id": 61,
+          "at": "2026-10-09T10:05:00-03:00",
+          "type": "task-status",
+          "task_number": 3116,
+          "agent": {
+            "role": "worker",
+            "name": "subagente"
+          },
+          "payload": {
+            "state": "blocked",
+            "text": "Preciso do certificado de homologação",
+            "progress": null,
+            "maestri": "outside"
+          }
+        },
+        "last_activity_at": "2026-10-09T10:06:00-03:00",
+        "usage": {
+          "window_5h": {
+            "consumption_pct": 4,
+            "estimated_plan_pct": 1.5,
+            "relative_consumption": 81900
+          },
+          "today": {
+            "consumption_pct": 3.8,
+            "estimated_plan_pct": null,
+            "relative_consumption": 81900
+          },
+          "7d": {
+            "consumption_pct": 2.4,
+            "estimated_plan_pct": 0.5,
+            "relative_consumption": 81900
+          }
+        }
+      },
+      {
+        "key": "scratch/3/maestro",
+        "role": "maestro",
+        "name": "Bento",
+        "project": {
+          "id": "scratch",
+          "name": "scratch",
+          "tracker": "github",
+          "company": {
+            "id": "unassigned",
+            "name": "Sem empresa"
+          }
+        },
+        "item": {
+          "key": "scratch/3",
+          "number": 3,
+          "tracker_ref": "#3",
+          "title": "Testar o layout do relatório",
+          "stage": "specification",
+          "active": true
+        },
+        "task": null,
+        "active_tasks": 0,
+        "last_event": {
+          "id": 60,
+          "at": "2026-10-09T10:05:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "payload": {
+            "title": "Testar o layout do relatório",
+            "stage": "specification"
+          }
+        },
+        "last_activity_at": null,
+        "usage": null
+      },
+      {
+        "key": "storefront/48/maestro",
+        "role": "maestro",
+        "name": "Ária",
+        "project": {
+          "id": "storefront",
+          "name": "Loja",
+          "tracker": "github",
+          "company": {
+            "id": "fabrikam",
+            "name": "Fabrikam"
+          }
+        },
+        "item": {
+          "key": "storefront/48",
+          "number": 48,
+          "tracker_ref": "#48",
+          "title": "Carrinho salvo entre dispositivos",
+          "stage": "final_adjustment",
+          "active": true
+        },
+        "task": null,
+        "active_tasks": 0,
+        "last_event": {
+          "id": 58,
+          "at": "2026-10-09T09:40:00-03:00",
+          "type": "final-adjustment-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "payload": {}
+        },
+        "last_activity_at": "2026-10-09T09:45:00-03:00",
+        "usage": {
+          "window_5h": {
+            "consumption_pct": 5.6,
+            "estimated_plan_pct": 2.1,
+            "relative_consumption": 115000
+          },
+          "today": {
+            "consumption_pct": 5.4,
+            "estimated_plan_pct": null,
+            "relative_consumption": 115000
+          },
+          "7d": {
+            "consumption_pct": 3.4,
+            "estimated_plan_pct": 0.7,
+            "relative_consumption": 115000
+          }
+        }
+      },
+      {
+        "key": "billing-api/2901/maestro",
+        "role": "maestro",
+        "name": "Bento",
+        "project": {
+          "id": "billing-api",
+          "name": "Cobrança",
+          "tracker": "azure_devops",
+          "company": {
+            "id": "contoso",
+            "name": "Contoso"
+          }
+        },
+        "item": {
+          "key": "billing-api/2901",
+          "number": 2901,
+          "tracker_ref": "PBI 2901",
+          "title": "Limite de tentativas por cartão",
+          "stage": "specification",
+          "active": true
+        },
+        "task": null,
+        "active_tasks": 0,
+        "last_event": {
+          "id": 56,
+          "at": "2026-10-09T08:50:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "payload": {
+            "title": "Limite de tentativas por cartão",
+            "stage": "specification"
+          }
+        },
+        "last_activity_at": null,
+        "usage": null
+      },
+      {
+        "key": "storefront/52/maestro",
+        "role": "maestro",
+        "name": "Bento",
+        "project": {
+          "id": "storefront",
+          "name": "Loja",
+          "tracker": "github",
+          "company": {
+            "id": "fabrikam",
+            "name": "Fabrikam"
+          }
+        },
+        "item": {
+          "key": "storefront/52",
+          "number": 52,
+          "tracker_ref": "#52",
+          "title": "Cupom de primeira compra",
+          "stage": "merge",
+          "active": true
+        },
+        "task": null,
+        "active_tasks": 0,
+        "last_event": {
+          "id": 52,
+          "at": "2026-10-08T20:05:00-03:00",
+          "type": "pr-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "payload": {
+            "state": "merged"
+          }
+        },
+        "last_activity_at": null,
+        "usage": null
+      },
+      {
+        "key": "billing-api/2875/maestro",
+        "role": "maestro",
+        "name": "Bento",
+        "project": {
+          "id": "billing-api",
+          "name": "Cobrança",
+          "tracker": "azure_devops",
+          "company": {
+            "id": "contoso",
+            "name": "Contoso"
+          }
+        },
+        "item": {
+          "key": "billing-api/2875",
+          "number": 2875,
+          "tracker_ref": "PBI 2875",
+          "title": "Reprocessar cobranças recusadas pelo gateway",
+          "stage": "pr_ready",
+          "active": true
+        },
+        "task": null,
+        "active_tasks": 0,
+        "last_event": {
+          "id": 51,
+          "at": "2026-10-08T18:10:00-03:00",
+          "type": "pr-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "payload": {
+            "state": "ready"
+          }
+        },
+        "last_activity_at": "2026-10-08T18:15:00-03:00",
+        "usage": {
+          "window_5h": null,
+          "today": null,
+          "7d": {
+            "consumption_pct": 7.1,
+            "estimated_plan_pct": 1.6,
+            "relative_consumption": 242500
+          }
+        }
+      },
+      {
+        "key": "portal/3100/maestro",
+        "role": "maestro",
+        "name": "Bento",
+        "project": {
+          "id": "portal",
+          "name": "Portal Contoso",
+          "tracker": "azure_devops",
+          "company": {
+            "id": "contoso",
+            "name": "Contoso"
+          }
+        },
+        "item": {
+          "key": "portal/3100",
+          "number": 3100,
+          "tracker_ref": "PBI 3100",
+          "title": "Conciliação de boletos com o extrato do banco",
+          "stage": "hml_validation",
+          "active": true
+        },
+        "task": null,
+        "active_tasks": 0,
+        "last_event": {
+          "id": 37,
+          "at": "2026-10-07T17:30:00-03:00",
+          "type": "pr-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "payload": {
+            "state": "merged"
+          }
+        },
+        "last_activity_at": "2026-10-08T09:10:00-03:00",
+        "usage": {
+          "window_5h": null,
+          "today": null,
+          "7d": {
+            "consumption_pct": 6.8,
+            "estimated_plan_pct": 1.5,
+            "relative_consumption": 234400
+          }
+        }
+      }
+    ],
+    "counts": {
+      "maestro": 8,
+      "worker": 4
+    }
   }
 }

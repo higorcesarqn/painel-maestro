@@ -6,7 +6,7 @@ const path = require('path');
 const zlib = require('zlib');
 const { spawn } = require('child_process');
 const {
-  assert, REPO, createSuite, tmpDir, remove, writeJson, writeJsonl, assistantLine,
+  assert, REPO, createSuite, tmpDir, remove, writeJson, writeJsonl,
   freePort, request, rawRequest, waitFor, kill, pidAlive,
 } = require('./util');
 
@@ -121,7 +121,7 @@ function buildRoot(name) {
     },
   });
 
-  // Usage: Maestri plan + 2 sessions with a transcript
+  // Usage: Maestri plan (the tokens per item and per agent come from bruto.db sessions: test-usage-agents.js, #13)
   writeJson(path.join(maestri, 'usage', 'providers', '.status.json'), {
     providers: [{ id: 'claude', enabled: true, state: 'ready', plan: 'max', lastSuccessAt: '2026-10-08T18:47:00Z', meters: [{ id: 'plan', windows: [
       { id: 'five_hour', usedPercent: 37, resetsAt: '2026-10-08T21:00:00Z', durationSeconds: 18000 },
@@ -129,12 +129,6 @@ function buildRoot(name) {
     ] }] }],
     updatedAt: '2026-10-08T18:47:00Z',
   });
-  const tc = path.join(claude, 'projects', 'proj-c', 'sess-c1.jsonl');
-  const tt = path.join(claude, 'projects', 'proj-t', 'sess-t1.jsonl');
-  writeJson(path.join(m, 'state', 'sessions', 'sess-c1.json'), { session_id: 'sess-c1', agent: 'cerebro', transcript_path: tc });
-  writeJson(path.join(m, 'state', 'sessions', 'sess-t1.json'), { session_id: 'sess-t1', agent: 'coordenador', transcript_path: tt });
-  writeJsonl(tc, [assistantLine({ id: 'm1', ts: sp('15:00:00'), i: 100, o: 10 })]);
-  writeJsonl(tt, [assistantLine({ id: 'm2', ts: sp('15:10:00'), i: 50, o: 10 })]);
 
   const index = path.join(root, 'index-test.html');
   fs.writeFileSync(index, INDEX);
@@ -243,13 +237,7 @@ suite.test('GET /api/state: contract shape, KPIs, health codes, agents, pending 
   assert.strictEqual(c.last_raw, sp('15:10:00'));
   assert.deepStrictEqual(c.skills, ['orquestracao']);
   assert.deepStrictEqual(c.connected_to, ['coordenador']);
-  assert.strictEqual(c.usage.window_5h.consumption_pct, 60);
-  assert.strictEqual(c.usage.window_5h.relative_consumption, 150);
-  assert.strictEqual(c.usage.window_5h.estimated_plan_pct, 22.2);
-  assert.strictEqual(t.usage.window_5h.estimated_plan_pct, 14.8);
-  assert.strictEqual(c.usage.today.estimated_plan_pct, null);
-  assert.strictEqual(c.usage['7d'].consumption_pct, 60);
-  assert.strictEqual(e.agents[3].usage.window_5h.consumption_pct, 0);
+  assert.ok(!('usage' in c), 'the usage per agent of the old registry is gone (GET /api/usage, #13)');
   // Pending decisions: open ones by severity and age, then answered, then the most recent closed ones; tests out.
   assert.deepStrictEqual(e.pending_decisions.map((p) => p.id), ['P-0002', 'P-0004', 'P-0001', 'P-0003', 'P-0005', 'P-0007', 'P-0006']);
   assert.strictEqual(e.pending_decisions[0].age_min, 230);

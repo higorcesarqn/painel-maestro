@@ -1,7 +1,8 @@
 'use strict';
 /**
  * raw-store.js · the raw log of the new model (ADR 0003): bruto.db in MAESTRO_DIR (next to maestro.db), through the
- * embedded node:sqlite. Written by the Claude Code hook (bin/hook-log.js), read and cleaned by the panel server.
+ * embedded node:sqlite. Written by the Claude Code hook (bin/hook-log.js), read and cleaned by the panel server; its
+ * sessions are read by the usage collector (bin/collect-usage.js) to split the tokens by item and by agent (#13).
  *
  *   openRawStore({ dir })                 opens (and creates/migrates) <dir>/bruto.db: WAL, busy_timeout, schema version
  *   openRawStore({ dir, create: false })  null while the file does not exist (the server never creates it)
@@ -198,6 +199,22 @@ function openRawStore({ dir, create = true, busyTimeoutMs = BUSY_TIMEOUT_MS } = 
       const total = db.prepare(`SELECT COUNT(*) AS n FROM entries ${w.sql}`).get(...w.params).n;
       const rows = db.prepare(`SELECT * FROM entries ${w.sql} ORDER BY t DESC, id DESC LIMIT ?`).all(...w.params, limit);
       return { total, entries: rows.reverse().map(entryRow) };
+    },
+
+    /**
+     * The sessions seen after sinceMs (every one without it), most recently seen first (#13: the usage collector
+     * attributes each transcript by them; the Agents screen shows each agent's last activity).
+     * [{ session_id, project_id, item_number, task_number, branch, cwd, transcript_path, started_at, seen_at }]
+     */
+    sessions({ sinceMs } = {}) {
+      const rows = Number.isFinite(sinceMs)
+        ? db.prepare('SELECT * FROM sessions WHERE seen_t >= ? ORDER BY seen_t DESC, session_id').all(sinceMs)
+        : db.prepare('SELECT * FROM sessions ORDER BY seen_t DESC, session_id').all();
+      return rows.map((r) => ({
+        session_id: r.session_id, project_id: r.project_id, item_number: r.item_number === null ? null : r.item_number,
+        task_number: r.task_number === null ? null : r.task_number, branch: r.branch || null, cwd: r.cwd || null,
+        transcript_path: r.transcript_path || null, started_at: r.started_at, seen_at: r.seen_at,
+      }));
     },
 
     /** The most recent entry's moment (ISO), or null. */

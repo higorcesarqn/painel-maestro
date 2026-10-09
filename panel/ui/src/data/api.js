@@ -47,6 +47,17 @@ export const readItem = (project, number) => api(`/api/items/${encodeURIComponen
 // New model Log: the events of maestro.db with filters and, for one event, the raw commands of bruto.db linked to it.
 export const readLog = (params) => api(`/api/log?${new URLSearchParams(params).toString()}`);
 export const readLogEvent = (id) => api(`/api/log/${encodeURIComponent(id)}`);
+// Usage and agents per item (#13). filters: the company selector's companyFilter ({ company }) and/or { project }.
+export const readUsage = (filters) => api(`/api/usage${filterQuery(filters)}`);
+export const readAgents = (filters) => api(`/api/agents${filterQuery(filters)}`);
+
+/** "?company=x&project=y" with the filled company and project of filters ("" without any). */
+function filterQuery(filters) {
+  const sp = new URLSearchParams();
+  for (const k of ['company', 'project']) if (filters && typeof filters[k] === 'string' && filters[k]) sp.set(k, filters[k]);
+  const q = sp.toString();
+  return q ? `?${q}` : '';
+}
 
 // Option letter at the start of an option of the old model ("A: ...", or the Portuguese word for "option" + "B) ...");
 // the word is data written by the agents, in Portuguese.

@@ -188,7 +188,7 @@ suite.test('raw entries older than 90 days are deleted by the server cleanup', a
   }, { now: sp('12:00:00', '2026-10-08') });
 });
 
-suite.test('the usage collector still counts the sessions of registered projects (old model, until #13)', async () => {
+suite.test('the usage collector counts only the sessions of registered projects, from bruto.db (no session files)', async () => {
   const r = buildRoot('usage');
   flow(r, ['item', 'start', '12', '--title', 'Uso'], { now: sp('08:00:00') });
   const outside = path.join(r.root, 'no-repo');
@@ -201,6 +201,7 @@ suite.test('the usage collector still counts the sessions of registered projects
     const rc = (await get('/api/recalculate', { method: 'POST', headers: { 'X-Panel': '1' } })).json;
     assert.strictEqual(rc.usage.collection.sessions, 1);
   });
+  assert.ok(!fs.existsSync(path.join(r.data, 'state', 'sessions')), 'the old model\'s state/sessions files are gone');
 });
 
 suite.run().then(() => {

@@ -1,6 +1,7 @@
 // Test mode (?mock=1): reads tests/mock-*.json and imitates /api/state, /api/events, /api/event, /api/flow and the
 // new model's /api/items, /api/items/<project>/<number>, /api/log and /api/log/<id> (tests/mock-items.json, written
-// by tests/generate-mock-items.js with the real projection; the Log's raw commands are made up on the spot),
+// by tests/generate-mock-items.js with the real projection; the Log's raw commands are made up on the spot), and the
+// usage and agents per item (#13: /api/usage and /api/agents, written by the real collector and API),
 // answering in the API shape (English fields and codes), as the real server does.
 // Serve with "node tests/serve-mock.js" and open http://127.0.0.1:4795/?mock=1 (or use npm run dev).
 import { t } from '../i18n/index.js';
@@ -134,6 +135,25 @@ async function mockLog(p, sp) {
   };
 }
 
+/**
+ * /api/usage and /api/agents (#13) from tests/mock-items.json (written by the real collector and API), with the
+ * server's company and project filters: they only choose the lines. null for any other path.
+ */
+async function mockUsage(p, sp) {
+  if (p !== '/api/usage' && p !== '/api/agents') return null;
+  const m = await loadMockItems();
+  const set = (n) => (sp.get(n) ? new Set(sp.get(n).split(',').map((x) => x.trim()).filter(Boolean)) : null);
+  const co = set('company'); const pj = set('project');
+  const passes = (x) => { const pr = obj(x.project) || {}; return (!co || (obj(pr.company) && co.has(pr.company.id))) && (!pj || pj.has(pr.id)); };
+  if (p === '/api/agents') {
+    const agents = arr(obj(m.agents) && m.agents.agents).filter(passes);
+    return { agents, counts: { maestro: agents.filter((a) => a.role === 'maestro').length, worker: agents.filter((a) => a.role === 'worker').length } };
+  }
+  const u = JSON.parse(JSON.stringify(obj(m.usage) || {}));
+  for (const list of ['by_item', 'by_agent']) for (const [period, lines] of Object.entries(obj(u[list]) || {})) u[list][period] = arr(lines).filter(passes);
+  return u;
+}
+
 function tableFields(e) {
   const r = {};
   for (const k of TABLE_FIELDS) if (e[k] !== undefined) r[k] = e[k];
@@ -153,6 +173,8 @@ export async function mockApi(urlPath, method) {
   if (items) return items;
   const log = await mockLog(p, u.searchParams);
   if (log) return log;
+  const usage = await mockUsage(p, u.searchParams);
+  if (usage) return usage;
   const { state, det } = await loadMock();
   const sp = u.searchParams;
   const evs = arr(det.events).slice().sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts));

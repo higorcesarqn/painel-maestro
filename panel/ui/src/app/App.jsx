@@ -122,7 +122,7 @@ export function App() {
     setPage(1);
   }, []);
 
-  // ---------- analysis of the last 7 days (Overview and Agents) ----------
+  // ---------- analysis of the last 7 days (Overview) ----------
   const [analytics, setAnalytics] = useState({ events: null, at: 0, error: null });
   const readingAnalysis = useRef(false);
   const readAnalysis = useCallback(async () => {
@@ -145,7 +145,7 @@ export function App() {
     }
   }, []);
   useEffect(() => {
-    if (!state || (screen !== 'overview' && screen !== 'agents')) return;
+    if (!state || screen !== 'overview') return;
     if (Date.now() - analytics.at > ANALYSIS_REFRESH_MS) readAnalysis();
   }, [screen, state]);
 

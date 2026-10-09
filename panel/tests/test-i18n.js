@@ -41,7 +41,7 @@ function leafKeys(o, prefix = '', acc = []) {
 
 /** Codes the server writes ({code: '...'}) in the API, the pending decision answer and the usage collector. */
 function serverCodes() {
-  const files = ['panel/server.js', 'panel/api-pendencias.js', 'panel/api-log.js', 'bin/collect-usage.js'];
+  const files = ['panel/server.js', 'panel/api-pendencias.js', 'panel/api-log.js', 'panel/api-usage.js', 'bin/collect-usage.js'];
   const codes = new Set();
   for (const f of files) {
     for (const m of fs.readFileSync(path.join(REPO, f), 'utf8').matchAll(/\bcode: '([a-z][a-z0-9_]*)'/g)) codes.add(m[1]);
