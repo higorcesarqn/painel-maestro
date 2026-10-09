@@ -136,6 +136,15 @@ Abra **http://127.0.0.1:4777** (use `127.0.0.1`, não `localhost`). O servidor g
 
 Rode `/especificar` num repositório de teste e acompanhe o item em `http://127.0.0.1:4777/#items/<projeto>/<número>`: ele aparece em Especificação depois da spec e passa para Implementação depois dos tickets. Depois rode `/implementar-issue <número>` (ou `/implementar-pbi <id>`, ou as versões `-maestri` no Ground de um workspace do Maestri): o grafo aparece com as tasks, cada uma com trabalhador, branch, status, relatório e o SHA da integração, seguido do PR em rascunho, dos achados, do ajuste final e do PR pronto. O selo de saúde fica verde quando o hook está gravando as sessões.
 
+### Vindo do painel original
+
+Os nomes mudaram (código em inglês, ADR 0004) e não há apelidos para os antigos: troque-os onde estiverem configurados.
+
+- Hook: `bin/hook_log.js` → `bin/hook-log.js` (no `~/.claude/settings.json`).
+- Filtro de horário das rotinas do Maestri: `bin/janela-horario.js` → `bin/time-window.js`; `--agora`/`MAESTRO_AGORA` → `--now`/`MAESTRO_NOW`.
+- Servidor: `painel/servidor.js` → `panel/server.js`; `--porta` → `--port`; `PAINEL_PORTA` → `PANEL_PORT`, `PAINEL_COLETOR` → `PANEL_COLLECTOR`, `PAINEL_AGORA` → `PANEL_NOW` (as variáveis do servidor são `PANEL_*`); `PAINEL_AVISAR_CEREBRO` não existe mais.
+- Dados: em `MAESTRO_DIR` (padrão `~/.painel-maestro`); as pastas antigas dentro do repositório (`registro/`, `estado/`) não são lidas.
+
 ## O CLI `flow`
 
 `bin/flow.js` grava cada passo do fluxo como um evento no `maestro.db`. Ele roda **dentro do repositório do projeto** (o projeto sai do `git remote origin` da pasta atual, também no worktree de um floor); só `company` e `project` rodam em qualquer pasta. Nas skills ele é sempre `node "$PAINEL_MAESTRO/bin/flow.js" ...`; abaixo, `flow` abrevia isso. A ajuda completa: `node bin/flow.js --help`.
