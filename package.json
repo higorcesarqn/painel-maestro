@@ -9,9 +9,9 @@
     "node": ">=18"
   },
   "scripts": {
-    "start": "node painel/servidor.js",
-    "demo": "node painel/testes/servir-mock.js",
-    "test": "node painel/testes/rodar-todos.js",
-    "build": "npm --prefix painel/ui run build"
+    "start": "node panel/server.js",
+    "demo": "node panel/tests/serve-mock.js",
+    "test": "node panel/tests/run-all.js",
+    "build": "npm --prefix panel/ui run build"
   }
 }

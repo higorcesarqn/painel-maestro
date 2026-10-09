@@ -16,7 +16,7 @@ O painel junta tudo isso num lugar só e não usa IA nem gasta tokens: ele só l
 
 ## Telas
 
-O menu tem um grupo, Workspace (fonte em `painel/ui/src/dados/contexto.js`):
+O menu tem um grupo, Workspace (fonte em `panel/ui/src/dados/contexto.js`):
 
 - **Visão geral:** números do topo (pendências por severidade, uso do plano, eventos de hoje), atividade e resultados de 7 dias por agente, último evento de cada agente e atividade recente. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) com os motivos: hooks parados, arquivos ilegíveis.
 - **Pendências:** a fila do dono, com filtros por severidade e status; cada pendência mostra contexto, opções e recomendação, e o dono responde ali mesmo (opção + comentário, Ctrl+Enter envia).
@@ -28,7 +28,7 @@ A página se atualiza sozinha a cada 20 segundos.
 
 ## Demonstração em 1 minuto
 
-Precisa só do Node.js. A página compilada (`painel/index.html`) já vem no repositório, então não é preciso instalar nada.
+Precisa só do Node.js. A página compilada (`panel/index.html`) já vem no repositório, então não é preciso instalar nada.
 
 ```
 git clone <url-do-repositorio> painel-maestro
@@ -36,50 +36,50 @@ cd painel-maestro
 npm run demo
 ```
 
-Abra **http://127.0.0.1:4795/?mock=1**. O `?mock=1` faz a página ler dados fictícios de `painel/testes/mock-*.json` (um workspace "Exemplo" com dois agentes, pendências, eventos e comandos brutos); uma faixa azul avisa que são dados de teste. Para parar, Ctrl+C.
+Abra **http://127.0.0.1:4795/?mock=1**. O `?mock=1` faz a página ler dados fictícios de `panel/tests/mock-*.json` (um workspace "Exemplo" com dois agentes, pendências, eventos e comandos brutos); uma faixa azul avisa que são dados de teste. Para parar, Ctrl+C.
 
 O servidor da demonstração aceita só as portas 4790 a 4799 (padrão 4795). Outra porta: `npm run demo -- 4794`.
 
 ### O servidor de verdade sobre dados de exemplo
 
-Para ver o `servidor.js` real (a API inteira, com os filtros e o modal calculados no servidor) sem dados seus, monte uma raiz falsa a partir dos mesmos mocks. No Git Bash, Linux ou macOS:
+Para ver o `server.js` real (a API inteira, com os filtros e o modal calculados no servidor) sem dados seus, monte uma raiz falsa a partir dos mesmos mocks. No Git Bash, Linux ou macOS:
 
 ```
-node painel/testes/montar-raiz-mock.js
-R=painel/testes/tmp/raiz-mock
+node panel/tests/build-mock-root.js
+R=panel/tests/tmp/mock-root
 MAESTRO_DIR=$R MAESTRI_DATA_DIR=$R/maestri CLAUDE_CONFIG_DIR=$R/claude \
-  PAINEL_AGORA=2026-10-09T10:24:30-03:00 PAINEL_COLETOR=0 PAINEL_AVISAR_CEREBRO=0 \
-  node painel/servidor.js --porta 4793
+  PANEL_NOW=2026-10-09T10:24:30-03:00 PANEL_COLLECTOR=0 PANEL_NOTIFY_BRAIN=0 \
+  node panel/server.js --port 4793
 ```
 
-Abra **http://127.0.0.1:4793** (sem `?mock=1`). O `PAINEL_AGORA` fixa o relógio no momento do cenário de exemplo e o `PAINEL_COLETOR=0` desliga o coletor de uso. Ctrl+C para parar. A pasta `painel/testes/tmp/` pode ser apagada depois.
+Abra **http://127.0.0.1:4793** (sem `?mock=1`). O `PANEL_NOW` fixa o relógio no momento do cenário de exemplo e o `PANEL_COLLECTOR=0` desliga o coletor de uso. Ctrl+C para parar. A pasta `panel/tests/tmp/` pode ser apagada depois.
 
 ## Ligar a dados reais
 
 ### Onde ficam os dados
 
-Tudo é lido de uma pasta raiz, o `MAESTRO_DIR`. Sem a variável, a raiz é **a própria pasta do repositório** (a pasta acima de `painel/` e de `bin/`). O jeito mais simples é clonar o repositório como `_maestro/` dentro da pasta do seu workspace:
+Tudo é lido de uma pasta raiz, o `MAESTRO_DIR`. Sem a variável, a raiz é **a própria pasta do repositório** (a pasta acima de `panel/` e de `bin/`). O jeito mais simples é clonar o repositório como `_maestro/` dentro da pasta do seu workspace:
 
 ```
 <seu-workspace>/
   _maestro/            ← este repositório (MAESTRO_DIR)
-    bin/  painel/
+    bin/  panel/
     registro/agentes.json
-    logs/  estado/     ← criados pelos scripts e pelos hooks
+    logs/  state/  estado/   ← criados pelos scripts e pelos hooks
 ```
 
-Os dados (`registro/`, `logs/`, `estado/`, `.segredos/`) ficam fora do git pelo `.gitignore`. Se preferir os dados em outro lugar, aponte `MAESTRO_DIR` para lá, no servidor e no ambiente dos agentes.
+Os dados (`registro/`, `logs/`, `state/`, `estado/`, `.segredos/`) ficam fora do git pelo `.gitignore`. `registro/`, `logs/eventos/` e `estado/` são do modelo antigo (Cérebro), com nomes e campos em português, e saem na #18; o que sobrevive (log bruto, sessões, uso) grava em inglês em `logs/raw/` e `state/`. Se preferir os dados em outro lugar, aponte `MAESTRO_DIR` para lá, no servidor e no ambiente dos agentes.
 
 | No painel | Arquivo (dentro do `MAESTRO_DIR`) | Quem grava |
 |---|---|---|
 | agentes, cores, modelo, skills | `registro/agentes.json` | você (à mão ou por um agente) |
 | log de eventos, fluxos, modal | `logs/eventos/AAAA-MM.jsonl` | `bin/registrar.js` |
 | títulos dos fluxos | `estado/contador-fluxos.json` | `bin/registrar.js novo-fluxo` |
-| comandos brutos, saúde dos hooks | `logs/bruto/<agente>/AAAA-MM-DD.jsonl` | `bin/hook_log.js` (hook do Claude Code) |
+| comandos brutos, saúde dos hooks | `logs/raw/<agente>/AAAA-MM-DD.jsonl` | `bin/hook-log.js` (hook do Claude Code) |
 | pendências do dono | `estado/pendencias.json` | `bin/pendencia.js` (e o painel, ao responder) |
-| uso do Claude | `estado/uso.json` | `bin/coletar_uso.js` (o servidor roda sozinho) |
+| uso do Claude | `state/usage.json` | `bin/collect-usage.js` (o servidor roda sozinho) |
 
-Arquivo ausente não quebra nada: a parte correspondente aparece vazia, com o motivo. O formato completo de cada arquivo está nos mocks (`painel/testes/mock-estado.json` e `mock-detalhes.json`) e o `painel/testes/montar-raiz-mock.js` mostra em que arquivo cada parte vai. A documentação técnica do servidor (rotas, filtros, saúde, uso, variáveis) está em [`painel/README.md`](painel/README.md).
+Arquivo ausente não quebra nada: a parte correspondente aparece vazia, com o motivo. A API é em inglês (rotas, campos e variáveis) e nunca devolve frases: motivos, avisos e erros vêm como códigos `{code, ...params}` que a página traduz (ADR 0004). O formato completo de cada arquivo está nos mocks (`panel/tests/mock-state.json` e `mock-details.json`) e o `panel/tests/build-mock-root.js` mostra em que arquivo cada parte vai. A documentação técnica do servidor (rotas, filtros, saúde, uso, variáveis) está em [`panel/README.md`](panel/README.md).
 
 ### 1. Cadastre os agentes
 
@@ -126,37 +126,58 @@ Dentro de uma sessão do Claude Code com o hook instalado, `--agente` e `--fluxo
 
 ### 3. Instale o hook do Claude Code
 
-O `bin/hook_log.js` lê o evento do hook pela entrada padrão e grava uma linha no log bruto do agente. Ele nunca escreve no stdout nem no stderr, sai sempre com 0, desiste em cerca de 1,5 s, trunca entradas e saídas e redige segredos. Exemplo para o `settings.json` do Claude Code (troque o caminho):
+O `bin/hook-log.js` lê o evento do hook pela entrada padrão e grava uma linha no log bruto do agente. Ele nunca escreve no stdout nem no stderr, sai sempre com 0, desiste em cerca de 1,5 s, trunca entradas e saídas e redige segredos. Exemplo para o `settings.json` do Claude Code (troque o caminho):
 
 ```json
 {
   "hooks": {
-    "SessionStart":       [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "UserPromptSubmit":   [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "PostToolUse":        [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "PostToolUseFailure": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "Stop":               [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "SubagentStop":       [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "SessionEnd":         [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }]
+    "SessionStart":       [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook-log.js" }] }],
+    "UserPromptSubmit":   [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook-log.js" }] }],
+    "PostToolUse":        [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook-log.js" }] }],
+    "PostToolUseFailure": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook-log.js" }] }],
+    "Stop":               [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook-log.js" }] }],
+    "SubagentStop":       [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook-log.js" }] }],
+    "SessionEnd":         [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook-log.js" }] }]
   }
 }
 ```
 
-O hook entende esses sete eventos; se a sua versão do Claude Code não tiver algum deles, deixe-o de fora. Ele só grava sessões do workspace: as que rodam dentro da pasta que contém o `MAESTRO_DIR` ou num terminal do Maestri com o mesmo `workspace.id`. As outras saem em poucos milissegundos, sem gravar nada. Ele também grava `estado/sessoes/<session_id>.json`, que é o que permite atribuir o consumo de tokens a cada agente.
+O hook entende esses sete eventos; se a sua versão do Claude Code não tiver algum deles, deixe-o de fora. Ele só grava sessões do workspace: as que rodam dentro da pasta que contém o `MAESTRO_DIR` ou num terminal do Maestri com o mesmo `workspace.id`. As outras saem em poucos milissegundos, sem gravar nada. Ele também grava `state/sessions/<session_id>.json`, que é o que permite atribuir o consumo de tokens a cada agente.
 
 ### 4. Suba o painel
 
 ```
-node painel/servidor.js            # ou: npm start
+node panel/server.js            # ou: npm start
 ```
 
-Abra **http://127.0.0.1:4777** (use `127.0.0.1`, não `localhost`). Outra porta: `--porta 4780` ou a variável `PAINEL_PORTA`. O servidor grava o PID em `estado/painel.pid` e roda o coletor de uso ao subir e a cada 5 minutos.
+Abra **http://127.0.0.1:4777** (use `127.0.0.1`, não `localhost`). Outra porta: `--port 4780` ou a variável `PANEL_PORT`. O servidor grava o PID em `state/panel.pid` e roda o coletor de uso ao subir e a cada 5 minutos.
 
 Sobre o uso do Claude:
 - a **participação de cada agente** vem das transcrições locais do Claude Code (`~/.claude`, ou `CLAUDE_CONFIG_DIR`), só das sessões que o hook atribuiu a um agente;
 - o **% do plano** (5 h e semanal) vem do arquivo que o Maestri grava em `~/.maestri/usage/providers/.status.json` (ou `MAESTRI_DATA_DIR`). Fora do Maestri, essa parte aparece como indisponível, com o motivo.
 
-Quando o dono responde uma pendência pelo painel, o servidor pode avisar o Cérebro no terminal dele pela CLI do Maestri (`maestri ask`). Isso liga sozinho só quando o servidor roda dentro de um terminal do Maestri; `PAINEL_AVISAR_CEREBRO=0` desliga e `1` força.
+Quando o dono responde uma pendência pelo painel, o servidor pode avisar o Cérebro no terminal dele pela CLI do Maestri (`maestri ask`). Isso liga sozinho só quando o servidor roda dentro de um terminal do Maestri; `PANEL_NOTIFY_BRAIN=0` desliga e `1` força.
+
+### Variáveis de ambiente (nomes novos)
+
+As variáveis passaram para o inglês (#3). Quem tinha as antigas no ambiente precisa trocar:
+
+| Nome novo | Nome antigo |
+|---|---|
+| `PANEL_PORT` | `PAINEL_PORTA` |
+| `PANEL_COLLECTOR` | `PAINEL_COLETOR` |
+| `PANEL_INDEX` | `PAINEL_INDEX` |
+| `PANEL_NOW` | `PAINEL_AGORA` |
+| `PANEL_NOTIFY_BRAIN` | `PAINEL_AVISAR_CEREBRO` |
+| `PANEL_MAESTRI_CLI` | `PAINEL_MAESTRI_CLI` |
+| `MAESTRO_NOW` | `MAESTRO_AGORA` |
+| `MAESTRO_LOCK` | `MAESTRO_TRAVA` |
+| `MAESTRO_LOCK_WAIT_MS` | `MAESTRO_TRAVA_ESPERA_MS` |
+| `MOCK_PORT` | `MOCK_PORTA` |
+| `KEEP_TMP` | `MANTER_TMP` |
+| `HEAVY_TEST` | `TESTE_PESADO` |
+
+`MAESTRO_DIR`, `MAESTRI_DATA_DIR`, `CLAUDE_CONFIG_DIR` e `MAESTRI_CLI` não mudaram. O que cada uma faz está em [`panel/README.md`](panel/README.md#variáveis-de-ambiente). Também mudaram a opção `--porta` (agora `--port`), o cabeçalho `X-Painel` (agora `X-Panel`) e os nomes dos scripts de `bin/` (o hook agora é `bin/hook-log.js`: atualize o `settings.json` do Claude Code).
 
 ## Scripts de `bin/`
 
@@ -166,17 +187,17 @@ Todos usam só a biblioteca padrão do Node e respeitam `MAESTRO_DIR`.
 |---|---|
 | `registrar.js` | log semântico: `novo-fluxo`, `evento`, `ultimos`, `fluxo` |
 | `pendencia.js` | fila de pendências do dono: `abrir`, `listar`, `mostrar`, `responder`, `resolver`, `cancelar` |
-| `hook_log.js` | hook do Claude Code que grava o log bruto e o estado das sessões |
-| `coletar_uso.js` | coletor de uso do Claude (`--json`, `--sem-gravar`); o servidor já o chama |
-| `janela-horario.js` | sai 0 dentro de uma faixa de horário e 1 fora (`node bin/janela-horario.js 8 22`), útil como pré-condição de rotinas agendadas |
-| `lib_maestro.js` | funções comuns: caminhos, datas no fuso de São Paulo, trava entre processos, gravação atômica de JSON, JSONL, redação de segredos |
+| `hook-log.js` | hook do Claude Code que grava o log bruto e o estado das sessões |
+| `collect-usage.js` | coletor de uso do Claude (`--json`, `--no-write`); o servidor já o chama |
+| `time-window.js` | sai 0 dentro de uma faixa de horário e 1 fora (`node bin/time-window.js 8 22`), útil como pré-condição de rotinas agendadas |
+| `lib.js` | funções comuns: caminhos, datas no fuso de São Paulo, trava entre processos, gravação atômica de JSON, JSONL, redação de segredos |
 
-Quase todos aceitam `--help` (o `janela-horario.js` não: ele só recebe início e fim). Os horários e datas usam o fuso `America/Sao_Paulo`.
+Quase todos aceitam `--help` (o `time-window.js` não: ele só recebe início e fim). Os horários e datas usam o fuso `America/Sao_Paulo`.
 
 ## Segurança
 
 - O servidor escuta **só em 127.0.0.1**. O cabeçalho `Host` precisa ser `127.0.0.1:<porta>` ou `localhost:<porta>`; qualquer outro recebe 403 (proteção contra DNS rebinding).
-- Todo `POST` exige o cabeçalho **`X-Painel: 1`** e, se vier `Origin`, ele precisa ser o próprio painel; senão, 403. Outra página aberta no navegador não consegue acionar o servidor. Os corpos JSON vão até 16 KB (acima disso, 413).
+- Todo `POST` exige o cabeçalho **`X-Panel: 1`** e, se vier `Origin`, ele precisa ser o próprio painel; senão, 403. Outra página aberta no navegador não consegue acionar o servidor. Os corpos JSON vão até 16 KB (acima disso, 413).
 - Nenhum cabeçalho CORS. Só existem `/` e `/api/*`; nenhum arquivo é servido pelo nome (o resto é 404).
 - Toda resposta leva `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` e `X-Frame-Options: DENY`. A página leva uma **Content-Security-Policy** que bloqueia qualquer recurso externo e impede que outro site a embuta num iframe.
 - A página é um arquivo único (JS, CSS e fonte embutidos). Todo texto vindo da API entra como texto, nunca como HTML; a página não tem links para fora.
@@ -186,28 +207,28 @@ Não exponha a porta do painel na rede: ele não tem login e foi feito para uso 
 
 ## Compilar a página
 
-A fonte da página fica em `painel/ui/` (Preact, compilado pelo Vite num HTML único). O resultado, `painel/index.html`, é versionado; só é preciso compilar se você mudar a fonte. O Vite 8 pede Node 20.19+ ou 22.12+.
+A fonte da página fica em `panel/ui/` (Preact, compilado pelo Vite num HTML único). O resultado, `panel/index.html`, é versionado; só é preciso compilar se você mudar a fonte. O Vite 8 pede Node 20.19+ ou 22.12+.
 
 ```
-cd painel/ui
+cd panel/ui
 npm ci
 npm run build      # vite build + scripts/publicar.js, que grava ../index.html
 npm run check      # confere o index.html: um único script, nada externo
 npm run dev        # http://127.0.0.1:5173, com /api apontando para o painel em 127.0.0.1:4777
 ```
 
-Da raiz do repositório, `npm run build` faz o mesmo que o `npm run build` dentro de `painel/ui` (depois do `npm ci` lá). Com `npm run dev`, abra `http://127.0.0.1:5173/?mock=1` para usar os dados de teste sem servidor. Depois de compilar, rode os testes. Como acrescentar uma tela nova está em [`painel/README.md`](painel/README.md#a-página-indexhtml-fonte-em-ui).
+Da raiz do repositório, `npm run build` faz o mesmo que o `npm run build` dentro de `panel/ui` (depois do `npm ci` lá). Com `npm run dev`, abra `http://127.0.0.1:5173/?mock=1` para usar os dados de teste sem servidor. Depois de compilar, rode os testes. Como acrescentar uma tela nova está em [`panel/README.md`](panel/README.md#a-página-indexhtml-fonte-em-ui).
 
 ## Testes
 
 ```
-npm test                                   # node painel/testes/rodar-todos.js
-node painel/testes/rodar-todos.js servidor # só os arquivos com "servidor" no nome
+npm test                                   # node panel/tests/run-all.js
+node panel/tests/run-all.js server       # só os arquivos com "server" no nome
 ```
 
-Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `painel/testes/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`MANTER_TMP=1` guarda para inspeção). O teste das pendências usa uma CLI do Maestri falsa, que só grava os argumentos. São 6 arquivos: coletor de uso, desempenho (50 mil eventos e log bruto grande), página compilada, filtro de horário, pendências e servidor.
+Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das pendências usa uma CLI do Maestri falsa, que só grava os argumentos. São 7 arquivos: coletor de uso, hook do log bruto, desempenho (50 mil eventos e log bruto grande), página compilada, filtro de horário, pendências e servidor. Eles conferem códigos, não frases.
 
-Para regerar os dados da demonstração: `node painel/testes/gerar-mock.js`.
+Para regerar os dados da demonstração: `node panel/tests/generate-mock.js`.
 
 ## Estrutura
 
@@ -216,12 +237,13 @@ painel-maestro/
 ├── bin/                      scripts de linha de comando (só biblioteca padrão do Node)
 │   ├── registrar.js          log de eventos e fluxos
 │   ├── pendencia.js          fila de pendências do dono
-│   ├── hook_log.js           hook do Claude Code → log bruto
-│   ├── coletar_uso.js        uso do plano e tokens por agente
-│   ├── janela-horario.js     filtro de horário para rotinas
-│   └── lib_maestro.js        biblioteca comum
-├── painel/
-│   ├── servidor.js           servidor HTTP e API
+│   ├── hook-log.js           hook do Claude Code → log bruto
+│   ├── collect-usage.js      uso do plano e tokens por agente
+│   ├── time-window.js        filtro de horário para rotinas
+│   └── lib.js                biblioteca comum
+├── panel/
+│   ├── server.js             servidor HTTP e API (em inglês, devolve códigos)
+│   ├── legacy-records.js     nomes em inglês para os registros do modelo antigo
 │   ├── api-pendencias.js     resposta de pendência pelo painel
 │   ├── index.html            a página compilada (não edite à mão)
 │   ├── README.md             documentação técnica do servidor e da página
@@ -229,10 +251,10 @@ painel-maestro/
 │   │   ├── src/app/          casca, menu e topo
 │   │   ├── src/telas/        uma tela por arquivo
 │   │   ├── src/componentes/  cartões, KPIs, gráficos em SVG, modal
-│   │   ├── src/dados/        API, modo de teste, consultas e formatação
+│   │   ├── src/dados/        API, modo de teste, consultas, formatação e a ponte provisória com a API em inglês (compat.js)
 │   │   ├── src/estilo/       CSS por tela
 │   │   └── scripts/publicar.js  junta o build num HTML único
-│   └── testes/               testes, mocks e servidores de demonstração
+│   └── tests/                testes, mocks e servidores de demonstração
 ├── skills/
 │   ├── cerebro/              orquestracao, pendencias, painel, onboarding-agente
 │   └── compartilhadas/       protocolo-delegacao, registro-eventos
@@ -248,7 +270,7 @@ painel-maestro/
 - Node.js 18 ou mais novo para o servidor e os scripts (desenvolvido e testado no Node 22); Node 20.19+ ou 22.12+ para compilar a página.
 - Desenvolvido e testado no Windows. Os caminhos e a trava entre processos têm tratamento para outros sistemas, mas eles não foram testados.
 - O painel só lê arquivos: quem mantém os dados em dia são os seus agentes.
-- O botão de conversar com o Cérebro pelo painel ainda não existe (`POST /api/cerebro` responde 501).
+- O botão de conversar com o Cérebro pelo painel ainda não existe (`POST /api/brain` responde 501).
 - O painel saiu de um workspace maior. Alguns comentários do código citam scripts e documentos desse workspace que não vêm neste repositório: eles só produzem os arquivos que o painel lê, e o formato desses arquivos está descrito acima.
 
 ## Skills e protocolos do workspace
@@ -272,7 +294,7 @@ As skills seguem o formato de skill do Claude Code (pasta com `SKILL.md` e cabe�
 
 [MIT](LICENSE).
 
-**Terceiros** (embutidos no `painel/index.html` compilado):
+**Terceiros** (embutidos no `panel/index.html` compilado):
 - [Preact](https://preactjs.com) · licença MIT.
 - [Lucide](https://lucide.dev) (`lucide-preact`, ícones) · licença ISC.
 - Fonte [Manrope](https://github.com/sharanda/manrope) · SIL Open Font License 1.1 (Copyright 2019 The Manrope Project Authors).
