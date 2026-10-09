@@ -1,0 +1,21 @@
+{
+  "name": "painel-ui",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Fonte do painel do workspace (Preact + componentes próprios). O build gera ../index.html, um arquivo único.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/publicar.js",
+    "check": "node scripts/publicar.js --so-conferir"
+  },
+  "dependencies": {
+    "@fontsource/manrope": "^5.3.0",
+    "lucide-preact": "^1.53.0",
+    "preact": "^11.0.1"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "vite": "^8.3.4"
+  }
+}

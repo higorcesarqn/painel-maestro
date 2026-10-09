@@ -1,0 +1,52 @@
+/* Visão geral (1520 × 1095): KPIs, gráficos da semana, prospecção, agentes e atividade recente. Nada rola a página. */
+.tela-visao { grid-template-rows: 136px 300px minmax(0, 1fr); }
+.visao-kpis { display: grid; grid-template-columns: 1.25fr 1.25fr 1fr 1fr 1fr 1fr; gap: var(--vao); min-height: 0; }
+.visao-graficos { display: grid; grid-template-columns: 1.45fr 1.1fr 1.2fr; gap: var(--vao); min-height: 0; }
+.visao-baixo { display: grid; grid-template-columns: 1fr 1.2fr; gap: var(--vao); min-height: 0; }
+
+/* KPIs */
+.kpi-dono .valor { font-size: 48px; }
+.kpi-dono.critico { border-color: rgba(242, 85, 90, .5); }
+.sev-mini { display: inline-flex; align-items: center; gap: 12px; padding-bottom: 6px; font-size: 13px; color: var(--texto-2); }
+.sev-mini span { display: inline-flex; align-items: center; gap: 6px; }
+.sev-mini i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.kpi-barra { width: 46%; padding-bottom: 8px; }
+.tela-visao .kpi .detalhe { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.tela-visao .kpi .detalhe.reinicio { display: inline-flex; align-items: center; gap: 5px; }
+.kpi-par { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; }
+.kpi-par > div { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.kpi-plano-texto { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+/* Atividade da semana: legenda embaixo do gráfico, com o primeiro nome de cada agente */
+.legenda-baixo { flex: none; padding-top: 10px; }
+
+/* Resultados: rosca + legenda em grade (ponto, nome, número) */
+.resultados { display: flex; align-items: center; gap: 18px; flex: 1; min-height: 0; }
+.legenda-lista { list-style: none; display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.legenda-lista button {
+  display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 9px; width: 100%;
+  padding: 6px 8px; border-radius: 8px; font-size: 13px; white-space: nowrap;
+}
+.legenda-lista button:hover { background: var(--linha-hover); text-decoration: none; }
+.legenda-lista i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.legenda-lista b { font-weight: 400; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Prospecção */
+.prosp-selos { margin-bottom: 16px; }
+.mini-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 14px; }
+.mini-kpis > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.mini-kpis .rot { font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-valor { font-size: 28px; font-weight: 300; line-height: 1.05; letter-spacing: -.01em; }
+.ir-link { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Agentes: uma linha por agente */
+.agentes-linhas { display: flex; flex-direction: column; padding: 0 8px; }
+.agente-linha { padding: 12px 10px; border-top: 1px solid #1a1a1a; display: flex; flex-direction: column; gap: 6px; }
+.agente-linha:first-child { border-top: 0; padding-top: 4px; }
+.agente-cab { display: flex; align-items: center; gap: 10px; }
+.agente-ultimo { max-width: 100%; font-size: 13.5px; display: block; }
+.agente-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--texto-2); align-items: center; }
+
+/* Atividade recente */
+.atividade { padding: 0 8px; }
+.atividade .item-lista { grid-template-columns: 82px 10px minmax(0, 1fr) auto; font-size: 13.5px; padding: 8px 10px; }

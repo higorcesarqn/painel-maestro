@@ -1,0 +1,79 @@
+/* Log: cartões de status (clicar filtra), filtros em duas faixas, filtros ativos e a tabela, que rola por
+   dentro do cartão. Medido para o portal Painel (1520 × 1095): a página nunca rola. */
+.tela-log { grid-template-rows: auto auto auto minmax(0, 1fr); gap: 12px; }
+
+/* ---------- cartões de status ---------- */
+.log-kpis { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; }
+.log-kpi { padding: 12px 14px; gap: 8px; justify-content: space-between; text-align: left; color: inherit; font: inherit; }
+.log-kpi .rot-linha { gap: 7px; }
+.log-kpi .rot-linha .rot { font-size: 10px; }
+.log-kpi .ponto-res { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.log-kpi .linha-kpi { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.log-kpi .valor.medio { font-size: 28px; }
+.log-kpi .parte { font-size: 12px; color: var(--mudo); font-variant-numeric: tabular-nums; }
+.log-kpi .trilho { display: block; height: 3px; border-radius: 3px; background: var(--cartao-3); overflow: hidden; }
+.log-kpi .trilho > span { display: block; height: 100%; border-radius: 3px; transition: width .2s; }
+.log-kpi .barra-empilhada { height: 3px; border-radius: 3px; }
+.log-kpi:focus-visible { outline: 1px solid var(--azul-texto); outline-offset: 2px; }
+.log-kpis.filtrando .log-kpi:not(.destaque) { opacity: .6; }
+.log-kpis.filtrando .log-kpi:not(.destaque):hover,
+.log-kpis.filtrando .log-kpi:not(.destaque):focus-visible { opacity: 1; }
+
+/* ---------- filtros ---------- */
+.log-filtros { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.log-linha { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.log-grupo { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.log-grupo > .rot { font-size: 9.5px; flex: none; }
+.log-grupo.agentes { flex: 0 1 auto; }
+.log-sep { width: 1px; height: 22px; background: var(--borda); flex: none; }
+.log-busca { flex: 1 1 auto; min-width: 240px; }
+.log-busca input { width: 100%; padding-right: 36px; }
+.log-busca .atalho {
+  position: absolute; right: 8px; height: 20px; min-width: 20px; padding: 0 6px; border-radius: 6px;
+  border: 1px solid var(--borda-forte); color: var(--mudo); font-family: var(--mono); font-size: 11px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center; pointer-events: none;
+}
+.log-busca input:focus + .atalho, .log-busca.cheia .atalho { display: none; }
+.log-datas { display: flex; align-items: center; gap: 8px; flex: none; }
+.log-datas .data input { width: 136px; }
+.log-datas .ate { font-size: 12px; color: var(--mudo); }
+
+/* chips (agentes e projetos): vários ao mesmo tempo; o número é quanto aparece com os outros filtros */
+.chips { display: flex; align-items: center; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding: 1px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px; flex: none;
+  border-radius: 999px; border: 1px solid var(--borda); background: transparent; color: var(--texto-2);
+  font: inherit; font-size: 12.5px; white-space: nowrap; cursor: pointer; transition: border-color .12s, background-color .12s, color .12s;
+}
+.chip:hover { border-color: var(--borda-forte); color: var(--texto); }
+.chip[aria-pressed="true"] { border-color: var(--azul-borda); background: var(--azul-fundo); color: var(--texto); }
+.chip:focus-visible { outline: 1px solid var(--azul-texto); outline-offset: 1px; }
+.chip .n { color: var(--mudo); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.chip.zerado { color: var(--fraco); }
+.chip.zerado .ponto, .chip.zerado .quadrado { opacity: .5; }
+.chip.projeto-chip { padding: 0 9px; gap: 6px; }
+
+/* ---------- faixa de informação: total, filtros ativos, alternadores ---------- */
+.log-info { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--texto-2); padding: 0 4px; min-height: 30px; }
+.log-info .contagem { white-space: nowrap; flex: none; }
+.log-info .alternador { height: 30px; }
+.log-info .alternador .n { color: var(--mudo); font-size: 11.5px; margin-left: 2px; }
+.filtros-ativos { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; }
+.filtro-ativo {
+  display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 3px 0 10px; flex: none; max-width: 300px;
+  border-radius: 13px; border: 1px solid var(--azul-borda); color: var(--texto); white-space: nowrap;
+}
+.filtro-ativo .t { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.filtro-ativo button {
+  border: 0; background: none; color: var(--mudo); width: 20px; height: 20px; border-radius: 10px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.filtro-ativo button:hover { background: var(--cartao-3); color: var(--texto); }
+
+/* ---------- tabela ---------- */
+.cartao-corpo.log-corpo { padding: 0; }
+.log-rodape { display: flex; align-items: center; gap: 10px; padding: 10px 14px 10px 18px; border-top: 1px solid var(--borda); flex: none; }
+.paginacao { display: flex; align-items: center; gap: 6px; }
+table.log td { line-height: 1.45; }
+table.log td.numerico { font-variant-numeric: tabular-nums; }
+table.log tbody tr:first-child.dia td { border-top: 0; }

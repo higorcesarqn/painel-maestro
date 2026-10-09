@@ -1,0 +1,6 @@
+/* Menu lateral em blocos por grupo (Workspace, Operações): rótulo pequeno em cima e um filete entre os blocos. */
+.nav { gap: 0; }
+.nav-bloco { display: flex; flex-direction: column; gap: 2px; }
+.nav-bloco.separado { margin-top: 14px; }
+.nav-bloco.separado::before { content: ''; display: block; height: 1px; background: var(--borda); margin: 0 10px 14px; }
+.nav-grupo { font-size: 9.5px; color: var(--fraco); padding: 0 12px 6px; }

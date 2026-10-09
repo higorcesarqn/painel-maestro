@@ -1,0 +1,26 @@
+# Dependências
+node_modules/
+
+# Build da página: o Vite gera painel/ui/dist/ e o scripts/publicar.js junta tudo em painel/index.html
+# (o index.html compilado É versionado; o dist/ não)
+painel/ui/dist/
+
+# Raízes temporárias dos testes e da demonstração (montar-raiz-mock.js)
+painel/testes/tmp/
+
+# Dados do seu workspace. Sem MAESTRO_DIR, o servidor e os scripts de bin/ leem e gravam
+# na raiz deste repositório: nada disso pode ir para o git.
+registro/
+estado/
+logs/
+.segredos/
+
+# Travas e temporários das gravações atômicas (lib_maestro.js)
+*.lock
+*.tmp
+*.tmp-*
+
+# Diversos
+npm-debug.log*
+.DS_Store
+Thumbs.db

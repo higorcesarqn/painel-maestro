@@ -1,0 +1,3 @@
+# Dependências e saída intermediária do build (o resultado final é ../index.html)
+node_modules/
+dist/

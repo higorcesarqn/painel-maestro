@@ -1,0 +1,70 @@
+/* Telas do painel, medidas para o portal Painel (1520 × 1095): nenhuma rola a página; listas e tabelas rolam por dentro. */
+.espaco { flex: 1; }
+.ml { margin-left: 8px; }
+.cartao-corpo.sem-margem { padding: 8px 0 8px; }
+
+/* ---------- Visão geral: em visao.css ---------- */
+
+/* ---------- Pendências ---------- */
+.tela-pendencias { grid-template-columns: 440px minmax(0, 1fr); }
+.pend-resumo { padding: 0 18px 10px; }
+.pend-lista { padding: 0 8px 4px; gap: 2px; }
+.pend-item {
+  position: relative; display: flex; flex-direction: column; gap: 5px; padding: 11px 12px 11px 18px; border: 0; border-radius: 10px;
+  background: none; text-align: left; width: 100%; color: inherit;
+}
+.pend-item:hover { background: var(--linha-hover); }
+.pend-item[aria-selected="true"] { background: var(--cartao-3); }
+.pend-barra { position: absolute; left: 6px; top: 13px; bottom: 13px; width: 2px; border-radius: 2px; }
+.pend-topo { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.pend-titulo { font-size: 14px; line-height: 1.4; }
+.pend-pe { font-size: 12px; color: var(--texto-2); }
+.pend-detalhe { overflow-y: auto; overscroll-behavior: contain; }
+.pend-conteudo { padding: 24px 28px 28px; display: flex; flex-direction: column; gap: 18px; }
+.pend-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 13px; }
+.pend-id { font-size: 13.5px; color: var(--texto); }
+.pend-h { font-size: 25px; font-weight: 300; line-height: 1.3; letter-spacing: -.01em; max-width: 980px; }
+.pend-contexto { color: var(--texto-2); font-size: 14.5px; line-height: 1.65; max-width: 980px; }
+.pend-bloco { display: flex; flex-direction: column; gap: 10px; }
+.pend-opcoes { list-style: none; display: flex; flex-direction: column; gap: 8px; max-width: 980px; }
+.pend-opcoes li { padding: 11px 15px; border: 1px solid var(--borda); border-radius: 10px; background: #0c0c0c; font-size: 14px; line-height: 1.55; color: var(--texto-2); }
+.pend-recomendacao, .pend-resposta { padding: 13px 17px; border-radius: 0 10px 10px 0; display: flex; flex-direction: column; gap: 6px; max-width: 980px; line-height: 1.55; }
+.pend-recomendacao { border-left: 2px solid var(--azul); background: var(--azul-fundo); }
+.pend-resposta { border-left: 2px solid var(--borda-forte); background: #0c0c0c; color: var(--texto-2); }
+.pend-rodape { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; font-size: 13px; color: var(--mudo); padding-top: 16px; border-top: 1px solid var(--borda); }
+.pend-rodape a { display: inline-flex; align-items: center; gap: 6px; }
+.pend-como { display: inline-flex; align-items: center; gap: 7px; }
+
+/* ---------- Log: as regras moram em estilo/log.css (importado pelo Log.jsx) ---------- */
+
+/* ---------- Modal do evento ---------- */
+.modal-grade { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 0 30px; }
+.modal-col { display: flex; flex-direction: column; min-width: 0; }
+.secao-modal { padding: 14px 0; border-top: 1px solid var(--borda); display: flex; flex-direction: column; gap: 9px; }
+.modal-col .secao-modal:first-child { border-top: 0; padding-top: 0; }
+.resumo-grande { font-size: 18px; font-weight: 300; line-height: 1.4; }
+.pedido { padding: 10px 14px; border-left: 2px solid var(--borda-forte); background: #0c0c0c; border-radius: 0 10px 10px 0; }
+.pedido .quem { font-size: 12px; color: var(--mudo); margin-bottom: 5px; }
+.texto-pedido { max-height: 190px; overflow: auto; font-size: 13.5px; color: var(--texto-2); }
+.direcao { padding: 12px 16px; border-left: 2px solid var(--azul); background: var(--azul-fundo); border-radius: 0 10px 10px 0; font-size: 14px; line-height: 1.55; }
+.sequencia { list-style: none; max-height: 270px; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; position: relative; }
+.sequencia li { display: grid; grid-template-columns: 66px 150px 100px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 12.5px; }
+.sequencia li:hover { background: var(--linha-hover); }
+.sequencia li.atual { background: var(--azul-fundo); box-shadow: inset 2px 0 0 var(--azul); cursor: default; }
+.sequencia li.dia-seq { display: block; cursor: default; font-size: 9.5px; letter-spacing: .3em; text-transform: uppercase; color: var(--mudo); padding-top: 10px; }
+.sequencia li.dia-seq:hover { background: none; }
+.trello-demanda { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.trello-status { display: inline-flex; align-items: center; gap: 6px; color: var(--mudo); }
+.lista-simples { padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--texto-2); }
+.lista-simples.mono { font-size: 12px; }
+.brutos-caixa { max-height: 340px; overflow: auto; border: 1px solid var(--borda); border-radius: 10px; margin-top: 4px; }
+table.cmds { font-size: 12px; }
+table.cmds td { padding: 6px 10px; }
+table.cmds th { padding: 8px 10px; }
+
+/* ---------- Trello: em trello.css ---------- */
+
+/* ---------- Agentes: em estilo/agentes.css (importado pela tela) ---------- */
+
+/* ---------- Uso: em uso.css (aqui fica só a faixa de aviso, que serve a qualquer tela) ---------- */
+.nota-faixa { display: flex; gap: 10px; align-items: center; padding: 10px 16px; border: 1px solid var(--borda); border-radius: 12px; font-size: 13px; color: var(--texto-2); flex: none; }

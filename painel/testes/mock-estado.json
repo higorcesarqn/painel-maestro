@@ -1,0 +1,2081 @@
+{
+  "gerado_em": "2026-10-09T10:24:30-03:00",
+  "workspace": {
+    "nome": "Exemplo",
+    "raiz": "C:/exemplo/workspace"
+  },
+  "saude": {
+    "nivel": "amarelo",
+    "motivos": [
+      "Leitura do Trello há 2 h 24 min (limite de 2 h)"
+    ],
+    "trello_idade_min": 144,
+    "ultimo_evento_idade_min": 4,
+    "uso_idade_min": 3,
+    "hooks": [
+      {
+        "agente": "cerebro",
+        "ultimo_bruto": "2026-10-09T10:23:58-03:00",
+        "idade_min": 1
+      },
+      {
+        "agente": "coordenador-trello",
+        "ultimo_bruto": "2026-10-09T08:58:12-03:00",
+        "idade_min": 86
+      }
+    ],
+    "wire": false
+  },
+  "kpis": {
+    "pendencias": {
+      "total": 4,
+      "critica": 1,
+      "alta": 2,
+      "normal": 0,
+      "baixa": 1
+    },
+    "trello": {
+      "abertas": 13,
+      "a_fazer": 9,
+      "em_andamento": 3,
+      "concluido": 1,
+      "alertas_mecanicos": 12,
+      "alertas_decisao": 9
+    },
+    "uso": {
+      "disponivel": true,
+      "janela_5h_pct": 37,
+      "reset_5h": "2026-10-09T13:00:00-03:00",
+      "semanal_pct": 22,
+      "reset_semanal": "2026-10-13T09:00:00-03:00",
+      "idade_min": 3
+    }
+  },
+  "agentes": [
+    {
+      "slug": "cerebro",
+      "nome": "Cérebro Principal",
+      "tipo": "maestro",
+      "cor": "#E8C547",
+      "responsabilidade": "Cérebro Principal",
+      "status": "ativo",
+      "modelo": "claude-opus-5-5[1m]",
+      "nivel": "xhigh",
+      "skills": [
+        "orquestracao",
+        "pendencias",
+        "painel",
+        "onboarding-agente",
+        "protocolo-delegacao",
+        "registro-eventos"
+      ],
+      "conectado_a": [
+        "coordenador-trello",
+        "portal:trello.com",
+        "portal:painel",
+        "nota:Trello — Manual de Organização",
+        "nota:Bootstrap · Progresso"
+      ],
+      "ultimo_evento": {
+        "ts": "2026-10-09T10:20:05-03:00",
+        "resumo": "Dono perguntou o status do Trello: respondido com o RST das 08:00",
+        "tipo": "consulta",
+        "resultado": "ok"
+      },
+      "eventos_hoje": 5,
+      "fluxos_abertos": 1,
+      "ultimo_bruto": "2026-10-09T10:23:58-03:00",
+      "uso": {
+        "janela_5h": {
+          "pct_consumo": 78.4,
+          "consumo_relativo": 1346810,
+          "pct_plano_estimado": 29
+        },
+        "hoje": {
+          "pct_consumo": 69.3,
+          "consumo_relativo": 1346810,
+          "pct_plano_estimado": null
+        },
+        "7d": {
+          "pct_consumo": 74.4,
+          "consumo_relativo": 15738045,
+          "pct_plano_estimado": 16.4
+        }
+      }
+    },
+    {
+      "slug": "coordenador-trello",
+      "nome": "Coordenador do Trello",
+      "tipo": "sub-cerebro",
+      "cor": "#3B82F6",
+      "responsabilidade": "Coordenador do Trello",
+      "status": "ativo",
+      "modelo": "claude-opus-5-5[1m]",
+      "nivel": "xhigh",
+      "skills": [
+        "trello-leitura",
+        "trello-escrita-ui",
+        "trello-tarefas",
+        "trello-auditoria",
+        "trello-limpeza-semanal",
+        "trello-relatorio",
+        "trello-lapidacao",
+        "protocolo-delegacao",
+        "registro-eventos"
+      ],
+      "conectado_a": [
+        "cerebro",
+        "portal:trello.com"
+      ],
+      "ultimo_evento": {
+        "ts": "2026-10-09T08:00:45-03:00",
+        "resumo": "Leitura do quadro: C: Revisar o desenho concluído, espelho ficou em Em andamento",
+        "tipo": "execucao",
+        "resultado": "ok"
+      },
+      "eventos_hoje": 1,
+      "fluxos_abertos": 1,
+      "ultimo_bruto": "2026-10-09T08:58:12-03:00",
+      "uso": {
+        "janela_5h": {
+          "pct_consumo": 21.6,
+          "consumo_relativo": 371010,
+          "pct_plano_estimado": 8
+        },
+        "hoje": {
+          "pct_consumo": 19.1,
+          "consumo_relativo": 371010,
+          "pct_plano_estimado": null
+        },
+        "7d": {
+          "pct_consumo": 20.3,
+          "consumo_relativo": 4298335,
+          "pct_plano_estimado": 4.5
+        }
+      }
+    }
+  ],
+  "pendencias": [
+    {
+      "id": "P-0006",
+      "aberta_em": "2026-10-09T10:02:15-03:00",
+      "agente": "cerebro",
+      "fluxo_id": "F-20261008-0002",
+      "severidade": "critica",
+      "tipo": "aprovacao",
+      "titulo": "Aceitar o diálogo de confiança no terminal do Coordenador",
+      "contexto": "Depois do reinício do Maestri às 08:55, o Claude do Coordenador parou em \"Do you trust the files in this folder?\". As leituras das 09:00 e das 10:00 não rodaram e o Trello está sem leitura desde 08:00.",
+      "opcoes": [
+        "A: aceitar no terminal do Coordenador",
+        "B: aceitar uma vez na raiz do workspace, para nenhum role parar de novo"
+      ],
+      "recomendacao": "B: resolve de vez para todos os roles do workspace (a confiança vale para as pastas abaixo).",
+      "trello": null,
+      "status": "aberta",
+      "resposta": null,
+      "respondida_em": null,
+      "resolvida_em": null,
+      "nota": null,
+      "motivo": null,
+      "teste": false,
+      "atualizada_em": "2026-10-09T10:02:15-03:00"
+    },
+    {
+      "id": "P-0002",
+      "aberta_em": "2026-10-08T14:12:20-03:00",
+      "agente": "coordenador-trello",
+      "fluxo_id": "F-20261008-0002",
+      "severidade": "alta",
+      "tipo": "aprovacao",
+      "titulo": "Liberar as correções mecânicas do quadro (espelhos)",
+      "contexto": "Na leitura de 08/10 eram 11: 10 tarefas sem espelho e o espelho do A: 05/10 na coluna errada. Desde 09/10 08:00 são 12 (o espelho do C: Revisar o desenho ficou em ⏳ Em andamento). São correções dentro das regras do manual §12, mas o bootstrap está em somente leitura.",
+      "opcoes": [
+        "A: liberar todas agora",
+        "B: liberar só os espelhos na coluna errada e revisar a lista dos sem espelho antes",
+        "C: manter somente leitura por enquanto"
+      ],
+      "recomendacao": "A: são mecânicas e reversíveis (arquivar o espelho desfaz), e confiro relendo o JSON depois de cada uma.",
+      "trello": null,
+      "status": "aberta",
+      "resposta": null,
+      "respondida_em": null,
+      "resolvida_em": null,
+      "nota": null,
+      "motivo": null,
+      "teste": false,
+      "atualizada_em": "2026-10-09T08:00:45-03:00"
+    },
+    {
+      "id": "P-0003",
+      "aberta_em": "2026-10-08T14:13:05-03:00",
+      "agente": "coordenador-trello",
+      "fluxo_id": "F-20261008-0002",
+      "severidade": "alta",
+      "tipo": "decisao",
+      "titulo": "Eco: definir etiqueta e prefixo",
+      "contexto": "A coluna é amarela, o único cartão usa a etiqueta Eco Lab (laranja escuro) e o prefixo E:. Não existe etiqueta \"Eco\".",
+      "opcoes": [
+        "A: etiqueta 'Eco' amarela, prefixo E:",
+        "B: etiqueta 'Eco' amarela, prefixo EC:",
+        "C: coluna vira 'Eco Lab', mantém E:"
+      ],
+      "recomendacao": "A: o prefixo de uma letra já é usado pelos outros projetos e a etiqueta amarela casa com a coluna.",
+      "trello": {
+        "shortLink": "EXEMPLOB",
+        "url": "https://trello.com/c/EXEMPLOB"
+      },
+      "status": "aberta",
+      "resposta": null,
+      "respondida_em": null,
+      "resolvida_em": null,
+      "nota": null,
+      "motivo": null,
+      "teste": false,
+      "atualizada_em": "2026-10-08T14:13:05-03:00"
+    },
+    {
+      "id": "P-0004",
+      "aberta_em": "2026-10-08T14:13:50-03:00",
+      "agente": "coordenador-trello",
+      "fluxo_id": "F-20261008-0002",
+      "severidade": "normal",
+      "tipo": "decisao",
+      "titulo": "Renomear a etiqueta \"Feito\" para \"Concluído\"",
+      "contexto": "A etiqueta de status se chama \"Feito\", mas a coluna é \"✅ Concluído\" (manual §10, item 3).",
+      "opcoes": [
+        "A: renomear a etiqueta para \"Concluído\"",
+        "B: manter \"Feito\" e renomear a coluna"
+      ],
+      "recomendacao": "A, como o manual já prevê.",
+      "trello": null,
+      "status": "respondida",
+      "resposta": "Pode renomear.",
+      "respondida_em": "2026-10-09T08:41:10-03:00",
+      "resolvida_em": null,
+      "nota": "Executar junto com as correções mecânicas (P-0002).",
+      "motivo": null,
+      "teste": false,
+      "atualizada_em": "2026-10-09T08:42:00-03:00"
+    },
+    {
+      "id": "P-0005",
+      "aberta_em": "2026-10-08T14:14:30-03:00",
+      "agente": "coordenador-trello",
+      "fluxo_id": "F-20261008-0002",
+      "severidade": "baixa",
+      "tipo": "aprovacao",
+      "titulo": "Remover 5 etiquetas sem uso ou sem nome",
+      "contexto": "\"Boreal antigo\" (preto suave), \"Cometa antigo\" (céu escuro) e 3 sem nome (laranja, vermelho, amarelo). Nenhum cartão usa. Exclusão só com ok do dono.",
+      "opcoes": [
+        "A: remover as 5",
+        "B: remover só as 3 sem nome"
+      ],
+      "recomendacao": "A: nenhuma está em uso e elas confundem quem escolhe etiqueta.",
+      "trello": null,
+      "status": "aberta",
+      "resposta": null,
+      "respondida_em": null,
+      "resolvida_em": null,
+      "nota": null,
+      "motivo": null,
+      "teste": false,
+      "atualizada_em": "2026-10-08T14:14:30-03:00"
+    },
+    {
+      "id": "P-0001",
+      "aberta_em": "2026-10-08T00:58:30-03:00",
+      "agente": "cerebro",
+      "fluxo_id": "F-20261008-0001",
+      "severidade": "critica",
+      "tipo": "decisao",
+      "titulo": "Confirmar a raiz do workspace e a linguagem dos scripts (não há Python)",
+      "contexto": "O documento de instruções manda confirmar a raiz antes de criar arquivos e parar se faltar python3. Nesta máquina não há Python; o Node 22 já roda os hooks.",
+      "opcoes": [
+        "A: raiz C:/exemplo/workspace e scripts em Node.js 22",
+        "B: instalar o Python 3 e seguir o documento à risca"
+      ],
+      "recomendacao": "A: o Node já está instalado e é o runtime dos hooks; o fcntl do Python nem existe no Windows.",
+      "trello": null,
+      "status": "resolvida",
+      "resposta": "A. E todos os agentes em Opus 5.5 com 1M, nível xhigh.",
+      "respondida_em": "2026-10-08T01:00:30-03:00",
+      "resolvida_em": "2026-10-08T01:00:30-03:00",
+      "nota": "Registrado em decisoes.md.",
+      "motivo": null,
+      "teste": false,
+      "atualizada_em": "2026-10-08T01:00:30-03:00"
+    }
+  ],
+  "trello": {
+    "coletado_em": "2026-10-09T08:00:30-03:00",
+    "gerado_em": "2026-10-09T08:00:44-03:00",
+    "fluxo_id": "F-20261008-0002",
+    "quadro": {
+      "id": "EXEMPLO0",
+      "nome": "Quadro Exemplo",
+      "url": "https://trello.com/b/EXEMPLO0/quadro-exemplo"
+    },
+    "totais": {
+      "abertas": 13,
+      "a_fazer": 9,
+      "em_andamento": 3,
+      "concluido": 1
+    },
+    "projetos": [
+      {
+        "prefixo": "A",
+        "nome": "Atlas",
+        "coluna": "🟩 Atlas",
+        "cor": "green",
+        "emoji": "🟩",
+        "coluna_quadro": "🟩 Atlas",
+        "contagem": {
+          "a_fazer": 0,
+          "em_andamento": 1,
+          "concluido": 0
+        },
+        "cartoes": [
+          {
+            "shortLink": "EXEMPLO1",
+            "url": "https://trello.com/c/EXEMPLO1",
+            "titulo": "A: 05/10 - Testar o fluxo de ponta a ponta",
+            "status": "Em andamento",
+            "posicao": 1,
+            "espelho": {
+              "existe": true,
+              "coluna": "📝 A fazer",
+              "correto": false,
+              "quantidade": 1
+            },
+            "tem_descricao": true,
+            "descricao_em_bloco_de_codigo": true,
+            "checklist": {
+              "feitos": 0,
+              "total": 0
+            },
+            "prazo": null,
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "espelho-coluna-errada",
+                "mecanico": true,
+                "texto": "Etiqueta Em andamento, espelho em 📝 A fazer → mover para ⏳ Em andamento"
+              },
+              {
+                "codigo": "descricao-em-bloco-de-codigo",
+                "mecanico": false,
+                "texto": "Descrição dentro de ```markdown → tirar a cerca"
+              },
+              {
+                "codigo": "passos-fora-de-checklist",
+                "mecanico": false,
+                "texto": "58 passos \"- [ ]\" na descrição em 7 seções → um checklist por seção"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "prefixo": "B",
+        "nome": "Boreal",
+        "coluna": "🟦 Boreal",
+        "cor": "blue",
+        "emoji": "🟦",
+        "coluna_quadro": "🟦 Boreal",
+        "contagem": {
+          "a_fazer": 1,
+          "em_andamento": 1,
+          "concluido": 0
+        },
+        "cartoes": [
+          {
+            "shortLink": "EXEMPLO2",
+            "url": "https://trello.com/c/EXEMPLO2",
+            "titulo": "B: Blog - Calendário de posts do trimestre",
+            "status": "Em andamento",
+            "posicao": 1,
+            "espelho": {
+              "existe": false,
+              "coluna": null,
+              "correto": false,
+              "quantidade": 0
+            },
+            "tem_descricao": true,
+            "descricao_em_bloco_de_codigo": false,
+            "checklist": {
+              "feitos": 3,
+              "total": 8
+            },
+            "prazo": null,
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "sem-espelho",
+                "mecanico": true,
+                "texto": "Sem espelho → criar em ⏳ Em andamento"
+              }
+            ]
+          },
+          {
+            "shortLink": "EXEMPLO3",
+            "url": "https://trello.com/c/EXEMPLO3",
+            "titulo": "B: Cliente - Vídeo de demonstração do produto",
+            "status": "A Fazer",
+            "posicao": 2,
+            "espelho": {
+              "existe": true,
+              "coluna": "📝 A fazer",
+              "correto": true,
+              "quantidade": 1
+            },
+            "tem_descricao": false,
+            "descricao_em_bloco_de_codigo": false,
+            "checklist": {
+              "feitos": 0,
+              "total": 0
+            },
+            "prazo": null,
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "sem-descricao",
+                "mecanico": false,
+                "texto": "Sem descrição → lapidar no template §7"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "prefixo": "C",
+        "nome": "Cometa",
+        "coluna": "🟪 Cometa",
+        "cor": "purple",
+        "emoji": "🟪",
+        "coluna_quadro": "🟪 Cometa",
+        "contagem": {
+          "a_fazer": 1,
+          "em_andamento": 0,
+          "concluido": 1
+        },
+        "cartoes": [
+          {
+            "shortLink": "EXEMPLO4",
+            "url": "https://trello.com/c/EXEMPLO4",
+            "titulo": "C: Revisar o desenho da arquitetura",
+            "status": "Concluído",
+            "posicao": 1,
+            "espelho": {
+              "existe": true,
+              "coluna": "⏳ Em andamento",
+              "correto": false,
+              "quantidade": 1
+            },
+            "tem_descricao": true,
+            "descricao_em_bloco_de_codigo": true,
+            "checklist": {
+              "feitos": 0,
+              "total": 0
+            },
+            "prazo": null,
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "espelho-coluna-errada",
+                "mecanico": true,
+                "texto": "Etiqueta Concluído, espelho em ⏳ Em andamento → mover para ✅ Concluído"
+              },
+              {
+                "codigo": "descricao-em-bloco-de-codigo",
+                "mecanico": false,
+                "texto": "Descrição dentro de ```markdown → tirar a cerca"
+              }
+            ]
+          },
+          {
+            "shortLink": "EXEMPLO5",
+            "url": "https://trello.com/c/EXEMPLO5",
+            "titulo": "C: Montar a primeira versão da fila de mensagens",
+            "status": "A Fazer",
+            "posicao": 2,
+            "espelho": {
+              "existe": false,
+              "coluna": null,
+              "correto": false,
+              "quantidade": 0
+            },
+            "tem_descricao": true,
+            "descricao_em_bloco_de_codigo": true,
+            "checklist": {
+              "feitos": 0,
+              "total": 0
+            },
+            "prazo": null,
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "sem-espelho",
+                "mecanico": true,
+                "texto": "Sem espelho → criar em 📝 A fazer"
+              },
+              {
+                "codigo": "descricao-em-bloco-de-codigo",
+                "mecanico": false,
+                "texto": "Descrição dentro de ```markdown → tirar a cerca"
+              },
+              {
+                "codigo": "possivel-duplicada",
+                "mecanico": false,
+                "texto": "Possível duplicada com D: Fila de mensagens -> worker -> notificações (https://trello.com/c/EXEMPLO9): em comum mensagens, fila"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "prefixo": "D",
+        "nome": "Delta",
+        "coluna": "🟥 Delta",
+        "cor": "red",
+        "emoji": "🟥",
+        "coluna_quadro": "🟥 Delta",
+        "contagem": {
+          "a_fazer": 4,
+          "em_andamento": 1,
+          "concluido": 0
+        },
+        "cartoes": [
+          {
+            "shortLink": "EXEMPLO6",
+            "url": "https://trello.com/c/EXEMPLO6",
+            "titulo": "D: Ajustar o envio de e-mails transacionais",
+            "status": "Em andamento",
+            "posicao": 1,
+            "espelho": {
+              "existe": false,
+              "coluna": null,
+              "correto": false,
+              "quantidade": 0
+            },
+            "tem_descricao": false,
+            "descricao_em_bloco_de_codigo": false,
+            "checklist": {
+              "feitos": 0,
+              "total": 0
+            },
+            "prazo": "2026-10-08T21:00:00.000Z",
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "sem-espelho",
+                "mecanico": true,
+                "texto": "Sem espelho → criar em ⏳ Em andamento"
+              },
+              {
+                "codigo": "sem-descricao",
+                "mecanico": false,
+                "texto": "Sem descrição → lapidar no template §7"
+              }
+            ]
+          },
+          {
+            "shortLink": "EXEMPLO7",
+            "url": "https://trello.com/c/EXEMPLO7",
+            "titulo": "D: Tema por cliente",
+            "status": "A Fazer",
+            "posicao": 2,
+            "espelho": {
+              "existe": false,
+              "coluna": null,
+              "correto": false,
+              "quantidade": 0
+            },
+            "tem_descricao": false,
+            "descricao_em_bloco_de_codigo": false,
+            "checklist": {
+              "feitos": 1,
+              "total": 3
+            },
+            "prazo": null,
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "sem-espelho",
+                "mecanico": true,
+                "texto": "Sem espelho → criar em 📝 A fazer"
+              },
+              {
+                "codigo": "sem-descricao",
+                "mecanico": false,
+                "texto": "Sem descrição (tem só o checklist) → lapidar no template §7"
+              }
+            ]
+          },
+          {
+            "shortLink": "EXEMPLO8",
+            "url": "https://trello.com/c/EXEMPLO8",
+            "titulo": "D: Ambiente de testes",
+            "status": "A Fazer",
+            "posicao": 3,
+            "espelho": {
+              "existe": false,
+              "coluna": null,
+              "correto": false,
+              "quantidade": 0
+            },
+            "tem_descricao": false,
+            "descricao_em_bloco_de_codigo": false,
+            "checklist": {
+              "feitos": 0,
+              "total": 0
+            },
+            "prazo": null,
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "sem-espelho",
+                "mecanico": true,
+                "texto": "Sem espelho → criar em 📝 A fazer"
+              },
+              {
+                "codigo": "sem-descricao",
+                "mecanico": false,
+                "texto": "Sem descrição → lapidar no template §7"
+              }
+            ]
+          },
+          {
+            "shortLink": "EXEMPLO9",
+            "url": "https://trello.com/c/EXEMPLO9",
+            "titulo": "D: Fila de mensagens -> worker -> notificações",
+            "status": "A Fazer",
+            "posicao": 4,
+            "espelho": {
+              "existe": false,
+              "coluna": null,
+              "correto": false,
+              "quantidade": 0
+            },
+            "tem_descricao": true,
+            "descricao_em_bloco_de_codigo": false,
+            "checklist": {
+              "feitos": 0,
+              "total": 0
+            },
+            "prazo": null,
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "sem-espelho",
+                "mecanico": true,
+                "texto": "Sem espelho → criar em 📝 A fazer"
+              },
+              {
+                "codigo": "descricao-insuficiente",
+                "mecanico": false,
+                "texto": "Descrição insuficiente (só um link) → completar Resumo e Pronto quando"
+              },
+              {
+                "codigo": "possivel-duplicada",
+                "mecanico": false,
+                "texto": "Possível duplicada com C: Montar a primeira versão da fila de mensagens (https://trello.com/c/EXEMPLO5): em comum mensagens, fila"
+              }
+            ]
+          },
+          {
+            "shortLink": "EXEMPLOA",
+            "url": "https://trello.com/c/EXEMPLOA",
+            "titulo": "D: Conectar o provedor de SMS",
+            "status": "A Fazer",
+            "posicao": 5,
+            "espelho": {
+              "existe": false,
+              "coluna": null,
+              "correto": false,
+              "quantidade": 0
+            },
+            "tem_descricao": false,
+            "descricao_em_bloco_de_codigo": false,
+            "checklist": {
+              "feitos": 0,
+              "total": 0
+            },
+            "prazo": null,
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "sem-espelho",
+                "mecanico": true,
+                "texto": "Sem espelho → criar em 📝 A fazer"
+              },
+              {
+                "codigo": "sem-descricao",
+                "mecanico": false,
+                "texto": "Sem descrição → lapidar no template §7"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "prefixo": "E",
+        "nome": "Eco",
+        "coluna": "🟨 Eco",
+        "cor": "orange_dark",
+        "emoji": "🟨",
+        "coluna_quadro": "🟨  Eco",
+        "contagem": {
+          "a_fazer": 1,
+          "em_andamento": 0,
+          "concluido": 0
+        },
+        "cartoes": [
+          {
+            "shortLink": "EXEMPLOB",
+            "url": "https://trello.com/c/EXEMPLOB",
+            "titulo": "E: Reunião com o fornecedor",
+            "status": "A Fazer",
+            "posicao": 1,
+            "espelho": {
+              "existe": false,
+              "coluna": null,
+              "correto": false,
+              "quantidade": 0
+            },
+            "tem_descricao": false,
+            "descricao_em_bloco_de_codigo": false,
+            "checklist": {
+              "feitos": 0,
+              "total": 0
+            },
+            "prazo": "2026-10-12T17:00:00.000Z",
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "sem-espelho",
+                "mecanico": true,
+                "texto": "Sem espelho → criar em 📝 A fazer"
+              },
+              {
+                "codigo": "sem-descricao",
+                "mecanico": false,
+                "texto": "Sem descrição → lapidar no template §7"
+              }
+            ]
+          }
+        ],
+        "decisao_pendente": "definir etiqueta e prefixo. A coluna é amarela, mas o cartão usa a etiqueta \"Eco Lab\" (laranja escuro) e o prefixo E:. Etiqueta \"Eco\" amarela ou coluna \"Eco Lab\"? Prefixo E: ou EC:? Até decidir, vale \"Eco Lab\" + E:."
+      },
+      {
+        "prefixo": "F",
+        "nome": "Faro",
+        "coluna": "⬜ Faro",
+        "cor": "black_dark",
+        "emoji": "⬜",
+        "coluna_quadro": "⬜  Faro",
+        "contagem": {
+          "a_fazer": 2,
+          "em_andamento": 0,
+          "concluido": 0
+        },
+        "cartoes": [
+          {
+            "shortLink": "EXEMPLOC",
+            "url": "https://trello.com/c/EXEMPLOC",
+            "titulo": "F: Campanha de teste em outro país",
+            "status": "A Fazer",
+            "posicao": 1,
+            "espelho": {
+              "existe": false,
+              "coluna": null,
+              "correto": false,
+              "quantidade": 0
+            },
+            "tem_descricao": false,
+            "descricao_em_bloco_de_codigo": false,
+            "checklist": {
+              "feitos": 0,
+              "total": 0
+            },
+            "prazo": null,
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "sem-espelho",
+                "mecanico": true,
+                "texto": "Sem espelho → criar em 📝 A fazer"
+              },
+              {
+                "codigo": "sem-descricao",
+                "mecanico": false,
+                "texto": "Sem descrição → lapidar no template §7"
+              }
+            ]
+          },
+          {
+            "shortLink": "EXEMPLOD",
+            "url": "https://trello.com/c/EXEMPLOD",
+            "titulo": "F: Oferta sazonal de fim de ano",
+            "status": "A Fazer",
+            "posicao": 2,
+            "espelho": {
+              "existe": false,
+              "coluna": null,
+              "correto": false,
+              "quantidade": 0
+            },
+            "tem_descricao": false,
+            "descricao_em_bloco_de_codigo": false,
+            "checklist": {
+              "feitos": 0,
+              "total": 0
+            },
+            "prazo": null,
+            "prazo_concluido": false,
+            "membros": [],
+            "problemas": [
+              {
+                "codigo": "sem-espelho",
+                "mecanico": true,
+                "texto": "Sem espelho → criar em 📝 A fazer"
+              },
+              {
+                "codigo": "sem-descricao",
+                "mecanico": false,
+                "texto": "Sem descrição → lapidar no template §7"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "colunas_status": [
+      {
+        "chave": "a_fazer",
+        "etiqueta": "A Fazer",
+        "coluna": "📝 A fazer",
+        "emoji": "📝",
+        "coluna_quadro": "📝 A fazer",
+        "espelhos": [
+          {
+            "espelho": "ESPELHO1",
+            "original": "EXEMPLO1",
+            "url": "https://trello.com/c/EXEMPLO1",
+            "titulo": "A: 05/10 - Testar o fluxo de ponta a ponta",
+            "projeto": "A",
+            "status": "Em andamento",
+            "posicao": 1,
+            "valido": false
+          },
+          {
+            "espelho": "ESPELHO2",
+            "original": "EXEMPLO3",
+            "url": "https://trello.com/c/EXEMPLO3",
+            "titulo": "B: Cliente - Vídeo de demonstração do produto",
+            "projeto": "B",
+            "status": "A Fazer",
+            "posicao": 2,
+            "valido": true
+          }
+        ]
+      },
+      {
+        "chave": "em_andamento",
+        "etiqueta": "Em andamento",
+        "coluna": "⏳ Em andamento",
+        "emoji": "⏳",
+        "coluna_quadro": "⏳ Em andamento",
+        "espelhos": [
+          {
+            "espelho": "ESPELHO3",
+            "original": "EXEMPLO4",
+            "url": "https://trello.com/c/EXEMPLO4",
+            "titulo": "C: Revisar o desenho da arquitetura",
+            "projeto": "C",
+            "status": "Concluído",
+            "posicao": 1,
+            "valido": false
+          }
+        ]
+      },
+      {
+        "chave": "concluido",
+        "etiqueta": "Concluído",
+        "coluna": "✅ Concluído",
+        "emoji": "✅",
+        "coluna_quadro": "✅ Concluído",
+        "espelhos": []
+      }
+    ],
+    "nao_classificados": [],
+    "auditoria": {
+      "mecanicos": [
+        {
+          "codigo": "sem-espelho",
+          "cartao": "EXEMPLO2",
+          "url": "https://trello.com/c/EXEMPLO2",
+          "titulo": "B: Blog - Calendário de posts do trimestre",
+          "texto": "Sem espelho → criar em ⏳ Em andamento",
+          "acao": "criar espelho em ⏳ Em andamento",
+          "pendencia": "P-0002"
+        },
+        {
+          "codigo": "sem-espelho",
+          "cartao": "EXEMPLO5",
+          "url": "https://trello.com/c/EXEMPLO5",
+          "titulo": "C: Montar a primeira versão da fila de mensagens",
+          "texto": "Sem espelho → criar em 📝 A fazer",
+          "acao": "criar espelho em 📝 A fazer",
+          "pendencia": "P-0002"
+        },
+        {
+          "codigo": "sem-espelho",
+          "cartao": "EXEMPLO6",
+          "url": "https://trello.com/c/EXEMPLO6",
+          "titulo": "D: Ajustar o envio de e-mails transacionais",
+          "texto": "Sem espelho → criar em ⏳ Em andamento",
+          "acao": "criar espelho em ⏳ Em andamento",
+          "pendencia": "P-0002"
+        },
+        {
+          "codigo": "sem-espelho",
+          "cartao": "EXEMPLO7",
+          "url": "https://trello.com/c/EXEMPLO7",
+          "titulo": "D: Tema por cliente",
+          "texto": "Sem espelho → criar em 📝 A fazer",
+          "acao": "criar espelho em 📝 A fazer",
+          "pendencia": "P-0002"
+        },
+        {
+          "codigo": "sem-espelho",
+          "cartao": "EXEMPLO8",
+          "url": "https://trello.com/c/EXEMPLO8",
+          "titulo": "D: Ambiente de testes",
+          "texto": "Sem espelho → criar em 📝 A fazer",
+          "acao": "criar espelho em 📝 A fazer",
+          "pendencia": "P-0002"
+        },
+        {
+          "codigo": "sem-espelho",
+          "cartao": "EXEMPLO9",
+          "url": "https://trello.com/c/EXEMPLO9",
+          "titulo": "D: Fila de mensagens -> worker -> notificações",
+          "texto": "Sem espelho → criar em 📝 A fazer",
+          "acao": "criar espelho em 📝 A fazer",
+          "pendencia": "P-0002"
+        },
+        {
+          "codigo": "sem-espelho",
+          "cartao": "EXEMPLOA",
+          "url": "https://trello.com/c/EXEMPLOA",
+          "titulo": "D: Conectar o provedor de SMS",
+          "texto": "Sem espelho → criar em 📝 A fazer",
+          "acao": "criar espelho em 📝 A fazer",
+          "pendencia": "P-0002"
+        },
+        {
+          "codigo": "sem-espelho",
+          "cartao": "EXEMPLOB",
+          "url": "https://trello.com/c/EXEMPLOB",
+          "titulo": "E: Reunião com o fornecedor",
+          "texto": "Sem espelho → criar em 📝 A fazer",
+          "acao": "criar espelho em 📝 A fazer",
+          "pendencia": "P-0002"
+        },
+        {
+          "codigo": "sem-espelho",
+          "cartao": "EXEMPLOC",
+          "url": "https://trello.com/c/EXEMPLOC",
+          "titulo": "F: Campanha de teste em outro país",
+          "texto": "Sem espelho → criar em 📝 A fazer",
+          "acao": "criar espelho em 📝 A fazer",
+          "pendencia": "P-0002"
+        },
+        {
+          "codigo": "sem-espelho",
+          "cartao": "EXEMPLOD",
+          "url": "https://trello.com/c/EXEMPLOD",
+          "titulo": "F: Oferta sazonal de fim de ano",
+          "texto": "Sem espelho → criar em 📝 A fazer",
+          "acao": "criar espelho em 📝 A fazer",
+          "pendencia": "P-0002"
+        },
+        {
+          "codigo": "espelho-coluna-errada",
+          "cartao": "EXEMPLO1",
+          "url": "https://trello.com/c/EXEMPLO1",
+          "titulo": "A: 05/10 - Testar o fluxo de ponta a ponta",
+          "texto": "Etiqueta Em andamento, espelho em 📝 A fazer → mover para ⏳ Em andamento",
+          "acao": "mover o espelho de 📝 A fazer para ⏳ Em andamento",
+          "pendencia": "P-0002"
+        },
+        {
+          "codigo": "espelho-coluna-errada",
+          "cartao": "EXEMPLO4",
+          "url": "https://trello.com/c/EXEMPLO4",
+          "titulo": "C: Revisar o desenho da arquitetura",
+          "texto": "Etiqueta Concluído, espelho em ⏳ Em andamento → mover para ✅ Concluído",
+          "acao": "mover o espelho de ⏳ Em andamento para ✅ Concluído",
+          "pendencia": "P-0002"
+        }
+      ],
+      "decisoes": [
+        {
+          "codigo": "projeto-pendente",
+          "alvo": "Eco",
+          "texto": "Projeto 🟨 Eco com decisão pendente: definir etiqueta e prefixo. A coluna é amarela, mas o cartão usa a etiqueta \"Eco Lab\" (laranja escuro) e o prefixo E:. Etiqueta \"Eco\" amarela ou coluna \"Eco Lab\"? Prefixo E: ou EC:? Até decidir, vale \"Eco Lab\" + E:.",
+          "pendencia": "P-0003"
+        },
+        {
+          "codigo": "etiqueta-nome-divergente",
+          "alvo": "Feito",
+          "texto": "Etiqueta \"Feito\" ≠ coluna \"✅ Concluído\" → propor renomear para \"Concluído\""
+        },
+        {
+          "codigo": "etiqueta-sem-uso",
+          "alvo": "etiquetas sem uso",
+          "pendencia": "P-0005",
+          "texto": "5 etiquetas sem uso ou sem nome: \"Boreal antigo\" (preto suave), \"Cometa antigo\" (céu escuro) e 3 sem nome (laranja, vermelho, amarelo) → propor remover (exclusão só com ok do dono)",
+          "itens": [
+            {
+              "id": "000000000000000000000001",
+              "nome": "Boreal antigo",
+              "cor": "black_light",
+              "sem_nome": false,
+              "usos": 0
+            },
+            {
+              "id": "000000000000000000000002",
+              "nome": "Cometa antigo",
+              "cor": "sky_dark",
+              "sem_nome": false,
+              "usos": 0
+            },
+            {
+              "id": "000000000000000000000003",
+              "nome": "",
+              "cor": "orange",
+              "sem_nome": true,
+              "usos": 0
+            },
+            {
+              "id": "000000000000000000000004",
+              "nome": "",
+              "cor": "red",
+              "sem_nome": true,
+              "usos": 0
+            },
+            {
+              "id": "000000000000000000000005",
+              "nome": "",
+              "cor": "yellow",
+              "sem_nome": true,
+              "usos": 0
+            }
+          ],
+          "codigos": [
+            "etiqueta-sem-uso",
+            "etiqueta-sem-nome"
+          ]
+        },
+        {
+          "codigo": "nome-coluna-fora-do-padrao",
+          "alvo": "nomes de coluna",
+          "texto": "2 colunas com espaço duplo: \"🟨  Eco\", \"⬜  Faro\" → propor renomear para \"🟨 Eco\", \"⬜ Faro\"",
+          "itens": [
+            {
+              "coluna": "🟨  Eco",
+              "canonico": "🟨 Eco",
+              "motivo": "espaço duplo"
+            },
+            {
+              "coluna": "⬜  Faro",
+              "canonico": "⬜ Faro",
+              "motivo": "espaço duplo"
+            }
+          ]
+        },
+        {
+          "codigo": "possivel-duplicada",
+          "alvo": "D: Fila de mensagens -> worker -> notificações × C: Montar a primeira versão da fila de mensagens",
+          "cartao": "EXEMPLO9",
+          "texto": "Possível duplicada entre Delta e Cometa (em comum: mensagens, fila) → decidir se uma vira parte da outra",
+          "cartoes": [
+            "EXEMPLO9",
+            "EXEMPLO5"
+          ],
+          "itens": [
+            {
+              "cartao": "EXEMPLO9",
+              "url": "https://trello.com/c/EXEMPLO9",
+              "titulo": "D: Fila de mensagens -> worker -> notificações",
+              "texto": "Delta"
+            },
+            {
+              "cartao": "EXEMPLO5",
+              "url": "https://trello.com/c/EXEMPLO5",
+              "titulo": "C: Montar a primeira versão da fila de mensagens",
+              "texto": "Cometa"
+            }
+          ]
+        },
+        {
+          "codigo": "descricao-em-bloco-de-codigo",
+          "alvo": "3 cartões",
+          "texto": "3 descrições dentro de bloco de código (```markdown) → tirar a cerca (o Trello mostra tudo em fonte mono, sem títulos)",
+          "cartoes": [
+            "EXEMPLO1",
+            "EXEMPLO4",
+            "EXEMPLO5"
+          ],
+          "itens": [
+            {
+              "cartao": "EXEMPLO1",
+              "url": "https://trello.com/c/EXEMPLO1",
+              "titulo": "A: 05/10 - Testar o fluxo de ponta a ponta",
+              "texto": ""
+            },
+            {
+              "cartao": "EXEMPLO4",
+              "url": "https://trello.com/c/EXEMPLO4",
+              "titulo": "C: Revisar o desenho da arquitetura",
+              "texto": ""
+            },
+            {
+              "cartao": "EXEMPLO5",
+              "url": "https://trello.com/c/EXEMPLO5",
+              "titulo": "C: Montar a primeira versão da fila de mensagens",
+              "texto": ""
+            }
+          ]
+        },
+        {
+          "codigo": "passos-fora-de-checklist",
+          "alvo": "A: 05/10 - Testar o fluxo de ponta a ponta",
+          "cartao": "EXEMPLO1",
+          "texto": "1 cartão com passos \"- [ ]\" na descrição → virar Checklist do Trello",
+          "cartoes": [
+            "EXEMPLO1"
+          ],
+          "itens": [
+            {
+              "cartao": "EXEMPLO1",
+              "url": "https://trello.com/c/EXEMPLO1",
+              "titulo": "A: 05/10 - Testar o fluxo de ponta a ponta",
+              "texto": "58 passos em 7 seções → um checklist por seção"
+            }
+          ]
+        },
+        {
+          "codigo": "sem-descricao",
+          "alvo": "8 cartões",
+          "texto": "8 cartões sem descrição → lapidar no template §7 (perguntar o contexto que faltar)",
+          "cartoes": [
+            "EXEMPLO3",
+            "EXEMPLO6",
+            "EXEMPLO7",
+            "EXEMPLO8",
+            "EXEMPLOA",
+            "EXEMPLOB",
+            "EXEMPLOC",
+            "EXEMPLOD"
+          ],
+          "itens": [
+            {
+              "cartao": "EXEMPLO3",
+              "url": "https://trello.com/c/EXEMPLO3",
+              "titulo": "B: Cliente - Vídeo de demonstração do produto",
+              "texto": ""
+            },
+            {
+              "cartao": "EXEMPLO6",
+              "url": "https://trello.com/c/EXEMPLO6",
+              "titulo": "D: Ajustar o envio de e-mails transacionais",
+              "texto": ""
+            },
+            {
+              "cartao": "EXEMPLO7",
+              "url": "https://trello.com/c/EXEMPLO7",
+              "titulo": "D: Tema por cliente",
+              "texto": "tem só o checklist"
+            },
+            {
+              "cartao": "EXEMPLO8",
+              "url": "https://trello.com/c/EXEMPLO8",
+              "titulo": "D: Ambiente de testes",
+              "texto": ""
+            },
+            {
+              "cartao": "EXEMPLOA",
+              "url": "https://trello.com/c/EXEMPLOA",
+              "titulo": "D: Conectar o provedor de SMS",
+              "texto": ""
+            },
+            {
+              "cartao": "EXEMPLOB",
+              "url": "https://trello.com/c/EXEMPLOB",
+              "titulo": "E: Reunião com o fornecedor",
+              "texto": ""
+            },
+            {
+              "cartao": "EXEMPLOC",
+              "url": "https://trello.com/c/EXEMPLOC",
+              "titulo": "F: Campanha de teste em outro país",
+              "texto": ""
+            },
+            {
+              "cartao": "EXEMPLOD",
+              "url": "https://trello.com/c/EXEMPLOD",
+              "titulo": "F: Oferta sazonal de fim de ano",
+              "texto": ""
+            }
+          ]
+        },
+        {
+          "codigo": "descricao-insuficiente",
+          "alvo": "D: Fila de mensagens -> worker -> notificações",
+          "cartao": "EXEMPLO9",
+          "texto": "1 descrição insuficiente → completar (Resumo + Pronto quando)",
+          "cartoes": [
+            "EXEMPLO9"
+          ],
+          "itens": [
+            {
+              "cartao": "EXEMPLO9",
+              "url": "https://trello.com/c/EXEMPLO9",
+              "titulo": "D: Fila de mensagens -> worker -> notificações",
+              "texto": "só um link"
+            }
+          ]
+        }
+      ]
+    },
+    "caixa_de_entrada": {
+      "itens": null,
+      "nota": "a Caixa de entrada do Trello não vem no JSON do quadro"
+    },
+    "pendencias": [
+      {
+        "id": "P-0002",
+        "severidade": "alta",
+        "titulo": "Liberar as correções mecânicas do quadro (espelhos)",
+        "url": null,
+        "ligada_a": [
+          "sem-espelho",
+          "espelho-coluna-errada"
+        ]
+      },
+      {
+        "id": "P-0003",
+        "severidade": "alta",
+        "titulo": "Eco: definir etiqueta e prefixo",
+        "url": "https://trello.com/c/EXEMPLOB",
+        "ligada_a": [
+          "projeto-pendente"
+        ]
+      },
+      {
+        "id": "P-0005",
+        "severidade": "baixa",
+        "titulo": "Remover 5 etiquetas sem uso ou sem nome",
+        "url": null,
+        "ligada_a": [
+          "etiqueta-sem-uso"
+        ]
+      }
+    ],
+    "avisos": [],
+    "mudancas": {
+      "desde": "2026-10-08T22:00:20-03:00",
+      "novos": [],
+      "mudou_status": [],
+      "concluidos": [
+        {
+          "shortLink": "EXEMPLO4",
+          "titulo": "C: Revisar o desenho da arquitetura",
+          "url": "https://trello.com/c/EXEMPLO4",
+          "prefixo": "C",
+          "antes": "Em andamento"
+        }
+      ],
+      "arquivados": []
+    }
+  },
+  "trello_rst": "RST · Relatório de Status do Trello\nGerado: 09/10/2026 08:00 · Leitura do quadro: 08:00 · Fluxo: F-20261008-0002\n\n1. Números\nAbertas: 13 · 📝 A fazer: 9 · ⏳ Em andamento: 3 · ✅ Concluído aguardando limpeza: 1\nPor projeto: A 1 · B 2 · C 2 · D 5 · E 1 · F 2\n\n2. Em andamento agora (ordem do quadro)\n⏳ A: 05/10 - Testar o fluxo de ponta a ponta · sem checklist · sem prazo · https://trello.com/c/EXEMPLO1 · ⚠ espelho em 📝 A fazer\n⏳ B: Blog - Calendário de posts do trimestre · checklist 3/8 · sem prazo · https://trello.com/c/EXEMPLO2 · ⚠ sem espelho\n⏳ D: Ajustar o envio de e-mails transacionais · sem checklist · prazo 08/10 (atrasado) · https://trello.com/c/EXEMPLO6 · ⚠ sem espelho\n\n3. Próximos (topo de 📝 A fazer, até 5)\n📝 B: Cliente - Vídeo de demonstração do produto · sem prazo · https://trello.com/c/EXEMPLO3\n   + 8 tarefas em A Fazer sem espelho no lugar (sem posição de prioridade; ver seção 5)\n\n4. Por projeto\n🟩 A · Atlas (1): ⏳ 1\n   - A: 05/10 - Testar o fluxo de ponta a ponta [Em andamento] · https://trello.com/c/EXEMPLO1 · ⚠ 3\n🟦 B · Boreal (2): 📝 1 · ⏳ 1\n   - B: Blog - Calendário de posts do trimestre [Em andamento] checklist 3/8 · https://trello.com/c/EXEMPLO2 · ⚠ 1\n   - B: Cliente - Vídeo de demonstração do produto [A Fazer] · https://trello.com/c/EXEMPLO3 · ⚠ 1\n🟪 C · Cometa (2): 📝 1 · ✅ 1\n   - C: Revisar o desenho da arquitetura [Concluído] · https://trello.com/c/EXEMPLO4 · ⚠ 2\n   - C: Montar a primeira versão da fila de mensagens [A Fazer] · https://trello.com/c/EXEMPLO5 · ⚠ 3\n🟥 D · Delta (5): 📝 4 · ⏳ 1\n   - D: Ajustar o envio de e-mails transacionais [Em andamento] · https://trello.com/c/EXEMPLO6 · ⚠ 2\n   - D: Tema por cliente [A Fazer] checklist 1/3 · https://trello.com/c/EXEMPLO7 · ⚠ 2\n   - D: Ambiente de testes [A Fazer] · https://trello.com/c/EXEMPLO8 · ⚠ 2\n   - D: Fila de mensagens -> worker -> notificações [A Fazer] · https://trello.com/c/EXEMPLO9 · ⚠ 3\n   - D: Conectar o provedor de SMS [A Fazer] · https://trello.com/c/EXEMPLOA · ⚠ 2\n🟨 E · Eco (1): 📝 1 · ⚠ decisão pendente (seção 5)\n   - E: Reunião com o fornecedor [A Fazer] · https://trello.com/c/EXEMPLOB · ⚠ 2\n⬜ F · Faro (2): 📝 2\n   - F: Campanha de teste em outro país [A Fazer] · https://trello.com/c/EXEMPLOC · ⚠ 2\n   - F: Oferta sazonal de fim de ano [A Fazer] · https://trello.com/c/EXEMPLOD · ⚠ 2\n\n5. Consistência (auditoria)\nMecânicos (corrijo sozinho quando liberado): 12\n   - 10 tarefas sem espelho:\n      · B: Blog - Calendário de posts do trimestre → criar espelho em ⏳ Em andamento · https://trello.com/c/EXEMPLO2\n      · C: Montar a primeira versão da fila de mensagens → criar espelho em 📝 A fazer · https://trello.com/c/EXEMPLO5\n      · D: Ajustar o envio de e-mails transacionais → criar espelho em ⏳ Em andamento · https://trello.com/c/EXEMPLO6\n      · D: Tema por cliente → criar espelho em 📝 A fazer · https://trello.com/c/EXEMPLO7\n      · D: Ambiente de testes → criar espelho em 📝 A fazer · https://trello.com/c/EXEMPLO8\n      · D: Fila de mensagens -> worker -> notificações → criar espelho em 📝 A fazer · https://trello.com/c/EXEMPLO9\n      · D: Conectar o provedor de SMS → criar espelho em 📝 A fazer · https://trello.com/c/EXEMPLOA\n      · E: Reunião com o fornecedor → criar espelho em 📝 A fazer · https://trello.com/c/EXEMPLOB\n      · F: Campanha de teste em outro país → criar espelho em 📝 A fazer · https://trello.com/c/EXEMPLOC\n      · F: Oferta sazonal de fim de ano → criar espelho em 📝 A fazer · https://trello.com/c/EXEMPLOD\n   - 2 espelhos na coluna errada:\n      · A: 05/10 - Testar o fluxo de ponta a ponta → mover o espelho de 📝 A fazer para ⏳ Em andamento · https://trello.com/c/EXEMPLO1\n      · C: Revisar o desenho da arquitetura → mover o espelho de ⏳ Em andamento para ✅ Concluído · https://trello.com/c/EXEMPLO4\nPrecisam de decisão: 9\n   - Projeto 🟨 Eco com decisão pendente: definir etiqueta e prefixo. A coluna é amarela, mas o cartão usa a etiqueta \"Eco Lab\" (laranja escuro) e o prefixo E:. Etiqueta \"Eco\" amarela ou coluna \"Eco Lab\"? Prefixo E: ou EC:? Até decidir, vale \"Eco Lab\" + E:. (P-0003)\n   - Etiqueta \"Feito\" ≠ coluna \"✅ Concluído\" → propor renomear para \"Concluído\"\n   - 5 etiquetas sem uso ou sem nome: \"Boreal antigo\" (preto suave), \"Cometa antigo\" (céu escuro) e 3 sem nome (laranja, vermelho, amarelo) → propor remover (exclusão só com ok do dono) (P-0005)\n   - 2 colunas com espaço duplo: \"🟨  Eco\", \"⬜  Faro\" → propor renomear para \"🟨 Eco\", \"⬜ Faro\"\n   - Possível duplicada entre Delta e Cometa (em comum: mensagens, fila) → decidir se uma vira parte da outra\n      · D: Fila de mensagens -> worker -> notificações · https://trello.com/c/EXEMPLO9\n      · C: Montar a primeira versão da fila de mensagens · https://trello.com/c/EXEMPLO5\n   - 3 descrições dentro de bloco de código (```markdown) → tirar a cerca (o Trello mostra tudo em fonte mono, sem títulos)\n      · A: 05/10 - Testar o fluxo de ponta a ponta · https://trello.com/c/EXEMPLO1\n      · C: Revisar o desenho da arquitetura · https://trello.com/c/EXEMPLO4\n      · C: Montar a primeira versão da fila de mensagens · https://trello.com/c/EXEMPLO5\n   - 1 cartão com passos \"- [ ]\" na descrição → virar Checklist do Trello\n      · A: 05/10 - Testar o fluxo de ponta a ponta (58 passos em 7 seções → um checklist por seção) · https://trello.com/c/EXEMPLO1\n   - 8 cartões sem descrição → lapidar no template §7 (perguntar o contexto que faltar)\n      · B: Cliente - Vídeo de demonstração do produto · https://trello.com/c/EXEMPLO3\n      · D: Ajustar o envio de e-mails transacionais · https://trello.com/c/EXEMPLO6\n      · D: Tema por cliente (tem só o checklist) · https://trello.com/c/EXEMPLO7\n      · D: Ambiente de testes · https://trello.com/c/EXEMPLO8\n      · D: Conectar o provedor de SMS · https://trello.com/c/EXEMPLOA\n      · E: Reunião com o fornecedor · https://trello.com/c/EXEMPLOB\n      · F: Campanha de teste em outro país · https://trello.com/c/EXEMPLOC\n      · F: Oferta sazonal de fim de ano · https://trello.com/c/EXEMPLOD\n   - 1 descrição insuficiente → completar (Resumo + Pronto quando)\n      · D: Fila de mensagens -> worker -> notificações (só um link) · https://trello.com/c/EXEMPLO9\n\n6. Precisa do dono\n   - P-0002 [alta] Liberar as correções mecânicas do quadro (espelhos)\n   - P-0003 [alta] Eco: definir etiqueta e prefixo · https://trello.com/c/EXEMPLOB\n   - P-0005 [baixa] Remover 5 etiquetas sem uso ou sem nome\n   - 6 decisões da seção 5 ainda sem pendência aberta\n\n7. Mudanças desde o último relatório (de 22:00 a 08:00)\n   - Concluído: C: Revisar o desenho da arquitetura (estava ⏳ Em andamento) · https://trello.com/c/EXEMPLO4\n",
+  "serie_trello": [
+    {
+      "coletado_em": "2026-10-08T13:52:10-03:00",
+      "abertas": 13,
+      "a_fazer": 11,
+      "em_andamento": 2,
+      "concluido": 0,
+      "alertas_mecanicos": 11,
+      "alertas_decisao": 9,
+      "fluxo_id": "F-20261008-0002"
+    },
+    {
+      "coletado_em": "2026-10-08T16:00:15-03:00",
+      "abertas": 13,
+      "a_fazer": 11,
+      "em_andamento": 2,
+      "concluido": 0,
+      "alertas_mecanicos": 11,
+      "alertas_decisao": 9,
+      "fluxo_id": "F-20261008-0002"
+    },
+    {
+      "coletado_em": "2026-10-08T17:00:20-03:00",
+      "abertas": 13,
+      "a_fazer": 11,
+      "em_andamento": 2,
+      "concluido": 0,
+      "alertas_mecanicos": 11,
+      "alertas_decisao": 9,
+      "fluxo_id": "F-20261008-0002"
+    },
+    {
+      "coletado_em": "2026-10-08T18:00:10-03:00",
+      "abertas": 13,
+      "a_fazer": 10,
+      "em_andamento": 3,
+      "concluido": 0,
+      "alertas_mecanicos": 11,
+      "alertas_decisao": 9,
+      "fluxo_id": "F-20261008-0002"
+    },
+    {
+      "coletado_em": "2026-10-08T19:00:25-03:00",
+      "abertas": 13,
+      "a_fazer": 10,
+      "em_andamento": 3,
+      "concluido": 0,
+      "alertas_mecanicos": 11,
+      "alertas_decisao": 9,
+      "fluxo_id": "F-20261008-0002"
+    },
+    {
+      "coletado_em": "2026-10-08T20:00:30-03:00",
+      "abertas": 13,
+      "a_fazer": 9,
+      "em_andamento": 4,
+      "concluido": 0,
+      "alertas_mecanicos": 11,
+      "alertas_decisao": 9,
+      "fluxo_id": "F-20261008-0002"
+    },
+    {
+      "coletado_em": "2026-10-08T21:00:15-03:00",
+      "abertas": 13,
+      "a_fazer": 9,
+      "em_andamento": 4,
+      "concluido": 0,
+      "alertas_mecanicos": 11,
+      "alertas_decisao": 9,
+      "fluxo_id": "F-20261008-0002"
+    },
+    {
+      "coletado_em": "2026-10-08T22:00:20-03:00",
+      "abertas": 13,
+      "a_fazer": 9,
+      "em_andamento": 4,
+      "concluido": 0,
+      "alertas_mecanicos": 11,
+      "alertas_decisao": 9,
+      "fluxo_id": "F-20261008-0002"
+    },
+    {
+      "coletado_em": "2026-10-09T08:00:30-03:00",
+      "abertas": 13,
+      "a_fazer": 9,
+      "em_andamento": 3,
+      "concluido": 1,
+      "alertas_mecanicos": 12,
+      "alertas_decisao": 9,
+      "fluxo_id": "F-20261008-0002"
+    }
+  ],
+  "uso": {
+    "coletado_em": "2026-10-09T10:21:44-03:00",
+    "plano": {
+      "disponivel": true,
+      "fonte": "provedor Claude do Maestri (~/.maestri/usage/providers/.status.json)",
+      "janela_5h_pct": 37,
+      "reset_5h": "2026-10-09T13:00:00-03:00",
+      "semanal_pct": 22,
+      "reset_semanal": "2026-10-13T09:00:00-03:00",
+      "atualizado_em": "2026-10-09T10:21:30-03:00"
+    },
+    "por_agente": {
+      "janela_5h": [
+        {
+          "agente": "cerebro",
+          "entrada": 2140,
+          "saida": 18650,
+          "cache_escrita": 286400,
+          "cache_leitura": 8934200,
+          "consumo_relativo": 1346810,
+          "pct_consumo": 78.4,
+          "pct_plano_estimado": 29
+        },
+        {
+          "agente": "coordenador-trello",
+          "entrada": 610,
+          "saida": 5320,
+          "cache_escrita": 98200,
+          "cache_leitura": 2210500,
+          "consumo_relativo": 371010,
+          "pct_consumo": 21.6,
+          "pct_plano_estimado": 8
+        }
+      ],
+      "hoje": [
+        {
+          "agente": "cerebro",
+          "entrada": 2140,
+          "saida": 18650,
+          "cache_escrita": 286400,
+          "cache_leitura": 8934200,
+          "consumo_relativo": 1346810,
+          "pct_consumo": 69.3,
+          "pct_plano_estimado": null
+        },
+        {
+          "agente": "coordenador-trello",
+          "entrada": 610,
+          "saida": 5320,
+          "cache_escrita": 98200,
+          "cache_leitura": 2210500,
+          "consumo_relativo": 371010,
+          "pct_consumo": 19.1,
+          "pct_plano_estimado": null
+        },
+        {
+          "agente": "desconhecido:atlas",
+          "entrada": 820,
+          "saida": 6100,
+          "cache_escrita": 51200,
+          "cache_leitura": 1302000,
+          "consumo_relativo": 225520,
+          "pct_consumo": 11.6,
+          "pct_plano_estimado": null
+        }
+      ],
+      "7d": [
+        {
+          "agente": "cerebro",
+          "entrada": 41820,
+          "saida": 412300,
+          "cache_escrita": 3184500,
+          "cache_leitura": 96541000,
+          "consumo_relativo": 15738045,
+          "pct_consumo": 74.4,
+          "pct_plano_estimado": 16.4
+        },
+        {
+          "agente": "coordenador-trello",
+          "entrada": 9840,
+          "saida": 61250,
+          "cache_escrita": 1240300,
+          "cache_leitura": 24318700,
+          "consumo_relativo": 4298335,
+          "pct_consumo": 20.3,
+          "pct_plano_estimado": 4.5
+        },
+        {
+          "agente": "desconhecido:atlas",
+          "entrada": 3100,
+          "saida": 22400,
+          "cache_escrita": 402100,
+          "cache_leitura": 5120400,
+          "consumo_relativo": 1129765,
+          "pct_consumo": 5.3,
+          "pct_plano_estimado": 1.2
+        }
+      ]
+    }
+  },
+  "eventos": [
+    {
+      "id": "EV-20261009-102005-e682",
+      "ts": "2026-10-09T10:20:05-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Dono perguntou o status do Trello: respondido com o RST das 08:00",
+      "direcao": "Respondi com o RST salvo das 08:00 e avisei que a leitura está parada até a P-0006.",
+      "resultado": "ok",
+      "tipo": "consulta",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261009-100215-dc15",
+      "ts": "2026-10-09T10:02:15-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Aberta P-0006: aceitar o diálogo de confiança no terminal do Coordenador",
+      "direcao": "Crítica porque o Trello está sem leitura desde 08:00 e as rotinas seguem falhando; recomendei aceitar na raiz para nenhum role parar de novo.",
+      "resultado": "bloqueado",
+      "tipo": "pendencia-aberta",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": true
+    },
+    {
+      "id": "EV-20261009-091530-3885",
+      "ts": "2026-10-09T09:15:30-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Rotina das 09:00 não registrou a leitura do Trello",
+      "direcao": "Conferi o terminal do Coordenador: depois do reinício do Maestri às 08:55 ele está parado no diálogo \"Do you trust the files in this folder?\". Não aceito diálogo de confiança sozinho.",
+      "resultado": "falhou",
+      "tipo": "erro",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": true
+    },
+    {
+      "id": "EV-20261009-084200-3095",
+      "ts": "2026-10-09T08:42:00-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Repassada ao Coordenador a resposta da P-0004",
+      "direcao": "As escritas ainda não foram liberadas (P-0002); pedi para guardar a resposta e executar junto com as correções mecânicas, num ciclo só, relendo o JSON no fim.",
+      "resultado": "ok",
+      "tipo": "delegacao",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261009-084110-ff34",
+      "ts": "2026-10-09T08:41:10-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Dono respondeu a P-0004: pode renomear \"Feito\" para \"Concluído\"",
+      "direcao": null,
+      "resultado": "ok",
+      "tipo": "resposta-recebida",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261009-080045-3902",
+      "ts": "2026-10-09T08:00:45-03:00",
+      "agente": "coordenador-trello",
+      "projeto": "C",
+      "trello": {
+        "shortLink": "EXEMPLO4",
+        "titulo": "C: Revisar o desenho da arquitetura",
+        "url": "https://trello.com/c/EXEMPLO4",
+        "status_antes": "Em andamento",
+        "status_depois": "Concluído"
+      },
+      "resumo": "Leitura do quadro: C: Revisar o desenho concluído, espelho ficou em Em andamento",
+      "direcao": "O dono concluiu o cartão à noite. Mover o espelho para ✅ Concluído é mecânico, mas as escritas seguem bloqueadas até a P-0002; alertas mecânicos passaram de 11 para 12.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-220030-15af",
+      "ts": "2026-10-08T22:00:30-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Leitura do quadro: 13 abertas, sem mudança",
+      "direcao": "Leitura de rotina pelo JSON do quadro, somente leitura; resumo, série e RST atualizados.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-210020-15af",
+      "ts": "2026-10-08T21:00:20-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Leitura do quadro: 13 abertas, sem mudança",
+      "direcao": "Leitura de rotina pelo JSON do quadro, somente leitura; resumo, série e RST atualizados.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-200050-e658",
+      "ts": "2026-10-08T20:00:50-03:00",
+      "agente": "coordenador-trello",
+      "projeto": "B",
+      "trello": {
+        "shortLink": "EXEMPLO2",
+        "titulo": "B: Blog - Calendário de posts do trimestre",
+        "url": "https://trello.com/c/EXEMPLO2",
+        "status_antes": "A Fazer",
+        "status_depois": "Em andamento"
+      },
+      "resumo": "Leitura do quadro: B: Blog - Calendário passou para Em andamento",
+      "direcao": "Mudança feita pelo dono; só registrei. Checklist em 3/8, ainda sem espelho.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-190025-15af",
+      "ts": "2026-10-08T19:00:25-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Leitura do quadro: 13 abertas, sem mudança",
+      "direcao": "Leitura de rotina pelo JSON do quadro, somente leitura; resumo, série e RST atualizados.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-180030-b8d6",
+      "ts": "2026-10-08T18:00:30-03:00",
+      "agente": "coordenador-trello",
+      "projeto": "D",
+      "trello": {
+        "shortLink": "EXEMPLO6",
+        "titulo": "D: Ajustar o envio de e-mails transacionais",
+        "url": "https://trello.com/c/EXEMPLO6",
+        "status_antes": "A Fazer",
+        "status_depois": "Em andamento"
+      },
+      "resumo": "Leitura do quadro: D: Ajustar o envio de e-mails passou para Em andamento",
+      "direcao": "Mudança feita pelo dono no quadro; só registrei. O cartão continua sem espelho (correção mecânica esperando a P-0002).",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-170035-15af",
+      "ts": "2026-10-08T17:00:35-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Leitura do quadro: 13 abertas, sem mudança",
+      "direcao": "Leitura de rotina pelo JSON do quadro, somente leitura; resumo, série e RST atualizados.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-160040-15af",
+      "ts": "2026-10-08T16:00:40-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Leitura do quadro: 13 abertas, sem mudança",
+      "direcao": "Leitura de rotina pelo JSON do quadro, somente leitura; resumo, série e RST atualizados.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-155800-6ff4",
+      "ts": "2026-10-08T15:58:00-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Relatório final do bootstrap entregue ao dono",
+      "direcao": null,
+      "resultado": "ok",
+      "tipo": "relatorio",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-154430-2dbb",
+      "ts": "2026-10-08T15:44:30-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Rotina \"Trello · leitura\" criada no Maestri, pulando se ocupado",
+      "direcao": "Criada pela CLI com o prompt da §13 e o fluxo F-20261008-0002 no texto, para as leituras ficarem ligadas à primeira; a primeira execução é às 16:00.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-154100-32ae",
+      "ts": "2026-10-08T15:41:00-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Dono aprovou a rotina de leitura do Trello de hora em hora (8h às 22h)",
+      "direcao": "Leitura é só consulta ao JSON do quadro: custo baixo e mantém a saúde do painel verde. A limpeza semanal fica para depois da liberação das escritas.",
+      "resultado": "ok",
+      "tipo": "decisao",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-152000-7eda",
+      "ts": "2026-10-08T15:20:00-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Conferido o painel no portal: 6 abas, tema claro e escuro",
+      "direcao": "Screenshots do portal Painel em 900 px e em tela cheia; o gráfico do Trello ainda tem um ponto só.",
+      "resultado": "parcial",
+      "tipo": "consulta",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-151230-b4be",
+      "ts": "2026-10-08T15:12:30-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Fase 5: painel no ar em http://127.0.0.1:4777",
+      "direcao": "Servidor Node só em 127.0.0.1 com checagem de Host; o terminal Servidor do Painel roda o node e o próprio servidor grava o PID em estado/painel.pid.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-141830-9945",
+      "ts": "2026-10-08T14:18:30-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Avisado o dono: 4 decisões do Trello esperando (P-0002 a P-0005)",
+      "direcao": null,
+      "resultado": "ok",
+      "tipo": "aviso",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-141600-589a",
+      "ts": "2026-10-08T14:16:00-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Recebido do Coordenador: RST e 4 pendências abertas",
+      "direcao": null,
+      "resultado": "ok",
+      "tipo": "resposta-recebida",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-141430-9a6b",
+      "ts": "2026-10-08T14:14:30-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Aberta P-0005: remover 5 etiquetas sem uso ou sem nome",
+      "direcao": null,
+      "resultado": "aguardando-dono",
+      "tipo": "pendencia-aberta",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": true
+    },
+    {
+      "id": "EV-20261008-141350-ee7f",
+      "ts": "2026-10-08T14:13:50-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Aberta P-0004: renomear a etiqueta \"Feito\" para \"Concluído\"",
+      "direcao": null,
+      "resultado": "aguardando-dono",
+      "tipo": "pendencia-aberta",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": true
+    },
+    {
+      "id": "EV-20261008-141305-2c21",
+      "ts": "2026-10-08T14:13:05-03:00",
+      "agente": "coordenador-trello",
+      "projeto": "E",
+      "trello": {
+        "shortLink": "EXEMPLOB",
+        "titulo": "E: Reunião com o fornecedor",
+        "url": "https://trello.com/c/EXEMPLOB",
+        "status_antes": "A Fazer",
+        "status_depois": "A Fazer"
+      },
+      "resumo": "Aberta P-0003: Eco, definir etiqueta e prefixo",
+      "direcao": null,
+      "resultado": "aguardando-dono",
+      "tipo": "pendencia-aberta",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": true
+    },
+    {
+      "id": "EV-20261008-141220-1d74",
+      "ts": "2026-10-08T14:12:20-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Aberta P-0002: liberar as correções mecânicas do quadro",
+      "direcao": null,
+      "resultado": "aguardando-dono",
+      "tipo": "pendencia-aberta",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": true
+    },
+    {
+      "id": "EV-20261008-140600-17c9",
+      "ts": "2026-10-08T14:06:00-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "RST gerado e salvo em estado/trello/rst.md",
+      "direcao": null,
+      "resultado": "ok",
+      "tipo": "relatorio",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-140510-12c6",
+      "ts": "2026-10-08T14:05:10-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Auditoria do quadro: 11 correções mecânicas e 9 decisões",
+      "direcao": "Classifiquei como mecânico só o que o manual §12 permite fazer sem ok (criar e mover espelhos); nomes, etiquetas, descrições e escopo ficaram como decisão.",
+      "resultado": "ok",
+      "tipo": "auditoria",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-135240-c5cb",
+      "ts": "2026-10-08T13:52:40-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Leitura completa do quadro pelo JSON: 13 cartões abertos",
+      "direcao": "Usei o JSON do quadro em vez da interface porque traz espelhos e checklists numa leitura só; nenhuma escrita, bootstrap em somente leitura.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-134905-23b0",
+      "ts": "2026-10-08T13:49:05-03:00",
+      "agente": "coordenador-trello",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Pedido do Cérebro: primeira leitura completa, RST e auditoria (somente leitura)",
+      "direcao": null,
+      "resultado": "ok",
+      "tipo": "pedido-recebido",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-134830-9a8a",
+      "ts": "2026-10-08T13:48:30-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Delegada ao Coordenador a primeira leitura completa do quadro",
+      "direcao": "Fase 4 do bootstrap em somente leitura: o dono vê o diagnóstico antes de liberar qualquer escrita. Pedi RST, auditoria e as pendências de decisão.",
+      "resultado": "ok",
+      "tipo": "delegacao",
+      "fluxo_id": "F-20261008-0002",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-033150-2923",
+      "ts": "2026-10-08T03:31:50-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Skills do Coordenador expostas por junção e carregando",
+      "direcao": "Junção NTFS em .claude/skills da raiz porque symlink exige admin; conferi que as 7 skills aparecem na sessão do Coordenador.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-032005-6588",
+      "ts": "2026-10-08T03:20:05-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Fase 3: recrutado o Coordenador do Trello (Opus 5.5 1M, xhigh)",
+      "direcao": "Recruta com --preset \"Claude Code\" e o comando que fixa o modelo; terminal_id e diretório gravados em agentes.json.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-030530-8da7",
+      "ts": "2026-10-08T03:05:30-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Hooks do log bruto instalados no settings.json do usuário",
+      "direcao": "Forma exec (node + args) por ser ~100 ms mais rápida que via Git Bash; backup e mescla com os hooks que já existem, nunca sobrescrita.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-024000-5088",
+      "ts": "2026-10-08T02:40:00-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Fase 2: registrar.js e pendencia.js com trava EXLOCK e gravação atômica",
+      "direcao": "EXLOCK do Windows no lugar do fcntl: a trava some sozinha quando o processo dono dela morre; os JSONL usam uma chamada de append por linha, sem trava.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-021045-0f50",
+      "ts": "2026-10-08T02:10:45-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Registradas as decisões de adaptação em decisoes.md",
+      "direcao": "Cada adaptação da máquina (Node, junções, EXLOCK, hooks no settings do usuário) virou decisão numerada, para os próximos agentes não refazerem as sondas.",
+      "resultado": "ok",
+      "tipo": "decisao",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-013510-136d",
+      "ts": "2026-10-08T01:35:10-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Fase 1: CLAUDE.md, fichas, protocolos e manual do Trello gravados",
+      "direcao": "Textos integrais do documento de instruções, com a adaptação para Node registrada em decisoes.md; o manual foi salvo verbatim e conferido por hash.",
+      "resultado": "ok",
+      "tipo": "execucao",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-010100-6f32",
+      "ts": "2026-10-08T01:01:00-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Criada a árvore de diretórios de _maestro/",
+      "direcao": "Criei só pastas, na raiz confirmada pelo dono; arquivos vêm na Fase 1 depois que as convenções fecharem a Fase 0.",
+      "resultado": "ok",
+      "tipo": "bootstrap",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-010030-6329",
+      "ts": "2026-10-08T01:00:30-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Dono confirmou: raiz do workspace, Node.js, todos os agentes em Opus 5.5 1M xhigh",
+      "direcao": "Decisão do dono registrada; modelo e nível por agente vão para agentes.json para o painel mostrar; controle pelo painel fica como evolução sugerida.",
+      "resultado": "ok",
+      "tipo": "bootstrap",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-005930-fa26",
+      "ts": "2026-10-08T00:59:30-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Disparado workflow de 3 sondas (CLI do Maestri, Claude Code, Windows)",
+      "direcao": "Testes empíricos só no scratchpad para descobrir o formato real dos hooks, a carga de CLAUDE.md e skills a partir de diretório-pai, o modelo 1M, a trava de arquivo em Node, junções e a porta 4777.",
+      "resultado": "em-andamento",
+      "tipo": "bootstrap",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-005830-0f01",
+      "ts": "2026-10-08T00:58:30-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Perguntado ao dono: confirmar a raiz e escolher Node.js ou instalar Python",
+      "direcao": "O documento manda confirmar a raiz antes de criar arquivos e parar se faltar python3; recomendei Node.js (já instalado e é o runtime dos hooks).",
+      "resultado": "aguardando-dono",
+      "tipo": "bootstrap",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": true
+    },
+    {
+      "id": "EV-20261008-005700-2537",
+      "ts": "2026-10-08T00:57:00-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Fase 0: reconhecimento do Maestri, do Claude Code e da máquina",
+      "direcao": "Só leitura: workspace Exemplo em C:/exemplo/workspace; uso do plano em ~/.maestri/usage/providers/.status.json; sem Python; Node 22 presente.",
+      "resultado": "ok",
+      "tipo": "bootstrap",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-005400-70b4",
+      "ts": "2026-10-08T00:54:00-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Lido o documento de instruções inteiro",
+      "direcao": "Leitura integral antes de qualquer ação, como o próprio pedido exige; nada foi criado nessa etapa.",
+      "resultado": "ok",
+      "tipo": "bootstrap",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    },
+    {
+      "id": "EV-20261008-005202-5560",
+      "ts": "2026-10-08T00:52:02-03:00",
+      "agente": "cerebro",
+      "projeto": null,
+      "trello": null,
+      "resumo": "Pedido do dono: montar o workspace a partir do documento de instruções",
+      "direcao": "Pedido chegou pelo chat do Maestri; carreguei as skills de conexão e de gestão do Maestri antes de agir.",
+      "resultado": "ok",
+      "tipo": "bootstrap",
+      "fluxo_id": "F-20261008-0001",
+      "precisa_dono": false
+    }
+  ]
+}

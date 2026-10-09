@@ -1,0 +1,34 @@
+/* Trello (1520 × 1095): cabeçalho, KPIs, matriz e evolução, cartões abertos e consistência. Nada rola a página. */
+.tela-trello { grid-template-rows: auto 104px minmax(0, .95fr) minmax(0, 1.25fr); }
+.trello-cab { display: flex; align-items: center; gap: 12px; min-height: 26px; }
+.trello-cab h2 { font-size: 18px; }
+.trello-cab a { display: inline-flex; align-items: center; gap: 6px; }
+.trello-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--vao); min-height: 0; }
+.trello-kpis .kpi { padding: 14px 16px; }
+.filete-status { display: block; height: 2px; width: 36px; border-radius: 2px; margin-top: 6px; }
+.trello-kpis .kpi-alerta { border-color: rgba(232, 176, 75, .35); }
+.trello-meio { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: var(--vao); min-height: 0; }
+.trello-baixo { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: var(--vao); min-height: 0; }
+
+/* Matriz projeto × status */
+table.matriz td { padding: 7px 12px; vertical-align: middle; }
+table.matriz th { padding: 9px 12px; }
+table.matriz .celula { display: inline-block; min-width: 34px; padding: 2px 9px; border-radius: 6px; text-align: center; }
+table.matriz tr.total td { border-top: 1px solid var(--borda-forte); border-bottom: 0; color: var(--texto); }
+.matriz-projeto { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.matriz-projeto .projeto { min-width: 0; }
+
+/* Cartões abertos: os problemas ficam embaixo do título, uma linha cada */
+table.cartoes td { line-height: 1.45; }
+.cartao-titulo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.prazo-atrasado { display: block; }
+.problemas { list-style: none; display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 12px; color: var(--texto-2); }
+.problemas li { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.problemas .selo { height: 19px; padding: 0 7px; font-size: 10.5px; flex: none; }
+
+/* Consistência: abas fixas no topo do corpo, lista embaixo */
+.cartao-corpo.auditoria-corpo { padding-top: 0; }
+.auditoria-abas { position: sticky; top: 0; z-index: 1; background: var(--cartao); padding: 10px 0 12px; }
+.lista-auditoria { list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: var(--texto-2); }
+.lista-auditoria li { padding-left: 12px; border-left: 1px solid var(--borda-forte); line-height: 1.5; }
+.texto-pre { white-space: pre-wrap; word-break: break-word; font: 12px/1.55 var(--mono); color: var(--texto-2); margin: 0; }

@@ -1,0 +1,24 @@
+/* Uso do Claude (1520 × 1095): plano, coletor, períodos e a tabela de tokens. Nada rola a página. */
+.tela-uso { display: flex; flex-direction: column; }
+.uso-topo { display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: var(--vao); height: 212px; flex: none; }
+.uso-periodos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--vao); flex: 1.1 1 0; min-height: 0; }
+.uso-baixo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--vao); flex: .9 1 0; min-height: 0; }
+
+/* Plano: anel + quando reinicia */
+.plano { display: flex; align-items: center; gap: 26px; flex: 1; }
+.plano-texto { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.plano-quando { font-size: 26px; font-weight: 300; line-height: 1.1; letter-spacing: -.01em; }
+
+.uso-dl { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 7px 12px; font-size: 12.5px; margin: 0; }
+.uso-dl dt { color: var(--mudo); }
+.uso-dl dd { margin: 0; color: var(--texto-2); min-width: 0; }
+
+/* Tabela de tokens: participação, composição do consumo e os números */
+table.tokens td { vertical-align: middle; }
+table.tokens tr.total td { border-top: 1px solid var(--borda-forte); border-bottom: 0; color: var(--texto); }
+.participacao { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.participacao > span:last-child { flex: none; min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
+.barra-mini { flex: 1; height: 6px; border-radius: 6px; background: var(--cartao-3); overflow: hidden; min-width: 40px; }
+.barra-mini > span { display: block; height: 100%; border-radius: 6px; }
+.composicao { padding-right: 8px; }
+.composicao .barra-empilhada { height: 8px; }
