@@ -171,7 +171,11 @@ Com `MAESTRO_DIR` definido, o modelo antigo e o novo usam a mesma pasta; sem ele
 
 ### Instalar as skills do dono (`PAINEL_MAESTRO` e `install-skills.js`)
 
-As skills que gravam o fluxo no painel vivem em `skills/` deste repositório e são ligadas à pasta do Claude. Hoje é a `/especificar` (`skills/especificar/`): ela roda `grill-with-docs` → `to-spec` → `to-tickets` e grava o item em **Especificação** logo depois que o `to-spec` publica a issue ou o PBI, e em **Implementação** quando o `to-tickets` termina. Funciona com GitHub e Azure DevOps (o tracker vem do `docs/agents/issue-tracker.md` do repositório onde ela roda).
+As skills que gravam o fluxo no painel vivem em `skills/` deste repositório e são ligadas à pasta do Claude. Funcionam com GitHub e Azure DevOps (o tracker vem do `docs/agents/issue-tracker.md` do repositório onde elas rodam):
+
+- **`/especificar`** (`skills/especificar/`): roda `grill-with-docs` → `to-spec` → `to-tickets` e grava o item em **Especificação** logo depois que o `to-spec` publica a issue ou o PBI, e em **Implementação** quando o `to-tickets` termina.
+- **`/implementar-issue-maestri`** e **`/implementar-pbi-maestri`** (`skills/implementar-*-maestri/`): o maestro, no Ground de um workspace do Maestri, implementa o item num PR só, com um floor e um terminal Claude Code por task. São os adaptadores do GitHub e do Azure DevOps; o fluxo comum está em `skills/docs/orquestracao-maestri/README.md`, instalado em `~/.claude/docs/orquestracao-maestri/` com os scripts `abrir-floor.sh` e `integrar.sh`. Cada ponto do fluxo grava no painel: o grafo de tasks, o PR em rascunho, o despacho, as pendências (revisão de task, trabalhador bloqueado, decisões, achados, paralelizar, HML), a integração (o `integrar.sh` grava `flow task integrate` com os SHAs de antes e depois), os achados, o ajuste final, o PR pronto e o merge, e lembra a Validação HML e a conclusão. O portal do canvas abre a página do item no painel (`http://127.0.0.1:4777/#items/<projeto>/<n>`), no lugar do antigo `fluxo.py` com `estado.json`.
+- **`trabalhador-floor`** (`skills/trabalhador-floor/`): o protocolo do trabalhador num floor; o status vai pelo `flow status` (que roda o `maestri floor status`) e o relatório é gravado com `flow report` antes de ir ao maestro.
 
 1. **`PAINEL_MAESTRO`**: as skills chamam o CLI por caminho absoluto, `node "$PAINEL_MAESTRO/bin/flow.js" ...`, de dentro do repositório do projeto. Defina a variável de usuário com a pasta **do código** (este repositório, não a dos dados) e reabra o terminal e o Claude Code:
 
@@ -189,13 +193,14 @@ As skills que gravam o fluxo no painel vivem em `skills/` deste repositório e s
    node bin/install-skills.js --help
    ```
 
-   - **O que é ligado:** só o que `skills/links.json` declara (`{"links": [{"source": "skills/especificar", "target": "skills/especificar"}]}`, a origem relativa a este repositório e o destino relativo à pasta do Claude). As skills antigas de `skills/cerebro/` e `skills/compartilhadas/` não são declaradas e não são instaladas.
+   - **O que é ligado:** só o que `skills/links.json` declara (`{"links": [{"source": "skills/especificar", "target": "skills/especificar"}]}`, a origem relativa a este repositório e o destino relativo à pasta do Claude): as quatro skills acima em `~/.claude/skills/<nome>` e `skills/docs/orquestracao-maestri` em `~/.claude/docs/orquestracao-maestri` (o caminho que as skills com Maestri citam). As skills antigas de `skills/cerebro/` e `skills/compartilhadas/` não são declaradas e não são instaladas.
+   - **Quem já tinha essas skills no `~/.claude`:** as versões antigas de `implementar-issue-maestri`, `implementar-pbi-maestri`, `trabalhador-floor` e da pasta `docs/orquestracao-maestri` (com o `fluxo.py`) vão para o backup abaixo na primeira instalação; o `--undo` as devolve.
    - **Como:** cada destino vira uma *junction* de diretório no Windows (não exige administrador; funciona com o repositório e o `~/.claude` em discos diferentes) e um symlink de diretório nos outros sistemas. Editar a skill no repositório já vale no Claude Code.
    - **Backup:** o que já existir no destino e não for um link deste repositório vai para `~/.claude/backups/painel-maestro/<destino>` (fora de `skills/`, para o Claude Code não carregar duas skills com o mesmo nome). O `--undo` remove só os links deste repositório (nunca o conteúdo deles) e devolve os backups.
    - **Conflitos:** a instalação planeja tudo antes de mexer em qualquer coisa. Se um backup já ocupar o lugar, ou se no `--undo` o destino não for mais um link deste repositório e houver backup, o comando sai com **código 2** e nada é alterado; a mensagem diz o que mover.
    - **Pasta do Claude:** `--claude-dir <pasta>`, senão `CLAUDE_CONFIG_DIR`, senão `~/.claude`. Os testes usam sempre uma pasta temporária.
 
-3. **Conferir:** abra o painel (`npm start`), rode `/especificar` num repositório de teste e acompanhe o item em `http://127.0.0.1:4777/#items/<projeto>/<número>`: ele aparece em Especificação depois da spec e passa para Implementação depois dos tickets.
+3. **Conferir:** abra o painel (`npm start`), rode `/especificar` num repositório de teste e acompanhe o item em `http://127.0.0.1:4777/#items/<projeto>/<número>`: ele aparece em Especificação depois da spec e passa para Implementação depois dos tickets. Depois, no Ground de um workspace do Maestri cuja raiz é esse repositório, rode `/implementar-issue-maestri <número>` (ou `/implementar-pbi-maestri`): o portal abre a página do item, e o grafo, o PR em rascunho, os floors, os status e relatórios dos trabalhadores, as pendências e as integrações aparecem nela.
 
 ### Onde ficam os dados (modelo antigo)
 
@@ -371,7 +376,7 @@ npm test                                   # node panel/tests/run-all.js
 node panel/tests/run-all.js server       # só os arquivos com "server" no nome
 ```
 
-Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das tasks usa uma CLI do Maestri falsa, que só grava os argumentos. São 15 arquivos: coletor de uso, modelo novo (`test-flow.js`, `test-flow-tasks.js`, `test-flow-delivery.js`, PR, ajuste final, HML e conclusão, `test-flow-pending.js`, pendências, `test-flow-reports.js`, relatórios, achados e linha do tempo, e `test-companies.js`, empresas e projetos), hook do log bruto (`bruto.db`), tela Log (`test-log.js`), dicionário, desempenho (`maestro.db` com 20 mil eventos e `bruto.db` com 400 mil registros), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária), filtro de horário e servidor. Eles conferem códigos, não frases. O `test-flow.js`, o `test-flow-tasks.js`, o `test-flow-delivery.js`, o `test-flow-pending.js` e o `test-flow-reports.js` seguem uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
+Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das tasks usa uma CLI do Maestri falsa, que só grava os argumentos. São 16 arquivos: coletor de uso, modelo novo (`test-flow.js`, `test-flow-tasks.js`, `test-flow-delivery.js`, PR, ajuste final, HML e conclusão, `test-flow-pending.js`, pendências, `test-flow-reports.js`, relatórios, achados e linha do tempo, e `test-companies.js`, empresas e projetos), hook do log bruto (`bruto.db`), tela Log (`test-log.js`), dicionário, desempenho (`maestro.db` com 20 mil eventos e `bruto.db` com 400 mil registros), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária, conferindo também que todo caminho `~/.claude/...` citado pelas skills instaladas existe), integração de um floor (`test-integrar-floor.js`: o `integrar.sh` roda no Git Bash sobre um repositório temporário com remote local e grava a task integrada; sem o Git Bash ao lado do git, o arquivo é pulado), filtro de horário e servidor. Eles conferem códigos, não frases. O `test-flow.js`, o `test-flow-tasks.js`, o `test-flow-delivery.js`, o `test-flow-pending.js` e o `test-flow-reports.js` seguem uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
 
 Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, para os itens e as pendências, `node panel/tests/generate-mock-items.js` (usa a mesma projeção do servidor).
 
@@ -414,6 +419,9 @@ painel-maestro/
 ├── skills/
 │   ├── links.json            skills do dono que o install-skills.js liga ao ~/.claude
 │   ├── especificar/          /especificar: grill → spec → tickets, gravando as etapas no painel
+│   ├── implementar-issue-maestri/, implementar-pbi-maestri/   adaptadores GitHub e Azure DevOps do maestro no Maestri
+│   ├── trabalhador-floor/    protocolo do trabalhador num floor do Maestri
+│   ├── docs/orquestracao-maestri/   o fluxo comum do maestro e os scripts abrir-floor.sh e integrar.sh
 │   ├── cerebro/              orquestracao, pendencias, painel, onboarding-agente
 │   └── compartilhadas/       protocolo-delegacao, registro-eventos
 ├── conhecimento/protocolos/  delegação, pendências, registro, autonomia
@@ -446,7 +454,7 @@ Além do painel, o repositório traz o método que os agentes seguem, em texto. 
 - **`conhecimento/protocolos/`**: as regras por trás das skills, em quatro arquivos: delegação, pendências, registro e autonomia (o que cada agente faz sozinho, o que propõe e o que é sempre do dono).
 - **`exemplos/`**: `CLAUDE.md`, a regra comum de todos os agentes do workspace, e `responsabilidade-cerebro.md`, o papel do agente principal.
 
-As skills seguem o formato de skill do Claude Code (pasta com `SKILL.md` e cabeçalho `name`/`description`). Para usá-las, copie ou ligue as pastas em `.claude/skills/` do workspace. As skills do dono do modelo novo (`skills/especificar/` e as que vierem) são outra coisa: estão declaradas em `skills/links.json` e são ligadas pelo `bin/install-skills.js` (veja [Instalar as skills](#instalar-as-skills-do-dono-painel_maestro-e-install-skillsjs)).
+As skills seguem o formato de skill do Claude Code (pasta com `SKILL.md` e cabeçalho `name`/`description`). Para usá-las, copie ou ligue as pastas em `.claude/skills/` do workspace. As skills do dono do modelo novo (`skills/especificar/`, as de implementação com Maestri e as que vierem) são outra coisa: estão declaradas em `skills/links.json` e são ligadas pelo `bin/install-skills.js` (veja [Instalar as skills](#instalar-as-skills-do-dono-painel_maestro-e-install-skillsjs)).
 
 ## Licença
 

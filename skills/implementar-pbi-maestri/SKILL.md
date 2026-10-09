@@ -1,6 +1,6 @@
 ---
 name: implementar-pbi-maestri
-description: "Implementa um PBI do Azure DevOps inteiro num PR, com um floor do Maestri e um terminal Claude Code por task. Use só dentro do Maestri, como maestro no Ground."
+description: "Implementa um PBI do Azure DevOps inteiro num PR, com um floor do Maestri e um terminal Claude Code por task, gravando o fluxo no painel-maestro. Use só dentro do Maestri, como maestro no Ground."
 disable-model-invocation: true
 ---
 
@@ -19,9 +19,10 @@ API="https://dev.azure.com/<org>/<projeto>/_apis"
 
 Grave toda resposta em arquivo e leia com `python -X utf8` abrindo o arquivo em UTF-8. **Não** passe JSON para o Python pelo stdin: o console cp1252 corrompe os acentos.
 
+- **Números no painel**: o item é o ID do PBI; cada task, o ID da task filha. Um PBI sem tasks filhas é a própria task (sem `flow task graph`).
 - **Item pai e tasks**: `curl -s -H "Authorization: Bearer $TOKEN" "$API/wit/workItems/<id>?\$expand=relations&api-version=7.1" -o pbi.json`. Tasks filhas são as relações `System.LinkTypes.Hierarchy-Forward`; carregue cada uma do mesmo jeito. Comentários: `$API/wit/workItems/<id>/comments?api-version=7.1-preview.4`.
 - **Arestas de bloqueio**: numa task, a relação `System.LinkTypes.Dependency-Reverse` (Predecessor) aponta para quem a bloqueia. Complemente com linhas `Bloqueada por: #<id>` na descrição.
-- **Estado concluído**: o que `docs/agents/issue-tracker.md` disser. **Nunca chute `Done`**: em boards customizados ele pode significar outra etapa do negócio (no CIDAX, Task e PBI concluídos vão para `Committed`; `Done` joga o card em "Liberado para pagamento").
+- **Estado concluído**: o que `docs/agents/issue-tracker.md` disser (o `--done-state` do projeto no painel, em `flow project list`, deve bater; se divergirem, vale o `docs/agents/` e avise o usuário). **Nunca chute `Done`**: em boards customizados ele pode significar outra etapa do negócio (no CIDAX, Task e PBI concluídos vão para `Committed`; `Done` joga o card em "Liberado para pagamento").
 - **Comando de leitura para o briefing do trabalhador**: as duas linhas do token e do `curl` acima, com o id da task e o do PBI.
 - **Marcar task concluída**:
   ```bash
@@ -29,8 +30,9 @@ Grave toda resposta em arquivo e leia com `python -X utf8` abrindo o arquivo em 
     -d '[{"op":"add","path":"/fields/System.State","value":"<estado concluído>"}]' "$API/wit/workItems/<id>?api-version=7.1" -o resp.json
   ```
 - **Editar texto** (descrição, uma regra do PBI que mudou na revisão): leia o item, monte o patch num arquivo UTF-8 (`json.dump(..., ensure_ascii=False)`) com `{"op":"test","path":"/rev","value":<rev lido>}` antes do `add`, e envie com `-H "Content-Type: application/json-patch+json; charset=utf-8" --data-binary @patch.json`. Leia de volta e confira os acentos.
-- **Criar item** (achado que fica para depois): `POST "$API/wit/workItems/\$Task?api-version=7.1"` com json-patch de título, descrição, Area, Iteration, Tags (inclua a de triagem) e a relação `System.LinkTypes.Hierarchy-Reverse` para o PBI. Siga as convenções de título e tags do `docs/agents/`.
+- **Criar item** (achado que fica para depois): `POST "$API/wit/workItems/\$Task?api-version=7.1"` com json-patch de título, descrição, Area, Iteration, Tags (inclua a de triagem) e a relação `System.LinkTypes.Hierarchy-Reverse` para o PBI. Siga as convenções de título e tags do `docs/agents/`. O `id` da resposta é o `--new-task` do `flow finding`.
 - **Repositório**: o nome é o último trecho de `git remote get-url origin`; o id vem de `GET $API/git/repositories/<nome>?api-version=7.1`.
-- **Abrir PR em rascunho**: `POST $API/git/repositories/<repo>/pullrequests?api-version=7.1` com `{"sourceRefName":"refs/heads/<integradora>","targetRefName":"refs/heads/<origem>","title":"PBI <id> — <título>","description":"...","isDraft":true,"workItemRefs":[{"id":"<pbi>"},{"id":"<task>"},...]}`, em arquivo UTF-8. A descrição tem limite de 4.000 caracteres.
+- **Abrir PR em rascunho**: `POST $API/git/repositories/<repo>/pullrequests?api-version=7.1` com `{"sourceRefName":"refs/heads/<integradora>","targetRefName":"refs/heads/<origem>","title":"PBI <id> — <título>","description":"...","isDraft":true,"workItemRefs":[{"id":"<pbi>"},{"id":"<task>"},...]}`, em arquivo UTF-8. A descrição tem limite de 4.000 caracteres. O `url` da resposta é da API: para o `flow pr <n> draft --url`, use o endereço da página, `https://dev.azure.com/<org>/<projeto>/_git/<repo>/pullrequest/<pullRequestId>`.
 - **Finalizar PR**: `PATCH $API/git/repositories/<repo>/pullrequests/<pr>?api-version=7.1` com `{"isDraft":false,"description":"<descrição final>"}`. Confira `isDraft:false` na resposta.
-- **Fechar o PBI**: depois de finalizar o PR, marque o PBI com o estado concluído, se a convenção local mandar.
+- **Fechar o PBI**: depois de finalizar o PR, marque o PBI com o estado concluído, se a convenção local mandar. Isso não conclui o item no painel (passo 11 do fluxo).
+- **Link do card** (`flow hml --card`): `https://dev.azure.com/<org>/<projeto>/_workitems/edit/<id>`.

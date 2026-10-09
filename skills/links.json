@@ -1,5 +1,9 @@
 {
   "links": [
-    { "source": "skills/especificar", "target": "skills/especificar" }
+    { "source": "skills/especificar", "target": "skills/especificar" },
+    { "source": "skills/implementar-issue-maestri", "target": "skills/implementar-issue-maestri" },
+    { "source": "skills/implementar-pbi-maestri", "target": "skills/implementar-pbi-maestri" },
+    { "source": "skills/trabalhador-floor", "target": "skills/trabalhador-floor" },
+    { "source": "skills/docs/orquestracao-maestri", "target": "docs/orquestracao-maestri" }
   ]
 }
