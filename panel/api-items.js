@@ -57,18 +57,9 @@ function timelineEntry(e) {
 function listItems(source, { active = null } = {}) {
   const store = source.store();
   if (!store) return { items: [] };
-  const projects = new Map(store.projects().map((p) => [p.id, p]));
-  const byItem = new Map();
-  for (const e of store.allEvents()) {
-    const k = `${e.project_id}/${e.item_number}`;
-    if (!byItem.has(k)) byItem.set(k, []);
-    byItem.get(k).push(e);
-  }
   const items = [];
-  for (const events of byItem.values()) {
-    const project = projects.get(events[0].project_id);
-    const state = project && projectItem(events, project);
-    if (state && (active === null || state.active === active)) items.push(summary(project, state));
+  for (const { project, state } of store.projectedItems().values()) {
+    if (active === null || state.active === active) items.push(summary(project, state));
   }
   items.sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at) || a.key.localeCompare(b.key));
   return { items };

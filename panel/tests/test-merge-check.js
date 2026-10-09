@@ -29,7 +29,8 @@ function git(cwd, ...args) {
 }
 
 // Fake gh: answers by the PR URL from gh.json ({ "<url>": { exit, stdout, stderr } }) and appends its arguments
-// to gh-calls.jsonl. Fake az: answers from az.json ({ exit, stdout, stderr }) and appends to az-calls.jsonl.
+// to gh-calls.jsonl. Fake az: answers from az.json ({ exit, stdout, stderr }) and appends to az-calls.jsonl. An
+// answer with "delay" (ms) takes that long; each call's [start, end] goes to <name>-times.jsonl.
 const FAKE_CLI = `'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -39,6 +40,9 @@ fs.appendFileSync(path.join(__dirname, name + '-calls.jsonl'), JSON.stringify(ar
 let answers = {};
 try { answers = JSON.parse(fs.readFileSync(path.join(__dirname, name + '.json'), 'utf8')); } catch (_) { answers = {}; }
 const a = (name === 'gh' ? answers[args[2]] : answers) || { exit: 9, stderr: 'no answer prepared' };
+const start = Date.now();
+if (a.delay) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, a.delay);
+fs.appendFileSync(path.join(__dirname, name + '-times.jsonl'), JSON.stringify([start, Date.now()]) + '\\n');
 if (a.stdout) process.stdout.write(a.stdout);
 if (a.stderr) process.stderr.write(a.stderr);
 process.exitCode = a.exit || 0;
@@ -252,6 +256,51 @@ suite.test('it can be turned off: PANEL_MERGE_CHECK=0, or by default when the co
   for (const env of [{ PANEL_MERGE_CHECK: 'sim' }, { PANEL_MERGE_CHECK_SECONDS: '0' }, { PANEL_MERGE_CHECK_SECONDS: 'x' }]) {
     await assert.rejects(srv.start({ argv: ['--port', String(await freePort())], env: { MAESTRO_DIR: r.data, ...env } }), /PANEL_MERGE_CHECK/);
   }
+});
+
+suite.test('the PRs are read a few at a time (at most 4 at once), not one after the other', async () => {
+  const r = buildRoot('parallel');
+  const answers = {};
+  for (let n = 1; n <= 8; n++) {
+    flow(r, ['item', 'start', String(n), '--title', `Pronto ${n}`, '--stage', 'implementation']);
+    flow(r, ['pr', String(n), 'ready', '--url', GH(100 + n)]);
+    answers[GH(100 + n)] = { ...open, delay: 1200 };
+  }
+  ghAnswers(r, answers);
+  const t0 = Date.now();
+  await withServer(r, {}, async (api) => {
+    await waitFor(async () => {
+      const list = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map((n) => item(api, `widgets/${n}`)));
+      return list.every((x) => x.merge_check.checked_at);
+    }, 20000, 100);
+  });
+  const ms = Date.now() - t0;
+  const times = fs.readFileSync(path.join(r.fakes, 'gh-times.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+  const most = Math.max(...times.map(([s]) => times.filter(([a, b]) => a <= s && s < b).length));
+  assert.strictEqual(times.length, 8);
+  assert.ok(most <= 4, `${most} reads at once`);
+  assert.ok(most >= 2, 'reads overlap');
+  assert.ok(ms < 8 * 1200, `8 reads of 1.2 s took ${ms} ms: one after the other`);
+});
+
+suite.test('stopping the server does not wait for a slow read of the tracker', async () => {
+  const r = buildRoot('stop');
+  flow(r, ['item', 'start', '1', '--title', 'Lento', '--stage', 'implementation']);
+  flow(r, ['pr', '1', 'ready', '--url', GH(101)]);
+  ghAnswers(r, { [GH(101)]: { ...open, delay: 20000 } });
+  const port = await freePort();
+  const s = await srv.start({
+    argv: ['--port', String(port)],
+    env: {
+      MAESTRO_DIR: r.data, PANEL_COLLECTOR: '0', PANEL_MERGE_CHECK: '1', PANEL_INDEX: path.join(r.root, 'x.html'), MAESTRI_DATA_DIR: path.join(r.root, 'maestri'),
+      PANEL_GH_CLI: path.join(r.fakes, 'gh.js'), PANEL_AZ_CLI: path.join(r.fakes, 'az.js'),
+    },
+  });
+  await waitFor(() => calls(r, 'gh').length === 1, 10000, 50); // the read is running
+  const t0 = Date.now();
+  await s.stop();
+  const ms = Date.now() - t0;
+  assert.ok(ms < 3000, `stop waited ${ms} ms for the read`);
 });
 
 suite.test('"mark as merged": POST /api/items/<project>/<number>/merged records the same event (source panel, as the owner) under the POST safety rules', async () => {

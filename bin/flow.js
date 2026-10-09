@@ -259,16 +259,7 @@ function progress(value) {
  * "task/<n>-…" → task n; an item with a single task needs no task. Every candidate is a task of an item of the project.
  */
 function locateTask(store, project, cmd, branch) {
-  const byItem = new Map();
-  for (const e of store.projectEvents(project.id)) {
-    if (!byItem.has(e.item_number)) byItem.set(e.item_number, []);
-    byItem.get(e.item_number).push(e);
-  }
-  const items = [];
-  for (const events of byItem.values()) {
-    const state = projectItem(events, project);
-    if (state) items.push(state);
-  }
+  const items = [...store.projectedItems({ projectId: project.id }).values()].map((it) => it.state);
   const key = (n) => `${project.id}/${n}`;
   let scope = items;
   if (cmd.item) {
@@ -885,14 +876,8 @@ function answerIn(cmd, project, env = process.env) {
 
 /** The pending decision with this id among the project's items: { item, pending } (InvalidData when absent). */
 function findPending(store, project, id) {
-  const byItem = new Map();
-  for (const e of store.projectEvents(project.id)) {
-    if (!byItem.has(e.item_number)) byItem.set(e.item_number, []);
-    byItem.get(e.item_number).push(e);
-  }
-  for (const events of byItem.values()) {
-    const item = projectItem(events, project);
-    const pending = item && item.pending_decisions.find((p) => p.id === id);
+  for (const { state: item } of store.projectedItems({ projectId: project.id }).values()) {
+    const pending = item.pending_decisions.find((p) => p.id === id);
     if (pending) return { item, pending };
   }
   throw new InvalidData('pending.errors.notFound', { id, project: project.id });

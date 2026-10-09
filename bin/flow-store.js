@@ -18,12 +18,16 @@
  * The events table is append-only (triggers refuse UPDATE and DELETE) and is the only source of the state of
  * items: nothing derived is stored (the projection is computed by flow-projection.js).
  *
+ * projectedItems() is the one place that groups the events by item and projects them (the server's routes and the
+ * CLI's lookups); on a long-lived connection (the server) it is cached until an event is appended or a project changes.
+ *
  * Several processes (maestro, workers, the panel) write at the same time: every write is a short
  * BEGIN IMMEDIATE transaction and busy_timeout makes the others wait instead of failing.
  */
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { projectItem } = require('./flow-projection');
 
 const DB_FILE = 'maestro.db';
 const BUSY_TIMEOUT_MS = 15000;
@@ -204,6 +208,26 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     migrate(db);
   }
 
+  // projectedItems() of every project, kept while MAX(events.id) and the projects stay the same.
+  let projectedCache = null;
+
+  /** Map('<project>/<number>' → { key, project, state, events }) of the events (oldest first), skipping non-items. */
+  const projectByItem = (events, projects) => {
+    const byItem = new Map();
+    for (const e of events) {
+      const k = `${e.project_id}/${e.item_number}`;
+      if (!byItem.has(k)) byItem.set(k, []);
+      byItem.get(k).push(e);
+    }
+    const out = new Map();
+    for (const [key, list] of byItem) {
+      const p = projects.get(list[0].project_id);
+      const state = p ? projectItem(list, p) : null;
+      if (state) out.set(key, { key, project: p, state, events: list });
+    }
+    return out;
+  };
+
   const store = {
     file,
     close: () => db.close(),
@@ -286,9 +310,28 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     projectEvents(projectId) {
       return db.prepare('SELECT * FROM events WHERE project_id = ? ORDER BY id').all(projectId).map(eventRow);
     },
-    /** Every event, oldest first (the server groups them by item). */
+    /** Every event, oldest first. */
     allEvents() {
       return db.prepare('SELECT * FROM events ORDER BY id').all().map(eventRow);
+    },
+    /**
+     * Every item projected from its events (bin/flow-projection.js), in the order each one first appeared:
+     * Map('<project>/<number>' → { key, project, state, events }). Items whose project is gone or that never
+     * started are left out. Without projectId the answer is kept on this connection and reused while no event was
+     * appended (MAX(id) is exact: the table is append-only) and no project changed (its stages and company shape
+     * the answer): the server's routes read it many times per poll. It is shared: never change what it returns.
+     * With projectId, only that project's items, computed now (the CLI looks up a task or a pending decision).
+     */
+    projectedItems({ projectId } = {}) {
+      const projects = store.projects();
+      const byId = new Map(projects.map((p) => [p.id, p]));
+      if (projectId !== undefined) return projectByItem(store.projectEvents(projectId), byId);
+      const version = db.prepare('SELECT MAX(id) AS id FROM events').get().id || 0;
+      const signature = JSON.stringify(projects);
+      if (projectedCache && projectedCache.version === version && projectedCache.signature === signature) return projectedCache.items;
+      const items = projectByItem(store.allEvents(), byId);
+      projectedCache = { version, signature, items };
+      return items;
     },
 
     // ---- the Log (#12) ----

@@ -18,7 +18,7 @@
 // No sentences: an invalid filter is {code: 'invalid_filter', param, value, allowed} (ADR 0004).
 const path = require('path');
 
-const { projectItem, trackerRef, PENDING_DECISION_SEVERITIES, PENDING_DECISION_STATUSES } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
+const { trackerRef, PENDING_DECISION_SEVERITIES, PENDING_DECISION_STATUSES } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
 
 const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
 
@@ -76,17 +76,8 @@ function order(a, b) {
 /** Every pending decision of every item, with its item and task. */
 function allPendingDecisions(store) {
   const projects = new Map(store.projects().map((p) => [p.id, p]));
-  const byItem = new Map();
-  for (const e of store.allEvents()) {
-    const k = `${e.project_id}/${e.item_number}`;
-    if (!byItem.has(k)) byItem.set(k, []);
-    byItem.get(k).push(e);
-  }
   const out = [];
-  for (const events of byItem.values()) {
-    const project = projects.get(events[0].project_id);
-    const state = project && projectItem(events, project);
-    if (!state) continue;
+  for (const { project, state } of store.projectedItems().values()) {
     for (const p of state.pending_decisions) {
       const { task_number: taskNumber, ...rest } = p;
       out.push({ ...rest, item: itemInfo(project, state), task: taskInfo(state, taskNumber) });

@@ -18,7 +18,6 @@
 const path = require('path');
 
 const { UNASSIGNED_COMPANY } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
-const { listItems } = require(path.join(__dirname, 'api-items.js'));
 
 const MIN_MS = 60 * 1000;
 const HOOK_STALE_MS = 60 * MIN_MS;
@@ -36,15 +35,18 @@ function attempt(fn) {
 }
 
 /** The agents' last event (not the owner's) on an active item, or null. */
-function lastAgentEvent(items, store) {
-  const active = new Set(listItems(items, { active: true }).items.map((it) => it.key));
-  if (!active.size) return null;
-  const events = store.allEvents();
-  for (let i = events.length - 1; i >= 0; i--) {
-    const e = events[i];
-    if (e.agent.role !== 'owner' && active.has(`${e.project_id}/${e.item_number}`)) return e;
+function lastAgentEvent(store) {
+  let last = null;
+  for (const { state, events } of store.projectedItems().values()) {
+    if (!state.active) continue;
+    for (let i = events.length - 1; i >= 0; i--) {
+      const e = events[i];
+      if (e.agent.role === 'owner') continue;
+      if (!last || e.id > last.id) last = e;
+      break;
+    }
   }
-  return null;
+  return last;
 }
 
 function evaluateHealth({ items, raw, nowMs, problems = [] }) {
@@ -58,7 +60,7 @@ function evaluateHealth({ items, raw, nowMs, problems = [] }) {
   const flow = attempt(() => {
     const store = items.store();
     if (!store) return { event: null, unassigned: [] };
-    return { event: lastAgentEvent(items, store), unassigned: store.projects().filter((p) => p.company_id === UNASSIGNED_COMPANY).map((p) => p.id) };
+    return { event: lastAgentEvent(store), unassigned: store.projects().filter((p) => p.company_id === UNASSIGNED_COMPANY).map((p) => p.id) };
   });
   if (flow.error) raise(2, { code: 'database_unreadable', file: 'maestro.db', detail: flow.error });
   const rawRead = attempt(() => {

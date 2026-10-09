@@ -27,7 +27,7 @@
 // No sentences: an invalid filter is {code: 'invalid_param', param, value, expected: 'id'} (ADR 0004).
 const path = require('path');
 
-const { projectItem, trackerRef } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
+const { trackerRef } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
 
 const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const PERIODS = ['window_5h', 'today', '7d'];
@@ -65,21 +65,9 @@ function projectInfo(p) {
 function itemsOf(source) {
   const store = source.store();
   const projects = new Map();
-  const items = new Map();
-  if (!store) return { projects, items };
+  if (!store) return { projects, items: new Map() };
   for (const p of store.projects()) projects.set(p.id, p);
-  const byItem = new Map();
-  for (const e of store.allEvents()) {
-    const k = `${e.project_id}/${e.item_number}`;
-    if (!byItem.has(k)) byItem.set(k, []);
-    byItem.get(k).push(e);
-  }
-  for (const [key, events] of byItem) {
-    const project = projects.get(events[0].project_id);
-    const state = project && projectItem(events, project);
-    if (state) items.set(key, { key, project, state, events });
-  }
-  return { projects, items };
+  return { projects, items: store.projectedItems() };
 }
 
 function itemInfo(it) {

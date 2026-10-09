@@ -24,6 +24,7 @@ const { isoSP } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
 const { projectItem, trackerRef, EVENT_TYPES } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
 
 const DEFAULT_SECONDS = 600;
+const CONCURRENCY = 4; // PRs read at once in a round (each read may take up to CLI_TIMEOUT_MS)
 const CLI_TIMEOUT_MS = 30000;
 const HTTP_TIMEOUT_MS = 20000;
 const OUTPUT_LIMIT = 1024 * 1024;
@@ -60,8 +61,10 @@ function parseConfig(env, { collectorActive, fixedNow }) {
 
 // ---------- reading the PR ----------
 
-/** Runs an executable: { exit, stdout, stderr } or { error: code }. A .js path runs with node. */
-function runCli(tool, cli, args, env) {
+const ABORTED = Object.freeze({ code: 'merge_check_stopped' });
+
+/** Runs an executable: { exit, stdout, stderr } or { error: code }. A .js path runs with node; signal kills it. */
+function runCli(tool, cli, args, env, signal) {
   const js = /\.[cm]?js$/i.test(cli);
   const once = (shell) => new Promise((resolve) => {
     let child;
@@ -79,13 +82,21 @@ function runCli(tool, cli, args, env) {
     child.stderr.on('data', keep(err));
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; child.kill(); }, CLI_TIMEOUT_MS);
-    child.on('error', (e) => { clearTimeout(timer); resolve({ spawnError: e }); });
-    child.on('close', (code) => {
+    const abort = () => child.kill();
+    if (signal) signal.addEventListener('abort', abort, { once: true });
+    const done = () => {
       clearTimeout(timer);
-      if (timedOut) resolve({ error: { code: 'merge_check_timeout', tool, seconds: CLI_TIMEOUT_MS / 1000 } });
+      if (signal) signal.removeEventListener('abort', abort);
+    };
+    child.on('error', (e) => { done(); resolve({ spawnError: e }); });
+    child.on('close', (code) => {
+      done();
+      if (signal && signal.aborted) resolve({ error: ABORTED });
+      else if (timedOut) resolve({ error: { code: 'merge_check_timeout', tool, seconds: CLI_TIMEOUT_MS / 1000 } });
       else resolve({ exit: code, shell, stdout: Buffer.concat(out).toString('utf8'), stderr: Buffer.concat(err).toString('utf8') });
     });
   });
+  if (signal && signal.aborted) return Promise.resolve({ error: ABORTED });
   return once(false).then((r) => {
     // On Windows az is az.cmd, which only runs through the shell: retried there when every argument is plain.
     if (r.spawnError && r.spawnError.code === 'ENOENT' && process.platform === 'win32' && !js && [cli, ...args].every((a) => RE_SAFE_ARG.test(a))) return once(true);
@@ -112,11 +123,11 @@ function parseJson(text) {
 }
 
 /** gh pr view <url> --json state,mergedAt → { merged } or { error }. */
-async function readGithub(config, env, url) {
+async function readGithub(config, env, url, signal) {
   const m = RE_GITHUB.exec(url);
   if (!m) return { error: { code: 'merge_check_bad_url' } };
   const canonical = `https://github.com/${m[1]}/${m[2]}/pull/${m[3]}`;
-  const r = await runCli('gh', config.ghCli, ['pr', 'view', canonical, '--json', 'state,mergedAt'], env);
+  const r = await runCli('gh', config.ghCli, ['pr', 'view', canonical, '--json', 'state,mergedAt'], env, signal);
   if (r.error) return r;
   const answer = parseJson(r.stdout);
   if (!answer || typeof answer !== 'object' || typeof answer.state !== 'string') return { error: { code: 'merge_check_bad_answer', tool: 'gh' } };
@@ -131,12 +142,12 @@ function azurePr(url) {
   return [pr.org, pr.project, pr.repo].every((s) => RE_SEGMENT.test(s)) ? pr : null;
 }
 
-/** REST of the PR with the az token (read once per round) → { merged } or { error }. */
+/** REST of the PR with the az token (read once per round, shared by the reads running at once) → { merged } or { error }. */
 async function readAzure(config, env, url, round) {
   const pr = azurePr(url);
   if (!pr) return { error: { code: 'merge_check_bad_url' } };
   if (!round.token) {
-    round.token = runCli('az', config.azCli, ['account', 'get-access-token', '--resource', AZURE_RESOURCE, '--query', 'accessToken', '-o', 'tsv'], env)
+    round.token = runCli('az', config.azCli, ['account', 'get-access-token', '--resource', AZURE_RESOURCE, '--query', 'accessToken', '-o', 'tsv'], env, round.signal)
       .then((r) => (r.error ? r : r.stdout.trim() ? { token: r.stdout.trim() } : { error: { code: 'merge_check_bad_answer', tool: 'az' } }));
   }
   const token = await round.token;
@@ -144,8 +155,9 @@ async function readAzure(config, env, url, round) {
   const address = `${config.azureBase}/${pr.org}/${pr.project}/_apis/git/repositories/${pr.repo}/pullrequests/${pr.id}?api-version=7.1`;
   let res;
   try {
-    res = await fetch(address, { headers: { Authorization: `Bearer ${token.token}`, Accept: 'application/json' }, signal: AbortSignal.timeout(HTTP_TIMEOUT_MS), redirect: 'manual' });
+    res = await fetch(address, { headers: { Authorization: `Bearer ${token.token}`, Accept: 'application/json' }, signal: AbortSignal.any([round.signal, AbortSignal.timeout(HTTP_TIMEOUT_MS)]), redirect: 'manual' });
   } catch (e) {
+    if (round.signal.aborted) return { error: ABORTED };
     return { error: { code: 'merge_check_request_failed', detail: firstLine(e && e.cause && e.cause.code ? e.cause.code : e && e.name === 'TimeoutError' ? 'timeout' : e && e.message) } };
   }
   if (res.status !== 200) return { error: { code: 'merge_check_http_failed', status: res.status } };
@@ -154,9 +166,10 @@ async function readAzure(config, env, url, round) {
   return { merged: answer.status === 'completed' };
 }
 
+/** round: { signal (stops every read), token (the az token's promise, set by the first Azure read) }. */
 function readPr(config, env, url, round) {
   if (typeof url !== 'string' || !url) return Promise.resolve({ error: { code: 'merge_check_no_url' } });
-  if (url.startsWith('https://github.com/')) return readGithub(config, env, url);
+  if (url.startsWith('https://github.com/')) return readGithub(config, env, url, round.signal);
   return readAzure(config, env, url, round);
 }
 
@@ -173,20 +186,12 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
   const statuses = new Map(); // "<project>/<number>" → { checked_at, error }
   let timer = null;
   let current = null;
+  let stopping = null; // AbortController of the running round: stop() kills its reads
 
   /** Items waiting for the merge: [{ key, project, state }]. */
   function waiting(store) {
-    const projects = new Map(store.projects().map((p) => [p.id, p]));
-    const byItem = new Map();
-    for (const e of store.allEvents()) {
-      const k = `${e.project_id}/${e.item_number}`;
-      if (!byItem.has(k)) byItem.set(k, []);
-      byItem.get(k).push(e);
-    }
     const list = [];
-    for (const [key, events] of byItem) {
-      const project = projects.get(events[0].project_id);
-      const state = project && projectItem(events, project);
+    for (const { key, project, state } of store.projectedItems().values()) {
       if (waitsForMerge(state)) list.push({ key, project, state });
     }
     return list;
@@ -202,34 +207,45 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
     });
   }
 
-  async function round() {
+  /** Reads one item's PR and keeps the outcome (records the merge when confirmed). */
+  async function check(store, { key, project, state }, shared) {
+    const r = await readPr(config, childEnv, state.pr.url, shared);
+    if (shared.signal.aborted) return; // stopping: the outcome of a killed read is not kept
+    const checkedAt = isoSP(now());
+    const before = statuses.get(key);
+    if (r.error) {
+      statuses.set(key, { checked_at: checkedAt, error: r.error });
+      if (!before || !before.error || before.error.code !== r.error.code) logError(`Verificação de merge de ${key} falhou: ${r.error.code}${r.error.detail ? ` (${r.error.detail})` : ''}`);
+      return;
+    }
+    statuses.set(key, { checked_at: checkedAt, error: null });
+    if (r.merged && recordMerge(store, project, state.number, null).recorded) {
+      statuses.delete(key);
+      log(`PR de ${key} mergeado no tracker: gravado (origem painel)`);
+    }
+  }
+
+  /** One round: the PRs waiting for a merge, CONCURRENCY at a time. */
+  async function round(controller) {
     const store = items.store();
     if (!store) return;
     const list = waiting(store);
     const keys = new Set(list.map((x) => x.key));
     for (const k of [...statuses.keys()]) if (!keys.has(k)) statuses.delete(k);
-    const shared = {};
-    for (const { key, project, state } of list) {
-      const r = await readPr(config, childEnv, state.pr.url, shared);
-      const checkedAt = isoSP(now());
-      const before = statuses.get(key);
-      if (r.error) {
-        statuses.set(key, { checked_at: checkedAt, error: r.error });
-        if (!before || !before.error || before.error.code !== r.error.code) logError(`Verificação de merge de ${key} falhou: ${r.error.code}${r.error.detail ? ` (${r.error.detail})` : ''}`);
-        continue;
-      }
-      statuses.set(key, { checked_at: checkedAt, error: null });
-      if (r.merged && recordMerge(store, project, state.number, null).recorded) {
-        statuses.delete(key);
-        log(`PR de ${key} mergeado no tracker: gravado (origem painel)`);
-      }
-    }
+    const shared = { signal: controller.signal, token: null };
+    let next = 0;
+    const worker = async () => {
+      while (!controller.signal.aborted && next < list.length) await check(store, list[next++], shared);
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, list.length) }, worker));
   }
 
   /** Runs one round; a call during a round waits for the same round. Never rejects. */
   function run() {
     if (current) return current;
-    current = round().catch((e) => logError(`Falha na verificação de merge: ${e && e.stack ? e.stack : e}`)).finally(() => { current = null; });
+    const controller = new AbortController();
+    stopping = controller;
+    current = round(controller).catch((e) => logError(`Falha na verificação de merge: ${e && e.stack ? e.stack : e}`)).finally(() => { current = null; });
     return current;
   }
 
@@ -240,9 +256,11 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
       timer = setInterval(run, config.intervalMs);
       if (typeof timer.unref === 'function') timer.unref();
     },
+    /** Stops the timer and kills the reads of a running round (never waits for the tracker). */
     async stop() {
       if (timer) clearInterval(timer);
       timer = null;
+      if (stopping) stopping.abort();
       if (current) await current;
     },
     run,

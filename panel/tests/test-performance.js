@@ -166,6 +166,22 @@ suite.test('/api/log/<id> with thousands of linked raw commands < 1.5 s, limited
   if (mb !== null) assert.ok(mb < 400, `high memory: ${mb} MB`);
 });
 
+suite.test('a poll round (state, overview, items, pending decisions, usage, agents, companies) reuses one projection while no event arrives', async () => {
+  const round = ['/api/state', '/api/overview', '/api/items', '/api/pending-decisions', '/api/usage', '/api/agents', '/api/companies', '/api/projects'];
+  const once = async () => {
+    for (const p of round) {
+      const x = await request(S.port, p);
+      assert.strictEqual(x.status, 200, `${p}: ${x.text.slice(0, 200)}`);
+    }
+  };
+  const first = await time(once);
+  const warm = [];
+  for (let i = 0; i < 3; i++) warm.push((await time(once)).ms);
+  const best = Math.min(...warm);
+  console.log(`        poll round of ${round.length} routes: first ${first.ms.toFixed(0)} ms, then ${warm.map((x) => x.toFixed(0)).join(' / ')} ms`);
+  assert.ok(best < 400, `each route projects every event again: ${best} ms`);
+});
+
 suite.test('the hook writes over the big bruto.db well within its 1.5 s', async () => {
   const env = Object.assign({}, process.env, { MAESTRO_DIR: D.data, MAESTRO_NOW: NOW, NODE_OPTIONS: '', GIT_CEILING_DIRECTORIES: root });
   const payload = { session_id: 'sess-perf', cwd: D.repo, hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command: 'npm test' }, tool_response: { stdout: 'ok' } };
