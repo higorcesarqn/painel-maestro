@@ -54,7 +54,8 @@ const mergeCheck = require(path.join(__dirname, 'merge-check.js'));
 const usageApi = require(path.join(__dirname, 'api-usage.js'));
 const overviewApi = require(path.join(__dirname, 'api-overview.js'));
 const { evaluateHealth } = require(path.join(__dirname, 'health.js'));
-const { asDate, isoSP, readJson, readText, withRetries, writeAtomic } = collector.util;
+const { asDate, isoSP } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
+const { readJson, readText, withRetries, writeAtomic } = collector.util;
 
 const MIN_MS = 60 * 1000;
 
@@ -628,9 +629,12 @@ if (require.main === module) {
     try { process.stderr.write(`${t('server.errors.unhandled', { detail: e && e.stack ? e.stack : e })}\n`); } catch (_) { /* nothing */ }
   });
   start({ cfg }).then(({ port, stop, pidFile }) => {
-    process.stdout.write(`${t('server.started', { port, pid: process.pid })}\n`);
-    process.stdout.write(`${t('server.data', { dir: cfg.dataDir.replace(/\\/g, '/'), pidFile: pidFile.replace(/\\/g, '/') })}\n`);
-    process.stdout.write(`${t('server.howToStop', { pid: process.pid })}\n`);
+    // One write: whoever waits for the PID line (a test, a script) already has the other two.
+    process.stdout.write([
+      t('server.started', { port, pid: process.pid }),
+      t('server.data', { dir: cfg.dataDir.replace(/\\/g, '/'), pidFile: pidFile.replace(/\\/g, '/') }),
+      t('server.howToStop', { pid: process.pid }),
+    ].join('\n') + '\n');
     let leaving = false;
     const leave = (signal) => {
       if (leaving) return;

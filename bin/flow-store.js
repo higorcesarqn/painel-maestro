@@ -103,7 +103,10 @@ const MIGRATIONS = [
 
 const isBusy = (e) => e && (e.errcode === 5 || e.errcode === 6 || /database is locked|SQLITE_BUSY/i.test(String(e.message)));
 
-/** Runs fn again while SQLite answers "busy" outside of busy_timeout's reach (e.g. switching to WAL). */
+/**
+ * Runs fn again while SQLite answers "busy" outside of busy_timeout's reach (e.g. switching to WAL), for up to ms.
+ * Shared with raw-store.js, like transaction().
+ */
 function retryBusy(fn, ms = BUSY_TIMEOUT_MS) {
   const end = Date.now() + ms;
   for (;;) {
@@ -116,9 +119,9 @@ function retryBusy(fn, ms = BUSY_TIMEOUT_MS) {
   }
 }
 
-/** BEGIN IMMEDIATE … COMMIT around fn(db); ROLLBACK on error. */
-function transaction(db, fn) {
-  retryBusy(() => db.exec('BEGIN IMMEDIATE'));
+/** BEGIN IMMEDIATE … COMMIT around fn(db); ROLLBACK on error. ms: how long to retry a busy BEGIN. */
+function transaction(db, fn, ms = BUSY_TIMEOUT_MS) {
+  retryBusy(() => db.exec('BEGIN IMMEDIATE'), ms);
   try {
     const r = fn(db);
     db.exec('COMMIT');
@@ -379,4 +382,6 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
   return store;
 }
 
-module.exports = { openStore, projectEventsByItem, flowDir, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite };
+module.exports = {
+  openStore, projectEventsByItem, flowDir, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite, retryBusy, transaction,
+};

@@ -29,6 +29,7 @@ function createItemsSource(env) {
   };
 }
 
+/** The project as every answer of the API shows it: { id, name, tracker, company: { id, name } }. */
 function projectInfo(p) {
   return { id: p.id, name: p.name, tracker: p.tracker, company: { id: p.company_id, name: p.company_name } };
 }
@@ -118,4 +119,4 @@ function parseItemPath(projectText, numberText) {
   return { project, number: Number(numberText) };
 }
 
-module.exports = { createItemsSource, listItems, itemDetail, parseItemPath, activeFilter };
+module.exports = { createItemsSource, listItems, itemDetail, parseItemPath, activeFilter, projectInfo };

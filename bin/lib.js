@@ -3,7 +3,8 @@
  * lib.js · shared functions of the bin/ commands (standard library only, CommonJS).
  *
  * Sections: paths and text · dates (America/Sao_Paulo) · standard input · secret redaction and truncation · output.
- * Used by the flow CLI (flow.js, flow-admin.js), the hook (hook-log.js), install-skills.js and the server (isoSP).
+ * Used by the flow CLI (flow.js, flow-admin.js), the hook (hook-log.js), install-skills.js, the usage collector and the
+ * server (asDate, spParts, isoSP: the only implementation of the São Paulo dates).
  *
  * Environment variable:
  *   MAESTRO_NOW   fixed date/time in ISO 8601. Tests only.
@@ -57,6 +58,13 @@ function now() {
   return new Date();
 }
 
+/** Valid Date from a Date, a number (ms) or ISO text; null if invalid. */
+function asDate(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const d = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 /** Date parts in São Paulo: {year, month, day, hour, minute, second, offset:'-03:00'}. */
 function spParts(date = now()) {
   const p = {};
@@ -65,8 +73,13 @@ function spParts(date = now()) {
   return { year: p.year, month: p.month, day: p.day, hour: p.hour, minute: p.minute, second: p.second, offset };
 }
 
-/** ISO 8601 with the São Paulo offset, without milliseconds: 2026-10-08T15:41:02-03:00. */
-function isoSP(date = now()) {
+/**
+ * ISO 8601 with the São Paulo offset, without milliseconds: 2026-10-08T15:41:02-03:00. Takes a Date, a number (ms) or
+ * ISO text (now when absent); null when the date is invalid.
+ */
+function isoSP(value = now()) {
+  const date = asDate(value);
+  if (!date) return null;
   const p = spParts(date);
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}${p.offset}`;
 }
@@ -276,7 +289,7 @@ module.exports = {
   // paths and text
   slashes, stripAccents, safeSessionId,
   // dates
-  TIME_ZONE, now, spParts, isoSP,
+  TIME_ZONE, now, asDate, spParts, isoSP,
   // standard input
   decodeText, stdinIsInteractive, readStdinSync,
   // redaction and truncation

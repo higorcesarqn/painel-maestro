@@ -18,6 +18,7 @@ const { openStore, flowDir } = require(path.join(__dirname, '..', 'bin', 'flow-s
 const { openRawStore } = require(path.join(__dirname, '..', 'bin', 'raw-store.js'));
 const { projectItem, trackerRef } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
 const { isoSP } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
+const { projectInfo } = require(path.join(__dirname, 'api-items.js'));
 
 const MIN_MS = 60 * 1000;
 const HOUR_MS = 60 * MIN_MS;
@@ -131,10 +132,6 @@ function logFilters(sp, nowMs) {
 }
 
 // ---------- answers ----------
-
-function projectInfo(p) {
-  return { id: p.id, name: p.name, tracker: p.tracker, company: { id: p.company_id, name: p.company_name } };
-}
 
 /** Titles and stages of the items of a page (computed from their events, like the items API). */
 function itemsOf(store, events, projects) {

@@ -52,6 +52,7 @@ const crypto = require('crypto');
 const { openStore, flowDir } = require('./flow-store');
 const { openRawStore } = require('./raw-store');
 const { t, has } = require('./i18n');
+const { asDate, spParts, isoSP } = require('./lib');
 
 const TIME_ZONE = 'America/Sao_Paulo';
 const MIN_MS = 60 * 1000;
@@ -74,37 +75,7 @@ class UsageError extends Error {}
 
 // ---------- dates in the São Paulo time zone (Intl; never toISOString in the data) ----------
 
-const FMT_SP = new Intl.DateTimeFormat('en-CA', {
-  timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit',
-  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-});
-
-/** Valid Date from a Date, a number (ms) or ISO text; null if invalid. */
-function asDate(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const d = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-/** Date parts on the São Paulo clock (year, month, day, hour, minute, second). */
-function spParts(date) {
-  const p = {};
-  for (const x of FMT_SP.formatToParts(date)) p[x.type] = x.value;
-  return p;
-}
-
-/** ISO 8601 with the real São Paulo offset (today -03:00); null if the date is invalid. */
-function isoSP(value) {
-  const d = asDate(value);
-  if (!d) return null;
-  const p = spParts(d);
-  const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
-  const offset = Math.round((asUtc - Math.floor(d.getTime() / 1000) * 1000) / MIN_MS);
-  const abs = Math.abs(offset);
-  const hh = String(Math.floor(abs / 60)).padStart(2, '0');
-  const mm = String(abs % 60).padStart(2, '0');
-  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}${offset < 0 ? '-' : '+'}${hh}:${mm}`;
-}
+// asDate, spParts and isoSP are the ones of bin/lib.js (the only implementation, also the server's).
 
 /** São Paulo local day: YYYY-MM-DD. */
 function spDay(value) {

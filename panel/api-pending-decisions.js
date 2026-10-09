@@ -21,6 +21,7 @@
 const path = require('path');
 
 const { trackerRef, PENDING_DECISION_SEVERITIES, PENDING_DECISION_STATUSES } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
+const { projectInfo } = require(path.join(__dirname, 'api-items.js'));
 
 const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
 
@@ -51,7 +52,7 @@ function itemInfo(project, state) {
     tracker_ref: trackerRef(project.tracker, state.number),
     title: state.title,
     stage: state.stage,
-    project: { id: project.id, name: project.name, tracker: project.tracker, company: { id: project.company_id, name: project.company_name } },
+    project: projectInfo(project),
   };
 }
 

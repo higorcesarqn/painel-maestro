@@ -9,7 +9,7 @@
 const path = require('path');
 
 const { UNASSIGNED_COMPANY, STAGES, TRACKERS } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
-const { listItems } = require(path.join(__dirname, 'api-items.js'));
+const { listItems, projectInfo } = require(path.join(__dirname, 'api-items.js'));
 
 const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
 
@@ -28,9 +28,9 @@ function itemCounts(source) {
   return counts;
 }
 
-function projectInfo(store, p, counts) {
+function projectDetail(store, p, counts) {
   return {
-    id: p.id, name: p.name, tracker: p.tracker, company: { id: p.company_id, name: p.company_name },
+    ...projectInfo(p),
     unassigned: p.company_id === UNASSIGNED_COMPANY, repos: store.projectRepos(p.id), stages: p.stages,
     done_state: p.done_state, maestri_workspace: p.maestri_workspace, created_at: p.created_at, item_count: counts.get(p.id) || 0,
   };
@@ -67,7 +67,7 @@ function listProjects(source, query) {
   const store = source.store();
   if (!store) return { projects: [] };
   const counts = itemCounts(source);
-  const projects = store.projects().filter((p) => !company || p.company_id === company).map((p) => projectInfo(store, p, counts));
+  const projects = store.projects().filter((p) => !company || p.company_id === company).map((p) => projectDetail(store, p, counts));
   projects.sort((a, b) => Number(b.unassigned) - Number(a.unassigned) || a.company.name.localeCompare(b.company.name, 'pt-BR')
     || a.name.localeCompare(b.name, 'pt-BR'));
   return { projects };
@@ -114,7 +114,7 @@ function moveProject(source, projectId, body) {
   return store.transaction(() => {
     if (!store.company(company)) throw new ProjectsError(400, { code: 'company_not_found', company });
     store.updateProject(projectId, { companyId: company });
-    return { project: projectInfo(store, store.project(projectId), itemCounts(source)) };
+    return { project: projectDetail(store, store.project(projectId), itemCounts(source)) };
   });
 }
 

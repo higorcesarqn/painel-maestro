@@ -28,6 +28,7 @@
 const path = require('path');
 
 const { trackerRef } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
+const { projectInfo } = require(path.join(__dirname, 'api-items.js'));
 
 const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const PERIODS = ['window_5h', 'today', '7d'];
@@ -56,10 +57,6 @@ function filtersOf(query) {
 }
 
 const passes = (f, project) => (!f.company || (project.company && f.company.has(project.company.id))) && (!f.project || f.project.has(project.id));
-
-function projectInfo(p) {
-  return { id: p.id, name: p.name, tracker: p.tracker, company: { id: p.company_id, name: p.company_name } };
-}
 
 /** Every item of maestro.db with its state and events: { projects: Map, items: Map('<project>/<n>' → {...}) }. */
 function itemsOf(source) {

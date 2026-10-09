@@ -21,7 +21,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { loadSqlite } = require('./flow-store');
+const { loadSqlite, retryBusy, transaction } = require('./flow-store');
 
 const DB_FILE = 'bruto.db';
 const BUSY_TIMEOUT_MS = 15000;
@@ -80,33 +80,6 @@ const MIGRATIONS = [
 
 const ENTRY_FIELDS = ['at', 't', 'session_id', 'project_id', 'item_number', 'task_number', 'branch', 'hook_event', 'tool', 'input', 'ok',
   'output_summary', 'error', 'info', 'duration_ms', 'prompt', 'detail', 'agent_id', 'agent_type', 'cwd', 'version'];
-
-const isBusy = (e) => e && (e.errcode === 5 || e.errcode === 6 || /database is locked|SQLITE_BUSY/i.test(String(e.message)));
-
-/** Runs fn again while SQLite answers "busy" outside of busy_timeout's reach (e.g. switching to WAL). */
-function retryBusy(fn, ms) {
-  const end = Date.now() + ms;
-  for (;;) {
-    try {
-      return fn();
-    } catch (e) {
-      if (!isBusy(e) || Date.now() > end) throw e;
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10 + Math.floor(Math.random() * 20));
-    }
-  }
-}
-
-function transaction(db, fn, ms) {
-  retryBusy(() => db.exec('BEGIN IMMEDIATE'), ms);
-  try {
-    const r = fn();
-    db.exec('COMMIT');
-    return r;
-  } catch (e) {
-    try { db.exec('ROLLBACK'); } catch (_) { /* already rolled back */ }
-    throw e;
-  }
-}
 
 function entryRow(row) {
   return {
