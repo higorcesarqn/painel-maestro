@@ -13,7 +13,7 @@
 // Routes: GET /, GET /api/state, GET /api/events, GET /api/event/<id>, GET /api/flow/<id>,
 //         POST /api/recalculate, POST /api/brain (future phase: 501). Pending decisions (api-pendencias.js):
 //         POST /api/pending-decisions/<P-NNNN>/answer {option, text}. Details in README.md.
-//         New model (api-items.js, maestro.db): GET /api/items, GET /api/items/<project>/<number>.
+//         New model (api-items.js, maestro.db): GET /api/items[?active=1|0], GET /api/items/<project>/<number>.
 // The API never returns sentences: reasons, warnings and errors are codes with parameters
 // ({code, ...params}) and the page translates them (ADR 0004). Old-model records (events and pending
 // decisions written by bin/registrar.js and bin/pendencia.js) go out with English field names
@@ -1697,8 +1697,11 @@ async function route(ctx, req, res) {
       if (!x) return respondError(req, res, 404, { code: 'flow_not_found', id: r.id });
       return respondJson(req, res, 200, x);
     }
-    case 'items':
-      return respondJson(req, res, 200, itemsApi.listItems(ctx.items));
+    case 'items': {
+      const active = itemsApi.activeFilter(query);
+      if (active === undefined) return respondError(req, res, 400, { code: 'invalid_param', param: 'active', value: truncate(query.get('active'), 20), expected: 'flag' });
+      return respondJson(req, res, 200, itemsApi.listItems(ctx.items, { active }));
+    }
     case 'item': {
       const x = itemsApi.itemDetail(ctx.items, r.project, r.number);
       if (!x) return respondError(req, res, 404, { code: 'item_not_found', project: r.project, number: r.number });

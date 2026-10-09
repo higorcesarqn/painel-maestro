@@ -63,9 +63,14 @@ suite.test('API text enters as text: no innerHTML, eval or handlers built from s
   }
   // In the build, the only possible innerHTML is Preact's own dangerouslySetInnerHTML, which the source never uses.
   for (const p of forbidden.slice(2)) assert.ok(!p.test(js), `forbidden use in the build: ${p}`);
-  // No outside link: neither an href built from data, nor a fixed href (only # anchors).
+  // No outside link: an href built from data only through trackerHref (links to the trackers, #9), and no fixed
+  // href (only # anchors).
   const hrefs = [...allSource.matchAll(/\bhref=\{([^}]+)\}/g)].map((m) => m[1].trim());
-  assert.deepStrictEqual(hrefs, [], 'no href built from data');
+  assert.ok(hrefs.length > 0, 'the item page links to the PR and the card');
+  assert.deepStrictEqual(hrefs.filter((h) => !/^trackerHref\([\w.]+\)$/.test(h)), [], 'an href from data only through trackerHref()');
+  for (const m of allSource.matchAll(/<a\b[^>]*>/g)) {
+    if (/\bhref=\{/.test(m[0])) assert.ok(/rel="noopener noreferrer"/.test(m[0]), `outside link without rel="noopener noreferrer": ${m[0]}`);
+  }
   assert.ok(!/\bhref="(?!#)/.test(allSource), 'no fixed outside href');
 });
 
@@ -131,6 +136,34 @@ suite.test('mock-items.json: items in different stages, both trackers, several c
   assert.ok(/RE_ITEM = \/\^\(\[a-z0-9\]\[a-z0-9-\]\*\)\\\/\(\[1-9\]\\d\*\)\$\//.test(source['screens/Items.jsx']), 'Items reads <project>/<number> from the address');
   assert.ok(/goTo\('items', it\.key\)/.test(source['screens/Items.jsx']), 'a click on an item opens #items/<key>');
   assert.ok(js.includes('mock-items.json'), 'the test mode reads mock-items.json');
+});
+
+suite.test('links of the item page only go to the trackers (github.com, dev.azure.com, *.visualstudio.com)', async () => {
+  const { trackerHref } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'links.js')).href);
+  for (const good of ['https://github.com/acme/widgets/pull/34', 'https://dev.azure.com/contoso/CIDAX/_git/api/pullrequest/812',
+    'https://contoso.visualstudio.com/Billing/_workitems/edit/3100']) assert.strictEqual(trackerHref(good), good);
+  for (const bad of ['http://github.com/acme/widgets/pull/34', 'https://github.com.evil.example/pull/1', 'https://evil.example/github.com',
+    'javascript:alert(1)', 'https://user:pw@github.com/x', 'https://github.com:8443/x', 'https://gist.github.com/x', '//github.com/x',
+    'data:text/html,x', '', null, 42]) assert.strictEqual(trackerHref(bad), null, String(bad));
+  // The page's rule is the same as the server's (the projection only keeps tracker links).
+  const { trackerUrl } = require('../../bin/flow-projection.js');
+  for (const u of ['https://github.com/a/b/pull/1', 'https://x.visualstudio.com/p', 'https://evil.example/', 'http://dev.azure.com/x']) {
+    assert.strictEqual(trackerHref(u), trackerUrl(u), u);
+  }
+});
+
+suite.test('mock-items.json: items in Final adjustment, PR ready, Merge, HML validation and Done, with PR, adjustment and HML', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const details = Object.values(m.details);
+  for (const stage of ['final_adjustment', 'pr_ready', 'merge', 'hml_validation', 'done']) {
+    assert.ok(details.some((d) => d.stage === stage && d.pr && d.pr.url), `an item in ${stage} with a PR`);
+  }
+  assert.deepStrictEqual([...new Set(details.map((d) => d.pr && d.pr.state).filter(Boolean))].sort(), ['draft', 'merged', 'ready']);
+  assert.deepStrictEqual([...new Set(details.map((d) => d.final_adjustment && d.final_adjustment.status).filter(Boolean))].sort(), ['open', 'passed']);
+  assert.deepStrictEqual([...new Set(details.map((d) => d.hml && d.hml.outcome).filter(Boolean))].sort(), ['approved', 'failed']);
+  assert.ok(details.some((d) => d.stage === 'done' && !d.stages.some((s) => s.id === 'hml_validation')), 'a done item of a project without HML');
+  assert.ok(m.items.some((i) => i.active === false) && m.items.some((i) => i.active === true), 'active and done items');
+  for (const d of details) assert.strictEqual(d.active, d.stage !== 'done');
 });
 
 let port = null;

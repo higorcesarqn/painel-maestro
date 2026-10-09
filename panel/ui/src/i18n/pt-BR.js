@@ -30,7 +30,7 @@ const windowName = (w) => (w === '5h' ? 'de 5 h' : 'semanal');
 // Name the person knows for each /api/events parameter (the Log used to call them so).
 const PARAM_NAMES = {
   since: 'desde', until: 'ate', hours: 'horas', agent: 'agente', project: 'projeto', type: 'tipo', result: 'resultado',
-  q: 'q', owner_only: 'so_dono', include_tests: 'incluir_testes', flow: 'fluxo', page: 'pagina', per_page: 'por_pagina',
+  q: 'q', owner_only: 'so_dono', include_tests: 'incluir_testes', flow: 'fluxo', page: 'pagina', per_page: 'por_pagina', active: 'ativos',
 };
 const failedState = (c) => `estado "${c.state}"${c.error ? `: ${c.error}` : ''}`;
 
@@ -189,6 +189,66 @@ export default {
         waiting: 'aguardando', working: 'trabalhando', review: 'revisão', blocked: 'bloqueada', integrated: 'integrada', out: 'fora',
       },
       workerStates: { working: 'trabalhando', blocked: 'bloqueada', review: 'revisão', done: 'pronta' },
+    },
+  },
+
+  // End of an item's flow (#9): PR, final adjustment, HML validation and conclusion (screens/ItemDelivery.jsx).
+  delivery: {
+    title: 'Entrega',
+    info: 'PR, ajuste final, Validação HML e conclusão, registrados pelo maestro (e pelo dono, na HML) com o comando flow. Os links abrem só no GitHub ou no Azure DevOps.',
+    openInTracker: 'Abrir no tracker',
+    pr: {
+      title: 'PR',
+      none: 'Nenhum PR registrado ainda.',
+      link: 'Abrir o PR',
+      branch: 'Branch integradora',
+      openedAt: 'criado em {when}',
+      readyAt: 'pronto desde {when}',
+      mergedAt: 'mergeado em {when}',
+    },
+    prRef: { github: '#{number}', azure_devops: 'PR {number}' },
+    prStates: { draft: 'Rascunho', ready: 'Pronto', merged: 'Mergeado' },
+    adjustment: {
+      title: 'Ajuste final',
+      none: 'Ajuste final ainda não aberto.',
+      openedAt: 'aberto em {when}',
+      finishedAt: 'concluído em {when}',
+    },
+    adjustmentStates: { open: 'Em andamento', passed: 'Aprovado', failed: 'Reprovado' },
+    hml: {
+      title: 'Validação HML',
+      none: 'Resultado da Validação HML ainda não registrado.',
+      notUsed: 'Este projeto não usa a Validação HML.',
+      card: 'Card',
+      passed: 'aprovados',
+      failed: 'reprovados',
+      blocked: 'bloqueados',
+      recordedAt: 'registrado em {when}',
+    },
+    hmlOutcomes: { approved: 'Aprovada', failed: 'Com reprovação', blocked: 'Com bloqueio' },
+    completion: {
+      title: 'Conclusão',
+      done: 'Concluído',
+      at: 'em {when} ({age})',
+      pending: 'Item ainda ativo.',
+    },
+    events: {
+      pr: { draft: 'PR criado em rascunho', ready: 'PR pronto (saiu do rascunho)', merged: 'PR mergeado' },
+      adjustmentOpened: 'Ajuste final aberto',
+      adjustment: { passed: 'Ajuste final aprovado', failed: 'Ajuste final reprovado' },
+      hml: 'Validação HML: {passed} aprovado(s), {failed} reprovado(s), {blocked} bloqueado(s)',
+      itemDone: 'Item concluído',
+    },
+    listFilter: {
+      label: 'Mostrar itens',
+      active: 'Ativos',
+      done: 'Concluídos',
+      all: 'Todos',
+      none: {
+        active: 'Nenhum item ativo. Os concluídos continuam em "Concluídos".',
+        done: 'Nenhum item concluído ainda.',
+        all: 'Nenhum item.',
+      },
     },
   },
 
@@ -635,7 +695,7 @@ export default {
     not_implemented: 'Fase B: exige o Maestri Wire (ver §11.7)',
     body_too_large: 'Corpo grande demais ou incompleto (até {limit_kb} KB).',
     internal_error: 'Erro interno do painel (detalhes no terminal do servidor).',
-    invalid_param: (c) => `Parâmetro "${PARAM_NAMES[c.param] || c.param}" inválido: "${c.value}" (${c.expected === 'date' ? 'use AAAA-MM-DD' : 'use um inteiro a partir de 1'}).`,
+    invalid_param: (c) => `Parâmetro "${PARAM_NAMES[c.param] || c.param}" inválido: "${c.value}" (${c.expected === 'date' ? 'use AAAA-MM-DD' : c.expected === 'flag' ? 'use 1 ou 0' : 'use um inteiro a partir de 1'}).`,
     invalid_body: 'Corpo inválido: envie JSON {"option": "A", "text": "..."}.',
     invalid_option: 'Opção inválida: use a letra da opção (ex.: "A").',
     answer_too_long: 'Resposta longa demais (até {max} caracteres).',

@@ -10,6 +10,7 @@ import { t } from '../i18n/index.js';
 import { Card, Badge, Empty, Skeleton } from '../components/base.jsx';
 import { Icon, Workflow, ArrowLeft, Check, CircleDashed } from '../components/Icon.jsx';
 import { ItemTasks } from './ItemTasks.jsx';
+import { ItemDelivery, deliveryEventText, useDoneFilter } from './ItemDelivery.jsx';
 import '../styles/items.css';
 
 const RE_ITEM = /^([a-z0-9][a-z0-9-]*)\/([1-9]\d*)$/;
@@ -48,14 +49,16 @@ export function Items() {
 function ItemList() {
   const { goTo } = usePanel();
   const { answer, error } = usePolling(() => readItems(), []);
-  const items = objs(answer && answer.items);
+  const all = objs(answer && answer.items);
+  const { shown: items, control: doneFilter, which } = useDoneFilter(all);
   const open = (it) => goTo('items', it.key);
   return (
     <div class="screen screen-items">
-      <Card label={t('items.title')} extra={answer ? t('items.count', { count: items.length }) : null} info={t('items.listInfo')} scroll flush>
+      <Card label={t('items.title')} extra={answer ? t('items.count', { count: items.length }) : null} info={t('items.listInfo')} actions={answer && all.length ? doneFilter : null} scroll flush>
         {error && <p class="items-error" role="alert">{t('items.readFailed', { message: error.message })}</p>}
         {!answer && !error && <div class="items-loading"><Skeleton /><Skeleton /><Skeleton /></div>}
-        {answer && !items.length && <Empty icon={Workflow} center>{t('items.none')}</Empty>}
+        {answer && !all.length && <Empty icon={Workflow} center>{t('items.none')}</Empty>}
+        {answer && all.length > 0 && !items.length && <Empty icon={Workflow} center>{t(`delivery.listFilter.none.${which}`)}</Empty>}
         {items.length > 0 && (
           <div class="table-box">
             <table class="table items">
@@ -127,6 +130,7 @@ function ItemPage({ project, number: itemNumber }) {
           </div>
         </div>
       </Card>
+      <ItemDelivery item={item} />
       <ItemTasks item={item} />
       <div class="item-grid">
         <Card label={t('items.flowTitle')} info={t('items.flowInfo')}>
@@ -168,6 +172,8 @@ function eventText(e) {
   if (e.type === 'task-dispatched') return t('items.events.taskDispatched', { task: e.task_number, worker: txt(p.worker) || '—', floor: txt(p.floor) || '—' });
   if (e.type === 'task-status') return t('items.events.taskStatus', { task: e.task_number, state: t(`items.tasks.workerStates.${p.state}`), text: txt(p.text) });
   if (e.type === 'task-integrated') return t('items.events.taskIntegrated', { task: e.task_number, sha: txt(p.sha).slice(0, 7) });
+  const delivery = deliveryEventText(e);
+  if (delivery) return delivery;
   return txt(e.type);
 }
 
