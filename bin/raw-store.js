@@ -181,7 +181,8 @@ function openRawStore({ dir, create = true, busyTimeoutMs = BUSY_TIMEOUT_MS } = 
             ON CONFLICT (session_id) DO UPDATE SET project_id = excluded.project_id, item_number = excluded.item_number,
               task_number = excluded.task_number, branch = excluded.branch, cwd = excluded.cwd,
               transcript_path = COALESCE(excluded.transcript_path, sessions.transcript_path),
-              seen_at = excluded.seen_at, seen_t = MAX(sessions.seen_t, excluded.seen_t)`)
+              seen_at = CASE WHEN excluded.seen_t > sessions.seen_t THEN excluded.seen_at ELSE sessions.seen_at END,
+              seen_t = MAX(sessions.seen_t, excluded.seen_t)`)
             .run(entry.session_id, entry.project_id, entry.item_number ?? null, entry.task_number ?? null, entry.branch ?? null,
               session.cwd ?? entry.cwd ?? null, session.transcript_path ?? null, entry.at, entry.at, entry.t);
         }

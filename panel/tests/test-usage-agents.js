@@ -253,6 +253,18 @@ suite.test('the Agents are derived from the items: the maestro of each active it
   });
 });
 
+suite.test('an agent\'s last activity is the latest moment the hook saw its session, even when entries arrive out of order', async () => {
+  const r = buildRoot('seen-order');
+  flow(r, ['item', 'start', '12', '--title', 'Exportar relatório', '--agent', 'Bento'], { now: sp('09:00:00') });
+  const maestro = addWorktree(r, 'feature/issue-12', 'maestro');
+  session(r, 'sess-maestro', maestro, sp('14:00:00'));
+  session(r, 'sess-maestro', maestro, sp('13:00:00')); // an older entry written late (a slow hook, a clock behind)
+  await withServer(r, async (get) => {
+    const a = (await get('/api/agents')).json;
+    assert.deepStrictEqual(a.agents.map((x) => [x.key, x.last_activity_at]), [['widgets/12/maestro', sp('14:00:00')]]);
+  });
+});
+
 suite.test('without a collection the usage says so; without bruto.db the collector still writes the plan', async () => {
   const r = buildRoot('empty');
   await withServer(r, async (get) => {
