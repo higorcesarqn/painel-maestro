@@ -18,6 +18,7 @@ O painel junta tudo isso num lugar só e não usa IA nem gasta tokens: ele só l
 
 O menu tem um grupo, Workspace (fonte em `panel/ui/src/data/context.js`):
 
+- **Itens** (modelo novo): a lista de itens (Issues do GitHub e PBIs do Azure DevOps) com a etapa de cada um, e a **página do item**, com a etapa atual, as etapas do fluxo e a linha do tempo. A página de um item tem endereço fixo, `http://127.0.0.1:4777/#items/<projeto>/<número>` (ex.: `#items/cidax/3100`), que o portal do Maestri abre direto.
 - **Visão geral:** números do topo (pendências por severidade, uso do plano, eventos de hoje), atividade e resultados de 7 dias por agente, último evento de cada agente e atividade recente. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) com os motivos: hooks parados, arquivos ilegíveis.
 - **Pendências:** a fila do dono, com filtros por severidade e status; cada pendência mostra contexto, opções e recomendação, e o dono responde ali mesmo (opção + comentário, Ctrl+Enter envia).
 - **Log:** a tabela de eventos com busca, período, chips de agente e projeto, tipo, resultado e "só o que precisa de mim". Clicar numa linha abre o **modal do evento**: o pedido inicial, a direção, os passos, os comandos brutos ligados a ele e a sequência do fluxo.
@@ -36,7 +37,7 @@ cd painel-maestro
 npm run demo
 ```
 
-Abra **http://127.0.0.1:4795/?mock=1**. O `?mock=1` faz a página ler dados fictícios de `panel/tests/mock-*.json` (um workspace "Exemplo" com dois agentes, pendências, eventos e comandos brutos); uma faixa azul avisa que são dados de teste. Para parar, Ctrl+C.
+Abra **http://127.0.0.1:4795/?mock=1**. O `?mock=1` faz a página ler dados fictícios de `panel/tests/mock-*.json` (um workspace "Exemplo" com dois agentes, pendências, eventos e comandos brutos, e, na tela Itens, itens de três empresas e de "Sem empresa" em todas as etapas, no GitHub e no Azure DevOps); uma faixa azul avisa que são dados de teste. Para parar, Ctrl+C.
 
 O servidor da demonstração aceita só as portas 4790 a 4799 (padrão 4795). Outra porta: `npm run demo -- 4794`.
 
@@ -56,7 +57,27 @@ Abra **http://127.0.0.1:4793** (sem `?mock=1`). O `PANEL_NOW` fixa o relógio no
 
 ## Ligar a dados reais
 
-### Onde ficam os dados
+### Modelo novo: itens, o CLI `flow` e o `maestro.db`
+
+O painel está passando a girar em torno do fluxo de cada **item** (#1). A primeira fatia (#5) já funciona ao lado do modelo antigo, que continua igual: o maestro roda o CLI `flow` dentro do repositório do projeto e o painel mostra o item nas telas Itens e Item.
+
+```
+node /caminho/para/painel-maestro/bin/flow.js item start 3100 --title "Conciliação de boletos"   # entra em Especificação
+node /caminho/para/painel-maestro/bin/flow.js item start 12 --title "..." --stage implementation   # sem /especificar: Especificação conta como concluída
+node /caminho/para/painel-maestro/bin/flow.js stage 3100 implementation
+node /caminho/para/painel-maestro/bin/flow.js item start --json - < item.json                   # {"number": 12, "title": "...", "stage": "...", "role": "maestro", "agent": "..."}
+node /caminho/para/painel-maestro/bin/flow.js --help
+```
+
+- **Projeto:** sai do `git remote origin` da pasta atual (também dentro do worktree de um floor; as formas SSH e HTTPS do mesmo repositório dão o mesmo projeto). Um repositório sem cadastro é cadastrado sozinho na empresa **"Sem empresa"** (id e nome tirados do nome do repositório; GitHub ou Azure DevOps pelo endereço) e o comando segue. A chave de um item é `projeto/número` (`cidax/3100`); o número aparece como no tracker: `PBI 3100` no Azure DevOps, `#12` no GitHub.
+- **Etapas** (ids em inglês, nomes em português): `specification` Especificação, `implementation` Implementação, `final_adjustment` Ajuste final, `pr_ready` PR pronto, `merge` Merge, `hml_validation` Validação HML, `done` Concluído. Etapa fora da lista do projeto é recusada.
+- **Campos:** por argumento ou por JSON na entrada padrão (`--json -`, melhor para acentos, aspas e várias linhas); o argumento vale mais que o JSON. `--role maestro|worker|owner` (padrão `maestro`) e `--agent "<codinome>"` dizem quem gravou.
+- **Erros:** dado inválido (número, etapa, título, item já iniciado ou ainda não iniciado, pasta sem `remote origin`) sai com **código 2** e a mensagem no stderr; outros erros, código 1. As mensagens vêm do dicionário pt-BR do CLI (`bin/i18n/pt-BR.js`).
+- **Dados:** cada passo vira um **evento** no `maestro.db` (SQLite embutido do Node, `node:sqlite`, Node 22.13+), em `MAESTRO_DIR`, cujo padrão para o modelo novo é **`~/.painel-maestro`** (`C:\Users\<você>\.painel-maestro`). O banco usa WAL e espera a vez (`busy_timeout`), então o maestro e os trabalhadores gravam ao mesmo tempo sem perder eventos; a versão do esquema fica no próprio banco e é migrada ao abrir. O estado do item nunca é gravado: o painel o calcula dos eventos (ADR 0002). O aviso de módulo experimental do SQLite é silenciado.
+
+Com `MAESTRO_DIR` definido, o modelo antigo e o novo usam a mesma pasta; sem ele, o antigo continua na pasta do repositório e o novo vai para `~/.painel-maestro`. O servidor lê o `maestro.db` do mesmo jeito: suba-o com o mesmo `MAESTRO_DIR` (ou nenhum) que os agentes usam.
+
+### Onde ficam os dados (modelo antigo)
 
 Tudo é lido de uma pasta raiz, o `MAESTRO_DIR`. Sem a variável, a raiz é **a própria pasta do repositório** (a pasta acima de `panel/` e de `bin/`). O jeito mais simples é clonar o repositório como `_maestro/` dentro da pasta do seu workspace:
 
@@ -181,10 +202,12 @@ As variáveis passaram para o inglês (#3). Quem tinha as antigas no ambiente pr
 
 ## Scripts de `bin/`
 
-Todos usam só a biblioteca padrão do Node e respeitam `MAESTRO_DIR`.
+Todos usam só a biblioteca padrão do Node e respeitam `MAESTRO_DIR` (o `flow.js` precisa do Node 22.13+, pelo `node:sqlite`).
 
 | Script | Para que serve |
 |---|---|
+| `flow.js` | **modelo novo**: `item start` e `stage` gravam os eventos de um item no `maestro.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)) |
+| `flow-store.js`, `flow-projection.js`, `flow-repo.js`, `i18n/` | banco do modelo novo (`node:sqlite`, WAL, migrações), projeção pura do estado do item, projeto pelo `git remote origin` e o dicionário pt-BR do CLI |
 | `registrar.js` | log semântico: `novo-fluxo`, `evento`, `ultimos`, `fluxo` |
 | `pendencia.js` | fila de pendências do dono: `abrir`, `listar`, `mostrar`, `responder`, `resolver`, `cancelar` |
 | `hook-log.js` | hook do Claude Code que grava o log bruto e o estado das sessões |
@@ -226,15 +249,20 @@ npm test                                   # node panel/tests/run-all.js
 node panel/tests/run-all.js server       # só os arquivos com "server" no nome
 ```
 
-Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das pendências usa uma CLI do Maestri falsa, que só grava os argumentos. São 7 arquivos: coletor de uso, hook do log bruto, desempenho (50 mil eventos e log bruto grande), página compilada, filtro de horário, pendências e servidor. Eles conferem códigos, não frases.
+Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das pendências usa uma CLI do Maestri falsa, que só grava os argumentos. São 9 arquivos: coletor de uso, modelo novo (`test-flow.js`), hook do log bruto, dicionário, desempenho (50 mil eventos e log bruto grande), página compilada, filtro de horário, pendências e servidor. Eles conferem códigos, não frases. O `test-flow.js` segue uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
 
-Para regerar os dados da demonstração: `node panel/tests/generate-mock.js`.
+Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, para os itens, `node panel/tests/generate-mock-items.js` (usa a mesma projeção do servidor).
 
 ## Estrutura
 
 ```
 painel-maestro/
 ├── bin/                      scripts de linha de comando (só biblioteca padrão do Node)
+│   ├── flow.js               modelo novo: CLI que grava os eventos de cada item no maestro.db
+│   ├── flow-store.js         maestro.db (node:sqlite, WAL, esquema e migrações)
+│   ├── flow-projection.js    estado do item calculado dos eventos (função pura)
+│   ├── flow-repo.js          projeto pelo git remote origin
+│   ├── i18n/                 dicionário pt-BR das mensagens do CLI
 │   ├── registrar.js          log de eventos e fluxos
 │   ├── pendencia.js          fila de pendências do dono
 │   ├── hook-log.js           hook do Claude Code → log bruto
@@ -243,6 +271,7 @@ painel-maestro/
 │   └── lib.js                biblioteca comum
 ├── panel/
 │   ├── server.js             servidor HTTP e API (em inglês, devolve códigos)
+│   ├── api-items.js          itens do modelo novo (/api/items)
 │   ├── legacy-records.js     nomes em inglês para os registros do modelo antigo
 │   ├── api-pendencias.js     resposta de pendência pelo painel
 │   ├── index.html            a página compilada (não edite à mão)
@@ -268,7 +297,7 @@ painel-maestro/
 
 ## Requisitos e limites
 
-- Node.js 18 ou mais novo para o servidor e os scripts (desenvolvido e testado no Node 22); Node 20.19+ ou 22.12+ para compilar a página.
+- Node.js 22.13 ou mais novo para o servidor e o `flow.js` (o `node:sqlite` do modelo novo; desenvolvido e testado no Node 22.23); os scripts do modelo antigo rodam no Node 18+; Node 20.19+ ou 22.12+ para compilar a página.
 - Desenvolvido e testado no Windows. Os caminhos e a trava entre processos têm tratamento para outros sistemas, mas eles não foram testados.
 - O painel só lê arquivos: quem mantém os dados em dia são os seus agentes.
 - O botão de conversar com o Cérebro pelo painel ainda não existe (`POST /api/brain` responde 501).

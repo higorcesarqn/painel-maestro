@@ -1,0 +1,1043 @@
+{
+  "generated_at": "2026-10-09T10:24:30-03:00",
+  "items": [
+    {
+      "key": "scratch/3",
+      "project": {
+        "id": "scratch",
+        "name": "scratch",
+        "tracker": "github",
+        "company": {
+          "id": "unassigned",
+          "name": "Sem empresa"
+        }
+      },
+      "number": 3,
+      "tracker": "github",
+      "tracker_ref": "#3",
+      "title": "Testar o layout do relatório",
+      "stage": "specification",
+      "stage_since": "2026-10-09T10:05:00-03:00",
+      "started_at": "2026-10-09T10:05:00-03:00",
+      "updated_at": "2026-10-09T10:05:00-03:00"
+    },
+    {
+      "key": "storefront/48",
+      "project": {
+        "id": "storefront",
+        "name": "Loja",
+        "tracker": "github",
+        "company": {
+          "id": "fabrikam",
+          "name": "Fabrikam"
+        }
+      },
+      "number": 48,
+      "tracker": "github",
+      "tracker_ref": "#48",
+      "title": "Carrinho salvo entre dispositivos",
+      "stage": "final_adjustment",
+      "stage_since": "2026-10-09T09:40:00-03:00",
+      "started_at": "2026-10-02T10:00:00-03:00",
+      "updated_at": "2026-10-09T09:40:00-03:00"
+    },
+    {
+      "key": "billing-api/2901",
+      "project": {
+        "id": "billing-api",
+        "name": "Cobrança",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 2901,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 2901",
+      "title": "Limite de tentativas por cartão",
+      "stage": "specification",
+      "stage_since": "2026-10-09T08:50:00-03:00",
+      "started_at": "2026-10-09T08:50:00-03:00",
+      "updated_at": "2026-10-09T08:50:00-03:00"
+    },
+    {
+      "key": "painel-maestro/5",
+      "project": {
+        "id": "painel-maestro",
+        "name": "painel-maestro",
+        "tracker": "github",
+        "company": {
+          "id": "personal",
+          "name": "Pessoal"
+        }
+      },
+      "number": 5,
+      "tracker": "github",
+      "tracker_ref": "#5",
+      "title": "Item ponta a ponta (tracer bullet)",
+      "stage": "implementation",
+      "stage_since": "2026-10-09T07:30:00-03:00",
+      "started_at": "2026-10-09T07:30:00-03:00",
+      "updated_at": "2026-10-09T07:30:00-03:00"
+    },
+    {
+      "key": "storefront/52",
+      "project": {
+        "id": "storefront",
+        "name": "Loja",
+        "tracker": "github",
+        "company": {
+          "id": "fabrikam",
+          "name": "Fabrikam"
+        }
+      },
+      "number": 52,
+      "tracker": "github",
+      "tracker_ref": "#52",
+      "title": "Cupom de primeira compra",
+      "stage": "merge",
+      "stage_since": "2026-10-08T20:05:00-03:00",
+      "started_at": "2026-10-04T11:00:00-03:00",
+      "updated_at": "2026-10-08T20:05:00-03:00"
+    },
+    {
+      "key": "billing-api/2875",
+      "project": {
+        "id": "billing-api",
+        "name": "Cobrança",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 2875,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 2875",
+      "title": "Reprocessar cobranças recusadas pelo gateway",
+      "stage": "pr_ready",
+      "stage_since": "2026-10-08T18:10:00-03:00",
+      "started_at": "2026-10-03T08:30:00-03:00",
+      "updated_at": "2026-10-08T18:10:00-03:00"
+    },
+    {
+      "key": "portal/3112",
+      "project": {
+        "id": "portal",
+        "name": "Portal Contoso",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 3112,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 3112",
+      "title": "Exportar o extrato em PDF",
+      "stage": "implementation",
+      "stage_since": "2026-10-08T10:20:00-03:00",
+      "started_at": "2026-10-07T14:00:00-03:00",
+      "updated_at": "2026-10-08T10:20:00-03:00"
+    },
+    {
+      "key": "portal/3100",
+      "project": {
+        "id": "portal",
+        "name": "Portal Contoso",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 3100,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 3100",
+      "title": "Conciliação de boletos com o extrato do banco",
+      "stage": "hml_validation",
+      "stage_since": "2026-10-08T09:05:00-03:00",
+      "started_at": "2026-10-01T09:10:00-03:00",
+      "updated_at": "2026-10-08T09:05:00-03:00"
+    },
+    {
+      "key": "painel-maestro/2",
+      "project": {
+        "id": "painel-maestro",
+        "name": "painel-maestro",
+        "tracker": "github",
+        "company": {
+          "id": "personal",
+          "name": "Pessoal"
+        }
+      },
+      "number": 2,
+      "tracker": "github",
+      "tracker_ref": "#2",
+      "title": "Remover Trello e Prospecção",
+      "stage": "done",
+      "stage_since": "2026-10-07T08:12:00-03:00",
+      "started_at": "2026-10-06T09:00:00-03:00",
+      "updated_at": "2026-10-07T08:12:00-03:00"
+    }
+  ],
+  "details": {
+    "scratch/3": {
+      "key": "scratch/3",
+      "project": {
+        "id": "scratch",
+        "name": "scratch",
+        "tracker": "github",
+        "company": {
+          "id": "unassigned",
+          "name": "Sem empresa"
+        }
+      },
+      "number": 3,
+      "tracker": "github",
+      "tracker_ref": "#3",
+      "title": "Testar o layout do relatório",
+      "stage": "specification",
+      "stage_since": "2026-10-09T10:05:00-03:00",
+      "started_at": "2026-10-09T10:05:00-03:00",
+      "updated_at": "2026-10-09T10:05:00-03:00",
+      "stages": [
+        {
+          "id": "specification",
+          "status": "current",
+          "entered_at": "2026-10-09T10:05:00-03:00"
+        },
+        {
+          "id": "implementation",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "final_adjustment",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "merge",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "hml_validation",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "timeline": [
+        {
+          "id": 24,
+          "at": "2026-10-09T10:05:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Testar o layout do relatório",
+            "stage": "specification"
+          }
+        }
+      ]
+    },
+    "storefront/48": {
+      "key": "storefront/48",
+      "project": {
+        "id": "storefront",
+        "name": "Loja",
+        "tracker": "github",
+        "company": {
+          "id": "fabrikam",
+          "name": "Fabrikam"
+        }
+      },
+      "number": 48,
+      "tracker": "github",
+      "tracker_ref": "#48",
+      "title": "Carrinho salvo entre dispositivos",
+      "stage": "final_adjustment",
+      "stage_since": "2026-10-09T09:40:00-03:00",
+      "started_at": "2026-10-02T10:00:00-03:00",
+      "updated_at": "2026-10-09T09:40:00-03:00",
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": "2026-10-02T10:00:00-03:00"
+        },
+        {
+          "id": "implementation",
+          "status": "done",
+          "entered_at": "2026-10-02T16:00:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "current",
+          "entered_at": "2026-10-09T09:40:00-03:00"
+        },
+        {
+          "id": "pr_ready",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "merge",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "timeline": [
+        {
+          "id": 3,
+          "at": "2026-10-02T10:00:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Carrinho salvo entre dispositivos",
+            "stage": "specification"
+          }
+        },
+        {
+          "id": 4,
+          "at": "2026-10-02T16:00:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 23,
+          "at": "2026-10-09T09:40:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "final_adjustment"
+          }
+        }
+      ]
+    },
+    "billing-api/2901": {
+      "key": "billing-api/2901",
+      "project": {
+        "id": "billing-api",
+        "name": "Cobrança",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 2901,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 2901",
+      "title": "Limite de tentativas por cartão",
+      "stage": "specification",
+      "stage_since": "2026-10-09T08:50:00-03:00",
+      "started_at": "2026-10-09T08:50:00-03:00",
+      "updated_at": "2026-10-09T08:50:00-03:00",
+      "stages": [
+        {
+          "id": "specification",
+          "status": "current",
+          "entered_at": "2026-10-09T08:50:00-03:00"
+        },
+        {
+          "id": "implementation",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "final_adjustment",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "merge",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "hml_validation",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "timeline": [
+        {
+          "id": 22,
+          "at": "2026-10-09T08:50:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Limite de tentativas por cartão",
+            "stage": "specification"
+          }
+        }
+      ]
+    },
+    "painel-maestro/5": {
+      "key": "painel-maestro/5",
+      "project": {
+        "id": "painel-maestro",
+        "name": "painel-maestro",
+        "tracker": "github",
+        "company": {
+          "id": "personal",
+          "name": "Pessoal"
+        }
+      },
+      "number": 5,
+      "tracker": "github",
+      "tracker_ref": "#5",
+      "title": "Item ponta a ponta (tracer bullet)",
+      "stage": "implementation",
+      "stage_since": "2026-10-09T07:30:00-03:00",
+      "started_at": "2026-10-09T07:30:00-03:00",
+      "updated_at": "2026-10-09T07:30:00-03:00",
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "implementation",
+          "status": "current",
+          "entered_at": "2026-10-09T07:30:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "merge",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "timeline": [
+        {
+          "id": 21,
+          "at": "2026-10-09T07:30:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Item ponta a ponta (tracer bullet)",
+            "stage": "implementation"
+          }
+        }
+      ]
+    },
+    "storefront/52": {
+      "key": "storefront/52",
+      "project": {
+        "id": "storefront",
+        "name": "Loja",
+        "tracker": "github",
+        "company": {
+          "id": "fabrikam",
+          "name": "Fabrikam"
+        }
+      },
+      "number": 52,
+      "tracker": "github",
+      "tracker_ref": "#52",
+      "title": "Cupom de primeira compra",
+      "stage": "merge",
+      "stage_since": "2026-10-08T20:05:00-03:00",
+      "started_at": "2026-10-04T11:00:00-03:00",
+      "updated_at": "2026-10-08T20:05:00-03:00",
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "implementation",
+          "status": "done",
+          "entered_at": "2026-10-04T11:00:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "done",
+          "entered_at": "2026-10-06T13:20:00-03:00"
+        },
+        {
+          "id": "merge",
+          "status": "current",
+          "entered_at": "2026-10-08T20:05:00-03:00"
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "timeline": [
+        {
+          "id": 6,
+          "at": "2026-10-04T11:00:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Cupom de primeira compra",
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 10,
+          "at": "2026-10-06T13:20:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "pr_ready"
+          }
+        },
+        {
+          "id": 20,
+          "at": "2026-10-08T20:05:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "merge"
+          }
+        }
+      ]
+    },
+    "billing-api/2875": {
+      "key": "billing-api/2875",
+      "project": {
+        "id": "billing-api",
+        "name": "Cobrança",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 2875,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 2875",
+      "title": "Reprocessar cobranças recusadas pelo gateway",
+      "stage": "pr_ready",
+      "stage_since": "2026-10-08T18:10:00-03:00",
+      "started_at": "2026-10-03T08:30:00-03:00",
+      "updated_at": "2026-10-08T18:10:00-03:00",
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "implementation",
+          "status": "done",
+          "entered_at": "2026-10-03T08:30:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "done",
+          "entered_at": "2026-10-07T16:45:00-03:00"
+        },
+        {
+          "id": "pr_ready",
+          "status": "current",
+          "entered_at": "2026-10-08T18:10:00-03:00"
+        },
+        {
+          "id": "merge",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "hml_validation",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "timeline": [
+        {
+          "id": 5,
+          "at": "2026-10-03T08:30:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Reprocessar cobranças recusadas pelo gateway",
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 15,
+          "at": "2026-10-07T16:45:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "final_adjustment"
+          }
+        },
+        {
+          "id": 19,
+          "at": "2026-10-08T18:10:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "pr_ready"
+          }
+        }
+      ]
+    },
+    "portal/3112": {
+      "key": "portal/3112",
+      "project": {
+        "id": "portal",
+        "name": "Portal Contoso",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 3112,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 3112",
+      "title": "Exportar o extrato em PDF",
+      "stage": "implementation",
+      "stage_since": "2026-10-08T10:20:00-03:00",
+      "started_at": "2026-10-07T14:00:00-03:00",
+      "updated_at": "2026-10-08T10:20:00-03:00",
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": "2026-10-07T14:00:00-03:00"
+        },
+        {
+          "id": "implementation",
+          "status": "current",
+          "entered_at": "2026-10-08T10:20:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "merge",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "hml_validation",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "timeline": [
+        {
+          "id": 14,
+          "at": "2026-10-07T14:00:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Exportar o extrato em PDF",
+            "stage": "specification"
+          }
+        },
+        {
+          "id": 18,
+          "at": "2026-10-08T10:20:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "implementation"
+          }
+        }
+      ]
+    },
+    "portal/3100": {
+      "key": "portal/3100",
+      "project": {
+        "id": "portal",
+        "name": "Portal Contoso",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 3100,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 3100",
+      "title": "Conciliação de boletos com o extrato do banco",
+      "stage": "hml_validation",
+      "stage_since": "2026-10-08T09:05:00-03:00",
+      "started_at": "2026-10-01T09:10:00-03:00",
+      "updated_at": "2026-10-08T09:05:00-03:00",
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": "2026-10-01T09:10:00-03:00"
+        },
+        {
+          "id": "implementation",
+          "status": "done",
+          "entered_at": "2026-10-01T15:40:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "done",
+          "entered_at": "2026-10-05T11:02:00-03:00"
+        },
+        {
+          "id": "pr_ready",
+          "status": "done",
+          "entered_at": "2026-10-06T10:15:00-03:00"
+        },
+        {
+          "id": "merge",
+          "status": "done",
+          "entered_at": "2026-10-07T17:30:00-03:00"
+        },
+        {
+          "id": "hml_validation",
+          "status": "current",
+          "entered_at": "2026-10-08T09:05:00-03:00"
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "timeline": [
+        {
+          "id": 1,
+          "at": "2026-10-01T09:10:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Conciliação de boletos com o extrato do banco",
+            "stage": "specification"
+          }
+        },
+        {
+          "id": 2,
+          "at": "2026-10-01T15:40:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 7,
+          "at": "2026-10-05T11:02:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "final_adjustment"
+          }
+        },
+        {
+          "id": 9,
+          "at": "2026-10-06T10:15:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "pr_ready"
+          }
+        },
+        {
+          "id": 16,
+          "at": "2026-10-07T17:30:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "merge"
+          }
+        },
+        {
+          "id": 17,
+          "at": "2026-10-08T09:05:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "hml_validation"
+          }
+        }
+      ]
+    },
+    "painel-maestro/2": {
+      "key": "painel-maestro/2",
+      "project": {
+        "id": "painel-maestro",
+        "name": "painel-maestro",
+        "tracker": "github",
+        "company": {
+          "id": "personal",
+          "name": "Pessoal"
+        }
+      },
+      "number": 2,
+      "tracker": "github",
+      "tracker_ref": "#2",
+      "title": "Remover Trello e Prospecção",
+      "stage": "done",
+      "stage_since": "2026-10-07T08:12:00-03:00",
+      "started_at": "2026-10-06T09:00:00-03:00",
+      "updated_at": "2026-10-07T08:12:00-03:00",
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "implementation",
+          "status": "done",
+          "entered_at": "2026-10-06T09:00:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "done",
+          "entered_at": "2026-10-06T18:30:00-03:00"
+        },
+        {
+          "id": "merge",
+          "status": "done",
+          "entered_at": "2026-10-07T08:10:00-03:00"
+        },
+        {
+          "id": "done",
+          "status": "current",
+          "entered_at": "2026-10-07T08:12:00-03:00"
+        }
+      ],
+      "timeline": [
+        {
+          "id": 8,
+          "at": "2026-10-06T09:00:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Remover Trello e Prospecção",
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 11,
+          "at": "2026-10-06T18:30:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "pr_ready"
+          }
+        },
+        {
+          "id": 12,
+          "at": "2026-10-07T08:10:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "merge"
+          }
+        },
+        {
+          "id": 13,
+          "at": "2026-10-07T08:12:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "done"
+          }
+        }
+      ]
+    }
+  }
+}

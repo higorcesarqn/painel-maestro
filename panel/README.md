@@ -7,6 +7,7 @@ Painel local de um workspace multiagente (Maestri + Claude Code). Um servidor No
 | `panel/server.js` | servidor HTTP e API (Node 22, CommonJS, sem dependências) |
 | `panel/ui/` | **fonte da página**: app Preact com identidade visual própria (telas, componentes, gráficos em SVG). O build gera o `index.html` |
 | `panel/index.html` | a página compilada (arquivo único, sem nada externo; não edite à mão: rode o build do `ui/`) |
+| `panel/api-items.js` | itens do modelo novo: lê os eventos do `maestro.db` (`bin/flow-store.js`) e calcula cada item pela projeção pura (`bin/flow-projection.js`) |
 | `panel/api-pendencias.js` | resposta de pendência pelo painel: grava pelo `pendencia.js responder` e avisa o Cérebro (`maestri ask`) |
 | `bin/collect-usage.js` | coletor de uso do Claude, chamado pelo servidor e pela linha de comando |
 | `bin/time-window.js` | filtro de horário para o `--pre-run` das rotinas |
@@ -51,6 +52,8 @@ Com `taskkill /F` o processo morre sem chance de limpar, então o `panel.pid` an
 | `GET /api/events?since=&until=&hours=&agent=&project=&type=&result=&q=&owner_only=1&include_tests=1&flow=&page=1&per_page=50` | `{total, page, per_page, pages, events, counts}` de todos os meses, mais recente primeiro. `counts` = `{result, agent, project, type, needs_owner}` do conjunto filtrado, sem paginação; cada faceta ignora o próprio filtro (os chips mostram o que dá para escolher) e `needs_owner` ignora o `owner_only` |
 | `GET /api/event/<id>` | `{event, flow, initial_request, sequence, raw_commands, raw_commands_truncated, raw_commands_omitted, raw_commands_warnings, window_without_flow, previous_id, next_id}`; 404 se não existir |
 | `GET /api/flow/<id>` | `{flow, events, raw_commands, raw_commands_truncated, raw_commands_omitted, raw_commands_warnings, initial_request}`; `?include_tests=1` traz os eventos de teste |
+| `GET /api/items` | modelo novo: `{items}`, um por item com evento `item-started`, o mais recente primeiro. Cada item: `{key, project: {id, name, tracker, company: {id, name}}, number, tracker, tracker_ref, title, stage, stage_since, started_at, updated_at}`. `key` é `<projeto>/<número>`; `tracker` é `github` ou `azure_devops`; `tracker_ref` é o número como no tracker (`#12`, `PBI 3100`). Sem `maestro.db` ainda: `{items: []}` (o servidor não cria o banco) |
+| `GET /api/items/<projeto>/<número>` | `{item}`: os mesmos campos, mais `stages` (`[{id, status: done\|current\|pending, entered_at}]`, as etapas do projeto em ordem) e `timeline` (`[{id, at, type, task_number, agent: {role, name}, source, payload}]`, todos os eventos do item em ordem). 404 `item_not_found` (`{project, number}`) se o item não existe; endereço fora do formato (projeto `[a-z0-9-]`, número inteiro sem zero à esquerda) → 404 `route_not_found` |
 | `POST /api/recalculate` | roda o coletor de uso e devolve o mesmo corpo de `/api/state` (+ `recalculation`) |
 | `POST /api/brain` | 501: reservado para uma fase futura (conversa com o Cérebro pelo painel) |
 | `POST /api/pending-decisions/<P-NNNN>/answer` | corpo `{"option": "A", "text": "..."}` (pelo menos um; texto até 2000 caracteres): grava a resposta pelo `pendencia.js responder` (status `respondida`, evento `decisao` no fluxo da pendência) e avisa o Cérebro no terminal dele. Devolve `{ok, pending_decision, brain_notice: {sent, to \| reason}}`; 409 se a pendência não estiver aberta, 404 se não existir, 400 para corpo ou opção inválidos |
@@ -86,6 +89,7 @@ A tela fica em `#<id>` na URL (com sub-abas, `#<id>/<sub>`: o App entrega a sub-
 **Textos (ADR 0004).** O código da página é em inglês (identificadores, arquivos, classes CSS e comentários) e nenhum texto visível fica escrito em componente ou tela: tudo vem do dicionário `ui/src/i18n/pt-BR.js`, pela função `t(chave, parâmetros)` de `ui/src/i18n/index.js` (ex.: `t('log.page', { page: 2, pages: 7 })` → "Página 2 de 7"). Uma entrada é um texto com `{parâmetro}`, um plural `{ one, other }` escolhido por `count` (que sai formatado como número) ou uma função, quando o texto precisa de lógica. Os códigos do servidor ficam na seção `codes` e saem por `translateCode(código)`; `txt(valor)` (`ui/src/data/format.js`) mostra qualquer valor da API, traduzindo o que for código. O idioma ativo é um ponto só, `ui/src/i18n/locale.js` (fixo em `pt-BR`), que também decide o formato de datas e números (padrão brasileiro). Acrescentar o inglês é escrever outro dicionário com as mesmas chaves e registrá-lo em `index.js`. Os endereços antigos das telas (`#visao`, `#pendencias`, `#agentes`, `#uso`) continuam abrindo a tela certa.
 
 **Telas** (o menu tem um grupo, Workspace):
+- **Itens** (modelo novo, `ui/src/screens/Items.jsx`): a lista (`GET /api/items`: item como no tracker, título, etapa, projeto e empresa, última mudança; clique ou Enter abre o item) e a **página do item** em `#items/<projeto>/<número>` (`GET /api/items/<projeto>/<número>`): número, projeto, tracker, título, a etapa atual e desde quando, as etapas do fluxo (concluídas, atual, a seguir) e a linha do tempo. Esse endereço é fixo: é o que o portal do Maestri abre (`http://127.0.0.1:4777/#items/cidax/3100`). A tela relê a cada 20 s enquanto está aberta. Os nomes das etapas, papéis e trackers vêm do dicionário (`items.*`).
 - **Visão geral:** números do topo (pendências por severidade, uso 5 h e semanal, eventos de hoje), atividade de 7 dias por agente, resultados de 7 dias, último evento de cada agente e atividade recente.
 - **Pendências:** números no topo (abertas, por severidade, respondidas, fechadas, a mais antiga; clicar filtra), lista, a pendência e a **resposta**: opção (a recomendada vem marcada) + comentário, Ctrl+Enter envia (`POST /api/pending-decisions/<id>/answer`). A resposta fica gravada na pendência e vai ao terminal do Cérebro; depois a próxima aberta já aparece.
 - **Log:** cartões por resultado no topo (clicar filtra), busca (atalho "/"), período em botões, agentes e projetos como chips com contagem, tipo, "só o que precisa de mim", testes e filtros ativos com x; tabela com 50 por página.
@@ -106,7 +110,7 @@ Depois do build, a página nova aparece no próximo carregamento (o servidor lê
 
 ### Modo de teste (`?mock=1`)
 
-Para mexer na página sem servidor nem dados reais: `node panel/tests/serve-mock.js` (porta 4795; aceita 4790–4799) e abra `http://127.0.0.1:4795/?mock=1`. A página lê `tests/mock-state.json` (resposta de `/api/state`) e `tests/mock-details.json` (eventos completos, comandos brutos e fluxos) e imita `/api/events`, `/api/event/<id>` e `/api/flow/<id>` no próprio navegador. Uma faixa azul avisa que os dados são fictícios. `tests/generate-mock.js` regrava os dois arquivos. Em produção (sem `?mock=1`) nada disso é usado, e o servidor real nem serve `/tests/...` (404).
+Para mexer na página sem servidor nem dados reais: `node panel/tests/serve-mock.js` (porta 4795; aceita 4790–4799) e abra `http://127.0.0.1:4795/?mock=1`. A página lê `tests/mock-state.json` (resposta de `/api/state`), `tests/mock-details.json` (eventos completos, comandos brutos e fluxos) e `tests/mock-items.json` (respostas de `/api/items` e `/api/items/<projeto>/<número>`: Contoso, Fabrikam, Pessoal e "Sem empresa", projetos GitHub e Azure DevOps e itens em todas as etapas) e imita `/api/events`, `/api/event/<id>`, `/api/flow/<id>` e as rotas de itens no próprio navegador. O `tests/generate-mock-items.js` regrava o `mock-items.json` passando eventos fictícios pelo próprio `api-items.js` (a mesma projeção do servidor). Uma faixa azul avisa que os dados são fictícios. `tests/generate-mock.js` regrava os dois arquivos. Em produção (sem `?mock=1`) nada disso é usado, e o servidor real nem serve `/tests/...` (404).
 
 Para ver a página com o **servidor de verdade** sobre os mesmos dados: `node tests/build-mock-root.js [pasta em tests/tmp] [--hostile]` monta uma raiz falsa de dados (`MAESTRO_DIR`) e imprime a linha para subir o `server.js` nela (porta de teste, relógio fixo, coletor desligado). `--hostile` acrescenta evento e pendência com HTML e `javascript:` para conferir que tudo aparece como texto.
 
@@ -116,6 +120,7 @@ Exemplo completo (Git Bash), da raiz do repositório: `node panel/tests/build-mo
 
 | No painel | Arquivo (em `MAESTRO_DIR`) | Quem grava |
 |---|---|---|
+| itens, etapas, linha do tempo (modelo novo) | `maestro.db` (padrão `~/.painel-maestro/maestro.db` quando `MAESTRO_DIR` não está definido) | `bin/flow.js` |
 | agentes, cores, modelo, nível, skills | `registro/agentes.json` (modelo antigo) | Cérebro |
 | tabela de log, modal, últimos eventos | `logs/eventos/AAAA-MM.jsonl` (modelo antigo; `/api/state` lê os 2 meses mais recentes; filtros e fluxos leem todos) | `bin/registrar.js` |
 | comandos brutos, saúde dos hooks | `logs/raw/<agente>/AAAA-MM-DD.jsonl` (e `.jsonl.gz`) | `bin/hook-log.js` (hooks do Claude Code) |
@@ -128,6 +133,17 @@ Exemplo completo (Git Bash), da raiz do repositório: `node panel/tests/build-mo
 Os arquivos marcados como modelo antigo continuam com os nomes e campos em português que os comandos antigos gravam; eles saem na #18. O que sobrevive grava em inglês: a linha do log bruto é `{ts, agent, terminal, session, flow_id?, hook_event, tool?, input?, ok?, output_summary?, error?, duration_ms?, prompt?, detail?, cwd, version?}` e a sessão é `{session_id, agent, terminal, cwd, transcript_path, started_at, seen_at, flow_id, flow_since}`.
 
 A leitura é tolerante: arquivo ausente vira `null` ou lista vazia, linha JSONL quebrada é ignorada (e contada em `warnings`), linha final ainda sendo escrita fica para a próxima leitura, e arquivo preso por outro processo (EPERM/EBUSY no Windows) é lido de novo em seguida. Os JSONL são lidos de forma incremental (só os bytes novos), então a página continua rápida com dezenas de milhares de eventos.
+
+## Modelo novo: `maestro.db`
+
+Gravado pelo `bin/flow.js` (veja o README da raiz) e lido pelo `api-items.js`, pelo `node:sqlite` (Node 22.13+, sem npm; o `ExperimentalWarning` é silenciado em `bin/flow-store.js`). WAL e `busy_timeout` de 15 s: cada gravação é uma transação curta `BEGIN IMMEDIATE`, então vários processos gravam ao mesmo tempo sem perder eventos. A versão do esquema fica em `PRAGMA user_version` e as migrações rodam ao abrir (`MIGRATIONS` em `bin/flow-store.js`). Tabelas:
+
+- `companies(id, name, created_at)`: a "Sem empresa" é `unassigned`.
+- `projects(id, name, company_id, tracker, stages, done_state, maestri_workspace, created_at)`: `tracker` `github`/`azure_devops`; `stages` é a lista JSON de etapas que o projeto usa (padrão: as sete).
+- `project_repos(remote, project_id)`: o remote normalizado (`github.com/acme/widgets`, `dev.azure.com/org/projeto/_git/repo`) aponta para o projeto; um projeto pode ter vários repositórios.
+- `events(id, at, type, project_id, item_number, task_number, agent_role, agent_name, source, payload)`: append-only (gatilhos recusam UPDATE e DELETE), guardada para sempre. Tipos desta fatia: `item-started` (`{title, stage}`) e `stage-changed` (`{stage}`); `source` é `cli`.
+
+O estado de um item nunca é gravado: `projectItem(events, project)` (`bin/flow-projection.js`, função pura) devolve `{number, title, stage, stages, started_at, updated_at, stage_since}` e ignora tipos de evento que ainda não conhece.
 
 ## Saúde (selo do cabeçalho)
 
@@ -169,7 +185,7 @@ O fim é exclusivo (`8 22` aceita de 08:00 a 21:59; use `24` para ir até 23:59)
 | Variável | Nome antigo | Padrão | Para quê |
 |---|---|---|---|
 | `PANEL_PORT` | `PAINEL_PORTA` | 4777 | porta (o `--port`, antes `--porta`, vale mais) |
-| `MAESTRO_DIR` | (igual) | a pasta acima de `panel/` (a raiz do repositório) | raiz dos dados (os testes apontam para `panel/tests/tmp/`) |
+| `MAESTRO_DIR` | (igual) | modelo antigo: a pasta acima de `panel/` (a raiz do repositório); modelo novo (`maestro.db`): `~/.painel-maestro` | raiz dos dados (os testes apontam para `panel/tests/tmp/`). Definida, vale para os dois modelos |
 | `MAESTRI_DATA_DIR` | (igual) | `~/.maestri` | onde está `usage/providers/.status.json` (o Maestri já define nos terminais dele) |
 | `CLAUDE_CONFIG_DIR` | (igual) | `~/.claude` | transcrições de sessões sem `transcript_path` |
 | `PANEL_COLLECTOR` | `PAINEL_COLETOR` | (ligado) | `0` desliga o coletor automático (o botão Recalcular continua funcionando) |
@@ -204,12 +220,13 @@ node panel/tests/run-all.js server   # só os arquivos com "server" no nome
 ```
 
 - `test-collector.js`: transcrições falsas (deduplicação pela última linha, subagentes, sessão sem dono, cache incremental, arquivo crescendo, arquivo trocado, plano indisponível, janela reiniciada, % do plano no 7d pela semana do plano, CLI); motivos e avisos conferidos como códigos.
+- `test-flow.js`: o modelo novo, só pela seam combinada: o CLI `bin/flow.js` roda como processo dentro de repositórios git temporários com `remote origin` fictício → `maestro.db` temporário (`MAESTRO_DIR`) → API do servidor. Iniciar item e mudar etapa (lista e item pela API), auto-cadastro em "Sem empresa", worktree com o mesmo projeto, Azure DevOps (`PBI 3100`, remotes SSH e HTTPS iguais), JSON pela entrada padrão (acentos, aspas, várias linhas; argumento vale mais), dados inválidos com código 2 e nada gravado, nenhum `ExperimentalWarning` na saída, 12 processos concorrentes (banco novo, mesmo repositório sem cadastro, mesmo item) sem perder evento, 404/403/405 da API e o servidor sem banco. Nenhum teste lê o banco.
 - `test-hook.js`: o hook rodando como processo, alimentado pela entrada padrão como o Claude Code faz (prompt, ferramenta, falha, sessão fora do workspace, entrada inválida), conferido só pela API: comandos ligados ao fluxo, segredo redigido, saúde dos hooks e sessão contada pelo coletor.
 - `test-server.js`: raiz falsa realista numa porta de 4790 a 4799 (cada rota, filtros, modal, Host forjado → 403, POST sem `X-Panel` → 403, caminhos estranhos → 404, métodos errados → 405, leitura tolerante, porta ocupada, PID, anti-iframe, pedido inicial pelo prompt sem `flow_id`, vizinhos só com id válido, índice do log bruto, fluxo longo, itens null no estado, rotas antigas e em português removidas → 404, nenhuma frase em português nas respostas).
 - `test-performance.js`: 50 mil eventos e log bruto grande e um fluxo aberto há 31 dias, cuja 2ª consulta usa o índice sem reler o log (`HEAVY_TEST=1` multiplica o log bruto).
 - `test-time-window.js`: `time-window.js`.
 - `test-pending-decisions.js`: resposta de pendência pelo painel numa raiz falsa, com um `maestri` falso (opção + comentário, só texto, 409 na segunda resposta e em pendência fechada, 400/404, sem `X-Panel` → 403, GET → 405, aviso desligado, mensagem ao Cérebro numa linha só, sem barra invertida nem aspas retas).
 - `test-i18n.js`: o dicionário sem navegador: o idioma ativo é um ponto só (pt-BR), `t()` com parâmetros e plural, todo código que o servidor pode devolver tem tradução (com os mesmos textos de antes), toda chave usada existe e toda chave existe porque é usada, e nenhum texto visível escrito direto em componente ou tela.
-- `test-index.js`: a página sem navegador. No build: arquivo único (fonte embutida, `url()` só `data:`, nenhuma URL além dos namespaces XML do Preact), script compila, só rotas do contrato. Na fonte (`ui/src`): nenhum `innerHTML`/`dangerouslySetInnerHTML`/`eval`, nenhum `href` para fora, intervalos e fuso do contrato. Mais o cenário do mock e o servidor real numa raiz montada do mock com dados hostis (campos que a página lê, filtros, modal, 404, POST sem `X-Panel` → 403, Recalcular, `/api/brain` → 501). Rode depois de cada `npm run build`.
+- `test-index.js`: a página sem navegador. No build: arquivo único (fonte embutida, `url()` só `data:`, nenhuma URL além dos namespaces XML do Preact), script compila, só rotas do contrato (inclusive `/api/items`). O `mock-items.json` tem item em toda etapa, os dois trackers e várias empresas, e a página do item lê `#items/<projeto>/<número>`. Na fonte (`ui/src`): nenhum `innerHTML`/`dangerouslySetInnerHTML`/`eval`, nenhum `href` para fora, intervalos e fuso do contrato. Mais o cenário do mock e o servidor real numa raiz montada do mock com dados hostis (campos que a página lê, filtros, modal, 404, POST sem `X-Panel` → 403, Recalcular, `/api/brain` → 501). Rode depois de cada `npm run build`.
 
 Tudo é gravado em `panel/tests/tmp/<teste>-<pid>/` e apagado no fim (`KEEP_TMP=1` guarda para inspeção). Os servidores de teste são derrubados pelo PID que eles mesmos imprimem.
