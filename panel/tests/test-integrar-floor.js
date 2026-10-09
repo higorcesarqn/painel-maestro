@@ -120,6 +120,16 @@ suite.test('integrating a floor fast-forwards and pushes the integradora and rec
   assert.match(maestriLog(r), /floor delete Gerar PDF/);
 });
 
+suite.test('portable: item and task come out of the branches without GNU extensions (sed --posix as a BSD sed)', async () => {
+  const r = buildRoot('posix');
+  startItem(r);
+  // An exported bash function wins over the PATH (Git Bash puts /usr/bin first): every sed call runs without GNU extensions.
+  const x = integrar(r, ['Gerar PDF', r.branch, r.integradora], { 'BASH_FUNC_sed%%': '() {  /usr/bin/sed --posix "$@"\n}' });
+  ok(x);
+  assert.match(x.stdout, /painel: task 13 integrada no item 12/);
+  assert.strictEqual((await task13(r)).state, 'integrated');
+});
+
 suite.test('item and task come as arguments when the branches do not follow the convention', async () => {
   const r = buildRoot('args', { integradora: 'feature/exportar', branch: 'task/gerar-pdf' });
   startItem(r);

@@ -48,12 +48,24 @@ git fetch -q origin "$INTEG"
 [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$INTEG")" ] || falha "o push não chegou ao remoto"
 
 # Painel: o merge já está no remoto, então uma falha aqui só avisa.
-[ -n "$ITEM" ] || ITEM="$(printf '%s\n' "$INTEG" | sed -n 's#^feature/\(issue\|pbi\)-\([0-9][0-9]*\)$#\2#p')"
-[ -n "$TASK" ] || TASK="$(printf '%s\n' "$BRANCH" | sed -n 's#^task/\([0-9][0-9]*\)\(-.*\)\{0,1\}$#\1#p')"
+# Convenção de branch (a mesma da parseBranch de bin/flow-repo.js no painel): feature/issue-<n> ou
+# feature/pbi-<n> é a integradora do item; task/<item>-ajuste-final é o floor do ajuste final; task/<id>-… é a task.
+# Só bash 3.2 (regex de [[ ]] por variável, sem sed com extensões GNU).
+RE_ITEM='^feature/(issue|pbi)-([0-9]+)$'
+RE_FINAL='^task/([0-9]+)-ajuste-final$'
+RE_TASK='^task/([0-9]+)(-.*)?$'
+if [ -z "$ITEM" ] && [[ $INTEG =~ $RE_ITEM ]]; then ITEM="${BASH_REMATCH[2]}"; fi
+FINAL=""
+if [[ $BRANCH =~ $RE_FINAL ]]; then
+    FINAL=1
+    [ -n "$ITEM" ] || ITEM="${BASH_REMATCH[1]}"
+elif [ -z "$TASK" ] && [[ $BRANCH =~ $RE_TASK ]]; then
+    TASK="${BASH_REMATCH[1]}"
+fi
 PAINEL_OK=""
-if [ "${BRANCH%-ajuste-final}" != "$BRANCH" ]; then
+if [ -n "$FINAL" ]; then
     # O floor do ajuste final não é task do grafo: o maestro registra o resultado com flow final-adjustment.
-    PAINEL_OK="integrar: painel: ajuste final integrado; registre o resultado com flow final-adjustment ${ITEM:-$TASK} result --outcome passed|failed"
+    PAINEL_OK="integrar: painel: ajuste final integrado; registre o resultado com flow final-adjustment $ITEM result --outcome passed|failed"
 elif [ -z "$ITEM" ] || [ -z "$TASK" ]; then
     PAINEL_MSG="item ou task não saem das branches '$INTEG' e '$BRANCH': passe <item> <task> como 4º e 5º argumentos"
 elif [ -z "${PAINEL_MAESTRO:-}" ]; then
@@ -61,7 +73,7 @@ elif [ -z "${PAINEL_MAESTRO:-}" ]; then
 else
     AGENTE=()
     [ -z "${MAESTRI_TERMINAL_NAME:-}" ] || AGENTE=(--agent "$MAESTRI_TERMINAL_NAME")
-    if SAIDA="$(node "$PAINEL_MAESTRO/bin/flow.js" task integrate "$ITEM" "$TASK" --sha "$DEPOIS" --sha-before "$ANTES" --role maestro "${AGENTE[@]}" 2>&1)"; then
+    if SAIDA="$(node "$PAINEL_MAESTRO/bin/flow.js" task integrate "$ITEM" "$TASK" --sha "$DEPOIS" --sha-before "$ANTES" --role maestro ${AGENTE[@]+"${AGENTE[@]}"} 2>&1)"; then
         PAINEL_OK="integrar: painel: task $TASK integrada no item $ITEM"
     else
         PAINEL_MSG="o CLI respondeu: $SAIDA"
