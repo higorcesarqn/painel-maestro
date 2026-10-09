@@ -78,7 +78,7 @@ async function mockCompanies(u, method, body) {
 }
 
 /**
- * /api/items[?company=&project=], /api/items/<project>/<number>, POST /api/items/<project>/<number>/merged and
+ * /api/items[?company=&project=&stage=&tracker=], /api/items/<project>/<number>, POST /api/items/<project>/<number>/merged and
  * /api/pending-decisions[?company=&...] from tests/mock-items.json; null for any other path.
  */
 async function mockItems(u, method) {
@@ -88,9 +88,9 @@ async function mockItems(u, method) {
   if (merged && method === 'POST') return mockMarkMerged(decodeURIComponent(merged[1]), Number(merged[2]));
   if (p === '/api/items') {
     const m = await loadMockItems();
-    const company = u.searchParams.get('company');
-    const project = u.searchParams.get('project');
-    return { items: arr(m.items).filter((it) => (!company || it.project.company.id === company) && (!project || it.project.id === project)) };
+    const [company, project, stage, tracker] = ['company', 'project', 'stage', 'tracker'].map((k) => sp.get(k));
+    return { items: arr(m.items).filter((it) => (!company || it.project.company.id === company) && (!project || it.project.id === project)
+      && (!stage || it.stage === stage) && (!tracker || it.tracker === tracker)) };
   }
   if (p === '/api/pending-decisions') return mockPendingDecisions(await loadMockItems(), sp);
   if (p === '/api/overview') {

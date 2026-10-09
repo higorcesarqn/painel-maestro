@@ -153,6 +153,14 @@ suite.test('the address picks the screen: a malformed address (bad percent-encod
   for (const bad of ['#items/%E0%A4%A', '#log/%', '#%ZZ']) assert.deepStrictEqual(parseHash(bad), { id: 'overview', sub: '' }, bad);
 });
 
+suite.test('the Items filters offer the server\'s stages and trackers (the page keeps its own copy of the lists)', async () => {
+  const { STAGES, TRACKERS } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'domain.js')).href);
+  const store = require('../../bin/flow-store.js');
+  assert.deepStrictEqual(STAGES, store.STAGES);
+  assert.deepStrictEqual(TRACKERS, store.TRACKERS);
+  assert.ok(/stage/.test(source['screens/Items.jsx']) && /tracker/.test(source['screens/Items.jsx']), 'the Items screen filters by stage and tracker');
+});
+
 suite.test('links of the item page only go to the trackers (github.com, dev.azure.com, *.visualstudio.com)', async () => {
   const { trackerHref } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'links.js')).href);
   for (const good of ['https://github.com/acme/widgets/pull/34', 'https://dev.azure.com/contoso/CIDAX/_git/api/pullrequest/812',
@@ -193,7 +201,7 @@ suite.test('companies (#6): the demo has two companies and "Pessoal" with GitHub
   const companies = source['data/companies.js'];
   assert.ok(/localStorage\.getItem/.test(companies) && /localStorage\.setItem/.test(companies), 'remembered in the browser');
   assert.strictEqual((companies.match(/try \{/g) || []).length >= 2, true, 'reads and writes behind try/catch');
-  assert.ok(/readItems\(companyFilter\)/.test(source['screens/Items.jsx']), 'the Items list reads with the company filter');
+  assert.ok(/readItems\(\{ \.\.\.companyFilter/.test(source['screens/Items.jsx']), 'the Items list reads with the company filter');
   assert.ok(js.includes('painel-maestro.company'));
 });
 

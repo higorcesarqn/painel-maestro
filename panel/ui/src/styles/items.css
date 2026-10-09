@@ -2,6 +2,7 @@
 .screen-items { grid-template-rows: minmax(0, 1fr); }
 .screen-items .card { min-height: 0; }
 .items-loading { display: flex; flex-direction: column; gap: 10px; padding: 12px 18px; }
+.items-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 4px 18px 10px; }
 .items-error { padding: 4px 18px 10px; color: var(--danger); font-size: 13px; }
 table.items th.col-ref, table.items td.col-ref { width: 110px; }
 table.items .col-stage { width: 160px; }

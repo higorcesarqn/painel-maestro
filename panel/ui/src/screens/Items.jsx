@@ -4,10 +4,12 @@
 // the page only shows it. Reads again every 20 s while the screen is open.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
-import { REFRESH_MS, readItems, readItem } from '../data/api.js';
+import { REFRESH_MS, readItems, readItem, readProjects } from '../data/api.js';
 import { arr, obj, objs, txt, number, age, dateTime } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Badge, Empty, Skeleton } from '../components/base.jsx';
+import { Select } from '../components/fields.jsx';
+import { STAGES, TRACKERS } from '../data/domain.js';
 import { Icon, Workflow, ArrowLeft, Check, CircleDashed } from '../components/Icon.jsx';
 import { ItemTasks } from './ItemTasks.jsx';
 import { ItemDelivery, deliveryEventText, useDoneFilter } from './ItemDelivery.jsx';
@@ -16,6 +18,7 @@ import { ItemReports, ItemFindings, reviewEventText } from './ItemReview.jsx';
 import '../styles/items.css';
 
 const RE_ITEM = /^([a-z0-9][a-z0-9-]*)\/([1-9]\d*)$/;
+const NO_FILTERS = { project: '', stage: '', tracker: '' };
 const stageName = (id) => t(`items.stages.${id}`);
 const companyName = (it) => txt(obj(it.project) && obj(it.project.company) ? it.project.company.name : '');
 const projectName = (it) => txt(obj(it.project) ? it.project.name || it.project.id : '');
@@ -52,7 +55,17 @@ function ItemList() {
   const { goTo, company, companies, setCompany, companyFilter } = usePanel();
   // The company selector (#6) reaches the list as ?company=<id>; a project moved out of "Sem empresa" reads it again.
   const [moves, setMoves] = useState(0);
-  const { answer, error } = usePolling(() => readItems(companyFilter), [companyFilter, moves]);
+  // Project, stage and tracker (#1: the items API filters by company, project, stage and tracker).
+  const [filters, setFilters] = useState(NO_FILTERS);
+  const { answer, error } = usePolling(() => readItems({ ...companyFilter, ...filters }), [companyFilter, filters, moves]);
+  const { answer: projectsAnswer } = usePolling(() => readProjects(companyFilter), [companyFilter, moves]);
+  const projects = objs(projectsAnswer && projectsAnswer.projects);
+  const filtering = Object.values(filters).some(Boolean);
+  const change = (k) => (v) => setFilters((f) => ({ ...f, [k]: v }));
+  // A project of another company is not offered (and not kept) once the company selector changes.
+  useEffect(() => {
+    if (filters.project && projectsAnswer && !projects.some((p) => p.id === filters.project)) setFilters((f) => ({ ...f, project: '' }));
+  }, [projectsAnswer]);
   const all = objs(answer && answer.items);
   const { shown: items, control: doneFilter, which } = useDoneFilter(all);
   const open = (it) => goTo('items', it.key);
@@ -67,9 +80,18 @@ function ItemList() {
             <button type="button" class="button small" onClick={() => setCompany('')}>{t('companies.showAll')}</button>
           </p>
         )}
+        <div class="items-filters">
+          <Select value={filters.project} ariaLabel={t('items.filters.project')} onChange={change('project')} width={200}
+            options={[['', t('items.filters.allProjects')], ...projects.map((p) => [txt(p.id), txt(p.name || p.id)])]} />
+          <Select value={filters.stage} ariaLabel={t('items.filters.stage')} onChange={change('stage')} width={180}
+            options={[['', t('items.filters.allStages')], ...STAGES.map((s) => [s, stageName(s)])]} />
+          <Select value={filters.tracker} ariaLabel={t('items.filters.tracker')} onChange={change('tracker')} width={170}
+            options={[['', t('items.filters.allTrackers')], ...TRACKERS.map((x) => [x, t(`items.trackers.${x}`)])]} />
+          {filtering && <button type="button" class="button small" onClick={() => setFilters(NO_FILTERS)}>{t('items.filters.clear')}</button>}
+        </div>
         {error && <p class="items-error" role="alert">{t('items.readFailed', { message: error.message })}</p>}
         {!answer && !error && <div class="items-loading"><Skeleton /><Skeleton /><Skeleton /></div>}
-        {answer && !all.length && <Empty icon={Workflow} center>{t('items.none')}</Empty>}
+        {answer && !all.length && <Empty icon={Workflow} center>{filtering ? t('items.filters.none') : t('items.none')}</Empty>}
         {answer && all.length > 0 && !items.length && <Empty icon={Workflow} center>{t(`delivery.listFilter.none.${which}`)}</Empty>}
         {items.length > 0 && (
           <div class="table-box">

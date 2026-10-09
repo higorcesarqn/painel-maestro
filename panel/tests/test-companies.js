@@ -136,7 +136,7 @@ suite.test('the items API filters by company and by project', async () => {
   ok(flow(r, ['project', 'add', 'cidax', '--company', 'contoso', '--repo', CIDAX_API]));
   ok(flow(r, ['project', 'add', 'painel', '--company', 'personal', '--repo', 'https://github.com/higor/painel']));
   ok(flow(r, ['item', 'start', '48', '--title', 'Carrinho'], { cwd: shop }));
-  ok(flow(r, ['item', 'start', '52', '--title', 'Cupom'], { cwd: shop }));
+  ok(flow(r, ['item', 'start', '52', '--title', 'Cupom', '--stage', 'implementation'], { cwd: shop }));
   ok(flow(r, ['item', 'start', '3100', '--title', 'Boletos'], { cwd: api }));
   ok(flow(r, ['item', 'start', '5', '--title', 'Painel'], { cwd: mine }));
   await withServer(r, async ({ port, get }) => {
@@ -149,6 +149,17 @@ suite.test('the items API filters by company and by project', async () => {
     assert.deepStrictEqual(await keys('?company=nobody'), []);
     const bad = await request(port, '/api/items?company=..%2Fx');
     assert.deepStrictEqual([bad.status, bad.json.error.code, bad.json.error.param], [400, 'invalid_filter', 'company']);
+    // Stage and tracker (#1: "itens com filtros (empresa, projeto, etapa, tracker)"), alone or together.
+    assert.deepStrictEqual(await keys('?tracker=azure_devops'), ['cidax/3100']);
+    assert.deepStrictEqual(await keys('?tracker=github'), ['painel/5', 'shop/48', 'shop/52']);
+    assert.deepStrictEqual(await keys('?stage=implementation'), ['shop/52']);
+    assert.deepStrictEqual(await keys('?stage=specification&tracker=github&company=fabrikam'), ['shop/48']);
+    assert.deepStrictEqual(await keys('?stage=done'), []);
+    for (const [q, param] of [['stage=voando', 'stage'], ['tracker=gitlab', 'tracker'], ['stage=', null]]) {
+      const x = await request(port, `/api/items?${q}`);
+      if (!param) { assert.strictEqual(x.status, 200, q); continue; }
+      assert.deepStrictEqual([x.status, x.json.error.code, x.json.error.param], [400, 'invalid_filter', param], q);
+    }
     const { companies } = await get('/api/companies');
     assert.deepStrictEqual(companies.map((c) => [c.id, c.name, c.project_count, c.item_count]),
       [['contoso', 'Contoso', 1, 1], ['fabrikam', 'Fabrikam', 1, 2], ['personal', 'Pessoal', 1, 1]]);

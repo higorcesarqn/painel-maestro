@@ -8,7 +8,7 @@
 // how a repository that landed in "Sem empresa" gets its company. No sentences: errors are codes (ADR 0004).
 const path = require('path');
 
-const { UNASSIGNED_COMPANY } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { UNASSIGNED_COMPANY, STAGES, TRACKERS } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 const { listItems } = require(path.join(__dirname, 'api-items.js'));
 
 const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
@@ -73,14 +73,28 @@ function listProjects(source, query) {
   return { projects };
 }
 
-/** The answer of GET /api/items narrowed by ?company=<id> and ?project=<id> (the company selector of the page). */
+/** A filter value that must be one of allowed (stage, tracker): null when absent; throws 400 otherwise. */
+function oneOfParam(query, name, allowed) {
+  const v = query && query.get(name);
+  if (v === null || v === undefined || v === '') return null;
+  if (!allowed.includes(v)) throw new ProjectsError(400, { code: 'invalid_filter', param: name, value: String(v).slice(0, 100) });
+  return v;
+}
+
+/**
+ * The answer of GET /api/items narrowed by ?company=<id> (the company selector of the page), ?project=<id>,
+ * ?stage=<stage> (the item's current stage) and ?tracker=github|azure_devops; an invalid value is 400 invalid_filter.
+ */
 function filterItems(answer, query) {
   const company = idParam(query, 'company');
   const project = idParam(query, 'project');
-  if (!company && !project) return answer;
+  const stage = oneOfParam(query, 'stage', STAGES);
+  const tracker = oneOfParam(query, 'tracker', TRACKERS);
+  if (!company && !project && !stage && !tracker) return answer;
   return {
     ...answer,
-    items: answer.items.filter((it) => (!company || it.project.company.id === company) && (!project || it.project.id === project)),
+    items: answer.items.filter((it) => (!company || it.project.company.id === company) && (!project || it.project.id === project)
+      && (!stage || it.stage === stage) && (!tracker || it.tracker === tracker)),
   };
 }
 
