@@ -140,6 +140,34 @@ suite.test('a worker session in a floor worktree is linked to the task by the br
   });
 });
 
+suite.test('file tools and interruptions are recorded as codes with parameters (the page translates them), never as sentences', async () => {
+  const r = buildRoot('codes');
+  flow(r, ['item', 'start', '12', '--title', 'Códigos'], { now: sp('08:00:00') });
+  const s = { session_id: 'sess-codes', cwd: r.repo };
+  const post = (tool, input, response, hms) => hook(r, { ...s, hook_event_name: 'PostToolUse', tool_name: tool, tool_input: input, tool_response: response }, sp(hms));
+  post('Write', { file_path: 'a.txt', content: 'olá\nmundo' }, { type: 'create', content: 'olá\nmundo' }, '09:00:01');
+  post('Edit', { file_path: 'a.txt', old_string: 'olá', new_string: 'oi', replace_all: true }, { structuredPatch: [{ lines: ['-olá', '+oi', ' mundo'] }], replaceAll: true }, '09:00:02');
+  post('MultiEdit', { file_path: 'b.txt', edits: [{}, {}] }, { structuredPatch: [] }, '09:00:03');
+  post('Read', { file_path: 'c.txt', offset: 10, limit: 5 }, { file: { numLines: 5, totalLines: 40 } }, '09:00:04');
+  post('Read', { file_path: 'd.pdf', pages: '1-3' }, { type: 'pdf' }, '09:00:05');
+  post('NotebookEdit', { notebook_path: 'e.ipynb' }, { edit_mode: 'replace' }, '09:00:06');
+  post('Bash', { command: 'npm test' }, { stdout: 'parcial', stderr: '', interrupted: true }, '09:00:07');
+  hook(r, { ...s, hook_event_name: 'PostToolUseFailure', tool_name: 'Bash', tool_input: { command: 'sleep 99' }, error: 'killed', is_interrupt: true }, sp('09:00:08'));
+  await withServer(r, async (get) => {
+    const raw = (await get('/api/raw?session=sess-codes')).json.entries;
+    assert.deepStrictEqual(raw.map((e) => [e.tool, e.input, e.output_summary, e.error, e.info]), [
+      ['Write', 'a.txt', null, null, { input: { code: 'raw_write', chars: 9 }, output: { code: 'raw_file_written', kind: 'create', lines: 2 } }],
+      ['Edit', 'a.txt', null, null, { input: { code: 'raw_edit', from: 3, to: 2, all: true }, output: { code: 'raw_file_edited', added: 1, removed: 1, all: true } }],
+      ['MultiEdit', 'b.txt', null, null, { input: { code: 'raw_multi_edit', edits: 2 }, output: { code: 'raw_file_edited', added: 0, removed: 0, all: false } }],
+      ['Read', 'c.txt', null, null, { input: { code: 'raw_read_lines', offset: 10, limit: 5 }, output: { code: 'raw_lines_read', lines: 5, total: 40 } }],
+      ['Read', 'd.pdf', null, null, { input: { code: 'raw_read_pages', pages: '1-3' }, output: { code: 'raw_read', kind: 'pdf' } }],
+      ['NotebookEdit', 'e.ipynb', null, null, { output: { code: 'raw_notebook_edited', mode: 'replace' } }],
+      ['Bash', 'npm test', 'parcial', null, { interrupted: true }],
+      ['Bash', 'sleep 99', null, 'killed', { interrupted: true }],
+    ]);
+  });
+});
+
 suite.test('sessions outside a registered project write nothing; the hook always exits 0 in silence', async () => {
   const r = buildRoot('outside');
   flow(r, ['item', 'start', '1', '--title', 'Cadastra o projeto'], { now: sp('08:00:00') });

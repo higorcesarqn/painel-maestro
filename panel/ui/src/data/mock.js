@@ -140,12 +140,17 @@ function mockRaw(ev, start) {
     'finding-recorded': `finding add ${n} --title "…"`,
     'finding-linked': `finding link ${n} ${(ev.payload || {}).finding} --new-task ${((ev.payload || {}).new_task || {}).number}`,
   }[ev.type] || `stage ${n}`;
-  const commands = ['git status --short', 'npm test', `node bin/flow.js ${flowCommand}`];
-  return commands.map((input, i) => ({
+  // A file edit (sizes as codes in info, like the hook writes them), then the tests and the flow command.
+  const commands = [
+    { tool: 'Edit', input: 'src/relatorio.js', output_summary: null, info: { input: { code: 'raw_edit', from: 120, to: 180, all: false }, output: { code: 'raw_file_edited', added: 4, removed: 2, all: false } } },
+    { tool: 'Bash', input: 'npm test', output_summary: 'ok', info: null },
+    { tool: 'Bash', input: `node bin/flow.js ${flowCommand}`, output_summary: 'ok', info: null },
+  ];
+  return commands.map((c, i) => ({
     id: ev.id * 10 + i, at: new Date(Math.max(start + 1000, tEv - (commands.length - 1 - i) * 90000 + (i === commands.length - 1 ? 5000 : 0))).toISOString(),
     session: `mock-${ev.project.id}-${ev.item_number}`, project_id: ev.project.id, item_number: ev.item_number, task_number: ev.task_number,
-    branch, hook_event: 'PostToolUse', tool: 'Bash', input, ok: true, output_summary: 'ok', error: null, duration_ms: null, prompt: null,
-    detail: null, agent_id: null, agent_type: null, version: null,
+    branch, hook_event: 'PostToolUse', ok: true, error: null, duration_ms: null, prompt: null,
+    detail: null, agent_id: null, agent_type: null, version: null, ...c,
   }));
 }
 

@@ -15,8 +15,10 @@
 //   feature/pbi-<id> or feature/issue-<n>  the maestro of the item
 // (the convention lives in parseBranch of bin/flow-repo.js)
 // Entry in bruto.db (bin/raw-store.js): {at, t, session_id, project_id, item_number, task_number, branch,
-//   hook_event, tool?, input?, ok?, output_summary?, error?, duration_ms?, prompt?, detail?, agent_id?,
-//   agent_type?, cwd, version?}.
+//   hook_event, tool?, input?, ok?, output_summary?, error?, info?, duration_ms?, prompt?, detail?, agent_id?,
+//   agent_type?, cwd, version?}. Nothing it writes is a sentence (ADR 0004): what the file tools did, their sizes and an
+//   interruption go in info as codes with parameters ({input: {code: 'raw_edit', from, to, all}, output: {code:
+//   'raw_lines_read', lines, total}, interrupted: true}), which the page translates.
 // The session row (sessions table: link, cwd, transcript_path, last seen) is what the usage collector
 // (bin/collect-usage.js) reads to split the tokens by item and by agent (#13).
 
@@ -50,39 +52,42 @@ function branchLink(parseBranch, branch) {
   return { item: null, task: null };
 }
 
-/** "input" of the line: command (Bash/PowerShell), file + size (Read/Write/Edit) or truncated JSON. */
+/**
+ * "input" of the line: command (Bash/PowerShell), file (Read/Write/Edit) or truncated JSON; and, for the file tools,
+ * the size as a code with parameters (info.input) that the page translates (ADR 0004: no sentence in the data).
+ * Returns { text, info }.
+ */
 function inputSummary(lib, tool, input) {
-  if (input === undefined || input === null) return undefined;
-  if (typeof input !== 'object') return lib.summarize(String(input), INPUT_LIMIT);
+  if (input === undefined || input === null) return { text: undefined, info: null };
+  if (typeof input !== 'object') return { text: lib.summarize(String(input), INPUT_LIMIT), info: null };
   if ((tool === 'Bash' || tool === 'PowerShell') && typeof input.command === 'string') {
-    return lib.summarize(input.command, INPUT_LIMIT);
+    return { text: lib.summarize(input.command, INPUT_LIMIT), info: null };
   }
   const file = typeof input.file_path === 'string' ? input.file_path : (typeof input.notebook_path === 'string' ? input.notebook_path : null);
   if (['Read', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(tool) && file) {
-    // The details are read by people in the page: Portuguese (ADR 0004).
-    let size = '';
-    if (tool === 'Write' && typeof input.content === 'string') size = ` (${input.content.length} caracteres)`;
+    let info = null;
+    if (tool === 'Write' && typeof input.content === 'string') info = { code: 'raw_write', chars: input.content.length };
     else if (tool === 'Edit' && typeof input.old_string === 'string' && typeof input.new_string === 'string') {
-      size = ` (${input.old_string.length} → ${input.new_string.length} caracteres${input.replace_all ? ', todas as ocorrências' : ''})`;
-    } else if (tool === 'MultiEdit' && Array.isArray(input.edits)) size = ` (${input.edits.length} edições)`;
-    else if (tool === 'Read' && (input.offset || input.limit)) size = ` (linhas ${input.offset || 1}${input.limit ? ` +${input.limit}` : ''})`;
-    else if (tool === 'Read' && input.pages) size = ` (páginas ${input.pages})`;
-    return lib.summarize(file + size, INPUT_LIMIT);
+      info = { code: 'raw_edit', from: input.old_string.length, to: input.new_string.length, all: !!input.replace_all };
+    } else if (tool === 'MultiEdit' && Array.isArray(input.edits)) info = { code: 'raw_multi_edit', edits: input.edits.length };
+    else if (tool === 'Read' && (input.offset || input.limit)) info = { code: 'raw_read_lines', offset: Number(input.offset) || 1, limit: Number(input.limit) || null };
+    else if (tool === 'Read' && input.pages) info = { code: 'raw_read_pages', pages: String(input.pages).slice(0, 40) };
+    return { text: lib.summarize(file, INPUT_LIMIT), info };
   }
   // Redacts the object before serializing: JSON inside text shows up raw and the key=value rules apply.
-  return lib.summarize(JSON.stringify(lib.redactValue(input)), INPUT_LIMIT);
+  return { text: lib.summarize(JSON.stringify(lib.redactValue(input)), INPUT_LIMIT), info: null };
 }
 
 const FILE_TOOLS = ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'];
 
-/** Summary without content for Write/Edit/MultiEdit/NotebookEdit: what was done and how many lines (never the text). */
-function fileSummary(tool, r) {
-  if (!r || typeof r !== 'object') return `${tool} ok`;
+/** What Write/Edit/MultiEdit/NotebookEdit did and how many lines, as a code (never the text of the file). */
+function fileInfo(tool, r) {
+  if (!r || typeof r !== 'object') return { code: 'raw_file_written', kind: null, lines: null };
   if (tool === 'Write') {
-    const lines = typeof r.content === 'string' ? ` (${r.content.split('\n').length} linhas)` : '';
-    return `${r.type === 'create' ? 'criado' : (r.type === 'update' ? 'atualizado' : 'gravado')}${lines}`;
+    const kind = r.type === 'create' || r.type === 'update' ? r.type : null;
+    return { code: 'raw_file_written', kind, lines: typeof r.content === 'string' ? r.content.split('\n').length : null };
   }
-  if (tool === 'NotebookEdit') return `notebook editado${typeof r.edit_mode === 'string' ? ` (${r.edit_mode.slice(0, 20)})` : ''}`;
+  if (tool === 'NotebookEdit') return { code: 'raw_notebook_edited', mode: typeof r.edit_mode === 'string' ? r.edit_mode.slice(0, 20) : null };
   let added = 0;
   let removed = 0;
   if (Array.isArray(r.structuredPatch)) {
@@ -95,29 +100,32 @@ function fileSummary(tool, r) {
       }
     }
   }
-  const patch = Array.isArray(r.structuredPatch) ? ` (+${added} −${removed} linhas)` : '';
-  return `editado${patch}${r.replaceAll ? ', todas as ocorrências' : ''}`;
+  const counted = Array.isArray(r.structuredPatch);
+  return { code: 'raw_file_edited', added: counted ? added : null, removed: counted ? removed : null, all: !!r.replaceAll };
 }
 
-/** "output_summary": stdout/stderr (Bash/PowerShell), lines read (Read), summary without content (Write/Edit) or redacted and truncated JSON. */
+/**
+ * "output_summary": stdout/stderr (Bash/PowerShell) or redacted and truncated JSON; for the file tools and Read, a code
+ * instead (info.output: lines read, file created...). { text, info, interrupted }.
+ */
 function outputSummary(lib, tool, r) {
-  if (r === undefined || r === null) return undefined;
-  if (FILE_TOOLS.includes(tool)) return fileSummary(tool, r);
-  if (typeof r === 'string') return lib.summarize(r, OUTPUT_LIMIT);
-  if (typeof r !== 'object') return lib.summarize(String(r), OUTPUT_LIMIT);
+  const none = { text: undefined, info: null, interrupted: false };
+  if (r === undefined || r === null) return none;
+  if (FILE_TOOLS.includes(tool)) return { ...none, info: fileInfo(tool, r) };
+  if (typeof r === 'string') return { ...none, text: lib.summarize(r, OUTPUT_LIMIT) };
+  if (typeof r !== 'object') return { ...none, text: lib.summarize(String(r), OUTPUT_LIMIT) };
   if (typeof r.stdout === 'string' || typeof r.stderr === 'string') {
     let s = typeof r.stdout === 'string' ? r.stdout : '';
     if (r.stderr) s += `${s ? '\n' : ''}[stderr] ${r.stderr}`;
-    if (r.interrupted) s = `(interrompido) ${s}`;
-    return lib.summarize(s, OUTPUT_LIMIT);
+    return { ...none, text: lib.summarize(s, OUTPUT_LIMIT), interrupted: !!r.interrupted };
   }
   if (tool === 'Read') {
     if (r.file && typeof r.file === 'object' && typeof r.file.numLines === 'number') {
-      return `${r.file.numLines} linhas lidas${typeof r.file.totalLines === 'number' ? ` de ${r.file.totalLines}` : ''}`;
+      return { ...none, info: { code: 'raw_lines_read', lines: r.file.numLines, total: typeof r.file.totalLines === 'number' ? r.file.totalLines : null } };
     }
-    return `lido (${typeof r.type === 'string' ? r.type.slice(0, 20) : 'arquivo'})`; // image, PDF, notebook: never the content
+    return { ...none, info: { code: 'raw_read', kind: typeof r.type === 'string' ? r.type.slice(0, 20) : null } }; // image, PDF, notebook: never the content
   }
-  return lib.summarize(JSON.stringify(lib.redactValue(r)), OUTPUT_LIMIT);
+  return { ...none, text: lib.summarize(JSON.stringify(lib.redactValue(r)), OUTPUT_LIMIT) };
 }
 
 /** Claude Code version: stdin.version or AI_AGENT ("claude-code_2-1-292_agent" becomes "claude-code 2.1.292"). */
@@ -171,23 +179,28 @@ function handle(text) {
   };
   if (p.agent_id !== undefined && p.agent_id !== null) entry.agent_id = String(p.agent_id).slice(0, 120);
   if (p.agent_type !== undefined && p.agent_type !== null) entry.agent_type = String(p.agent_type).slice(0, 120);
+  const info = {};
   if (typeof p.tool_name === 'string') {
     entry.tool = p.tool_name.slice(0, 120);
     const i = inputSummary(lib, p.tool_name, p.tool_input);
-    if (i !== undefined && i !== '') entry.input = i;
+    if (i.text !== undefined && i.text !== '') entry.input = i.text;
+    if (i.info) info.input = i.info;
   }
   if (hookEvent === 'PostToolUse') {
     entry.ok = true;
     const o = outputSummary(lib, p.tool_name, p.tool_response);
-    if (o) entry.output_summary = o;
+    if (o.text) entry.output_summary = o.text;
+    if (o.info) info.output = o.info;
+    if (o.interrupted) info.interrupted = true;
   } else if (hookEvent === 'PostToolUseFailure') {
     entry.ok = false;
     const raw = typeof p.error === 'string' ? p.error : (p.error === undefined || p.error === null ? '' : JSON.stringify(p.error));
-    const error = `${p.is_interrupt ? '(interrompido) ' : ''}${raw}`;
-    if (error) entry.error = lib.summarize(error, OUTPUT_LIMIT);
+    if (raw) entry.error = lib.summarize(raw, OUTPUT_LIMIT);
+    if (p.is_interrupt) info.interrupted = true;
   } else if ((hookEvent === 'Stop' || hookEvent === 'SubagentStop') && typeof p.last_assistant_message === 'string' && p.last_assistant_message) {
     entry.output_summary = lib.summarize(p.last_assistant_message, OUTPUT_LIMIT);
   }
+  if (Object.keys(info).length) entry.info = info;
   if (typeof p.duration_ms === 'number' && Number.isFinite(p.duration_ms)) entry.duration_ms = p.duration_ms;
   if (hookEvent === 'UserPromptSubmit' && typeof p.prompt === 'string') entry.prompt = lib.summarize(p.prompt, PROMPT_LIMIT);
   if (hookEvent === 'SessionStart' && p.source) entry.detail = String(p.source).slice(0, 40);

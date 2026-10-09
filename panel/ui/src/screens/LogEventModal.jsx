@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { readLogEvent } from '../data/api.js';
 import { arr, obj, txt, time, hm, spDay, weekday, dateTimeSec, dayMonthFormat, toDate, truncate, number } from '../data/format.js';
-import { t, has } from '../i18n/index.js';
+import { t, has, translateCode } from '../i18n/index.js';
 import { Modal } from '../components/Modal.jsx';
 import { Badge, Collapsible } from '../components/base.jsx';
 import { Icon, ArrowLeft, ArrowRight, X, Check } from '../components/Icon.jsx';
@@ -141,6 +141,21 @@ function EventBody({ d, nav }) {
   );
 }
 
+/**
+ * The texts of a raw command: what it ran (the command, the file with its size, the prompt) and what came out. The hook
+ * writes the sizes, what a file tool did and an interruption as codes (info, ADR 0004), translated here; entries from
+ * before that carry them as text and are shown as they came.
+ */
+function rawTexts(c) {
+  const info = obj(c.info) || {};
+  const interrupted = info.interrupted ? `${t('logModal.interrupted')} ` : '';
+  let input = c.input !== null && c.input !== undefined ? txt(c.input) : null;
+  if (input !== null && obj(info.input)) input = `${input} (${translateCode(info.input)})`;
+  const output = obj(info.output) ? translateCode(info.output) : txt(c.output_summary);
+  const error = c.error ? `${interrupted}${txt(c.error)}` : '';
+  return { input, output: output ? `${c.error ? '' : interrupted}${output}` : '', error };
+}
+
 function RawTable({ raw, eventDay }) {
   return (
     <div class="raw-box">
@@ -149,12 +164,13 @@ function RawTable({ raw, eventDay }) {
         <thead><tr>{['time', 'session', 'branch', 'tool', 'command', 'status'].map((k) => <th scope="col" key={k}>{t(`logModal.rawCol.${k}`)}</th>)}</tr></thead>
         <tbody>
           {raw.map((c) => {
-            const text = c.input !== null && c.input !== undefined ? txt(c.input)
+            const x = rawTexts(c);
+            const text = x.input !== null ? x.input
               : typeof c.prompt === 'string' ? t('logModal.promptText', { prompt: c.prompt })
-                : txt(c.error) || txt(c.output_summary) || txt(c.detail) || '';
+                : x.error || x.output || txt(c.detail) || '';
             const tool = c.tool ? txt(c.tool) : c.hook_event === 'UserPromptSubmit' ? t('logModal.prompt') : txt(c.hook_event) || '—';
             const failed = c.ok === false || c.hook_event === 'PostToolUseFailure';
-            const title = [text, c.output_summary ? t('logModal.output', { output: c.output_summary }) : '', c.error ? t('logModal.error', { error: c.error }) : ''].filter(Boolean).join('\n');
+            const title = [text, x.output ? t('logModal.output', { output: x.output }) : '', x.error ? t('logModal.error', { error: x.error }) : ''].filter(Boolean).join('\n');
             return (
               <tr key={c.id} class={failed ? 'failure' : ''}>
                 <td title={dateTimeSec(c.at)}>{spDay(c.at) === eventDay ? time(c.at) : `${dayMonthFormat.format(toDate(c.at) || new Date(0))} ${hm(c.at)}`}</td>

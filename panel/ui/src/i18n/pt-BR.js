@@ -546,6 +546,7 @@ export default {
     rawCol: { time: 'Hora', session: 'Sessão', branch: 'Branch', tool: 'Ferramenta', command: 'Comando', status: 'Status' },
     prompt: 'prompt',
     promptText: 'prompt: {prompt}',
+    interrupted: '(interrompido)',
     output: 'saída: {output}',
     error: 'erro: {error}',
     ok: 'ok',
@@ -649,6 +650,17 @@ export default {
 
   // Codes the server returns ({code, ...params}), ADR 0004. A parameter may be another code (e.g. error).
   codes: {
+    // what the hook recorded of a file tool (bruto.db info, #12; ADR 0004)
+    raw_write: (c) => `${c.chars} caracteres`,
+    raw_edit: (c) => `${c.from} → ${c.to} caracteres${c.all ? ', todas as ocorrências' : ''}`,
+    raw_multi_edit: (c) => `${c.edits} edições`,
+    raw_read_lines: (c) => `linhas ${c.offset || 1}${c.limit ? ` +${c.limit}` : ''}`,
+    raw_read_pages: 'páginas {pages}',
+    raw_file_written: (c) => `${c.kind === 'create' ? 'criado' : c.kind === 'update' ? 'atualizado' : 'gravado'}${Number.isInteger(c.lines) ? ` (${c.lines} linhas)` : ''}`,
+    raw_notebook_edited: (c) => `notebook editado${c.mode ? ` (${c.mode})` : ''}`,
+    raw_file_edited: (c) => `editado${Number.isInteger(c.added) ? ` (+${c.added} −${c.removed} linhas)` : ''}${c.all ? ', todas as ocorrências' : ''}`,
+    raw_lines_read: (c) => `${c.lines} linhas lidas${Number.isInteger(c.total) ? ` de ${c.total}` : ''}`,
+    raw_read: (c) => `lido (${c.kind || 'arquivo'})`,
     // health of the new model (#14) and read warnings
     hook_never: (c) => `O hook nunca gravou no log bruto, mas os agentes registraram trabalho em ${dayTime(c.last_event_at)} (hooks instalados?)`,
     hook_stale: (c) => `Hook parado: nenhum registro no log bruto há ${durationText(c.minutes)}, mas os agentes registraram trabalho em ${dayTime(c.last_event_at)}`,

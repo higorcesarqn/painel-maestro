@@ -11,7 +11,8 @@
  * Tables (schema version in PRAGMA user_version):
  *   sessions(session_id, project_id, item_number, task_number, branch, cwd, transcript_path, started_at, seen_at, seen_t)
  *   entries(id, at, t, session_id, project_id, item_number, task_number, branch, hook_event, tool, input, ok,
- *           output_summary, error, duration_ms, prompt, detail, agent_id, agent_type, cwd, version)
+ *           output_summary, error, info, duration_ms, prompt, detail, agent_id, agent_type, cwd, version)
+ *                                       info (v2): JSON of codes with parameters, see bin/hook-log.js
  *   meta(key, value)                      e.g. last_purge
  * "at" is ISO with the São Paulo offset (as everywhere); "t" is the same moment in ms, for windows and retention.
  * Only sessions inside a registered project are written, linked to the item and the task by the branch: the
@@ -24,7 +25,7 @@ const { loadSqlite } = require('./flow-store');
 
 const DB_FILE = 'bruto.db';
 const BUSY_TIMEOUT_MS = 15000;
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const RETENTION_DAYS = 90;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -73,10 +74,12 @@ const MIGRATIONS = [
     CREATE INDEX sessions_seen ON sessions (seen_t);
     CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
   `),
+  // 2: info, the codes with parameters of what the file tools did and of an interruption (JSON; ADR 0004)
+  (db) => db.exec('ALTER TABLE entries ADD COLUMN info TEXT'),
 ];
 
 const ENTRY_FIELDS = ['at', 't', 'session_id', 'project_id', 'item_number', 'task_number', 'branch', 'hook_event', 'tool', 'input', 'ok',
-  'output_summary', 'error', 'duration_ms', 'prompt', 'detail', 'agent_id', 'agent_type', 'cwd', 'version'];
+  'output_summary', 'error', 'info', 'duration_ms', 'prompt', 'detail', 'agent_id', 'agent_type', 'cwd', 'version'];
 
 const isBusy = (e) => e && (e.errcode === 5 || e.errcode === 6 || /database is locked|SQLITE_BUSY/i.test(String(e.message)));
 
@@ -113,8 +116,19 @@ function entryRow(row) {
     ok: row.ok === null ? null : row.ok === 1, output_summary: row.output_summary === null ? null : row.output_summary,
     error: row.error === null ? null : row.error, duration_ms: row.duration_ms === null ? null : row.duration_ms,
     prompt: row.prompt === null ? null : row.prompt, detail: row.detail || null, agent_id: row.agent_id || null,
-    agent_type: row.agent_type || null, version: row.version || null,
+    agent_type: row.agent_type || null, version: row.version || null, info: infoOf(row.info),
   };
+}
+
+/** The info column: { input?, output?, interrupted? } (codes with parameters) or null (old entries, other tools). */
+function infoOf(text) {
+  if (!text) return null;
+  try {
+    const v = JSON.parse(text);
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 /** WHERE of the raw entry filters: { project, item, task, session, start, end (ms; start exclusive, end inclusive) }. */
@@ -160,6 +174,7 @@ function openRawStore({ dir, create = true, busyTimeoutMs = BUSY_TIMEOUT_MS } = 
     const v = e[k];
     if (v === undefined || v === null) return null;
     if (k === 'ok') return v ? 1 : 0;
+    if (k === 'info') return JSON.stringify(v);
     return v;
   });
 
