@@ -9,6 +9,7 @@ import { arr, obj, objs, txt, number, age, dateTime } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Badge, Empty, Skeleton } from '../components/base.jsx';
 import { Icon, Workflow, ArrowLeft, Check, CircleDashed } from '../components/Icon.jsx';
+import { ItemTasks } from './ItemTasks.jsx';
 import '../styles/items.css';
 
 const RE_ITEM = /^([a-z0-9][a-z0-9-]*)\/([1-9]\d*)$/;
@@ -126,6 +127,7 @@ function ItemPage({ project, number: itemNumber }) {
           </div>
         </div>
       </Card>
+      <ItemTasks item={item} />
       <div class="item-grid">
         <Card label={t('items.flowTitle')} info={t('items.flowInfo')}>
           <ol class="stage-list">
@@ -162,6 +164,10 @@ function eventText(e) {
   const p = obj(e.payload) || {};
   if (e.type === 'item-started') return t('items.events.itemStarted', { stage: stageName(p.stage) });
   if (e.type === 'stage-changed') return t('items.events.stageChanged', { stage: stageName(p.stage) });
+  if (e.type === 'task-graph') return t('items.events.taskGraph', { count: arr(p.tasks).length });
+  if (e.type === 'task-dispatched') return t('items.events.taskDispatched', { task: e.task_number, worker: txt(p.worker) || '—', floor: txt(p.floor) || '—' });
+  if (e.type === 'task-status') return t('items.events.taskStatus', { task: e.task_number, state: t(`items.tasks.workerStates.${p.state}`), text: txt(p.text) });
+  if (e.type === 'task-integrated') return t('items.events.taskIntegrated', { task: e.task_number, sha: txt(p.sha).slice(0, 7) });
   return txt(e.type);
 }
 

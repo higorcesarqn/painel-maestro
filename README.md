@@ -69,6 +69,25 @@ node /caminho/para/painel-maestro/bin/flow.js item start --json - < item.json   
 node /caminho/para/painel-maestro/bin/flow.js --help
 ```
 
+Tasks do item (#7): o maestro registra o grafo, o despacho e a integração; o trabalhador, o status.
+
+```
+# maestro
+node .../bin/flow.js task graph 12 --task "13|Gerar o PDF" --task "14|Enviar por e-mail|13" [--out 15]   # <task>|<título>[|<bloqueios>]
+node .../bin/flow.js task graph --json - < grafo.json        # {"number": 12, "tasks": [{"number": 13, "title": "...", "blocked_by": [], "out": false}, ...]}
+node .../bin/flow.js task dispatch 12 13 --floor "Gerar PDF" --worker "Ária" --branch task/13-gerar-pdf
+node .../bin/flow.js task integrate 12 13 --sha 4be1c2d9 [--sha-before 9a01f3c]
+# trabalhador (no worktree da task)
+node .../bin/flow.js status "Testes verdes, ligando a tela" --progress 3/5
+node .../bin/flow.js status "Preciso decidir o formato do token" --state blocked
+node .../bin/flow.js status "Pronto para revisar" --state review          # ou: --item 12 --task 13
+```
+
+- **Grafo:** a lista de tasks do item com os bloqueios (as tasks que precisam estar integradas antes); o último grafo registrado vale. Bloqueio fora do grafo, task repetida, task bloqueando a si mesma e ciclo são recusados (código 2). `--out` (ou `"out": true` no JSON) marca tasks fora do item. Um item **sem grafo** é **uma task só, ele mesmo** (o número da task é o do item).
+- **Estados de task** (calculados dos eventos): `waiting` aguardando (no grafo, ainda não despachada), `working` trabalhando (despachada, ou status `working`), `review` revisão (status `review` ou `done`), `blocked` bloqueada (status `blocked`), `integrated` integrada (`task integrate`), `out` fora. Integrada ou fora só sai disso com um novo `task dispatch` (retrabalho).
+- **Status, o comando único do trabalhador:** dentro de um terminal do Maestri (com `MAESTRI_TERMINAL_ID`) roda `maestri floor status "<texto>" --state <estado> [--progress n/m]` e grava o evento `task-status`; fora do Maestri (subagente) só grava. O executável é `FLOW_MAESTRI_CLI` (padrão: `MAESTRI_CLI` ou `maestri`; um caminho `.js` roda com o `node`). Se o `maestri` falhar, o evento fica gravado (com `maestri: "failed"`) e o comando sai com **código 1**. Papel padrão: `worker`.
+- **Como o status acha a task:** `--item`/`--task` quando informados; senão, pela branch atual: a task despachada com essa branch (`task dispatch --branch`) ou, senão, `task/<id>-…` → task `<id>`, procurada nos itens do projeto (se ela existir em mais de um item, `--item` decide). Com `--item` e um item de uma task só, `--task` é dispensável.
+
 - **Projeto:** sai do `git remote origin` da pasta atual (também dentro do worktree de um floor; as formas SSH e HTTPS do mesmo repositório dão o mesmo projeto). Um repositório sem cadastro é cadastrado sozinho na empresa **"Sem empresa"** (id e nome tirados do nome do repositório; GitHub ou Azure DevOps pelo endereço) e o comando segue. A chave de um item é `projeto/número` (`cidax/3100`); o número aparece como no tracker: `PBI 3100` no Azure DevOps, `#12` no GitHub.
 - **Etapas** (ids em inglês, nomes em português): `specification` Especificação, `implementation` Implementação, `final_adjustment` Ajuste final, `pr_ready` PR pronto, `merge` Merge, `hml_validation` Validação HML, `done` Concluído. Etapa fora da lista do projeto é recusada.
 - **Campos:** por argumento ou por JSON na entrada padrão (`--json -`, melhor para acentos, aspas e várias linhas); o argumento vale mais que o JSON. `--role maestro|worker|owner` (padrão `maestro`) e `--agent "<codinome>"` dizem quem gravou.
@@ -234,7 +253,7 @@ Todos usam só a biblioteca padrão do Node e respeitam `MAESTRO_DIR` (o `flow.j
 
 | Script | Para que serve |
 |---|---|
-| `flow.js` | **modelo novo**: `item start` e `stage` gravam os eventos de um item no `maestro.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)) |
+| `flow.js` | **modelo novo**: `item start`, `stage`, `task graph`/`dispatch`/`integrate` e `status` gravam os eventos de um item e das tasks dele no `maestro.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)) |
 | `install-skills.js` | liga as skills do dono declaradas em `skills/links.json` ao `~/.claude`, com backup e `--undo` (veja [Instalar as skills](#instalar-as-skills-do-dono-painel_maestro-e-install-skillsjs)) |
 | `flow-store.js`, `flow-projection.js`, `flow-repo.js`, `i18n/` | banco do modelo novo (`node:sqlite`, WAL, migrações), projeção pura do estado do item, projeto pelo `git remote origin` e o dicionário pt-BR do CLI |
 | `registrar.js` | log semântico: `novo-fluxo`, `evento`, `ultimos`, `fluxo` |
@@ -278,7 +297,7 @@ npm test                                   # node panel/tests/run-all.js
 node panel/tests/run-all.js server       # só os arquivos com "server" no nome
 ```
 
-Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das pendências usa uma CLI do Maestri falsa, que só grava os argumentos. São 10 arquivos: coletor de uso, modelo novo (`test-flow.js`), hook do log bruto, dicionário, desempenho (50 mil eventos e log bruto grande), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária), filtro de horário, pendências e servidor. Eles conferem códigos, não frases. O `test-flow.js` segue uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
+Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das pendências e o das tasks usam uma CLI do Maestri falsa, que só grava os argumentos. São 11 arquivos: coletor de uso, modelo novo (`test-flow.js` e `test-flow-tasks.js`), hook do log bruto, dicionário, desempenho (50 mil eventos e log bruto grande), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária), filtro de horário, pendências e servidor. Eles conferem códigos, não frases. O `test-flow.js` e o `test-flow-tasks.js` seguem uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
 
 Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, para os itens, `node panel/tests/generate-mock-items.js` (usa a mesma projeção do servidor).
 

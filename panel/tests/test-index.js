@@ -123,6 +123,10 @@ suite.test('mock-items.json: items in different stages, both trackers, several c
     const d = m.details[it.key];
     assert.ok(d && d.stage === it.stage && Array.isArray(d.stages) && d.stages.some((s) => s.status === 'current' && s.id === it.stage), `details of ${it.key}`);
   }
+  // Tasks (#7): one item has a task in every state; an item without a task graph is a single task, itself.
+  const everyState = Object.values(m.details).find((d) => ['waiting', 'working', 'review', 'blocked', 'integrated', 'out'].every((s) => d.tasks.some((x) => x.state === s)));
+  assert.ok(everyState && everyState.tasks.some((x) => x.blocked_by.length), 'an item with tasks in every state and blockers');
+  assert.ok(Object.values(m.details).some((d) => d.tasks.length === 1 && d.tasks[0].self && d.tasks[0].number === d.number), 'an item that is its own task');
   // The page of an item: #items/<project>/<number> (subroute of the Items screen).
   assert.ok(/RE_ITEM = \/\^\(\[a-z0-9\]\[a-z0-9-\]\*\)\\\/\(\[1-9\]\\d\*\)\$\//.test(source['screens/Items.jsx']), 'Items reads <project>/<number> from the address');
   assert.ok(/goTo\('items', it\.key\)/.test(source['screens/Items.jsx']), 'a click on an item opens #items/<key>');
