@@ -14,7 +14,7 @@
  *       task/<id>, task/<id>-…                 { kind: 'task', task }               the worker of task <id>
  *       feature/issue-<n>, feature/pbi-<id>…   { kind: 'maestro', item }            the maestro of the item (integration branch)
  *       anything else (or none)                { kind: 'other' }
- *     Used by the hook (bin/hook-log.js), by flow status/report (bin/flow.js) and mirrored by integrar.sh (skills).
+ *     Used by the hook (bin/hook-log.js), by flow status/report (bin/flow.js) and mirrored by integrate.sh (skills).
  */
 const fs = require('fs');
 const path = require('path');

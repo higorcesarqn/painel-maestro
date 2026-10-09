@@ -32,8 +32,8 @@ Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel]
 
 ## Fatos do Maestri (verificados; não repita o erro)
 
-- **`floor land` não é confiável**: em 7 de 7 integrações ele estourou o tempo limite, apagou o floor e **não fez o merge**. Integre com `scripts/integrar.sh`, que faz o merge com git, grava a integração no painel e depois apaga o floor.
-- **`floor create` estoura o tempo limite** enquanto copia os não versionados, mas conclui (o worktree aparece `locked` durante a cópia). `scripts/abrir-floor.sh` espera por ele; nunca repita o create sem conferir `floor list`.
+- **`floor land` não é confiável**: em 7 de 7 integrações ele estourou o tempo limite, apagou o floor e **não fez o merge**. Integre com `scripts/integrate.sh`, que faz o merge com git, grava a integração no painel e depois apaga o floor.
+- **`floor create` estoura o tempo limite** enquanto copia os não versionados, mas conclui (o worktree aparece `locked` durante a cópia). `scripts/open-floor.sh` espera por ele; nunca repita o create sem conferir `floor list`.
 - O floor vira worktree em `<pai-do-repo>\.maestri\floors\<repo>--<branch-sem-barra>`, fora do repo.
 - **Recrute sem `--role`**: com role, o terminal abre em `.maestri/roles/<id>/` e perde o `AGENTS.md`/`CLAUDE.md`, as skills e as permissões do repo.
 - O trabalhador **não carrega a memória do projeto** (o caminho do projeto é outro). Aponte o `MEMORY.md` por caminho absoluto no briefing.
@@ -70,7 +70,7 @@ Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel]
    Para cada task: escreva o briefing (modelo abaixo) num arquivo do scratchpad, grave o despacho e abra o floor, do Ground:
    ```bash
    node "$PAINEL_MAESTRO/bin/flow.js" task dispatch <n> <task> --floor "<floor>" --worker "<trabalhador>" --branch task/<id>-<slug> --role maestro --agent "<seu nome>"
-   bash ~/.claude/docs/orquestracao-maestri/scripts/abrir-floor.sh "<floor>" task/<id>-<slug> "<trabalhador>" <scratchpad>/brief-<id>.txt <integradora>
+   bash ~/.claude/docs/orquestracao-maestri/scripts/open-floor.sh "<floor>" task/<id>-<slug> "<trabalhador>" <scratchpad>/brief-<id>.txt <integradora>
    ```
    O script cria o floor (esperando o timeout), recruta o trabalhador sem role e manda o briefing em segundo plano. Dê codinomes curtos e distintos aos trabalhadores (sem acento).
 
@@ -87,7 +87,7 @@ Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel]
 
 8. **Integrar, com o OK do usuário.** Uma task por vez:
    ```bash
-   bash ~/.claude/docs/orquestracao-maestri/scripts/integrar.sh "<floor>" task/<id>-<slug> <integradora> [<n> <task>]
+   bash ~/.claude/docs/orquestracao-maestri/scripts/integrate.sh "<floor>" task/<id>-<slug> <integradora> [<n> <task>]
    ```
    O script recusa Ground sujo, floor com alteração não commitada e merge que não seja fast-forward. Se não for fast-forward, peça ao trabalhador (ainda vivo) um rebase sobre a integradora e um novo gate, e rode de novo. Depois do push ele grava `flow task integrate` com os SHAs de antes e depois (item e task saem de `feature/<tipo>-<n>` e `task/<id>-…`; fora dessa convenção, passe-os como 4º e 5º argumentos). A última linha diz `integrar: painel: task <task> integrada no item <n>`; se disser `integrar: aviso: o painel não registrou ...`, a integração valeu e o comando para gravá-la vem logo abaixo: corrija a causa e rode-o. Depois: marque a task concluída pelo adaptador e avise os trabalhadores ainda ativos de que a integradora andou, pedindo rebase antes do commit final.
 
@@ -100,7 +100,7 @@ Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel]
     4. a suíte completa, comparada com as falhas já conhecidas antes de chamar algo de regressão;
     5. um commit.
 
-    No briefing do ajuste final, diga ao trabalhador que o status vai direto pelo `"$MAESTRI_CLI" floor status` e que ele não grava `flow report` (não há task para recebê-los). Com o relatório: grave cada achado com `flow finding add` (`defect`, `owner_decision` ou `discarded`); um achado que fica para depois vira item novo pelo adaptador, ligado com `--new-task <número do item criado>`. Leve os achados "depende do usuário" ao usuário, cada um com uma pendência `finding`; o que ele aprovar, o mesmo trabalhador aplica num commit a mais. Integre com o `integrar.sh` (na branch do ajuste final ele não grava task e lembra o próximo comando) e grave o resultado: `flow final-adjustment <n> result --outcome passed|failed --summary ...` (`passed` quando a suíte está verde fora das falhas já conhecidas e os defeitos foram corrigidos).
+    No briefing do ajuste final, diga ao trabalhador que o status vai direto pelo `"$MAESTRI_CLI" floor status` e que ele não grava `flow report` (não há task para recebê-los). Com o relatório: grave cada achado com `flow finding add` (`defect`, `owner_decision` ou `discarded`); um achado que fica para depois vira item novo pelo adaptador, ligado com `--new-task <número do item criado>`. Leve os achados "depende do usuário" ao usuário, cada um com uma pendência `finding`; o que ele aprovar, o mesmo trabalhador aplica num commit a mais. Integre com o `integrate.sh` (na branch do ajuste final ele não grava task e lembra o próximo comando) e grave o resultado: `flow final-adjustment <n> result --outcome passed|failed --summary ...` (`passed` quando a suíte está verde fora das falhas já conhecidas e os defeitos foram corrigidos).
 
 11. **Finalizar.** Atualize a descrição do PR (o que cada task entregou, regras decididas na revisão, o que muda para quem consome a API, testes, o que ficou para depois) e tire-o do rascunho pelo adaptador; grave `flow pr <n> ready`. O merge é do usuário; se ele pedir que você o faça, grave `flow pr <n> merged` depois. Marque o item pai concluído no tracker, se a convenção local mandar. O item só fica **Concluído** no painel (`flow item done <n>`) depois do merge e, se o projeto usa Validação HML, do registro da HML: se a sessão acabar antes, esses comandos vão para o relatório como próximos passos do usuário.
 

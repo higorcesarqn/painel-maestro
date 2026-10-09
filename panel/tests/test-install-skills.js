@@ -89,7 +89,7 @@ suite.test('after install, every ~/.claude path the installed skills and documen
   };
   for (const l of MANIFEST.links) scan(path.join(REPO, l.source));
   assert.ok(cited.has('docs/orquestracao-maestri/README.md'), [...cited].join(', '));
-  assert.ok(cited.has('docs/orquestracao-maestri/scripts/integrar.sh'), [...cited].join(', '));
+  assert.ok(cited.has('docs/orquestracao-maestri/scripts/integrate.sh'), [...cited].join(', '));
   for (const rel of cited) assert.ok(exists(path.join(r.claude, rel)), `~/.claude/${rel} is cited but not installed`);
   assert.ok(!exists(path.join(r.claude, 'docs', 'orquestracao-maestri', 'scripts', 'fluxo.py')), 'fluxo.py is gone');
 });

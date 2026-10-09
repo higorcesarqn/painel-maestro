@@ -1,5 +1,5 @@
 'use strict';
-// Tests for the Maestri orchestration's integration script (#16): skills/docs/orquestracao-maestri/scripts/integrar.sh
+// Tests for the Maestri orchestration's integration script (#16): skills/docs/orquestracao-maestri/scripts/integrate.sh
 // runs as a process (Git Bash) on the Ground of a temporary repository whose origin is a local bare repository, with
 // a fake maestri (MAESTRI_CLI) that only records its arguments. The result is checked on git and through the items
 // API, the same seam the flow tests use. Without Git Bash (bash.exe next to git) the suite is skipped.
@@ -9,10 +9,10 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { assert, REPO, createSuite, tmpDir, remove, freePort, request } = require('./util');
 
-const SCRIPT = path.join(REPO, 'skills', 'docs', 'orquestracao-maestri', 'scripts', 'integrar.sh');
+const SCRIPT = path.join(REPO, 'skills', 'docs', 'orquestracao-maestri', 'scripts', 'integrate.sh');
 const FLOW = path.join(REPO, 'bin', 'flow.js');
 const srv = require(path.join(REPO, 'panel', 'server.js'));
-const suite = createSuite('integrar.sh: floor branch → integradora → task integrated in the panel');
+const suite = createSuite('integrate.sh: floor branch → integration branch → task integrated in the panel');
 const roots = [];
 const slash = (p) => p.replace(/\\/g, '/');
 
@@ -33,21 +33,21 @@ function git(cwd, ...args) {
 }
 
 /**
- * Temporary root: a bare "widgets.git" as origin, the Ground on the integradora (pushed), a floor (worktree) on the
+ * Temporary root: a bare "widgets.git" as origin, the Ground on the integration branch (pushed), a floor (worktree) on the
  * task branch with one commit, a data folder and a fake maestri that appends its arguments to maestri.log.
  */
-function buildRoot(name, { integradora = 'feature/issue-12', branch = 'task/13-gerar-pdf' } = {}) {
-  const root = tmpDir(`integrar-${name}`);
+function buildRoot(name, { integration = 'feature/issue-12', branch = 'task/13-gerar-pdf' } = {}) {
+  const root = tmpDir(`integrate-${name}`);
   roots.push(root);
   const remote = path.join(root, 'widgets.git');
   const ground = path.join(root, 'ground');
   const floor = path.join(root, 'floor-13');
   git(root, 'init', '-q', '--bare', remote);
   fs.mkdirSync(ground);
-  git(ground, 'init', '-q', '-b', integradora);
+  git(ground, 'init', '-q', '-b', integration);
   git(ground, 'remote', 'add', 'origin', `file:///${slash(remote)}`);
   git(ground, 'commit', '-q', '--allow-empty', '-m', 'inicio');
-  git(ground, 'push', '-q', 'origin', integradora);
+  git(ground, 'push', '-q', 'origin', integration);
   git(ground, 'worktree', 'add', '-q', '-b', branch, floor);
   fs.writeFileSync(path.join(floor, 'pdf.txt'), 'gerar o PDF\n');
   git(floor, 'add', 'pdf.txt');
@@ -55,7 +55,7 @@ function buildRoot(name, { integradora = 'feature/issue-12', branch = 'task/13-g
   const fake = path.join(root, 'fake-maestri');
   fs.writeFileSync(fake, '#!/usr/bin/env bash\necho "$*" >> "$(dirname "$0")/maestri.log"\n');
   fs.chmodSync(fake, 0o755);
-  return { root, ground, floor, branch, integradora, data: path.join(root, 'data'), fake };
+  return { root, ground, floor, branch, integration, data: path.join(root, 'data'), fake };
 }
 
 function env(r, extra = {}) {
@@ -74,7 +74,7 @@ function flow(r, args) {
   assert.strictEqual(x.status, 0, `flow ${args.join(' ')}: ${x.stderr}`);
 }
 
-function integrar(r, args, extra = {}) {
+function integrate(r, args, extra = {}) {
   return spawnSync(BASH, [slash(SCRIPT), ...args], { cwd: r.ground, env: env(r, extra), encoding: 'utf8', windowsHide: true, timeout: 120000 });
 }
 
@@ -104,16 +104,16 @@ const task13 = async (r) => (await apiGet(r, '/api/items/widgets/12')).item.task
 const ok = (x) => assert.strictEqual(x.status, 0, `exit ${x.status}\nstdout: ${x.stdout}\nstderr: ${x.stderr}`);
 const maestriLog = (r) => { try { return fs.readFileSync(path.join(r.root, 'maestri.log'), 'utf8'); } catch { return ''; } };
 
-suite.test('integrating a floor fast-forwards and pushes the integradora and records the task integrated with both SHAs', async () => {
+suite.test('integrating a floor fast-forwards and pushes the integration branch and records the task integrated with both SHAs', async () => {
   const r = buildRoot('ff');
   startItem(r);
   const before = git(r.ground, 'rev-parse', '--short', 'HEAD');
   const after = git(r.floor, 'rev-parse', '--short', 'HEAD');
 
-  const x = integrar(r, ['Gerar PDF', r.branch, r.integradora]);
+  const x = integrate(r, ['Gerar PDF', r.branch, r.integration]);
   ok(x);
   assert.strictEqual(git(r.ground, 'rev-parse', '--short', 'HEAD'), after);
-  assert.strictEqual(git(r.ground, 'rev-parse', `origin/${r.integradora}`), git(r.ground, 'rev-parse', 'HEAD'));
+  assert.strictEqual(git(r.ground, 'rev-parse', `origin/${r.integration}`), git(r.ground, 'rev-parse', 'HEAD'));
   const t = await task13(r);
   assert.deepStrictEqual([t.state, t.sha, t.sha_before], ['integrated', after, before]);
   assert.match(x.stdout, /painel: task 13 integrada no item 12/);
@@ -124,23 +124,23 @@ suite.test('portable: item and task come out of the branches without GNU extensi
   const r = buildRoot('posix');
   startItem(r);
   // An exported bash function wins over the PATH (Git Bash puts /usr/bin first): every sed call runs without GNU extensions.
-  const x = integrar(r, ['Gerar PDF', r.branch, r.integradora], { 'BASH_FUNC_sed%%': '() {  /usr/bin/sed --posix "$@"\n}' });
+  const x = integrate(r, ['Gerar PDF', r.branch, r.integration], { 'BASH_FUNC_sed%%': '() {  /usr/bin/sed --posix "$@"\n}' });
   ok(x);
   assert.match(x.stdout, /painel: task 13 integrada no item 12/);
   assert.strictEqual((await task13(r)).state, 'integrated');
 });
 
 suite.test('item and task come as arguments when the branches do not follow the convention', async () => {
-  const r = buildRoot('args', { integradora: 'feature/exportar', branch: 'task/gerar-pdf' });
+  const r = buildRoot('args', { integration: 'feature/exportar', branch: 'task/gerar-pdf' });
   startItem(r);
-  const x = integrar(r, ['Gerar PDF', r.branch, r.integradora, '12', '13']);
+  const x = integrate(r, ['Gerar PDF', r.branch, r.integration, '12', '13']);
   ok(x);
   assert.strictEqual((await task13(r)).state, 'integrated');
 });
 
 suite.test('a panel that cannot record does not undo the integration: exit 0, a warning and the command to rerun', async () => {
   const r = buildRoot('fail'); // the item was never started: flow answers with code 2
-  const x = integrar(r, ['Gerar PDF', r.branch, r.integradora]);
+  const x = integrate(r, ['Gerar PDF', r.branch, r.integration]);
   ok(x);
   assert.strictEqual(git(r.ground, 'rev-parse', 'HEAD'), git(r.floor, 'rev-parse', 'HEAD'));
   assert.match(x.stderr, /integrar: aviso: o painel não registrou/);
@@ -150,7 +150,7 @@ suite.test('a panel that cannot record does not undo the integration: exit 0, a 
 suite.test('without PAINEL_MAESTRO the integration happens and the warning says the panel was not recorded', async () => {
   const r = buildRoot('nopanel');
   startItem(r);
-  const x = integrar(r, ['Gerar PDF', r.branch, r.integradora], { PAINEL_MAESTRO: undefined });
+  const x = integrate(r, ['Gerar PDF', r.branch, r.integration], { PAINEL_MAESTRO: undefined });
   ok(x);
   assert.match(x.stderr, /integrar: aviso: o painel não registrou a integração \(PAINEL_MAESTRO não está definida/);
   assert.strictEqual((await task13(r)).state, 'working');
@@ -159,7 +159,7 @@ suite.test('without PAINEL_MAESTRO the integration happens and the warning says 
 suite.test('the final adjustment floor is integrated but is not a task: the panel points to final-adjustment instead', async () => {
   const r = buildRoot('ajuste', { branch: 'task/12-ajuste-final' });
   startItem(r);
-  const x = integrar(r, ['12 Ajuste', r.branch, r.integradora]);
+  const x = integrate(r, ['12 Ajuste', r.branch, r.integration]);
   ok(x);
   assert.strictEqual(git(r.ground, 'rev-parse', 'HEAD'), git(r.floor, 'rev-parse', 'HEAD'));
   assert.match(x.stdout, /integrar: painel: ajuste final integrado; registre o resultado com flow final-adjustment 12 result/);
@@ -168,12 +168,12 @@ suite.test('the final adjustment floor is integrated but is not a task: the pane
   assert.ok(!timeline.includes('task-integrated'), timeline.join(', '));
 });
 
-suite.test('a task branch that is not on top of the integradora is refused before anything changes', async () => {
+suite.test('a task branch that is not on top of the integration branch is refused before anything changes', async () => {
   const r = buildRoot('stale');
   startItem(r);
   git(r.ground, 'commit', '-q', '--allow-empty', '-m', 'outra task integrada');
   const head = git(r.ground, 'rev-parse', 'HEAD');
-  const x = integrar(r, ['Gerar PDF', r.branch, r.integradora]);
+  const x = integrate(r, ['Gerar PDF', r.branch, r.integration]);
   assert.strictEqual(x.status, 1, x.stderr);
   assert.match(x.stderr, /não está sobre/);
   assert.strictEqual(git(r.ground, 'rev-parse', 'HEAD'), head);
@@ -181,7 +181,7 @@ suite.test('a task branch that is not on top of the integradora is refused befor
 });
 
 if (!BASH) {
-  console.log('\n== integrar.sh: skipped (Git Bash not found next to git)');
+  console.log('\n== integrate.sh: skipped (Git Bash not found next to git)');
 } else {
   suite.run().then(() => {
     if (!process.env.KEEP_TMP) roots.forEach(remove);

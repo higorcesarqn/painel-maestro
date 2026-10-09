@@ -71,7 +71,7 @@ node bin/install-skills.js --undo    # desfaz: remove os links e devolve o que h
 node bin/install-skills.js --help
 ```
 
-- **O que é ligado:** só o que `skills/links.json` declara (origem relativa a este repositório, destino relativo à pasta do Claude): as skills `especificar`, `implementar-issue`, `implementar-pbi`, `implementar-issue-maestri`, `implementar-pbi-maestri` e `trabalhador-floor` em `~/.claude/skills/<nome>`, e os documentos de orquestração `skills/docs/orquestracao-subagentes` → `~/.claude/docs/orquestracao-subagentes` e `skills/docs/orquestracao-maestri` → `~/.claude/docs/orquestracao-maestri` (com os scripts `abrir-floor.sh` e `integrar.sh`).
+- **O que é ligado:** só o que `skills/links.json` declara (origem relativa a este repositório, destino relativo à pasta do Claude): as skills `especificar`, `implementar-issue`, `implementar-pbi`, `implementar-issue-maestri`, `implementar-pbi-maestri` e `trabalhador-floor` em `~/.claude/skills/<nome>`, e os documentos de orquestração `skills/docs/orquestracao-subagentes` → `~/.claude/docs/orquestracao-subagentes` e `skills/docs/orquestracao-maestri` → `~/.claude/docs/orquestracao-maestri` (com os scripts `open-floor.sh` e `integrate.sh`).
 - **Como:** cada destino vira uma *junction* de diretório no Windows (não exige administrador; funciona com o repositório e o `~/.claude` em discos diferentes) e um symlink de diretório nos outros sistemas. Editar a skill no repositório já vale no Claude Code.
 - **Backups:** o que já existir no destino e não for um link deste repositório (por exemplo, uma versão antiga de `implementar-issue-maestri`) vai para `~/.claude/backups/painel-maestro/<destino>` (fora de `skills/`, para o Claude Code não carregar duas skills com o mesmo nome). O `--undo` remove só os links deste repositório (nunca o conteúdo deles) e devolve os backups.
 - **Conflitos:** a instalação planeja tudo antes de mexer em qualquer coisa. Se um backup já ocupar o lugar, ou se no `--undo` o destino não for mais um link deste repositório e houver backup, o comando sai com **código 2** e nada é alterado; a mensagem diz o que mover.
@@ -105,7 +105,7 @@ O `bin/hook-log.js` grava o log bruto (prompts, comandos, ferramentas) de cada s
 ```
 
 - **Só projetos cadastrados:** o hook grava só as sessões cuja pasta pertence a um projeto do `maestro.db` (pelo `git remote origin`, inclusive no worktree de um floor; um repositório entra no cadastro na primeira vez que o `flow` roda nele). As outras sessões da máquina saem em poucos milissegundos, sem gravar nada.
-- **Ligação pela branch:** `task/<id>-…` (ou `task/<id>`) é a task `<id>`; `feature/pbi-<id>` ou `feature/issue-<n>` é o maestro do item; `task/<item>-ajuste-final` (o floor do ajuste final) não é task: conta como o maestro do item; outra branch liga só ao projeto ("sem item" no uso). A convenção vive num lugar só (`parseBranch` em `bin/flow-repo.js`), usado pelo hook e pelo `flow status`/`flow report`; o `integrar.sh` segue a mesma regra.
+- **Ligação pela branch:** `task/<id>-…` (ou `task/<id>`) é a task `<id>`; `feature/pbi-<id>` ou `feature/issue-<n>` é o maestro do item; `task/<item>-ajuste-final` (o floor do ajuste final) não é task: conta como o maestro do item; outra branch liga só ao projeto ("sem item" no uso). A convenção vive num lugar só (`parseBranch` em `bin/flow-repo.js`), usado pelo hook e pelo `flow status`/`flow report`; o `integrate.sh` segue a mesma regra.
 - **Garantias:** nunca escreve no stdout nem no stderr, sai sempre com 0, desiste de tudo em cerca de 1,5 s (nunca atrasa nem quebra a sessão), trunca entradas (600 caracteres) e saídas (300) e redige segredos (`«redigido»`).
 - **Retenção:** o servidor apaga do `bruto.db` o que tem mais de 90 dias, ao subir e uma vez por dia.
 - O hook entende esses sete eventos; se a sua versão do Claude Code não tiver algum deles, deixe-o de fora. O hook e o servidor precisam ver o mesmo `MAESTRO_DIR` (ou nenhum).
@@ -237,7 +237,7 @@ O merge do PR costuma acontecer na interface do tracker, sem agente presente (a 
 | Variável | Padrão | Para quê |
 |---|---|---|
 | `MAESTRO_DIR` | `~/.painel-maestro` | pasta dos dados: `maestro.db`, `bruto.db`, `state/usage.json`, `state/panel.pid`. O servidor, o `flow`, o hook e o coletor precisam ver a mesma |
-| `PAINEL_MAESTRO` | | pasta do código (este repositório), usada pelas skills e pelo `integrar.sh` para achar o `bin/flow.js` |
+| `PAINEL_MAESTRO` | | pasta do código (este repositório), usada pelas skills e pelo `integrate.sh` para achar o `bin/flow.js` |
 | `PANEL_PORT` | `4777` | porta do servidor (`--port` vale mais) |
 | `PANEL_COLLECTOR` | ligado | `0` desliga o coletor de uso automático (o Recalcular continua funcionando) |
 | `PANEL_STALE_HOURS` | `48` | horas na mesma etapa para um item ativo contar como parado na Visão geral |
@@ -347,7 +347,7 @@ painel-maestro/
 │   ├── implementar-issue/, implementar-pbi/                    fluxo com subagentes (GitHub, Azure DevOps)
 │   ├── implementar-issue-maestri/, implementar-pbi-maestri/    fluxo com floors do Maestri
 │   ├── trabalhador-floor/       protocolo do trabalhador num floor
-│   └── docs/                    orquestracao-subagentes/ e orquestracao-maestri/ (com abrir-floor.sh e integrar.sh)
+│   └── docs/                    orquestracao-subagentes/ e orquestracao-maestri/ (com open-floor.sh e integrate.sh)
 ├── docs/adr/                    decisões de arquitetura
 ├── docs/agents/                 configuração das skills de engenharia neste repositório (tracker, rótulos, domínio)
 ├── CONTEXT.md                   vocabulário do domínio
