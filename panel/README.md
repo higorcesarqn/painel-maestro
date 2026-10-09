@@ -93,7 +93,7 @@ App Preact (a API do React em 4 KB) com componentes próprios e gráficos em SVG
 **Identidade visual:** fundo `#000`, cartões `#101010` com borda `1px #242424` e raio 14px, texto `#F5F5F5`, secundário `#888`, azul `#0000FF` só como acento (`#4F6BFF` quando é texto), rótulos em caixa alta com `.3em`, ícones Lucide com traço 1,75, sem emoji e sem gradiente. As cores ficam em variáveis no topo de `ui/src/styles/base.css`.
 
 **Menu = telas.** Toda tela nova é um item do menu, nunca uma página separada:
-1. um item em `SCREENS` (`ui/src/data/context.js`), com `id` e `group` (hoje só `workspace`; um bloco novo do menu é um item novo em `GROUPS`, no mesmo arquivo), e o nome no menu e o título no dicionário (`nav.<id>` e `screens.<id>` em `ui/src/i18n/pt-BR.js`);
+1. um item em `SCREENS` (`ui/src/data/screens.js`), com `id` e `group` (hoje só `workspace`; um bloco novo do menu é um item novo em `GROUPS`, no mesmo arquivo), e o nome no menu e o título no dicionário (`nav.<id>` e `screens.<id>` em `ui/src/i18n/pt-BR.js`);
 2. um componente em `SCREEN_COMPONENTS` (`ui/src/app/App.jsx`) e um ícone em `ICONS` (`ui/src/app/Sidebar.jsx`);
 3. a tela em `ui/src/screens/<Name>.jsx`, com o CSS dela em `ui/src/styles/<name>.css`, importado pela própria tela.
 A tela fica em `#<id>` na URL (com sub-abas, `#<id>/<sub>`: o App entrega a sub-aba em `subroute`); as setas ↑ ↓ com o foco no menu passam de uma tela para outra, de um grupo para o outro.
