@@ -1,0 +1,24 @@
+/* Claude usage (1520 × 1095): plan, collector, periods and the tokens table. Nothing scrolls the page. */
+.screen-usage { display: flex; flex-direction: column; }
+.usage-top { display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: var(--gap); height: 212px; flex: none; }
+.usage-periods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); flex: 1.1 1 0; min-height: 0; }
+.usage-bottom { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap); flex: .9 1 0; min-height: 0; }
+
+/* Plan: ring + when it resets */
+.plan { display: flex; align-items: center; gap: 26px; flex: 1; }
+.plan-text { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.plan-when { font-size: 26px; font-weight: 300; line-height: 1.1; letter-spacing: -.01em; }
+
+.usage-dl { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 7px 12px; font-size: 12.5px; margin: 0; }
+.usage-dl dt { color: var(--muted); }
+.usage-dl dd { margin: 0; color: var(--text-2); min-width: 0; }
+
+/* Tokens table: share, composition of the consumption and the numbers */
+table.tokens td { vertical-align: middle; }
+table.tokens tr.total td { border-top: 1px solid var(--border-strong); border-bottom: 0; color: var(--text); }
+.share-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.share-cell > span:last-child { flex: none; min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
+.mini-bar { flex: 1; height: 6px; border-radius: 6px; background: var(--card-3); overflow: hidden; min-width: 40px; }
+.mini-bar > span { display: block; height: 100%; border-radius: 6px; }
+.composition { padding-right: 8px; }
+.composition .stacked-bar { height: 8px; }

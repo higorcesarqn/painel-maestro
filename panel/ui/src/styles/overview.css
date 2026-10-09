@@ -1,0 +1,44 @@
+/* Overview (1520 × 1095): KPIs, charts of the week, agents and recent activity. Nothing scrolls the page. */
+.screen-overview { grid-template-rows: 136px 300px minmax(0, 1fr); }
+.overview-kpis { display: grid; grid-template-columns: 1.25fr 1fr 1fr 1fr; gap: var(--gap); min-height: 0; }
+.overview-charts { display: grid; grid-template-columns: 1.45fr 1.1fr; gap: var(--gap); min-height: 0; }
+.overview-bottom { display: grid; grid-template-columns: 1fr 1.2fr; gap: var(--gap); min-height: 0; }
+
+/* KPIs */
+.kpi-owner .value { font-size: 48px; }
+.kpi-owner.critical { border-color: rgba(242, 85, 90, .5); }
+.sev-mini { display: inline-flex; align-items: center; gap: 12px; padding-bottom: 6px; font-size: 13px; color: var(--text-2); }
+.sev-mini span { display: inline-flex; align-items: center; gap: 6px; }
+.sev-mini i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.screen-overview .kpi .detail { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.screen-overview .kpi .detail.reset { display: inline-flex; align-items: center; gap: 5px; }
+.kpi-plan-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+/* Week activity: legend below the chart, with the first name of each agent */
+.legend-bottom { flex: none; padding-top: 10px; }
+
+/* Results: donut + legend in a grid (dot, name, number) */
+.results { display: flex; align-items: center; gap: 18px; flex: 1; min-height: 0; }
+.legend-list { list-style: none; display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.legend-list button {
+  display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 9px; width: 100%;
+  padding: 6px 8px; border-radius: 8px; font-size: 13px; white-space: nowrap;
+}
+.legend-list button:hover { background: var(--row-hover); text-decoration: none; }
+.legend-list i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.legend-list b { font-weight: 400; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Links "Open" and "See all" in the corner of the cards */
+.go-link { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Agents: one row per agent */
+.agent-rows { display: flex; flex-direction: column; padding: 0 8px; }
+.agent-row { padding: 12px 10px; border-top: 1px solid #1a1a1a; display: flex; flex-direction: column; gap: 6px; }
+.agent-row:first-child { border-top: 0; padding-top: 4px; }
+.agent-head { display: flex; align-items: center; gap: 10px; }
+.agent-last { max-width: 100%; font-size: 13.5px; display: block; }
+.agent-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--text-2); align-items: center; }
+
+/* Recent activity */
+.activity { padding: 0 8px; }
+.activity .list-item { grid-template-columns: 82px 10px minmax(0, 1fr) auto; font-size: 13.5px; padding: 8px 10px; }

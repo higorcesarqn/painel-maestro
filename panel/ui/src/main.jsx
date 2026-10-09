@@ -1,6 +1,6 @@
-import './estilo/fontes.css';
-import './estilo/base.css';
-import './estilo/telas.css';
+import './styles/fonts.css';
+import './styles/base.css';
+import './styles/screens.css';
 import { render } from 'preact';
 import { App } from './app/App.jsx';
 

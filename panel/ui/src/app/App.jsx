@@ -1,222 +1,228 @@
-// Casca do painel: lê /api/state a cada 20 s, guarda a tela atual na URL (#visao, #log...),
-// os filtros do Log e o modal do evento. Só a tela visível é desenhada.
+// Panel shell: reads /api/state every 20 s, keeps the current screen in the URL (#overview, #log...),
+// the Log filters and the event modal. Only the visible screen is drawn.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { PainelContexto, ABAS, novoFiltro } from '../dados/contexto.js';
-import { INTERVALO_MS, INTERVALO_ANALITICO_MS, MOCK, lerEstado, recalcularUso, lerEventos } from '../dados/api.js';
-import { acertarRelogio, agora, diaSP, hora, txt, obj, arr } from '../dados/formato.js';
-import { parametrosLog, analisar } from '../dados/consultas.js';
-import { Lateral } from './Lateral.jsx';
-import { Topo } from './Topo.jsx';
-import { Visao } from '../telas/Visao.jsx';
-import { Pendencias } from '../telas/Pendencias.jsx';
-import { Log } from '../telas/Log.jsx';
-import { Agentes } from '../telas/Agentes.jsx';
-import { Uso } from '../telas/Uso.jsx';
-import { ModalEvento } from '../telas/ModalEvento.jsx';
-import { Icone, TriangleAlert, Info } from '../componentes/Icone.jsx';
+import { PanelContext, SCREENS, OLD_SCREEN_IDS, newFilter } from '../data/context.js';
+import { REFRESH_MS, ANALYSIS_REFRESH_MS, MOCK, readState, recalculateUsage, readEvents } from '../data/api.js';
+import { syncClock, now, spDay, time, txt, obj, arr } from '../data/format.js';
+import { logParams, analyze } from '../data/queries.js';
+import { t } from '../i18n/index.js';
+import { Sidebar } from './Sidebar.jsx';
+import { Header } from './Header.jsx';
+import { Overview } from '../screens/Overview.jsx';
+import { PendingDecisions } from '../screens/PendingDecisions.jsx';
+import { Log } from '../screens/Log.jsx';
+import { Agents } from '../screens/Agents.jsx';
+import { Usage } from '../screens/Usage.jsx';
+import { EventModal } from '../screens/EventModal.jsx';
+import { Icon, TriangleAlert, Info } from '../components/Icon.jsx';
 
-// Uma tela por item de ABAS (dados/contexto.js). Tela nova: entra aqui e lá.
-const TELAS = { visao: Visao, pendencias: Pendencias, log: Log, agentes: Agentes, uso: Uso };
-// URL: #<tela> ou #<tela>/<sub-aba>.
-const partesDoHash = () => {
-  const [id, ...resto] = decodeURIComponent(location.hash.slice(1)).split('/');
-  return ABAS.some((a) => a.id === id) ? { id, sub: resto.join('/') } : { id: 'visao', sub: '' };
+// One screen per item of SCREENS (data/context.js). A new screen goes here and there.
+const SCREEN_COMPONENTS = { overview: Overview, pending: PendingDecisions, log: Log, agents: Agents, usage: Usage };
+// URL: #<screen> or #<screen>/<sub-tab>.
+const hashParts = () => {
+  const [raw, ...rest] = decodeURIComponent(location.hash.slice(1)).split('/');
+  const id = OLD_SCREEN_IDS[raw] || raw;
+  return SCREENS.some((a) => a.id === id) ? { id, sub: rest.join('/') } : { id: 'overview', sub: '' };
 };
-const abaDoHash = () => partesDoHash().id;
-const hashDe = (id, sub) => `#${id}${sub ? `/${sub}` : ''}`;
+const screenFromHash = () => hashParts().id;
+const hashOf = (id, sub) => `#${id}${sub ? `/${sub}` : ''}`;
 
 export function App() {
-  const [estado, setEstado] = useState(null);
-  const [erroConexao, setErroConexao] = useState(null);
-  const [falhaDesde, setFalhaDesde] = useState(null);
-  const [aba, setAba] = useState(abaDoHash);
-  const [subrota, setSubrota] = useState(() => partesDoHash().sub);
-  const [statusAcao, setStatusAcao] = useState('');
-  const [recalculando, setRecalculando] = useState(false);
-  const [modal, setModal] = useState(null); // { id, lista, tabela }
-  const [pendenciaAlvo, setPendenciaAlvo] = useState(null);
-  const abaRef = useRef(aba);
-  abaRef.current = aba;
+  const [state, setState] = useState(null);
+  const [connectionError, setConnectionError] = useState(null);
+  const [failingSince, setFailingSince] = useState(null);
+  const [screen, setScreen] = useState(screenFromHash);
+  const [subroute, setSubroute] = useState(() => hashParts().sub);
+  const [actionStatus, setActionStatus] = useState('');
+  const [recalculating, setRecalculating] = useState(false);
+  const [modal, setModal] = useState(null); // { id, list, table }
+  const [pendingTarget, setPendingTarget] = useState(null);
+  const screenRef = useRef(screen);
+  screenRef.current = screen;
 
-  // ---------- leitura do estado ----------
-  const lendo = useRef(false);
-  const atualizar = useCallback(async () => {
-    if (lendo.current) return;
-    lendo.current = true;
+  // ---------- reading the state ----------
+  const reading = useRef(false);
+  const refresh = useCallback(async () => {
+    if (reading.current) return;
+    reading.current = true;
     try {
-      const est = await lerEstado();
-      if (est && typeof est === 'object') {
-        acertarRelogio(est.gerado_em);
-        setEstado(est);
+      const st = await readState();
+      if (st && typeof st === 'object') {
+        syncClock(st.generated_at);
+        setState(st);
       }
-      setErroConexao(null);
-      setFalhaDesde(null);
+      setConnectionError(null);
+      setFailingSince(null);
     } catch (e) {
-      setErroConexao(e);
-      setFalhaDesde((f) => f || Date.now());
+      setConnectionError(e);
+      setFailingSince((f) => f || Date.now());
     } finally {
-      lendo.current = false;
+      reading.current = false;
     }
-    if (abaRef.current === 'log') carregarLogRef.current(true);
+    if (screenRef.current === 'log') loadLogRef.current(true);
   }, []);
 
   useEffect(() => {
-    atualizar();
-    const t = setInterval(atualizar, INTERVALO_MS);
-    const vis = () => { if (document.visibilityState === 'visible') atualizar(); };
-    document.addEventListener('visibilitychange', vis);
-    return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); };
+    refresh();
+    const timer = setInterval(refresh, REFRESH_MS);
+    const visibility = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', visibility);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', visibility); };
   }, []);
 
-  // ---------- navegação ----------
-  // irPara('log') troca de tela; irPara('<tela>', '<sub-aba>') abre a tela já na sub-aba.
-  const irPara = useCallback((id, sub = '') => {
-    const alvo = ABAS.some((a) => a.id === id) ? id : 'visao';
-    const s = alvo === id ? String(sub || '') : '';
-    setAba(alvo);
-    setSubrota(s);
-    if (location.hash !== hashDe(alvo, s)) history.replaceState(null, '', hashDe(alvo, s));
+  // ---------- navigation ----------
+  // goTo('log') changes the screen; goTo('<screen>', '<sub-tab>') opens the screen already on the sub-tab.
+  const goTo = useCallback((id, sub = '') => {
+    const target = SCREENS.some((a) => a.id === id) ? id : 'overview';
+    const s = target === id ? String(sub || '') : '';
+    setScreen(target);
+    setSubroute(s);
+    if (location.hash !== hashOf(target, s)) history.replaceState(null, '', hashOf(target, s));
   }, []);
   useEffect(() => {
-    const h = () => { const p = partesDoHash(); setAba(p.id); setSubrota(p.sub); };
+    const h = () => { const p = hashParts(); setScreen(p.id); setSubroute(p.sub); };
     window.addEventListener('hashchange', h);
-    if (location.hash !== hashDe(aba, subrota)) history.replaceState(null, '', hashDe(aba, subrota));
+    if (location.hash !== hashOf(screen, subroute)) history.replaceState(null, '', hashOf(screen, subroute));
     return () => window.removeEventListener('hashchange', h);
   }, []);
   useEffect(() => {
-    const t = ABAS.find((a) => a.id === aba);
-    const ws = estado && obj(estado.workspace);
-    document.title = `${t ? t.nome : 'Painel'} · ${ws && ws.nome ? `Painel ${ws.nome}` : 'Painel do workspace'}`;
-  }, [aba, estado && estado.workspace && estado.workspace.nome]);
+    const ws = state && obj(state.workspace);
+    const panel = ws && ws.name ? t('app.panelOf', { name: ws.name }) : t('app.panelDefault');
+    document.title = t('app.documentTitle', { screen: t(`nav.${screen}`), panel });
+  }, [screen, state && state.workspace && state.workspace.name]);
 
-  // ---------- Log: filtros, página e leitura ----------
-  const [filtros, setFiltrosBrutos] = useState(novoFiltro);
-  const [pagina, setPagina] = useState(1);
-  const [log, setLog] = useState({ resposta: null, erro: null, carregando: false });
-  const seqLog = useRef(0);
-  const filtrosRef = useRef(filtros); filtrosRef.current = filtros;
-  const paginaRef = useRef(pagina); paginaRef.current = pagina;
-  const carregarLog = useCallback(async (silencioso) => {
-    const seq = ++seqLog.current;
-    if (!silencioso) setLog((l) => ({ ...l, carregando: true }));
+  // ---------- Log: filters, page and reading ----------
+  const [filters, setRawFilters] = useState(newFilter);
+  const [page, setPage] = useState(1);
+  const [log, setLog] = useState({ answer: null, error: null, loading: false });
+  const logSeq = useRef(0);
+  const filtersRef = useRef(filters); filtersRef.current = filters;
+  const pageRef = useRef(page); pageRef.current = page;
+  const loadLog = useCallback(async (silent) => {
+    const seq = ++logSeq.current;
+    if (!silent) setLog((l) => ({ ...l, loading: true }));
     try {
-      const r = await lerEventos(parametrosLog(filtrosRef.current, paginaRef.current));
-      if (seq !== seqLog.current) return;
-      const paginas = r.paginas || Math.max(1, Math.ceil((r.total || 0) / (r.por_pagina || 50)));
-      // a página pode ter sumido (menos eventos com o filtro): volta para a última que existe
-      if (paginaRef.current > paginas && (r.total || 0) > 0) { setPagina(paginas); return; }
-      setLog({ resposta: r, erro: null, carregando: false });
+      const r = await readEvents(logParams(filtersRef.current, pageRef.current));
+      if (seq !== logSeq.current) return;
+      const pages = r.pages || Math.max(1, Math.ceil((r.total || 0) / (r.per_page || 50)));
+      // the page may be gone (fewer events with the filter): back to the last one that exists
+      if (pageRef.current > pages && (r.total || 0) > 0) { setPage(pages); return; }
+      setLog({ answer: r, error: null, loading: false });
     } catch (e) {
-      if (seq !== seqLog.current) return;
-      setLog((l) => ({ ...l, erro: e, carregando: false }));
+      if (seq !== logSeq.current) return;
+      setLog((l) => ({ ...l, error: e, loading: false }));
     }
   }, []);
-  const carregarLogRef = useRef(carregarLog);
-  useEffect(() => { if (aba === 'log' || log.resposta) carregarLog(false); }, [filtros, pagina]);
-  useEffect(() => { if (aba === 'log' && !log.resposta) carregarLog(false); }, [aba]);
-  const setFiltros = useCallback((mudar) => {
-    setFiltrosBrutos((f) => (typeof mudar === 'function' ? mudar(f) : { ...f, ...mudar }));
-    setPagina(1);
+  const loadLogRef = useRef(loadLog);
+  useEffect(() => { if (screen === 'log' || log.answer) loadLog(false); }, [filters, page]);
+  useEffect(() => { if (screen === 'log' && !log.answer) loadLog(false); }, [screen]);
+  const setFilters = useCallback((change) => {
+    setRawFilters((f) => (typeof change === 'function' ? change(f) : { ...f, ...change }));
+    setPage(1);
   }, []);
 
-  // ---------- análise dos últimos 7 dias (Visão geral e Agentes) ----------
-  const [analitico, setAnalitico] = useState({ eventos: null, em: 0, erro: null });
-  const lendoAnalise = useRef(false);
-  const lerAnalise = useCallback(async () => {
-    if (lendoAnalise.current) return;
-    lendoAnalise.current = true;
+  // ---------- analysis of the last 7 days (Overview and Agents) ----------
+  const [analytics, setAnalytics] = useState({ events: null, at: 0, error: null });
+  const readingAnalysis = useRef(false);
+  const readAnalysis = useCallback(async () => {
+    if (readingAnalysis.current) return;
+    readingAnalysis.current = true;
     try {
-      const desde = diaSP(agora() - 6 * 86400000);
-      let eventos = [];
+      const since = spDay(now() - 6 * 86400000);
+      let events = [];
       for (let p = 1; p <= 4; p++) {
-        const sp = new URLSearchParams({ desde, pagina: String(p), por_pagina: '500' });
-        const r = await lerEventos(sp);
-        eventos = eventos.concat(arr(r.eventos));
-        if (!r.paginas || p >= r.paginas) break;
+        const sp = new URLSearchParams({ since, page: String(p), per_page: '500' });
+        const r = await readEvents(sp);
+        events = events.concat(arr(r.events));
+        if (!r.pages || p >= r.pages) break;
       }
-      setAnalitico({ eventos, em: Date.now(), erro: null });
+      setAnalytics({ events, at: Date.now(), error: null });
     } catch (e) {
-      setAnalitico((a) => ({ ...a, em: Date.now(), erro: e }));
+      setAnalytics((a) => ({ ...a, at: Date.now(), error: e }));
     } finally {
-      lendoAnalise.current = false;
+      readingAnalysis.current = false;
     }
   }, []);
   useEffect(() => {
-    if (!estado || (aba !== 'visao' && aba !== 'agentes')) return;
-    if (Date.now() - analitico.em > INTERVALO_ANALITICO_MS) lerAnalise();
-  }, [aba, estado]);
+    if (!state || (screen !== 'overview' && screen !== 'agents')) return;
+    if (Date.now() - analytics.at > ANALYSIS_REFRESH_MS) readAnalysis();
+  }, [screen, state]);
 
-  const analise = useMemo(() => (analitico.eventos ? analisar(analitico.eventos) : null), [analitico.eventos]);
+  const analysis = useMemo(() => (analytics.events ? analyze(analytics.events) : null), [analytics.events]);
 
-  // ---------- ações ----------
-  const recalcular = useCallback(async () => {
-    setRecalculando(true);
-    setStatusAcao('');
+  // ---------- actions ----------
+  const recalculate = useCallback(async () => {
+    setRecalculating(true);
+    setActionStatus('');
     try {
-      const est = await recalcularUso();
-      acertarRelogio(est.gerado_em);
-      setEstado(est);
-      setErroConexao(null); setFalhaDesde(null);
-      const r = obj(est.recalculo);
-      setStatusAcao(r && r.ok === false ? `Coletor falhou: ${txt(r.erro)}` : `Uso recalculado às ${hora(est.gerado_em)}${MOCK ? ' (modo de teste)' : ''}`);
-      if (abaRef.current === 'log') carregarLog(true);
+      const st = await recalculateUsage();
+      syncClock(st.generated_at);
+      setState(st);
+      setConnectionError(null); setFailingSince(null);
+      const r = obj(st.recalculation);
+      setActionStatus(r && r.ok === false
+        ? t('app.collectorFailed', { error: txt(r.error) })
+        : MOCK ? t('app.recalculatedMock', { time: time(st.generated_at) }) : t('app.recalculated', { time: time(st.generated_at) }));
+      if (screenRef.current === 'log') loadLog(true);
     } catch (e) {
-      setStatusAcao(`Não consegui recalcular: ${e.message}`);
+      setActionStatus(t('app.recalculateFailed', { message: e.message }));
     } finally {
-      setRecalculando(false);
+      setRecalculating(false);
     }
   }, []);
 
-  const abrirModal = useCallback((id, lista, tabela) => {
+  const openModal = useCallback((id, list, table) => {
     if (!id) return;
-    setModal((m) => (Array.isArray(lista)
-      ? { id, lista: lista.filter((x) => typeof x === 'string' && x), tabela: tabela || null }
-      : { id, lista: m ? m.lista : [], tabela: m ? m.tabela : null }));
+    setModal((m) => (Array.isArray(list)
+      ? { id, list: list.filter((x) => typeof x === 'string' && x), table: table || null }
+      : { id, list: m ? m.list : [], table: m ? m.table : null }));
   }, []);
-  const fecharModal = useCallback(() => setModal(null), []);
+  const closeModal = useCallback(() => setModal(null), []);
 
-  const filtrarPorFluxo = useCallback((id) => {
+  const filterByFlow = useCallback((id) => {
     setModal(null);
-    setFiltrosBrutos((f) => ({ ...novoFiltro(), fluxo: id, incluir_testes: f.incluir_testes }));
-    setPagina(1);
-    irPara('log');
+    setRawFilters((f) => ({ ...newFilter(), flow: id, include_tests: f.include_tests }));
+    setPage(1);
+    goTo('log');
   }, []);
-  const irParaPendencia = useCallback((id) => {
+  const goToPendingDecision = useCallback((id) => {
     setModal(null);
-    irPara('pendencias');
-    setPendenciaAlvo({ id, vez: Date.now() });
+    goTo('pending');
+    setPendingTarget({ id, at: Date.now() });
   }, []);
 
   const ctx = {
-    estado, erroConexao, falhaDesde, aba, irPara, statusAcao, setStatusAcao, recalculando, recalcular,
-    modal, abrirModal, fecharModal, setModal, filtrarPorFluxo, irParaPendencia, pendenciaAlvo,
-    filtros, setFiltros, setFiltrosBrutos, pagina, setPagina, log, carregarLog,
-    analitico, analise, subrota,
+    state, connectionError, failingSince, screen, goTo, actionStatus, setActionStatus, recalculating, recalculate,
+    modal, openModal, closeModal, setModal, filterByFlow, goToPendingDecision, pendingTarget,
+    filters, setFilters, setRawFilters, page, setPage, log, loadLog,
+    analytics, analysis, subroute,
   };
 
-  const Tela = TELAS[aba] || Visao;
+  const Screen = SCREEN_COMPONENTS[screen] || Overview;
   return (
-    <PainelContexto.Provider value={ctx}>
+    <PanelContext.Provider value={ctx}>
       <div class="app">
-        <Lateral />
-        <div class="principal">
-          <Topo />
+        <Sidebar />
+        <div class="main">
+          <Header />
           <div>
             {MOCK && (
-              <div class="faixa mock"><Icone de={Info} />Modo de teste (?mock=1): dados fictícios de tests/mock-state.json e mock-details.json. Nada aqui vem do servidor.</div>
+              <div class="banner mock"><Icon of={Info} />{t('app.mockBanner')}</div>
             )}
-            {erroConexao && (
-              <div class="faixa erro" role="alert"><Icone de={TriangleAlert} />
-                Não consegui ler o painel ({erroConexao.message}). Tento de novo a cada 20 s.{estado ? ' O que está na tela é a última leitura boa.' : ''}
+            {connectionError && (
+              <div class="banner error" role="alert"><Icon of={TriangleAlert} />
+                {state
+                  ? t('app.connectionErrorWithData', { message: connectionError.message })
+                  : t('app.connectionError', { message: connectionError.message })}
               </div>
             )}
           </div>
-          <main class="conteudo" id="principal" role="tabpanel" aria-labelledby={`tab-${aba}`}>
-            <Tela />
+          <main class="content" id="main-panel" role="tabpanel" aria-labelledby={`tab-${screen}`}>
+            <Screen />
           </main>
         </div>
       </div>
-      {modal && <ModalEvento />}
-    </PainelContexto.Provider>
+      {modal && <EventModal />}
+    </PanelContext.Provider>
   );
 }
