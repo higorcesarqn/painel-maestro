@@ -4,7 +4,6 @@ import { mockApi } from './mock.js';
 export const INTERVALO_MS = 20000;
 export const POR_PAGINA = 50;
 export const INTERVALO_ANALITICO_MS = 60000;
-export const INTERVALO_PROSPECCAO_MS = 30000;
 export const MOCK = new URLSearchParams(location.search).get('mock') === '1';
 
 /** opcoes: { metodo: 'GET' | 'POST', corpo: objeto enviado como JSON (só no POST) } */
@@ -32,10 +31,6 @@ export const lerEstado = () => api('/api/estado');
 export const recalcularUso = () => api('/api/recalcular', { metodo: 'POST' });
 export const lerEventos = (params) => api(`/api/eventos?${params.toString()}`);
 export const lerEvento = (id) => api(`/api/evento/${encodeURIComponent(id)}`);
-export const lerProspeccao = () => api('/api/prospeccao/estado');
-export const lerLeadProspeccao = (id) => api(`/api/prospeccao/lead/${encodeURIComponent(id)}`);
-/** acao: 'assumir' (pausa o agente no lead) ou 'devolver' (o agente volta a cuidar dele). */
-export const alterarLeadProspeccao = (acao, id) => api(`/api/prospeccao/${acao === 'assumir' ? 'assumir' : 'devolver'}`, { metodo: 'POST', corpo: { lead_id: id } });
 
 /**
  * Resposta do dono a uma pendência: { opcao: 'A' | null, texto }. O servidor grava (pendencia.js responder) e avisa

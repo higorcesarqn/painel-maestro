@@ -1,7 +1,7 @@
 {
   "name": "painel-maestro",
   "version": "1.0.0",
-  "description": "Painel web local para acompanhar um workspace multiagente (Maestri + Claude Code): eventos, fluxos, pendências do dono, Trello, uso do plano e prospecção.",
+  "description": "Painel web local para acompanhar um workspace multiagente (Maestri + Claude Code): eventos, fluxos, pendências do dono e uso do plano.",
   "license": "MIT",
   "private": true,
   "type": "commonjs",

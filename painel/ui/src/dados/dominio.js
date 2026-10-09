@@ -1,5 +1,5 @@
-// Vocabulário do workspace: tipos de evento, resultados, severidades, projetos, cores e links seguros.
-import { txt, normalizar, objs, obj, arr } from './formato.js';
+// Vocabulário do workspace: tipos de evento, resultados, severidades, projetos e cores.
+import { txt, arr } from './formato.js';
 
 export const TIPOS = {
   'pedido-recebido': 'Pedido recebido', delegacao: 'Delegação', 'resposta-recebida': 'Resposta recebida', aviso: 'Aviso',
@@ -35,8 +35,8 @@ export const PERIODOS_USO = [
   { id: '7d', nome: '7 dias', curto: '7 dias', plano: 'semanal_pct' },
 ];
 
-// Cores das etiquetas do Trello (paleta atual do Trello).
-export const CORES_TRELLO = {
+// Cores por nome (agentes e projetos podem usar o nome ou um #hex).
+export const CORES = {
   green: '#4BCE97', green_dark: '#1F845A', green_light: '#BAF3DB',
   yellow: '#F5CD47', yellow_dark: '#946F00', yellow_light: '#F8E6A0',
   orange: '#FEA362', orange_dark: '#C25100', orange_light: '#FEDEC8',
@@ -48,31 +48,16 @@ export const CORES_TRELLO = {
   pink: '#E774BB', pink_dark: '#AE4787', pink_light: '#FDD0EC',
   black: '#8590A2', black_dark: '#626F86', black_light: '#DCDFE4',
 };
-// Registro de projetos de exemplo, usado só quando o resumo do Trello ainda não existe.
-// Troque pelos prefixos e cores do seu quadro.
+// Registro de projetos de exemplo (prefixo, nome e cor). Troque pelos prefixos e cores dos seus projetos.
 export const PROJETOS_MANUAL = {
   A: { nome: 'Atlas', cor: 'green' }, B: { nome: 'Boreal', cor: 'blue' }, C: { nome: 'Cometa', cor: 'purple' },
   D: { nome: 'Delta', cor: 'red' }, E: { nome: 'Eco', cor: 'yellow' }, F: { nome: 'Faro', cor: 'black_dark' },
 };
 
-// Status do Trello: o tom do manual (A Fazer vermelho, Em andamento laranja, Concluído verde).
-export const STATUS_TRELLO = {
-  afazer: { nome: 'A fazer', cor: CORES_TRELLO.red },
-  andamento: { nome: 'Em andamento', cor: CORES_TRELLO.orange },
-  concluido: { nome: 'Concluído', cor: CORES_TRELLO.green },
-};
-export function classeStatus(status) {
-  const s = normalizar(status);
-  if (s.startsWith('a fazer') || s === 'a_fazer') return 'afazer';
-  if (s.startsWith('em andamento') || s === 'em_andamento') return 'andamento';
-  if (s.startsWith('conclu') || s === 'feito') return 'concluido';
-  return null;
-}
-
 export function corSegura(c) {
   if (typeof c !== 'string') return null;
   if (/^#[0-9a-fA-F]{3,8}$/.test(c)) return c;
-  return CORES_TRELLO[c] || null;
+  return CORES[c] || null;
 }
 
 export function infoAgente(estado, slug) {
@@ -83,11 +68,9 @@ export function infoAgente(estado, slug) {
   return { slug: s, nome: m ? `desconhecido (${m[1]})` : s || '—', cor: null };
 }
 
-export function projetosConhecidos(estado) {
+export function projetosConhecidos() {
   const mapa = new Map();
   for (const k of Object.keys(PROJETOS_MANUAL)) mapa.set(k, { prefixo: k, nome: PROJETOS_MANUAL[k].nome, cor: corSegura(PROJETOS_MANUAL[k].cor) });
-  const tr = estado && obj(estado.trello);
-  if (tr) for (const p of objs(tr.projetos)) if (p.prefixo) mapa.set(String(p.prefixo).toUpperCase(), { prefixo: String(p.prefixo), nome: p.nome || p.prefixo, cor: corSegura(p.cor) });
   return mapa;
 }
 
@@ -105,17 +88,6 @@ export function corDoFluxo(id) {
   x ^= x >>> 16; x = Math.imul(x, 0x85ebca6b) >>> 0; x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35) >>> 0; x ^= x >>> 16;
   return `hsl(${(x >>> 0) % 360} 70% 62%)`;
 }
-
-/** Só links https://trello.com/... viram link; o resto vira texto. */
-export function urlTrello(u) {
-  if (typeof u !== 'string') return null;
-  try {
-    const x = new URL(u);
-    if (x.protocol === 'https:' && x.hostname === 'trello.com' && !x.username && !x.password) return x.href;
-  } catch (_) { /* não é URL */ }
-  return null;
-}
-export const urlDoCartao = (tr) => (tr ? tr.url || (tr.shortLink ? `https://trello.com/c/${tr.shortLink}` : null) : null);
 
 export const nomeTipo = (t) => TIPOS[t] || (t ? String(t) : '—');
 export function nomeOrigem(estado, o) {

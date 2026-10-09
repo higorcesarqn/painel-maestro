@@ -13,7 +13,7 @@ const SEVERIDADES = ['critica', 'alta', 'normal', 'baixa'];
 const TIPOS = ['aprovacao', 'decisao', 'informacao-faltando', 'revisao'];
 const STATUS = ['aberta', 'respondida', 'resolvida', 'cancelada'];
 const ABERTAS = ['aberta', 'respondida'];
-const CAMPOS_ENTRADA = ['agente', 'fluxo_id', 'severidade', 'tipo', 'titulo', 'contexto', 'opcoes', 'recomendacao', 'trello', 'teste'];
+const CAMPOS_ENTRADA = ['agente', 'fluxo_id', 'severidade', 'tipo', 'titulo', 'contexto', 'opcoes', 'recomendacao', 'teste'];
 const INICIAL = { proximo: 1, pendencias: [] };
 
 const AJUDA = `pendencia · fila de pendências do dono (estado/pendencias.json; cada ação também vira evento no log)
@@ -34,7 +34,6 @@ SUBCOMANDOS
       --tipo T              aprovacao | decisao | informacao-faltando | revisao
       --opcao "A: ..."      repetível (2 a 4 opções, mutuamente exclusivas, cada uma com a consequência)
       --recomendacao "..."  qual opção e por quê, em uma frase
-      --trello X            shortLink (ex.: AbCd1234) ou URL do cartão (https://trello.com/c/...); URL de quadro é recusada
       --agente S            padrão: o agente deste terminal
       --fluxo F             padrão: o fluxo da sessão atual (CLAUDE_CODE_SESSION_ID); erro se não houver
       --origem O            origem do evento (padrão: cerebro para o Cérebro, agente:<slug> para os outros)
@@ -63,14 +62,14 @@ CÓDIGOS DE SAÍDA
   0 ok · 2 validação (lista cada problema) · 3 trava esgotada · 1 outros erros
 
 EXEMPLOS
-  ${CMD} abrir --fluxo F-20261008-0007 --severidade alta --tipo decisao --titulo "Cometa: definir etiqueta e prefixo" --contexto "A coluna é roxa e o único cartão usa outra etiqueta." --opcao "A: etiqueta Cometa roxa, prefixo C:" --opcao "B: prefixo CO:" --recomendacao "A, porque mantém o prefixo atual."
+  ${CMD} abrir --fluxo F-20261008-0007 --severidade alta --tipo decisao --titulo "Cometa: definir o nome do pacote" --contexto "O repositório usa um nome e o pacote publicado usa outro." --opcao "A: renomear o pacote para cometa" --opcao "B: manter cometa-core" --recomendacao "A, porque segue o nome do repositório."
   ${CMD} abrir --json - < /c/Temp/p.json      (Git Bash)
   $OutputEncoding = [Text.UTF8Encoding]::new($false); Get-Content C:/Temp/p.json -Encoding utf8 | ${CMD} abrir --json -      (PowerShell; sem o $OutputEncoding, o PowerShell 5 troca acentos e emoji por "?")
   ${CMD} listar
   ${CMD} listar --todas --severidade alta
   ${CMD} mostrar P-0003
   ${CMD} responder P-0003 --resposta "Opção A"
-  ${CMD} resolver P-0003 --nota "Etiqueta criada e cartão renomeado; reli o quadro às 16:10"
+  ${CMD} resolver P-0003 --nota "Pacote renomeado; conferi a publicação às 16:10"
   ${CMD} cancelar P-0004 --motivo "O dono desistiu do projeto"
 `;
 
@@ -137,14 +136,6 @@ function validarNova(p, cadastro) {
   if (p.opcoes !== undefined && (!Array.isArray(p.opcoes) || p.opcoes.some((x) => !lib.textoPreenchido(x)))) problemas.push('"opcoes" deve ser uma lista de textos não vazios');
   if (p.recomendacao !== undefined && p.recomendacao !== null && typeof p.recomendacao !== 'string') problemas.push('"recomendacao" deve ser texto');
   if (p.teste !== undefined && typeof p.teste !== 'boolean') problemas.push('"teste" deve ser true ou false');
-  if (p.trello !== undefined && p.trello !== null) {
-    if (typeof p.trello !== 'object' || Array.isArray(p.trello)) problemas.push('"trello" deve ser um objeto {shortLink, url}');
-    else for (const [k, v] of Object.entries(p.trello)) {
-      if (!['shortLink', 'url'].includes(k)) problemas.push(`campo desconhecido "trello.${k}" (aceitos: shortLink, url)`);
-      else if (typeof v !== 'string') problemas.push(`"trello.${k}" deve ser texto`);
-    }
-    problemas.push(...lib.problemasDoTrello(p.trello));
-  }
   return problemas;
 }
 
@@ -190,7 +181,7 @@ function notificarCritica(p) {
 
 function cmdAbrir(argv) {
   const { op } = lib.lerArgumentos(argv, {
-    texto: ['agente', 'fluxo', 'severidade', 'tipo', 'titulo', 'contexto', 'recomendacao', 'trello', 'origem', 'json', 'json-arquivo'],
+    texto: ['agente', 'fluxo', 'severidade', 'tipo', 'titulo', 'contexto', 'recomendacao', 'origem', 'json', 'json-arquivo'],
     lista: ['opcao'],
     bool: ['teste'],
   });
@@ -202,9 +193,6 @@ function cmdAbrir(argv) {
   const mapa = { agente: 'agente', fluxo: 'fluxo_id', severidade: 'severidade', tipo: 'tipo', titulo: 'titulo', contexto: 'contexto', recomendacao: 'recomendacao' };
   for (const [flag, campo] of Object.entries(mapa)) if (op[flag] !== undefined) p[campo] = op[flag];
   if (op.opcao !== undefined) p.opcoes = op.opcao;
-  if (op.trello !== undefined) p.trello = lib.trelloDeTexto(op.trello);
-  else if (typeof p.trello === 'string') p.trello = lib.trelloDeTexto(p.trello);
-  else if (p.trello && typeof p.trello === 'object' && !Array.isArray(p.trello)) p.trello = lib.completarTrello(p.trello);
   if (op.teste !== undefined) p.teste = op.teste;
   for (const k of ['severidade', 'tipo']) if (typeof p[k] === 'string') p[k] = lib.normalizarEnum(p[k]);
   if (typeof p.fluxo_id === 'string') p.fluxo_id = p.fluxo_id.trim().toUpperCase();
@@ -242,7 +230,6 @@ function cmdAbrir(argv) {
       contexto: p.contexto,
       opcoes: Array.isArray(p.opcoes) ? p.opcoes : [],
       recomendacao: p.recomendacao || null,
-      trello: p.trello || null,
       status: 'aberta',
       resposta: null,
       respondida_em: null,
@@ -258,7 +245,6 @@ function cmdAbrir(argv) {
     origem,
     tipo: 'pendencia-aberta',
     resumo: cortarResumo(`${nova.id} aberta [${nova.severidade}]: ${nova.titulo}`),
-    trello: nova.trello && (nova.trello.shortLink || nova.trello.url) ? { ...nova.trello } : undefined,
     resultado: 'aguardando-dono',
     precisa_dono: true,
     pendencias: [nova.id],
@@ -322,7 +308,6 @@ function cmdMostrar(argv) {
     for (const o of p.opcoes) lib.escrever(`  - ${o}`);
   }
   if (p.recomendacao) lib.escrever(`Recomendação: ${p.recomendacao}`);
-  if (p.trello && (p.trello.shortLink || p.trello.url)) lib.escrever(`Trello: ${[p.trello.shortLink, p.trello.url].filter(Boolean).join(' · ')}`);
   lib.escrever(`Resposta: ${p.resposta ? p.resposta : '(sem resposta)'}${p.respondida_em ? ` · em ${quando(p.respondida_em)}` : ''}`);
   if (p.status === 'resolvida') lib.escrever(`Resolvida em ${quando(p.resolvida_em)}${p.nota ? ` · nota: ${p.nota}` : ''}`);
   if (p.status === 'cancelada') lib.escrever(`Cancelada em ${quando(p.resolvida_em)} · motivo: ${p.motivo || '-'}`);

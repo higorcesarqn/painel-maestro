@@ -1,23 +1,20 @@
-// Menu lateral: marca e as telas, em blocos por grupo (GRUPOS em dados/contexto.js: Workspace, Operações).
+// Menu lateral: marca e as telas, em blocos por grupo (GRUPOS em dados/contexto.js).
 // Setas ↑ ↓ ← → percorrem todas as telas, de um grupo para o outro, com o foco no menu.
 import '../estilo/menu.css';
 import { usePainel, ABAS, GRUPOS } from '../dados/contexto.js';
-import { obj, arr } from '../dados/formato.js';
-import { Icone, LayoutDashboard, Inbox, ScrollText, SquareKanban, Bot, Gauge, MessageCircle } from '../componentes/Icone.jsx';
+import { obj } from '../dados/formato.js';
+import { Icone, LayoutDashboard, Inbox, ScrollText, Bot, Gauge } from '../componentes/Icone.jsx';
 
 // Ícone de cada tela (tela nova: acrescente aqui).
-const ICONES = { visao: LayoutDashboard, pendencias: Inbox, log: ScrollText, trello: SquareKanban, agentes: Bot, uso: Gauge, prospeccao: MessageCircle };
+const ICONES = { visao: LayoutDashboard, pendencias: Inbox, log: ScrollText, agentes: Bot, uso: Gauge };
 
 export function Lateral() {
-  const { estado, aba, irPara, prospeccao } = usePainel();
+  const { estado, aba, irPara } = usePainel();
   const kp = (estado && obj(estado.kpis) && obj(estado.kpis.pendencias)) || {};
   const ws = (estado && obj(estado.workspace)) || {};
-  const pv = obj(prospeccao && prospeccao.dados && obj(prospeccao.dados.qualificacao) && prospeccao.dados.qualificacao.para_voce) || {};
-  const comVoce = arr(pv.com_humano).length;
   // Contador ao lado do nome: { n, tom, rotulo }
   const contadores = {
     pendencias: kp.total ? { n: kp.total, tom: kp.critica ? 'forte' : 'azul', rotulo: `${kp.total} pendência(s) aberta(s)` } : null,
-    prospeccao: comVoce ? { n: comVoce, tom: 'azul', rotulo: `${comVoce} lead(s) nas suas mãos` } : null,
   };
   const tecla = (ev) => {
     const delta = ev.key === 'ArrowDown' || ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' ? -1 : 0;

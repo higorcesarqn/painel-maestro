@@ -850,10 +850,9 @@ const TIPOS_EVENTO = ['pedido-recebido', 'delegacao', 'resposta-recebida', 'avis
 const RESULTADOS = ['ok', 'parcial', 'falhou', 'bloqueado', 'aguardando-dono', 'em-andamento'];
 const TIPOS_COM_DIRECAO = ['decisao', 'execucao', 'delegacao', 'auditoria'];
 const OBRIGATORIOS_EVENTO = ['agente', 'fluxo_id', 'origem', 'tipo', 'resumo', 'resultado'];
-const CAMPOS_EVENTO = ['id', 'ts', 'agente', 'fluxo_id', 'origem', 'tipo', 'projeto', 'trello', 'resumo', 'direcao', 'passos',
+const CAMPOS_EVENTO = ['id', 'ts', 'agente', 'fluxo_id', 'origem', 'tipo', 'projeto', 'resumo', 'direcao', 'passos',
   'comandos', 'alteracoes', 'resultado', 'validacao', 'proximo_passo', 'precisa_dono', 'pendencias', 'duracao_s', 'sessao',
   'teste', 'tipo_original', 'importado_de'];
-const CAMPOS_TRELLO = ['shortLink', 'titulo', 'url', 'status_antes', 'status_depois'];
 const CAMPOS_TEXTO_LIVRE = ['resumo', 'direcao', 'validacao', 'proximo_passo'];
 const CAMPOS_LISTA_LIVRE = ['passos', 'comandos', 'alteracoes'];
 const MAX_RESUMO = 100;
@@ -929,16 +928,6 @@ function validarEvento(ev, { cadastro } = {}) {
   if (ev.duracao_s !== undefined && !(typeof ev.duracao_s === 'number' && Number.isFinite(ev.duracao_s) && ev.duracao_s >= 0)) {
     p.push('"duracao_s" deve ser um número de segundos maior ou igual a zero');
   }
-  if (ev.trello !== undefined) {
-    if (!ev.trello || typeof ev.trello !== 'object' || Array.isArray(ev.trello)) p.push(`"trello" deve ser um objeto com ${CAMPOS_TRELLO.join(', ')}`);
-    else {
-      for (const [k, v] of Object.entries(ev.trello)) {
-        if (!CAMPOS_TRELLO.includes(k)) p.push(`campo desconhecido "trello.${k}" (aceitos: ${CAMPOS_TRELLO.join(', ')})`);
-        else if (typeof v !== 'string') p.push(`"trello.${k}" deve ser texto`);
-      }
-      p.push(...problemasDoTrello(ev.trello));
-    }
-  }
   if (ev.ts !== undefined && !lerData(ev.ts)) p.push(`ts "${ev.ts}" inválido: use ISO 8601 com fuso, ex.: 2026-10-08T15:42:10-03:00`);
   if (ev.id !== undefined && !(typeof ev.id === 'string' && RE_ID_EVENTO.test(ev.id))) p.push(`id "${ev.id}" inválido: use EV-AAAAMMDD-HHMMSS-xxxx`);
   return p;
@@ -971,44 +960,6 @@ function idJaUsado(arquivo, id) {
   }
 }
 
-/** Completa o bloco trello: url a partir do shortLink e shortLink a partir da url. */
-function completarTrello(t) {
-  if (!t || typeof t !== 'object' || Array.isArray(t)) return t;
-  const r = { ...t };
-  if (textoPreenchido(r.shortLink) && !textoPreenchido(r.url)) r.url = `https://trello.com/c/${r.shortLink.trim()}`;
-  if (!textoPreenchido(r.shortLink) && textoPreenchido(r.url)) {
-    const m = /trello\.com\/c\/([A-Za-z0-9]+)/.exec(r.url);
-    if (m) r.shortLink = m[1];
-  }
-  return r;
-}
-
-const RE_SHORTLINK = /^[A-Za-z0-9]{6,12}$/;
-const RE_URL_CARTAO = /trello\.com\/c\/([A-Za-z0-9]{6,12})(?![A-Za-z0-9])/;
-
-/** Interpreta "shortLink" ou URL de cartão do Trello em {shortLink, url}; qualquer outro texto (ex.: URL do quadro) é erro de uso. */
-function trelloDeTexto(texto) {
-  const s = String(texto || '').trim();
-  if (!s) return undefined;
-  const m = RE_URL_CARTAO.exec(s);
-  if (m) return { shortLink: m[1], url: s };
-  if (RE_SHORTLINK.test(s)) return completarTrello({ shortLink: s });
-  throw erroArgs(`Trello "${s}" não é um cartão: passe o shortLink do cartão (ex.: AbCd1234) ou a URL https://trello.com/c/<shortLink>/... (a URL do quadro, /b/..., não serve)`);
-}
-
-/** Problemas do bloco trello de um evento ou pendência (shortLink com formato de cartão, url de cartão). */
-function problemasDoTrello(t, rotulo = 'trello') {
-  if (!t || typeof t !== 'object' || Array.isArray(t)) return [];
-  const p = [];
-  if (typeof t.shortLink === 'string' && t.shortLink.trim() && !RE_SHORTLINK.test(t.shortLink.trim())) {
-    p.push(`"${rotulo}.shortLink" "${t.shortLink}" inválido: use o shortLink do cartão (6 a 12 letras e números, ex.: AbCd1234)`);
-  }
-  if (typeof t.url === 'string' && t.url.trim() && /trello\.com\//i.test(t.url) && !RE_URL_CARTAO.test(t.url)) {
-    p.push(`"${rotulo}.url" "${t.url}" não é a URL de um cartão (use https://trello.com/c/<shortLink>)`);
-  }
-  return p;
-}
-
 /** Põe os campos do evento na ordem do schema e tira os vazios (undefined). */
 function ordenarCampos(ev) {
   const r = {};
@@ -1018,7 +969,7 @@ function ordenarCampos(ev) {
 }
 
 /**
- * Prepara um evento: normaliza enums, completa ts/sessao/precisa_dono/trello, redige textos livres e valida.
+ * Prepara um evento: normaliza enums, completa ts/sessao/precisa_dono, redige textos livres e valida.
  * opcoes: agora, env (para sessao e redação), cadastro (agentes.json), semente (id determinístico).
  * Devolve {evento, problemas}; evento é null quando há problemas.
  */
@@ -1041,13 +992,10 @@ function montarEvento(dados, { agora: quando, env = process.env, cadastro, semen
   }
   if (ev.sessao === undefined && env && env.CLAUDE_CODE_SESSION_ID) ev.sessao = String(env.CLAUDE_CODE_SESSION_ID);
   if (ev.precisa_dono === undefined) ev.precisa_dono = false;
-  if (ev.trello !== undefined) ev.trello = completarTrello(ev.trello);
   // Redação: nunca gravar segredo, nem por descuido.
   const red = (v) => (typeof v === 'string' ? redigir(v, { env }) : v);
   for (const k of CAMPOS_TEXTO_LIVRE) ev[k] = red(ev[k]);
   for (const k of CAMPOS_LISTA_LIVRE) if (Array.isArray(ev[k])) ev[k] = ev[k].map(red);
-  if (ev.trello && typeof ev.trello === 'object') for (const k of ['titulo', 'url']) ev.trello[k] = red(ev.trello[k]);
-  if (ev.trello && typeof ev.trello === 'object') for (const k of Object.keys(ev.trello)) if (ev.trello[k] === undefined) delete ev.trello[k];
   problemas.push(...validarEvento(ev, { cadastro }));
   if (problemas.length) return { evento: null, problemas };
   const evento = ordenarCampos({ ...ev, id: gerarIdEvento(data, semente) });
@@ -1393,10 +1341,10 @@ module.exports = {
   // agentes
   carregarAgentes, carregarAgentesSeguro, nomeDaPasta, agentePorDiretorio, identificarAgente,
   // eventos
-  ORIGENS_FIXAS, TIPOS_EVENTO, RESULTADOS, TIPOS_COM_DIRECAO, OBRIGATORIOS_EVENTO, CAMPOS_EVENTO, CAMPOS_TRELLO,
+  ORIGENS_FIXAS, TIPOS_EVENTO, RESULTADOS, TIPOS_COM_DIRECAO, OBRIGATORIOS_EVENTO, CAMPOS_EVENTO,
   MAX_RESUMO, RE_FLUXO, RE_PENDENCIA, RE_ID_EVENTO, RE_SLUG,
-  RE_SHORTLINK, normalizarEnum, textoPreenchido, problemasDoAgente, problemasDaOrigem, validarEvento, gerarIdEvento, idJaUsado,
-  completarTrello, trelloDeTexto, problemasDoTrello, ordenarCampos, montarEvento, gravarEvento, erroValidacao, registrarEvento, lerEventos,
+  normalizarEnum, textoPreenchido, problemasDoAgente, problemasDaOrigem, validarEvento, gerarIdEvento, idJaUsado,
+  ordenarCampos, montarEvento, gravarEvento, erroValidacao, registrarEvento, lerEventos,
   // sessões e fluxos
   sessaoAtual, fluxoDaSessao, atualizarSessao, diagnosticoSessao, mensagemSemFluxo, ultimoFluxoNoTexto,
   // correlação

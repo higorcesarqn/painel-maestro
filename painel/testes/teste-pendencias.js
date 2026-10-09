@@ -15,10 +15,10 @@ const POST = { metodo: 'POST', cabecalhos: { 'X-Painel': '1', 'Content-Type': 'a
 
 function pendencia(id, extra = {}) {
   return Object.assign({
-    id, aberta_em: '2026-10-08T05:53:34-03:00', agente: 'coordenador-trello', fluxo_id: 'F-20261008-0004',
+    id, aberta_em: '2026-10-08T05:53:34-03:00', agente: 'coordenador', fluxo_id: 'F-20261008-0004',
     severidade: 'alta', tipo: 'aprovacao', titulo: `Teste ${id}`, contexto: 'Contexto do teste.',
     opcoes: ['A: Aprovar tudo', 'B: Aprovar só a lista', 'C: Não aprovar agora'], recomendacao: 'A, porque sim.',
-    trello: null, status: 'aberta', resposta: null, respondida_em: null, resolvida_em: null,
+    status: 'aberta', resposta: null, respondida_em: null, resolvida_em: null,
   }, extra);
 }
 
@@ -31,7 +31,7 @@ function montarRaiz(nome) {
     versao: 1, workspace: { nome: 'Exemplo' },
     agentes: [
       { slug: 'cerebro', nome: 'Cérebro Principal', tipo: 'maestro', status: 'ativo' },
-      { slug: 'coordenador-trello', nome: 'Coordenador do Trello', tipo: 'sub-cerebro', status: 'ativo' },
+      { slug: 'coordenador', nome: 'Coordenador', tipo: 'sub-cerebro', status: 'ativo' },
     ],
   });
   escreverJson(path.join(m, 'estado', 'pendencias.json'), {

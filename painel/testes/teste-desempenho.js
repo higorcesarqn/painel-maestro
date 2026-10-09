@@ -28,7 +28,7 @@ function montar() {
   const m = path.join(raiz, 'maestro');
   escreverJson(path.join(m, 'registro', 'agentes.json'), {
     workspace: { nome: 'Exemplo', raiz: 'C:/teste' }, padrao: { modelo: 'x', nivel: 'xhigh' },
-    agentes: [{ slug: 'cerebro', nome: 'Cérebro Principal', status: 'ativo' }, { slug: 'coordenador-trello', nome: 'Coordenador do Trello', status: 'ativo' }],
+    agentes: [{ slug: 'cerebro', nome: 'Cérebro Principal', status: 'ativo' }, { slug: 'coordenador', nome: 'Coordenador', status: 'ativo' }],
   });
   const dir = path.join(m, 'logs', 'eventos');
   fs.mkdirSync(dir, { recursive: true });
@@ -41,10 +41,9 @@ function montar() {
     const dia = ts.slice(0, 10).replace(/-/g, '');
     const fluxo = `F-${dia}-${pad(1 + (i % 40), 4)}`;
     const ev = {
-      id: `EV-${dia}-${ts.slice(11, 19).replace(/:/g, '')}-${i.toString(16).padStart(4, '0')}`, ts, agente: i % 3 ? 'cerebro' : 'coordenador-trello',
+      id: `EV-${dia}-${ts.slice(11, 19).replace(/:/g, '')}-${i.toString(16).padStart(4, '0')}`, ts, agente: i % 3 ? 'cerebro' : 'coordenador',
       fluxo_id: fluxo, origem: 'cerebro', tipo: i % 7 ? 'execucao' : 'decisao', projeto: 'HNMSTG'[i % 6],
-      trello: { shortLink: `c${i}`, titulo: `A: tarefa número ${i} com acentuação`, url: `https://trello.com/c/c${i}` },
-      resumo: `Executada a etapa ${i} do fluxo ${fluxo}`, direcao: `Escolhi o caminho ${i % 5} porque é o mais simples; ${'detalhe '.repeat(10)}`,
+      resumo: `Executada a etapa número ${i} do fluxo ${fluxo}, com acentuação`, direcao: `Escolhi o caminho ${i % 5} porque é o mais simples; ${'detalhe '.repeat(10)}`,
       passos: ['a', 'b', 'c'], comandos: ['node x.js'], alteracoes: [], resultado: i % 50 ? 'ok' : 'falhou', validacao: 'conferido',
       precisa_dono: i % 97 === 0, pendencias: [], duracao_s: i % 120, teste: i % 1000 === 0,
     };
@@ -54,7 +53,7 @@ function montar() {
   porMes['2026-09'].push(JSON.stringify({ id: 'EV-20260908-090000-f001', ts: '2026-09-08T09:00:00-03:00', agente: 'cerebro', fluxo_id: FLUXO_LONGO, origem: 'dono-direto', tipo: 'pedido-recebido', resumo: 'Fluxo longo', resultado: 'em-andamento', sessao: 's1' }));
   porMes['2026-10'].push(JSON.stringify({ id: 'EV-20261008-150000-f002', ts: '2026-10-08T15:00:00-03:00', agente: 'cerebro', fluxo_id: FLUXO_LONGO, origem: 'cerebro', tipo: 'execucao', resumo: 'Fluxo longo segue', resultado: 'em-andamento', sessao: 's1' }));
   for (const [mes, linhas] of Object.entries(porMes)) fs.writeFileSync(path.join(dir, `${mes}.jsonl`), `${linhas.join('\n')}\n`);
-  for (const ag of ['cerebro', 'coordenador-trello']) {
+  for (const ag of ['cerebro', 'coordenador']) {
     for (const dia of ['2026-10-07', '2026-10-08']) {
       const linhas = [];
       const ini = Date.parse(`${dia}T00:00:00-03:00`);
@@ -71,7 +70,7 @@ function montar() {
       fs.writeFileSync(arq, `${linhas.join('\n')}\n`);
     }
   }
-  for (const ag of ['cerebro', 'coordenador-trello']) {
+  for (const ag of ['cerebro', 'coordenador']) {
     for (let d = Date.parse('2026-09-08T12:00:00Z'); d < Date.parse('2026-10-07T00:00:00Z'); d += 86400000) {
       const dia = new Date(d).toISOString().slice(0, 10);
       const linhas = [];
@@ -104,7 +103,7 @@ function memoriaMb(pid) {
 suite.teste('gera 50 mil eventos e o log bruto e sobe o servidor', async () => {
   const m = montar();
   const porta = await portaLivre();
-  const env = Object.assign({}, process.env, { MAESTRO_DIR: m, PAINEL_AGORA: AGORA, PAINEL_COLETOR: '0', PAINEL_INDEX: path.join(raiz, 'x.html'), PAINEL_TRELLO_JANELA: '0-24', MAESTRI_DATA_DIR: path.join(raiz, 'maestri') });
+  const env = Object.assign({}, process.env, { MAESTRO_DIR: m, PAINEL_AGORA: AGORA, PAINEL_COLETOR: '0', PAINEL_INDEX: path.join(raiz, 'x.html'), MAESTRI_DATA_DIR: path.join(raiz, 'maestri') });
   const filho = spawn(process.execPath, [SERVIDOR, '--porta', String(porta)], { env, windowsHide: true });
   let saida = '';
   filho.stdout.on('data', (c) => { saida += c; });
@@ -132,7 +131,7 @@ suite.teste('/api/eventos com busca e filtros em todos os meses < 2 s', async ()
   const q = await tempo(() => pedir(S.porta, `/api/eventos?q=${encodeURIComponent('ACENTUAÇÃO 4999')}&so_dono=0&pagina=1`));
   assert.strictEqual(q.r.status, 200);
   assert.ok(q.r.json.total >= 1);
-  const f = await tempo(() => pedir(S.porta, '/api/eventos?agente=coordenador-trello&tipo=decisao&desde=2026-09-10&ate=2026-10-05&por_pagina=500'));
+  const f = await tempo(() => pedir(S.porta, '/api/eventos?agente=coordenador&tipo=decisao&desde=2026-09-10&ate=2026-10-05&por_pagina=500'));
   console.log(`        /api/eventos: busca ${q.ms.toFixed(0)} ms, filtros ${f.ms.toFixed(0)} ms (${f.r.json.total} eventos)`);
   assert.ok(q.ms < 2000 && f.ms < 2000);
 });

@@ -4,11 +4,10 @@
  * servir-mock.js: serve o index.html no modo de teste (?mock=1), sem o servidor real e sem _maestro/.
  *
  * O navegador não deixa uma página aberta por file:// ler arquivos ao lado dela, então este
- * servidor mínimo entrega só quatro caminhos:
+ * servidor mínimo entrega só três caminhos:
  *   /                            → painel/index.html
  *   /testes/mock-estado.json     → resposta fictícia de /api/estado
  *   /testes/mock-detalhes.json   → eventos completos, comandos brutos e fluxos (imitam /api/evento e /api/fluxo)
- *   /testes/mock-prospeccao.json → /api/prospeccao/estado e os leads (testes/gerar-mock-prospeccao.js)
  * Qualquer outro caminho é 404. Escuta só em 127.0.0.1, nas portas de teste 4790 a 4799 (nunca a 4777).
  *
  * Uso: node testes/servir-mock.js [porta]      (padrão 4795)
@@ -29,7 +28,6 @@ const ARQUIVOS = {
   '/': [path.join(__dirname, '..', 'index.html'), 'text/html; charset=utf-8'],
   '/testes/mock-estado.json': [path.join(__dirname, 'mock-estado.json'), 'application/json; charset=utf-8'],
   '/testes/mock-detalhes.json': [path.join(__dirname, 'mock-detalhes.json'), 'application/json; charset=utf-8'],
-  '/testes/mock-prospeccao.json': [path.join(__dirname, 'mock-prospeccao.json'), 'application/json; charset=utf-8'],
 };
 const HOSTS = new Set([`127.0.0.1:${porta}`, `localhost:${porta}`]);
 

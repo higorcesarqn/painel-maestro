@@ -16,7 +16,6 @@ function arquivosDoMock() {
   const mapa = {
     '/testes/mock-estado.json': 'mock-estado.json',
     '/testes/mock-detalhes.json': 'mock-detalhes.json',
-    '/testes/mock-prospeccao.json': 'mock-prospeccao.json',
   };
   return {
     name: 'arquivos-do-mock',
@@ -51,7 +50,6 @@ export default defineConfig({
     proxy: {
       // O servidor exige Host 127.0.0.1:4777 e, no POST, Origin do próprio painel.
       '/api': { target: 'http://127.0.0.1:4777', changeOrigin: true, headers: { origin: 'http://127.0.0.1:4777' } },
-      '/prospeccao': { target: 'http://127.0.0.1:4777', changeOrigin: true },
     },
   },
 });

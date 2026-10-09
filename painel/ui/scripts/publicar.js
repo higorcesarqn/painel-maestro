@@ -15,8 +15,8 @@ const DIST = path.join(UI, 'dist');
 const DESTINO = path.resolve(UI, '..', 'index.html');
 const SO_CONFERIR = process.argv.includes('--so-conferir');
 
-// URLs que podem aparecer como texto no código (namespaces e links seguros); nenhuma é carregada.
-const URLS_PERMITIDAS = [/^http:\/\/www\.w3\.org\//, /^https:\/\/trello\.com\//];
+// URLs que podem aparecer como texto no código (namespaces XML); nenhuma é carregada.
+const URLS_PERMITIDAS = [/^http:\/\/www\.w3\.org\//];
 
 function falhar(msg) {
   console.error(`publicar: ${msg}`);

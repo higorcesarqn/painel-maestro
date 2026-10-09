@@ -2,7 +2,7 @@
 // os filtros do Log e o modal do evento. Só a tela visível é desenhada.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { PainelContexto, ABAS, novoFiltro } from '../dados/contexto.js';
-import { INTERVALO_MS, INTERVALO_ANALITICO_MS, INTERVALO_PROSPECCAO_MS, MOCK, lerEstado, recalcularUso, lerEventos, lerProspeccao } from '../dados/api.js';
+import { INTERVALO_MS, INTERVALO_ANALITICO_MS, MOCK, lerEstado, recalcularUso, lerEventos } from '../dados/api.js';
 import { acertarRelogio, agora, diaSP, hora, txt, obj, arr } from '../dados/formato.js';
 import { parametrosLog, analisar } from '../dados/consultas.js';
 import { Lateral } from './Lateral.jsx';
@@ -10,16 +10,14 @@ import { Topo } from './Topo.jsx';
 import { Visao } from '../telas/Visao.jsx';
 import { Pendencias } from '../telas/Pendencias.jsx';
 import { Log } from '../telas/Log.jsx';
-import { Trello } from '../telas/Trello.jsx';
 import { Agentes } from '../telas/Agentes.jsx';
 import { Uso } from '../telas/Uso.jsx';
-import { Prospeccao } from '../telas/Prospeccao.jsx';
 import { ModalEvento } from '../telas/ModalEvento.jsx';
 import { Icone, TriangleAlert, Info } from '../componentes/Icone.jsx';
 
 // Uma tela por item de ABAS (dados/contexto.js). Tela nova: entra aqui e lá.
-const TELAS = { visao: Visao, pendencias: Pendencias, log: Log, trello: Trello, agentes: Agentes, uso: Uso, prospeccao: Prospeccao };
-// URL: #<tela> ou #<tela>/<sub-aba> (ex.: #prospeccao/captacao).
+const TELAS = { visao: Visao, pendencias: Pendencias, log: Log, agentes: Agentes, uso: Uso };
+// URL: #<tela> ou #<tela>/<sub-aba>.
 const partesDoHash = () => {
   const [id, ...resto] = decodeURIComponent(location.hash.slice(1)).split('/');
   return ABAS.some((a) => a.id === id) ? { id, sub: resto.join('/') } : { id: 'visao', sub: '' };
@@ -71,7 +69,7 @@ export function App() {
   }, []);
 
   // ---------- navegação ----------
-  // irPara('log') troca de tela; irPara('prospeccao', 'captacao') abre a tela já na sub-aba.
+  // irPara('log') troca de tela; irPara('<tela>', '<sub-aba>') abre a tela já na sub-aba.
   const irPara = useCallback((id, sub = '') => {
     const alvo = ABAS.some((a) => a.id === id) ? id : 'visao';
     const s = alvo === id ? String(sub || '') : '';
@@ -150,37 +148,6 @@ export function App() {
 
   const analise = useMemo(() => (analitico.eventos ? analisar(analitico.eventos) : null), [analitico.eventos]);
 
-  // ---------- prospecção (resumo da Visão geral e a tela Prospecção) ----------
-  const [prospeccao, setProspeccao] = useState({ dados: null, em: 0, erro: null });
-  const lendoProspeccao = useRef(false);
-  const carregarProspeccao = useCallback(async () => {
-    if (lendoProspeccao.current) return;
-    lendoProspeccao.current = true;
-    setProspeccao((p) => ({ ...p, em: Date.now() }));
-    try {
-      const d = await lerProspeccao();
-      setProspeccao({ dados: d, em: Date.now(), erro: null });
-    } catch (e) {
-      setProspeccao((p) => ({ ...p, em: Date.now(), erro: e }));
-    } finally {
-      lendoProspeccao.current = false;
-    }
-  }, []);
-  // Visão geral: relê junto com o estado, no máximo a cada 30 s.
-  useEffect(() => {
-    if (aba !== 'visao' || Date.now() - prospeccao.em < INTERVALO_PROSPECCAO_MS) return;
-    carregarProspeccao();
-  }, [aba, estado]);
-  // Tela Prospecção: lê ao abrir (se o dado for velho) e a cada 30 s enquanto ela estiver aberta.
-  useEffect(() => {
-    if (aba !== 'prospeccao') return undefined;
-    if (!prospeccao.dados || Date.now() - prospeccao.em >= INTERVALO_PROSPECCAO_MS) carregarProspeccao();
-    const t = setInterval(carregarProspeccao, INTERVALO_PROSPECCAO_MS);
-    const vis = () => { if (document.visibilityState === 'visible') carregarProspeccao(); };
-    document.addEventListener('visibilitychange', vis);
-    return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); };
-  }, [aba]);
-
   // ---------- ações ----------
   const recalcular = useCallback(async () => {
     setRecalculando(true);
@@ -224,7 +191,7 @@ export function App() {
     estado, erroConexao, falhaDesde, aba, irPara, statusAcao, setStatusAcao, recalculando, recalcular,
     modal, abrirModal, fecharModal, setModal, filtrarPorFluxo, irParaPendencia, pendenciaAlvo,
     filtros, setFiltros, setFiltrosBrutos, pagina, setPagina, log, carregarLog,
-    analitico, analise, prospeccao, carregarProspeccao, subrota,
+    analitico, analise, subrota,
   };
 
   const Tela = TELAS[aba] || Visao;
@@ -236,7 +203,7 @@ export function App() {
           <Topo />
           <div>
             {MOCK && (
-              <div class="faixa mock"><Icone de={Info} />Modo de teste (?mock=1): dados fictícios de testes/mock-estado.json, mock-detalhes.json e mock-prospeccao.json. Nada aqui vem do servidor nem do Trello.</div>
+              <div class="faixa mock"><Icone de={Info} />Modo de teste (?mock=1): dados fictícios de testes/mock-estado.json e mock-detalhes.json. Nada aqui vem do servidor.</div>
             )}
             {erroConexao && (
               <div class="faixa erro" role="alert"><Icone de={TriangleAlert} />

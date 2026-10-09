@@ -1,12 +1,12 @@
 # painel-maestro
 
-Painel web local para acompanhar um workspace multiagente montado no app Maestri com agentes Claude Code. Um servidor Node.js sem dependências lê os arquivos que os agentes gravam (log de eventos, fila de pendências, estado do Trello, uso do plano, prospecção) e mostra tudo numa página só, em `http://127.0.0.1`.
+Painel web local para acompanhar um workspace multiagente montado no app Maestri com agentes Claude Code. Um servidor Node.js sem dependências lê os arquivos que os agentes gravam (log de eventos, fila de pendências, uso do plano) e mostra tudo numa página só, em `http://127.0.0.1`.
 
 Este repositório traz **só o painel** e os scripts de linha de comando que gravam os dados que ele lê. Os agentes em si (papéis, prompts, rotinas) não estão aqui: cada um monta os seus. O método que eles seguem vem como modelo para adaptar (veja [Skills e protocolos do workspace](#skills-e-protocolos-do-workspace)).
 
 ## A ideia
 
-No workspace, um agente principal, o **Cérebro Principal**, recebe os pedidos do dono. Ele não executa trabalho de domínio: entende o pedido, decide quem atende e delega a sub-agentes especializados, cada um com o seu domínio (por exemplo, um **Coordenador do Trello** que lê e organiza o quadro, ou agentes de prospecção como um **Captador** e um **Qualificador**). O Cérebro acompanha até a resposta, valida e devolve o resultado ao dono.
+No workspace, um agente principal, o **Cérebro Principal**, recebe os pedidos do dono. Ele não executa trabalho de domínio: entende o pedido, decide quem atende e delega a sub-agentes especializados, cada um com o seu domínio (por exemplo, um **Coordenador de Dependências** que audita os pacotes dos projetos). O Cérebro acompanha até a resposta, valida e devolve o resultado ao dono.
 
 Todo pedido abre um **fluxo** (`F-AAAAMMDD-NNNN`), e tudo que acontece nele vira um **evento** num log: quem fez, de onde veio o pedido, o tipo, o resultado e a **direção**, isto é, o caminho que o agente tomou e por quê. Em paralelo, hooks do Claude Code gravam o **log bruto** de cada agente (prompts, comandos, ferramentas usadas), que o painel liga ao evento certo pelo id do fluxo ou pela janela de tempo.
 
@@ -16,18 +16,13 @@ O painel junta tudo isso num lugar só e não usa IA nem gasta tokens: ele só l
 
 ## Telas
 
-O menu tem dois grupos (fonte em `painel/ui/src/dados/contexto.js`):
+O menu tem um grupo, Workspace (fonte em `painel/ui/src/dados/contexto.js`):
 
-**Workspace**
-- **Visão geral:** números do topo (pendências por severidade, Trello, alertas, uso do plano, eventos de hoje), atividade e resultados de 7 dias por agente, resumo da prospecção, último evento de cada agente e atividade recente. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) com os motivos: Trello sem leitura recente, hooks parados, arquivos ilegíveis.
+- **Visão geral:** números do topo (pendências por severidade, uso do plano, eventos de hoje), atividade e resultados de 7 dias por agente, último evento de cada agente e atividade recente. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) com os motivos: hooks parados, arquivos ilegíveis.
 - **Pendências:** a fila do dono, com filtros por severidade e status; cada pendência mostra contexto, opções e recomendação, e o dono responde ali mesmo (opção + comentário, Ctrl+Enter envia).
 - **Log:** a tabela de eventos com busca, período, chips de agente e projeto, tipo, resultado e "só o que precisa de mim". Clicar numa linha abre o **modal do evento**: o pedido inicial, a direção, os passos, os comandos brutos ligados a ele e a sequência do fluxo.
-- **Trello:** números do quadro, matriz projeto × status, evolução no tempo, cartões abertos com os problemas encontrados e a consistência do quadro (auditoria e relatório de status).
 - **Agentes:** um cartão por agente (último evento, eventos de hoje, fluxos abertos, consumo) e a ficha completa num modal, com o log bruto de cada um.
 - **Uso:** o plano do Claude (janela de 5 h e semanal, com o horário de reinício) e a participação de cada agente no consumo de tokens.
-
-**Operações**
-- **Prospecção:** funil de leads por WhatsApp em duas sub-abas, Qualificação (kanban por etapa, reuniões, leads quentes, situação de cada chip) e Captação (candidatos, faixas de score, fila, uso do Serper). Um lead aberto mostra o histórico e os botões para o dono assumir a conversa ou devolvê-la ao agente.
 
 A página se atualiza sozinha a cada 20 segundos.
 
@@ -41,7 +36,7 @@ cd painel-maestro
 npm run demo
 ```
 
-Abra **http://127.0.0.1:4795/?mock=1**. O `?mock=1` faz a página ler dados fictícios de `painel/testes/mock-*.json` (um workspace "Exemplo" com dois agentes, pendências, eventos, um quadro do Trello de exemplo e leads de prospecção); uma faixa azul avisa que são dados de teste. Para parar, Ctrl+C.
+Abra **http://127.0.0.1:4795/?mock=1**. O `?mock=1` faz a página ler dados fictícios de `painel/testes/mock-*.json` (um workspace "Exemplo" com dois agentes, pendências, eventos e comandos brutos); uma faixa azul avisa que são dados de teste. Para parar, Ctrl+C.
 
 O servidor da demonstração aceita só as portas 4790 a 4799 (padrão 4795). Outra porta: `npm run demo -- 4794`.
 
@@ -82,11 +77,9 @@ Os dados (`registro/`, `logs/`, `estado/`, `.segredos/`) ficam fora do git pelo 
 | títulos dos fluxos | `estado/contador-fluxos.json` | `bin/registrar.js novo-fluxo` |
 | comandos brutos, saúde dos hooks | `logs/bruto/<agente>/AAAA-MM-DD.jsonl` | `bin/hook_log.js` (hook do Claude Code) |
 | pendências do dono | `estado/pendencias.json` | `bin/pendencia.js` (e o painel, ao responder) |
-| Trello | `estado/trello/resumo.json`, `rst.md`, `serie.jsonl` | o seu agente do Trello |
 | uso do Claude | `estado/uso.json` | `bin/coletar_uso.js` (o servidor roda sozinho) |
-| prospecção | `estado/prospeccao/leads.json`, `chips.json`, `operacao.json`, `sinais.json`, `envios.jsonl`, `serper-chamadas.jsonl` | `bin/prospeccao/leads.js`, `serper.js` e os seus agentes de prospecção |
 
-Arquivo ausente não quebra nada: a parte correspondente aparece vazia, com o motivo. O Trello e a prospecção são opcionais. O formato completo de cada arquivo está nos mocks (`painel/testes/mock-estado.json` e `mock-detalhes.json`) e o `painel/testes/montar-raiz-mock.js` mostra em que arquivo cada parte vai. A documentação técnica do servidor (rotas, filtros, saúde, uso, variáveis) está em [`painel/README.md`](painel/README.md).
+Arquivo ausente não quebra nada: a parte correspondente aparece vazia, com o motivo. O formato completo de cada arquivo está nos mocks (`painel/testes/mock-estado.json` e `mock-detalhes.json`) e o `painel/testes/montar-raiz-mock.js` mostra em que arquivo cada parte vai. A documentação técnica do servidor (rotas, filtros, saúde, uso, variáveis) está em [`painel/README.md`](painel/README.md).
 
 ### 1. Cadastre os agentes
 
@@ -100,11 +93,11 @@ Arquivo ausente não quebra nada: a parte correspondente aparece vazia, com o mo
       "slug": "cerebro", "nome": "Cérebro Principal", "tipo": "maestro", "cor": "#E8C547",
       "responsabilidade": "Recebe os pedidos do dono, roteia e valida",
       "terminal_id": null, "diretorios": [], "modelo": "claude-opus-5-5", "nivel": "xhigh",
-      "conectado_a": ["coordenador-trello"], "skills": [], "status": "ativo"
+      "conectado_a": ["coordenador"], "skills": [], "status": "ativo"
     },
     {
-      "slug": "coordenador-trello", "nome": "Coordenador do Trello", "tipo": "sub-cerebro", "cor": "#4F6BFF",
-      "responsabilidade": "Lê e organiza o quadro do Trello",
+      "slug": "coordenador", "nome": "Coordenador de Dependências", "tipo": "sub-cerebro", "cor": "#4F6BFF",
+      "responsabilidade": "Audita as dependências dos projetos",
       "terminal_id": null, "diretorios": [], "modelo": "claude-opus-5-5", "nivel": "high",
       "conectado_a": ["cerebro"], "skills": [], "status": "ativo"
     }
@@ -119,14 +112,14 @@ O hook descobre qual agente está rodando pelo `terminal_id` (o id do terminal n
 Os agentes chamam estes comandos (as instruções de cada agente devem dizer quando):
 
 ```
-node bin/registrar.js novo-fluxo --titulo "Organizar o quadro" --agente cerebro
+node bin/registrar.js novo-fluxo --titulo "Auditar as dependências" --agente cerebro
 node bin/registrar.js evento --agente cerebro --fluxo F-20261009-0001 --origem dono-direto \
-  --tipo pedido-recebido --resumo "Pedido para organizar o quadro" --resultado em-andamento
+  --tipo pedido-recebido --resumo "Pedido para auditar as dependências" --resultado em-andamento
 node bin/registrar.js evento --agente cerebro --fluxo F-20261009-0001 --origem cerebro \
-  --tipo delegacao --resumo "Pedi a leitura ao Coordenador" --direcao "O Trello é do Coordenador" --resultado ok
+  --tipo delegacao --resumo "Pedi a auditoria ao Coordenador" --direcao "As dependências são do Coordenador" --resultado ok
 node bin/pendencia.js abrir --agente cerebro --fluxo F-20261009-0001 --tipo decisao --severidade alta \
-  --titulo "Arquivar a coluna antiga?" --contexto "..." --opcao "A: arquivar" --opcao "B: manter" \
-  --recomendacao "A: ninguém usa a coluna há 30 dias"
+  --titulo "Remover o pacote antigo?" --contexto "..." --opcao "A: remover" --opcao "B: manter" \
+  --recomendacao "A: nenhum arquivo importa o pacote há 30 dias"
 ```
 
 Dentro de uma sessão do Claude Code com o hook instalado, `--agente` e `--fluxo` podem ser omitidos: o agente sai do cadastro e o fluxo, da sessão. Texto com aspas ou acentos vai melhor em JSON pela entrada padrão (`--json -`). Todas as opções: `node bin/registrar.js --help` e `node bin/pendencia.js --help`.
@@ -177,9 +170,6 @@ Todos usam só a biblioteca padrão do Node e respeitam `MAESTRO_DIR`.
 | `coletar_uso.js` | coletor de uso do Claude (`--json`, `--sem-gravar`); o servidor já o chama |
 | `janela-horario.js` | sai 0 dentro de uma faixa de horário e 1 fora (`node bin/janela-horario.js 8 22`), útil como pré-condição de rotinas agendadas |
 | `lib_maestro.js` | funções comuns: caminhos, datas no fuso de São Paulo, trava entre processos, gravação atômica de JSON, JSONL, redação de segredos |
-| `prospeccao/leads.js` | banco único de leads: importar, fila, ciclo do qualificador, registrar interação, passar ao humano, devolver, opt-out |
-| `prospeccao/lib_prospeccao.js` | regras da prospecção (etapas, chips, janelas de envio, fila, follow-up) usadas pelo `leads.js` e pela API do painel |
-| `prospeccao/serper.js` | buscas no Serper (Google Maps e Google) com cache de 30 dias e registro de uso; a chave fica em `.segredos/serper.key` e nunca é impressa |
 
 Quase todos aceitam `--help` (o `janela-horario.js` não: ele só recebe início e fim). Os horários e datas usam o fuso `America/Sao_Paulo`.
 
@@ -187,11 +177,10 @@ Quase todos aceitam `--help` (o `janela-horario.js` não: ele só recebe início
 
 - O servidor escuta **só em 127.0.0.1**. O cabeçalho `Host` precisa ser `127.0.0.1:<porta>` ou `localhost:<porta>`; qualquer outro recebe 403 (proteção contra DNS rebinding).
 - Todo `POST` exige o cabeçalho **`X-Painel: 1`** e, se vier `Origin`, ele precisa ser o próprio painel; senão, 403. Outra página aberta no navegador não consegue acionar o servidor. Os corpos JSON vão até 16 KB (acima disso, 413).
-- Nenhum cabeçalho CORS. Só existem `/`, `/prospeccao`, `/prospeccao/antiga` e `/api/*`; nenhum arquivo é servido pelo nome (o resto é 404).
-- Toda resposta leva `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` e `X-Frame-Options: DENY`. A página leva uma **Content-Security-Policy** que bloqueia qualquer recurso externo e impede que outro site a embuta num iframe. A única exceção é a página antiga da prospecção (`/prospeccao/antiga`), cuja CSP libera a fonte do Google.
-- A página é um arquivo único (JS, CSS e fonte embutidos). Todo texto vindo da API entra como texto, nunca como HTML; links só para `https://trello.com/...` e `https://meet.google.com/...`.
+- Nenhum cabeçalho CORS. Só existem `/` e `/api/*`; nenhum arquivo é servido pelo nome (o resto é 404).
+- Toda resposta leva `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` e `X-Frame-Options: DENY`. A página leva uma **Content-Security-Policy** que bloqueia qualquer recurso externo e impede que outro site a embuta num iframe.
+- A página é um arquivo único (JS, CSS e fonte embutidos). Todo texto vindo da API entra como texto, nunca como HTML; a página não tem links para fora.
 - **Sem dependências** no servidor e nos scripts: só a biblioteca padrão do Node. O servidor não faz nenhuma requisição para fora da máquina. As dependências npm (Preact, Vite, a fonte Manrope e os ícones Lucide) servem só para compilar a página.
-- A API da prospecção não devolve a chave do Serper, o WhatsApp do humano responsável nem os números dos chips ou de teste.
 
 Não exponha a porta do painel na rede: ele não tem login e foi feito para uso local.
 
@@ -216,9 +205,9 @@ npm test                                   # node painel/testes/rodar-todos.js
 node painel/testes/rodar-todos.js servidor # só os arquivos com "servidor" no nome
 ```
 
-Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `painel/testes/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`MANTER_TMP=1` guarda para inspeção). O teste das pendências usa uma CLI do Maestri falsa, que só grava os argumentos. São 7 arquivos: coletor de uso, desempenho (50 mil eventos e log bruto grande), página compilada, filtro de horário, pendências, prospecção e servidor.
+Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `painel/testes/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`MANTER_TMP=1` guarda para inspeção). O teste das pendências usa uma CLI do Maestri falsa, que só grava os argumentos. São 6 arquivos: coletor de uso, desempenho (50 mil eventos e log bruto grande), página compilada, filtro de horário, pendências e servidor.
 
-Para regerar os dados da demonstração: `node painel/testes/gerar-mock.js` e `node painel/testes/gerar-mock-prospeccao.js`.
+Para regerar os dados da demonstração: `node painel/testes/gerar-mock.js`.
 
 ## Estrutura
 
@@ -230,14 +219,11 @@ painel-maestro/
 │   ├── hook_log.js           hook do Claude Code → log bruto
 │   ├── coletar_uso.js        uso do plano e tokens por agente
 │   ├── janela-horario.js     filtro de horário para rotinas
-│   ├── lib_maestro.js        biblioteca comum
-│   └── prospeccao/           leads.js, lib_prospeccao.js, serper.js
+│   └── lib_maestro.js        biblioteca comum
 ├── painel/
 │   ├── servidor.js           servidor HTTP e API
 │   ├── api-pendencias.js     resposta de pendência pelo painel
-│   ├── api-prospeccao.js     API da prospecção
 │   ├── index.html            a página compilada (não edite à mão)
-│   ├── prospeccao.html       página antiga da prospecção (/prospeccao/antiga)
 │   ├── README.md             documentação técnica do servidor e da página
 │   ├── ui/                   fonte da página (Preact + Vite)
 │   │   ├── src/app/          casca, menu e topo
@@ -261,9 +247,9 @@ painel-maestro/
 
 - Node.js 18 ou mais novo para o servidor e os scripts (desenvolvido e testado no Node 22); Node 20.19+ ou 22.12+ para compilar a página.
 - Desenvolvido e testado no Windows. Os caminhos e a trava entre processos têm tratamento para outros sistemas, mas eles não foram testados.
-- O painel só lê arquivos: quem mantém os dados em dia são os seus agentes (o Trello, por exemplo, só aparece se algum agente gravar `estado/trello/resumo.json`).
+- O painel só lê arquivos: quem mantém os dados em dia são os seus agentes.
 - O botão de conversar com o Cérebro pelo painel ainda não existe (`POST /api/cerebro` responde 501).
-- O painel saiu de um workspace maior. Alguns comentários do código citam scripts e documentos desse workspace que não vêm neste repositório (por exemplo, o vigia do WhatsApp e o captador de leads): eles só produzem os arquivos que o painel lê, e o formato desses arquivos está descrito acima.
+- O painel saiu de um workspace maior. Alguns comentários do código citam scripts e documentos desse workspace que não vêm neste repositório: eles só produzem os arquivos que o painel lê, e o formato desses arquivos está descrito acima.
 
 ## Skills e protocolos do workspace
 

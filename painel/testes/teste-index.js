@@ -37,6 +37,9 @@ const fonte = lerFonte();
 const fonteToda = Object.values(fonte).join('\n');
 
 // Identificadores de namespace XML que o Preact usa em createElementNS: nunca são baixados.
+// Campos que o registrar aceita num evento (bin/lib_maestro.js): o mock não inventa outros.
+const CAMPOS_EVENTO = new Set(require('../../bin/lib_maestro.js').CAMPOS_EVENTO);
+
 const NAMESPACES = /^http:\/\/www\.w3\.org\/(2000\/svg|1999\/xhtml|1998\/Math\/MathML|1999\/xlink|XML\/1998\/namespace)$/;
 
 suite.teste('arquivo único: sem script, folha de estilo, fonte ou imagem externa', () => {
@@ -47,8 +50,7 @@ suite.teste('arquivo único: sem script, folha de estilo, fonte ou imagem extern
   for (const m of html.matchAll(/url\(\s*['"]?([^'")\s]{0,12})/g)) assert.ok(/^data:/.test(m[1]), `url() só com data: (achei ${m[1]})`);
   assert.ok(/@font-face/.test(html) && /Manrope/.test(html), 'a fonte Manrope vem embutida');
   assert.ok(!/<(img|iframe|object|embed|video|audio)\b/i.test(html), 'nenhuma mídia externa');
-  const urls = (html.match(/https?:\/\/[^\s"'`)<\\]+/g) || []).filter((u) => !/^https:\/\/trello\.com\//.test(u)
-    && !NAMESPACES.test(u) && !/^http:\/\/127\.0\.0\.1:4795\//.test(u));
+  const urls = (html.match(/https?:\/\/[^\s"'`)<\\]+/g) || []).filter((u) => !NAMESPACES.test(u) && !/^http:\/\/127\.0\.0\.1:4795\//.test(u));
   assert.deepStrictEqual(urls, [], `URLs inesperadas: ${urls.join(' ')}`);
   assert.ok(!/fetch\(\s*['"`]https?:/.test(js), 'fetch só para o próprio servidor');
 });
@@ -61,14 +63,9 @@ suite.teste('texto da API entra como texto: sem innerHTML, eval ou handlers mont
   }
   // No build, o único innerHTML possível é o do dangerouslySetInnerHTML do próprio Preact, que a fonte nunca usa.
   for (const p of proibidos.slice(2)) assert.ok(!p.test(js), `uso proibido no build: ${p}`);
-  // Link externo só pelas funções que conferem protocolo e host.
-  assert.ok(/export function urlTrello\(u\)[\s\S]*?x\.protocol === 'https:' && x\.hostname === 'trello\.com'/.test(fonte['dados/dominio.js']), 'urlTrello confere protocolo e host');
-  assert.ok(/export function linkMeet\(u\)[\s\S]*?x\.protocol === 'https:' && x\.hostname === 'meet\.google\.com'/.test(fonte['telas/ProspeccaoComum.jsx']), 'linkMeet confere protocolo e host');
+  // Nenhum link para fora: nem href montado a partir de dado, nem href fixo (só âncoras #).
   const hrefs = [...fonteToda.matchAll(/\bhref=\{([^}]+)\}/g)].map((m) => m[1].trim());
-  assert.ok(hrefs.length > 0, 'há links');
-  for (const h of hrefs) assert.ok(['seguro', 'link'].includes(h), `href={${h}} não passa por urlTrello/linkMeet`);
-  assert.ok(/const seguro = urlTrello\(url\);/.test(fonte['componentes/dominio.jsx']), 'LinkTrello usa urlTrello');
-  assert.ok(/const link = reuniao && linkMeet\(reuniao\.link\);/.test(fonte['telas/ProspeccaoLead.jsx']), 'o link da reunião passa por linkMeet');
+  assert.deepStrictEqual(hrefs, [], 'nenhum href montado a partir de dado');
   assert.ok(!/\bhref="(?!#)/.test(fonteToda), 'nenhum href fixo para fora');
 });
 
@@ -76,13 +73,13 @@ suite.teste('o script embutido compila e usa só as rotas do contrato', () => {
   new vm.Script(js, { filename: 'index.html#script' });
   const api = fonte['dados/api.js'];
   for (const rota of ["api('/api/estado')", '`/api/eventos?', '`/api/evento/${encodeURIComponent(id)}`', "api('/api/recalcular', { metodo: 'POST' })",
-    'api(`/api/pendencias/${encodeURIComponent(p.id)}/responder`', "api('/api/prospeccao/estado')"]) {
+    'api(`/api/pendencias/${encodeURIComponent(p.id)}/responder`']) {
     assert.ok(api.includes(rota), `a página chama ${rota}`);
   }
-  for (const rota of ['/api/estado', '/api/eventos?', '/api/evento/', '/api/recalcular', '/api/pendencias/', '/api/prospeccao/estado']) {
+  for (const rota of ['/api/estado', '/api/eventos?', '/api/evento/', '/api/recalcular', '/api/pendencias/']) {
     assert.ok(js.includes(rota), `o build chama ${rota}`);
   }
-  const permitidas = /^\/api\/(estado|eventos|evento\/|fluxo\/|recalcular|cerebro|pendencias\/|prospeccao\/(estado|lead\/|assumir|devolver|))$/;
+  const permitidas = /^\/api\/(estado|eventos|evento\/|fluxo\/|recalcular|cerebro|pendencias\/)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(permitidas.test(m[0]), `rota fora do contrato no build: ${m[0]}`);
   assert.ok(/'X-Painel': '1'/.test(api), 'POST leva X-Painel: 1');
   assert.ok(/export const INTERVALO_MS = 20000;/.test(api), 'atualiza a cada 20 s');
@@ -95,10 +92,9 @@ suite.teste('o script embutido compila e usa só as rotas do contrato', () => {
 suite.teste('mock-estado.json segue o contrato e tem o cenário pedido', () => {
   const e = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-estado.json'), 'utf8'));
   const d = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-detalhes.json'), 'utf8'));
-  for (const k of ['gerado_em', 'workspace', 'saude', 'kpis', 'agentes', 'pendencias', 'trello', 'trello_rst', 'serie_trello', 'uso', 'eventos']) assert.ok(k in e, `falta ${k}`);
-  for (const k of ['nivel', 'motivos', 'trello_idade_min', 'ultimo_evento_idade_min', 'uso_idade_min', 'hooks', 'wire']) assert.ok(k in e.saude, `saude.${k}`);
-  assert.strictEqual(e.trello.totais.abertas, 13);
-  assert.strictEqual(e.trello.projetos.reduce((n, p) => n + p.cartoes.length, 0), 13, '13 cartões no resumo');
+  assert.deepStrictEqual(Object.keys(e).sort(), ['agentes', 'eventos', 'gerado_em', 'kpis', 'pendencias', 'saude', 'uso', 'workspace']);
+  assert.deepStrictEqual(Object.keys(e.saude).sort(), ['hooks', 'motivos', 'nivel', 'ultimo_evento_idade_min', 'uso_idade_min', 'wire']);
+  assert.deepStrictEqual(Object.keys(e.kpis).sort(), ['pendencias', 'uso']);
   assert.strictEqual(e.agentes.length, 2);
   assert.strictEqual(e.pendencias.length, 6);
   assert.strictEqual(new Set(e.pendencias.map((p) => p.severidade)).size, 4, 'as 4 severidades');
@@ -108,6 +104,7 @@ suite.teste('mock-estado.json segue o contrato e tem o cenário pedido', () => {
   assert.strictEqual(e.kpis.uso.janela_5h_pct, 37);
   assert.strictEqual(e.kpis.uso.semanal_pct, 22);
   for (const ev of e.eventos) assert.ok(d.eventos.some((x) => x.id === ev.id), `detalhe de ${ev.id}`);
+  for (const ev of d.eventos) assert.deepStrictEqual(Object.keys(ev).filter((k) => !CAMPOS_EVENTO.has(k)), [], `campos fora do evento em ${ev.id}`);
   for (let i = 1; i < e.eventos.length; i++) assert.ok(Date.parse(e.eventos[i - 1].ts) >= Date.parse(e.eventos[i].ts), 'mais recente primeiro');
 });
 
@@ -125,7 +122,7 @@ suite.teste('servidor real numa raiz falsa (mock + dados hostis) entrega o que a
   const p = await portaLivre();
   const env = Object.assign({}, process.env, {
     MAESTRO_DIR: path.join(raiz, 'm'), MAESTRI_DATA_DIR: path.join(raiz, 'maestri'), CLAUDE_CONFIG_DIR: path.join(raiz, 'claude'),
-    PAINEL_AGORA: estadoMock.gerado_em, MAESTRO_AGORA: '', PAINEL_COLETOR: '0', PAINEL_PORTA: '', PAINEL_INDEX: '', PAINEL_TRELLO_JANELA: '0-24',
+    PAINEL_AGORA: estadoMock.gerado_em, MAESTRO_AGORA: '', PAINEL_COLETOR: '0', PAINEL_PORTA: '', PAINEL_INDEX: '',
   });
   const filho = spawn(process.execPath, [SERVIDOR, '--porta', String(p)], { env, windowsHide: true });
   let saida = '';
@@ -148,9 +145,8 @@ suite.teste('servidor real numa raiz falsa (mock + dados hostis) entrega o que a
     for (const k of ['slug', 'nome', 'cor', 'responsabilidade', 'status', 'modelo', 'nivel', 'skills', 'conectado_a', 'eventos_hoje', 'fluxos_abertos', 'ultimo_bruto', 'uso']) assert.ok(k in a, `agente.${k}`);
     assert.ok(a.ultimo_evento && a.ultimo_evento.id, 'ultimo_evento.id para abrir o modal');
   }
-  assert.ok(est.trello && Array.isArray(est.trello.projetos) && est.trello_rst && est.serie_trello.length === 9);
   const ev0 = est.eventos[0];
-  for (const k of ['id', 'ts', 'agente', 'projeto', 'trello', 'resumo', 'direcao', 'resultado', 'tipo', 'fluxo_id', 'precisa_dono']) assert.ok(k in ev0, `evento.${k}`);
+  for (const k of ['id', 'ts', 'agente', 'projeto', 'resumo', 'direcao', 'resultado', 'tipo', 'fluxo_id', 'precisa_dono']) assert.ok(k in ev0, `evento.${k}`);
 
   // filtros que a página monta
   const q = (s) => pedir(porta, `/api/eventos?${s}`).then((r) => r.json);
@@ -163,8 +159,8 @@ suite.teste('servidor real numa raiz falsa (mock + dados hostis) entrega o que a
   assert.ok(fl.total > 0 && fl.eventos.every((e) => e.fluxo_id === 'F-20261008-0001'), 'filtro por fluxo (clique no modal)');
   const dono = await q('so_dono=1');
   assert.ok(dono.eventos.every((e) => e.precisa_dono || ['falhou', 'bloqueado', 'aguardando-dono'].includes(e.resultado)));
-  const busca = await q('q=LEITURA%20quadro&agente=coordenador-trello');
-  assert.ok(busca.total > 0 && busca.eventos.every((e) => e.agente === 'coordenador-trello'));
+  const busca = await q('q=LEITURA%20dependencias&agente=coordenador');
+  assert.ok(busca.total > 0 && busca.eventos.every((e) => e.agente === 'coordenador'));
   const dia = await q('desde=2026-10-09&ate=2026-10-09');
   assert.ok(dia.eventos.every((e) => e.ts.startsWith('2026-10-09')));
 
