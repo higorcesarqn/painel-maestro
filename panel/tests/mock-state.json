@@ -1,0 +1,894 @@
+{
+  "generated_at": "2026-10-09T10:24:30-03:00",
+  "workspace": {
+    "name": "Exemplo",
+    "root": "C:/exemplo/workspace"
+  },
+  "health": {
+    "level": "green",
+    "reasons": [],
+    "last_event_age_min": 4,
+    "usage_age_min": 3,
+    "hooks": [
+      {
+        "agent": "cerebro",
+        "last_raw": "2026-10-09T10:23:58-03:00",
+        "age_min": 1
+      },
+      {
+        "agent": "coordenador",
+        "last_raw": "2026-10-09T08:58:12-03:00",
+        "age_min": 86
+      }
+    ],
+    "wire": false
+  },
+  "kpis": {
+    "pending_decisions": {
+      "total": 4,
+      "by_severity": {
+        "critica": 1,
+        "alta": 2,
+        "normal": 0,
+        "baixa": 1
+      }
+    },
+    "usage": {
+      "available": true,
+      "window_5h_pct": 37,
+      "reset_5h": "2026-10-09T13:00:00-03:00",
+      "weekly_pct": 22,
+      "weekly_reset": "2026-10-13T09:00:00-03:00",
+      "age_min": 3
+    }
+  },
+  "agents": [
+    {
+      "slug": "cerebro",
+      "name": "Cérebro Principal",
+      "type": "maestro",
+      "color": "#E8C547",
+      "responsibility": "Cérebro Principal",
+      "status": "ativo",
+      "model": "claude-opus-5-5[1m]",
+      "effort": "xhigh",
+      "skills": [
+        "orquestracao",
+        "pendencias",
+        "painel",
+        "onboarding-agente",
+        "protocolo-delegacao",
+        "registro-eventos"
+      ],
+      "connected_to": [
+        "coordenador",
+        "portal:painel",
+        "nota:Bootstrap · Progresso"
+      ],
+      "last_event": {
+        "ts": "2026-10-09T10:20:05-03:00",
+        "summary": "Dono perguntou o status das dependências: respondido com o relatório das 08:00",
+        "type": "consulta",
+        "result": "ok"
+      },
+      "events_today": 5,
+      "open_flows": 1,
+      "last_raw": "2026-10-09T10:23:58-03:00",
+      "usage": {
+        "window_5h": {
+          "consumption_pct": 78.4,
+          "relative_consumption": 1346810,
+          "estimated_plan_pct": 29
+        },
+        "today": {
+          "consumption_pct": 69.3,
+          "relative_consumption": 1346810,
+          "estimated_plan_pct": null
+        },
+        "7d": {
+          "consumption_pct": 74.4,
+          "relative_consumption": 15738045,
+          "estimated_plan_pct": 16.4
+        }
+      }
+    },
+    {
+      "slug": "coordenador",
+      "name": "Coordenador de Dependências",
+      "type": "sub-cerebro",
+      "color": "#3B82F6",
+      "responsibility": "Coordenador de Dependências",
+      "status": "ativo",
+      "model": "claude-opus-5-5[1m]",
+      "effort": "xhigh",
+      "skills": [
+        "deps-leitura",
+        "deps-atualizacao",
+        "deps-auditoria",
+        "deps-relatorio",
+        "protocolo-delegacao",
+        "registro-eventos"
+      ],
+      "connected_to": [
+        "cerebro"
+      ],
+      "last_event": {
+        "ts": "2026-10-09T08:00:45-03:00",
+        "summary": "Leitura das dependências: Cometa atualizou a fila, mas a trava ficou velha",
+        "type": "execucao",
+        "result": "ok"
+      },
+      "events_today": 1,
+      "open_flows": 1,
+      "last_raw": "2026-10-09T08:58:12-03:00",
+      "usage": {
+        "window_5h": {
+          "consumption_pct": 21.6,
+          "relative_consumption": 371010,
+          "estimated_plan_pct": 8
+        },
+        "today": {
+          "consumption_pct": 19.1,
+          "relative_consumption": 371010,
+          "estimated_plan_pct": null
+        },
+        "7d": {
+          "consumption_pct": 20.3,
+          "relative_consumption": 4298335,
+          "estimated_plan_pct": 4.5
+        }
+      }
+    }
+  ],
+  "pending_decisions": [
+    {
+      "id": "P-0006",
+      "opened_at": "2026-10-09T10:02:15-03:00",
+      "agent": "cerebro",
+      "flow_id": "F-20261008-0002",
+      "severity": "critica",
+      "type": "aprovacao",
+      "title": "Aceitar o diálogo de confiança no terminal do Coordenador",
+      "context": "Depois do reinício do Maestri às 08:55, o Claude do Coordenador parou em \"Do you trust the files in this folder?\". As leituras das 09:00 e das 10:00 não rodaram e as dependências estão sem leitura desde 08:00.",
+      "options": [
+        "A: aceitar no terminal do Coordenador",
+        "B: aceitar uma vez na raiz do workspace, para nenhum role parar de novo"
+      ],
+      "recommendation": "B: resolve de vez para todos os roles do workspace (a confiança vale para as pastas abaixo).",
+      "status": "aberta",
+      "answer": null,
+      "answered_at": null,
+      "resolved_at": null,
+      "note": null,
+      "reason": null,
+      "test": false,
+      "updated_at": "2026-10-09T10:02:15-03:00"
+    },
+    {
+      "id": "P-0002",
+      "opened_at": "2026-10-08T14:12:20-03:00",
+      "agent": "coordenador",
+      "flow_id": "F-20261008-0002",
+      "severity": "alta",
+      "type": "aprovacao",
+      "title": "Liberar as atualizações de correção das dependências",
+      "context": "Na auditoria de 08/10 eram 11 atualizações de correção. Desde 09/10 08:00 são 12 (a trava do Cometa ficou velha). São correções dentro das regras do manual §12, mas o bootstrap está em somente leitura.",
+      "options": [
+        "A: liberar todas agora",
+        "B: liberar só a trava do Cometa e revisar a lista das correções antes",
+        "C: manter somente leitura por enquanto"
+      ],
+      "recommendation": "A: são mecânicas e reversíveis (a trava anterior fica no histórico), e rodo os testes de cada projeto depois de cada uma.",
+      "status": "aberta",
+      "answer": null,
+      "answered_at": null,
+      "resolved_at": null,
+      "note": null,
+      "reason": null,
+      "test": false,
+      "updated_at": "2026-10-09T08:00:45-03:00"
+    },
+    {
+      "id": "P-0003",
+      "opened_at": "2026-10-08T14:13:05-03:00",
+      "agent": "coordenador",
+      "flow_id": "F-20261008-0002",
+      "severity": "alta",
+      "type": "decisao",
+      "title": "Eco: definir a versão do Node",
+      "context": "O Eco declara Node 18 no package.json, mas o CI roda em Node 22 e duas dependências já exigem Node 20.",
+      "options": [
+        "A: subir o Eco para Node 22",
+        "B: subir para Node 20",
+        "C: manter Node 18 e travar as duas dependências"
+      ],
+      "recommendation": "A: os outros projetos já usam Node 22 e o CI também.",
+      "status": "aberta",
+      "answer": null,
+      "answered_at": null,
+      "resolved_at": null,
+      "note": null,
+      "reason": null,
+      "test": false,
+      "updated_at": "2026-10-08T14:13:05-03:00"
+    },
+    {
+      "id": "P-0004",
+      "opened_at": "2026-10-08T14:13:50-03:00",
+      "agent": "coordenador",
+      "flow_id": "F-20261008-0002",
+      "severity": "normal",
+      "type": "decisao",
+      "title": "Renomear o script \"build:prod\" para \"build\"",
+      "context": "O script de build se chama \"build:prod\" só no Delta; os outros projetos usam \"build\" (manual §10, item 3).",
+      "options": [
+        "A: renomear o script para \"build\"",
+        "B: manter \"build:prod\" e criar um apelido"
+      ],
+      "recommendation": "A, como o manual já prevê.",
+      "status": "respondida",
+      "answer": "Pode renomear.",
+      "answered_at": "2026-10-09T08:41:10-03:00",
+      "resolved_at": null,
+      "note": "Executar junto com as atualizações de correção (P-0002).",
+      "reason": null,
+      "test": false,
+      "updated_at": "2026-10-09T08:42:00-03:00"
+    },
+    {
+      "id": "P-0005",
+      "opened_at": "2026-10-08T14:14:30-03:00",
+      "agent": "coordenador",
+      "flow_id": "F-20261008-0002",
+      "severity": "baixa",
+      "type": "aprovacao",
+      "title": "Remover 5 dependências sem uso",
+      "context": "Duas no Boreal, duas no Cometa e uma no Faro. Nenhum arquivo importa essas dependências. Remoção só com ok do dono.",
+      "options": [
+        "A: remover as 5",
+        "B: remover só as 3 de desenvolvimento"
+      ],
+      "recommendation": "A: nenhuma está em uso e elas deixam a instalação mais lenta.",
+      "status": "aberta",
+      "answer": null,
+      "answered_at": null,
+      "resolved_at": null,
+      "note": null,
+      "reason": null,
+      "test": false,
+      "updated_at": "2026-10-08T14:14:30-03:00"
+    },
+    {
+      "id": "P-0001",
+      "opened_at": "2026-10-08T00:58:30-03:00",
+      "agent": "cerebro",
+      "flow_id": "F-20261008-0001",
+      "severity": "critica",
+      "type": "decisao",
+      "title": "Confirmar a raiz do workspace e a linguagem dos scripts (não há Python)",
+      "context": "O documento de instruções manda confirmar a raiz antes de criar arquivos e parar se faltar python3. Nesta máquina não há Python; o Node 22 já roda os hooks.",
+      "options": [
+        "A: raiz C:/exemplo/workspace e scripts em Node.js 22",
+        "B: instalar o Python 3 e seguir o documento à risca"
+      ],
+      "recommendation": "A: o Node já está instalado e é o runtime dos hooks; o fcntl do Python nem existe no Windows.",
+      "status": "resolvida",
+      "answer": "A. E todos os agentes em Opus 5.5 com 1M, nível xhigh.",
+      "answered_at": "2026-10-08T01:00:30-03:00",
+      "resolved_at": "2026-10-08T01:00:30-03:00",
+      "note": "Registrado em decisoes.md.",
+      "reason": null,
+      "test": false,
+      "updated_at": "2026-10-08T01:00:30-03:00"
+    }
+  ],
+  "usage": {
+    "collected_at": "2026-10-09T10:21:44-03:00",
+    "plan": {
+      "available": true,
+      "source": {
+        "code": "maestri_claude_provider",
+        "file": "~/.maestri/usage/providers/.status.json"
+      },
+      "window_5h_pct": 37,
+      "reset_5h": "2026-10-09T13:00:00-03:00",
+      "weekly_pct": 22,
+      "weekly_reset": "2026-10-13T09:00:00-03:00",
+      "updated_at": "2026-10-09T10:21:30-03:00"
+    },
+    "by_agent": {
+      "window_5h": [
+        {
+          "agent": "cerebro",
+          "input": 2140,
+          "output": 18650,
+          "cache_write": 286400,
+          "cache_read": 8934200,
+          "relative_consumption": 1346810,
+          "consumption_pct": 78.4,
+          "estimated_plan_pct": 29
+        },
+        {
+          "agent": "coordenador",
+          "input": 610,
+          "output": 5320,
+          "cache_write": 98200,
+          "cache_read": 2210500,
+          "relative_consumption": 371010,
+          "consumption_pct": 21.6,
+          "estimated_plan_pct": 8
+        }
+      ],
+      "today": [
+        {
+          "agent": "cerebro",
+          "input": 2140,
+          "output": 18650,
+          "cache_write": 286400,
+          "cache_read": 8934200,
+          "relative_consumption": 1346810,
+          "consumption_pct": 69.3,
+          "estimated_plan_pct": null
+        },
+        {
+          "agent": "coordenador",
+          "input": 610,
+          "output": 5320,
+          "cache_write": 98200,
+          "cache_read": 2210500,
+          "relative_consumption": 371010,
+          "consumption_pct": 19.1,
+          "estimated_plan_pct": null
+        },
+        {
+          "agent": "desconhecido:atlas",
+          "input": 820,
+          "output": 6100,
+          "cache_write": 51200,
+          "cache_read": 1302000,
+          "relative_consumption": 225520,
+          "consumption_pct": 11.6,
+          "estimated_plan_pct": null
+        }
+      ],
+      "7d": [
+        {
+          "agent": "cerebro",
+          "input": 41820,
+          "output": 412300,
+          "cache_write": 3184500,
+          "cache_read": 96541000,
+          "relative_consumption": 15738045,
+          "consumption_pct": 74.4,
+          "estimated_plan_pct": 16.4
+        },
+        {
+          "agent": "coordenador",
+          "input": 9840,
+          "output": 61250,
+          "cache_write": 1240300,
+          "cache_read": 24318700,
+          "relative_consumption": 4298335,
+          "consumption_pct": 20.3,
+          "estimated_plan_pct": 4.5
+        },
+        {
+          "agent": "desconhecido:atlas",
+          "input": 3100,
+          "output": 22400,
+          "cache_write": 402100,
+          "cache_read": 5120400,
+          "relative_consumption": 1129765,
+          "consumption_pct": 5.3,
+          "estimated_plan_pct": 1.2
+        }
+      ]
+    }
+  },
+  "events": [
+    {
+      "id": "EV-20261009-102005-f34d",
+      "ts": "2026-10-09T10:20:05-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Dono perguntou o status das dependências: respondido com o relatório das 08:00",
+      "direction": "Respondi com o relatório salvo das 08:00 e avisei que a leitura está parada até a P-0006.",
+      "result": "ok",
+      "type": "consulta",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261009-100215-dc15",
+      "ts": "2026-10-09T10:02:15-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Aberta P-0006: aceitar o diálogo de confiança no terminal do Coordenador",
+      "direction": "Crítica porque as dependências estão sem leitura desde 08:00 e as rotinas seguem falhando; recomendei aceitar na raiz para nenhum role parar de novo.",
+      "result": "bloqueado",
+      "type": "pendencia-aberta",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": true
+    },
+    {
+      "id": "EV-20261009-091530-1b62",
+      "ts": "2026-10-09T09:15:30-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Rotina das 09:00 não registrou a leitura das dependências",
+      "direction": "Conferi o terminal do Coordenador: depois do reinício do Maestri às 08:55 ele está parado no diálogo \"Do you trust the files in this folder?\". Não aceito diálogo de confiança sozinho.",
+      "result": "falhou",
+      "type": "erro",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": true
+    },
+    {
+      "id": "EV-20261009-084200-3095",
+      "ts": "2026-10-09T08:42:00-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Repassada ao Coordenador a resposta da P-0004",
+      "direction": "As escritas ainda não foram liberadas (P-0002); pedi para guardar a resposta e executar junto com as atualizações de correção, num ciclo só, relendo as travas no fim.",
+      "result": "ok",
+      "type": "delegacao",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261009-084110-6304",
+      "ts": "2026-10-09T08:41:10-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Dono respondeu a P-0004: pode renomear \"build:prod\" para \"build\"",
+      "direction": null,
+      "result": "ok",
+      "type": "resposta-recebida",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261009-080045-c57b",
+      "ts": "2026-10-09T08:00:45-03:00",
+      "agent": "coordenador",
+      "project": "C",
+      "summary": "Leitura das dependências: Cometa atualizou a fila, mas a trava ficou velha",
+      "direction": "O dono atualizou o pacote à noite sem regerar o arquivo de trava. Regerar é mecânico, mas as escritas seguem bloqueadas até a P-0002; alertas mecânicos passaram de 11 para 12.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-220030-821c",
+      "ts": "2026-10-08T22:00:30-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Leitura das dependências: 13 desatualizados, sem mudança",
+      "direction": "Leitura de rotina dos arquivos de trava, somente leitura; resumo e relatório atualizados.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-210020-821c",
+      "ts": "2026-10-08T21:00:20-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Leitura das dependências: 13 desatualizados, sem mudança",
+      "direction": "Leitura de rotina dos arquivos de trava, somente leitura; resumo e relatório atualizados.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-200050-e835",
+      "ts": "2026-10-08T20:00:50-03:00",
+      "agent": "coordenador",
+      "project": "B",
+      "summary": "Leitura das dependências: Boreal atualizou o gerador de páginas",
+      "direction": "Mudança feita pelo dono; só registrei. Ficou uma versão de correção para trás.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-190025-821c",
+      "ts": "2026-10-08T19:00:25-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Leitura das dependências: 13 desatualizados, sem mudança",
+      "direction": "Leitura de rotina dos arquivos de trava, somente leitura; resumo e relatório atualizados.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-180030-93d4",
+      "ts": "2026-10-08T18:00:30-03:00",
+      "agent": "coordenador",
+      "project": "D",
+      "summary": "Leitura das dependências: Delta atualizou o cliente de e-mail",
+      "direction": "Mudança feita pelo dono no Delta; só registrei. O pacote ainda tem uma versão de correção nova (atualização esperando a P-0002).",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-170035-821c",
+      "ts": "2026-10-08T17:00:35-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Leitura das dependências: 13 desatualizados, sem mudança",
+      "direction": "Leitura de rotina dos arquivos de trava, somente leitura; resumo e relatório atualizados.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-160040-821c",
+      "ts": "2026-10-08T16:00:40-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Leitura das dependências: 13 desatualizados, sem mudança",
+      "direction": "Leitura de rotina dos arquivos de trava, somente leitura; resumo e relatório atualizados.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-155800-6ff4",
+      "ts": "2026-10-08T15:58:00-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Relatório final do bootstrap entregue ao dono",
+      "direction": null,
+      "result": "ok",
+      "type": "relatorio",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-154430-4487",
+      "ts": "2026-10-08T15:44:30-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Rotina \"Dependências · leitura\" criada no Maestri, pulando se ocupado",
+      "direction": "Criada pela CLI com o prompt da §13 e o fluxo F-20261008-0002 no texto, para as leituras ficarem ligadas à primeira; a primeira execução é às 16:00.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-154100-349d",
+      "ts": "2026-10-08T15:41:00-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Dono aprovou a rotina de leitura das dependências de hora em hora (8h às 22h)",
+      "direction": "Leitura é só consulta aos arquivos de trava: custo baixo. As atualizações ficam para depois da liberação da P-0002.",
+      "result": "ok",
+      "type": "decisao",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-152000-a9af",
+      "ts": "2026-10-08T15:20:00-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Conferido o painel no portal: 5 abas, tema claro e escuro",
+      "direction": "Screenshots do portal Painel em 900 px e em tela cheia; o gráfico da semana ainda tem um dia só.",
+      "result": "parcial",
+      "type": "consulta",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-151230-b4be",
+      "ts": "2026-10-08T15:12:30-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Fase 5: painel no ar em http://127.0.0.1:4777",
+      "direction": "Servidor Node só em 127.0.0.1 com checagem de Host; o terminal Servidor do Painel roda o node e o próprio servidor grava o PID em estado/painel.pid.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-141830-c47b",
+      "ts": "2026-10-08T14:18:30-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Avisado o dono: 4 decisões de dependências esperando (P-0002 a P-0005)",
+      "direction": null,
+      "result": "ok",
+      "type": "aviso",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-141600-2c24",
+      "ts": "2026-10-08T14:16:00-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Recebido do Coordenador: relatório e 4 pendências abertas",
+      "direction": null,
+      "result": "ok",
+      "type": "resposta-recebida",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-141430-ec67",
+      "ts": "2026-10-08T14:14:30-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Aberta P-0005: remover 5 dependências sem uso",
+      "direction": null,
+      "result": "aguardando-dono",
+      "type": "pendencia-aberta",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": true
+    },
+    {
+      "id": "EV-20261008-141350-80b5",
+      "ts": "2026-10-08T14:13:50-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Aberta P-0004: renomear o script \"build:prod\" para \"build\"",
+      "direction": null,
+      "result": "aguardando-dono",
+      "type": "pendencia-aberta",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": true
+    },
+    {
+      "id": "EV-20261008-141305-05f4",
+      "ts": "2026-10-08T14:13:05-03:00",
+      "agent": "coordenador",
+      "project": "E",
+      "summary": "Aberta P-0003: Eco, definir a versão do Node",
+      "direction": null,
+      "result": "aguardando-dono",
+      "type": "pendencia-aberta",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": true
+    },
+    {
+      "id": "EV-20261008-141220-243c",
+      "ts": "2026-10-08T14:12:20-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Aberta P-0002: liberar as atualizações de correção",
+      "direction": null,
+      "result": "aguardando-dono",
+      "type": "pendencia-aberta",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": true
+    },
+    {
+      "id": "EV-20261008-140600-35ae",
+      "ts": "2026-10-08T14:06:00-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Relatório das dependências gerado e salvo",
+      "direction": null,
+      "result": "ok",
+      "type": "relatorio",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-140510-11a4",
+      "ts": "2026-10-08T14:05:10-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Auditoria das dependências: 11 atualizações de correção e 9 decisões",
+      "direction": "Classifiquei como mecânico só o que o manual §12 permite fazer sem ok (versões de correção); versões maiores, remoções e trocas de pacote ficaram como decisão.",
+      "result": "ok",
+      "type": "auditoria",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-135240-12c2",
+      "ts": "2026-10-08T13:52:40-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Leitura completa das dependências dos 6 projetos: 13 pacotes desatualizados",
+      "direction": "Li os arquivos de trava em vez de rodar a instalação porque trazem as versões exatas numa leitura só; nenhuma escrita, bootstrap em somente leitura.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-134905-4473",
+      "ts": "2026-10-08T13:49:05-03:00",
+      "agent": "coordenador",
+      "project": null,
+      "summary": "Pedido do Cérebro: primeira auditoria, relatório e pendências (somente leitura)",
+      "direction": null,
+      "result": "ok",
+      "type": "pedido-recebido",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-134830-0d68",
+      "ts": "2026-10-08T13:48:30-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Delegada ao Coordenador a primeira auditoria das dependências",
+      "direction": "Fase 4 do bootstrap em somente leitura: o dono vê o diagnóstico antes de liberar qualquer atualização. Pedi relatório, auditoria e as pendências de decisão.",
+      "result": "ok",
+      "type": "delegacao",
+      "flow_id": "F-20261008-0002",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-033150-2923",
+      "ts": "2026-10-08T03:31:50-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Skills do Coordenador expostas por junção e carregando",
+      "direction": "Junção NTFS em .claude/skills da raiz porque symlink exige admin; conferi que as 4 skills aparecem na sessão do Coordenador.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-032005-f95a",
+      "ts": "2026-10-08T03:20:05-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Fase 3: recrutado o Coordenador de Dependências (Opus 5.5 1M, xhigh)",
+      "direction": "Recruta com --preset \"Claude Code\" e o comando que fixa o modelo; terminal_id e diretório gravados em agentes.json.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-030530-8da7",
+      "ts": "2026-10-08T03:05:30-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Hooks do log bruto instalados no settings.json do usuário",
+      "direction": "Forma exec (node + args) por ser ~100 ms mais rápida que via Git Bash; backup e mescla com os hooks que já existem, nunca sobrescrita.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-024000-5088",
+      "ts": "2026-10-08T02:40:00-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Fase 2: registrar.js e pendencia.js com trava EXLOCK e gravação atômica",
+      "direction": "EXLOCK do Windows no lugar do fcntl: a trava some sozinha quando o processo dono dela morre; os JSONL usam uma chamada de append por linha, sem trava.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-021045-0f50",
+      "ts": "2026-10-08T02:10:45-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Registradas as decisões de adaptação em decisoes.md",
+      "direction": "Cada adaptação da máquina (Node, junções, EXLOCK, hooks no settings do usuário) virou decisão numerada, para os próximos agentes não refazerem as sondas.",
+      "result": "ok",
+      "type": "decisao",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-013510-114b",
+      "ts": "2026-10-08T01:35:10-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Fase 1: CLAUDE.md, fichas, protocolos e manual de dependências gravados",
+      "direction": "Textos integrais do documento de instruções, com a adaptação para Node registrada em decisoes.md; o manual foi salvo verbatim e conferido por hash.",
+      "result": "ok",
+      "type": "execucao",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-010100-6f32",
+      "ts": "2026-10-08T01:01:00-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Criada a árvore de diretórios de _maestro/",
+      "direction": "Criei só pastas, na raiz confirmada pelo dono; arquivos vêm na Fase 1 depois que as convenções fecharem a Fase 0.",
+      "result": "ok",
+      "type": "bootstrap",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-010030-6329",
+      "ts": "2026-10-08T01:00:30-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Dono confirmou: raiz do workspace, Node.js, todos os agentes em Opus 5.5 1M xhigh",
+      "direction": "Decisão do dono registrada; modelo e nível por agente vão para agentes.json para o painel mostrar; controle pelo painel fica como evolução sugerida.",
+      "result": "ok",
+      "type": "bootstrap",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-005930-fa26",
+      "ts": "2026-10-08T00:59:30-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Disparado workflow de 3 sondas (CLI do Maestri, Claude Code, Windows)",
+      "direction": "Testes empíricos só no scratchpad para descobrir o formato real dos hooks, a carga de CLAUDE.md e skills a partir de diretório-pai, o modelo 1M, a trava de arquivo em Node, junções e a porta 4777.",
+      "result": "em-andamento",
+      "type": "bootstrap",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-005830-0f01",
+      "ts": "2026-10-08T00:58:30-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Perguntado ao dono: confirmar a raiz e escolher Node.js ou instalar Python",
+      "direction": "O documento manda confirmar a raiz antes de criar arquivos e parar se faltar python3; recomendei Node.js (já instalado e é o runtime dos hooks).",
+      "result": "aguardando-dono",
+      "type": "bootstrap",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": true
+    },
+    {
+      "id": "EV-20261008-005700-2537",
+      "ts": "2026-10-08T00:57:00-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Fase 0: reconhecimento do Maestri, do Claude Code e da máquina",
+      "direction": "Só leitura: workspace Exemplo em C:/exemplo/workspace; uso do plano em ~/.maestri/usage/providers/.status.json; sem Python; Node 22 presente.",
+      "result": "ok",
+      "type": "bootstrap",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-005400-70b4",
+      "ts": "2026-10-08T00:54:00-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Lido o documento de instruções inteiro",
+      "direction": "Leitura integral antes de qualquer ação, como o próprio pedido exige; nada foi criado nessa etapa.",
+      "result": "ok",
+      "type": "bootstrap",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    },
+    {
+      "id": "EV-20261008-005202-5560",
+      "ts": "2026-10-08T00:52:02-03:00",
+      "agent": "cerebro",
+      "project": null,
+      "summary": "Pedido do dono: montar o workspace a partir do documento de instruções",
+      "direction": "Pedido chegou pelo chat do Maestri; carreguei as skills de conexão e de gestão do Maestri antes de agir.",
+      "result": "ok",
+      "type": "bootstrap",
+      "flow_id": "F-20261008-0001",
+      "needs_owner": false
+    }
+  ]
+}
