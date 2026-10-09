@@ -95,7 +95,7 @@ function PendingKpi({ o }) {
   const bySeverity = obj(p.by_severity) || {};
   const total = p.total || 0;
   const parts = SEVERITIES.filter((s) => bySeverity[s]);
-  const summary = parts.map((s) => t('severity.count', { count: bySeverity[s], name: t(`pending.severityPlural.${s}`).toLowerCase() })).join(' · ');
+  const summary = parts.map((s) => t('pending.severityCount', { count: bySeverity[s], name: t(`pending.severityPlural.${s}`).toLowerCase() })).join(' · ');
   return (
     <button type="button" class={`card kpi clickable kpi-owner${bySeverity.critical ? ' critical' : total ? ' highlight' : ''}`} onClick={() => goTo('pending')}
       aria-label={summary ? t('overview.pendingAriaWithSummary', { total, summary }) : t('overview.pendingAria', { total })}>

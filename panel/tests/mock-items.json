@@ -1,5 +1,64 @@
 {
   "generated_at": "2026-10-09T10:24:30-03:00",
+  "state": {
+    "generated_at": "2026-10-09T10:24:30-03:00",
+    "health": {
+      "level": "yellow",
+      "reasons": [
+        {
+          "code": "projects_unassigned",
+          "count": 2,
+          "projects": [
+            "scratch",
+            "relatorios-bi"
+          ]
+        }
+      ],
+      "last_event_at": "2026-10-09T10:10:00-03:00",
+      "last_raw_at": "2026-10-09T10:21:10-03:00",
+      "usage_age_min": 3
+    },
+    "kpis": {
+      "pending_decisions": {
+        "total": 4,
+        "by_severity": {
+          "critical": 1,
+          "high": 2,
+          "normal": 1,
+          "low": 0
+        }
+      },
+      "usage": {
+        "available": true,
+        "window_5h_pct": 37,
+        "reset_5h": "2026-10-09T13:00:00-03:00",
+        "weekly_pct": 22,
+        "weekly_reset": "2026-10-13T09:00:00-03:00",
+        "age_min": 3,
+        "updated_at": "2026-10-09T10:21:30-03:00",
+        "reason": null,
+        "window_5h_reason": null,
+        "weekly_reason": null,
+        "source": {
+          "code": "maestri_claude_provider"
+        },
+        "collected_at": "2026-10-09T10:24:30-03:00"
+      }
+    },
+    "collector": {
+      "interval_min": 5,
+      "active": true,
+      "last": {
+        "at": "2026-10-09T10:24:30-03:00",
+        "trigger": "periodic",
+        "ok": true,
+        "duration_ms": 42,
+        "error": null
+      },
+      "running": false
+    },
+    "warnings": []
+  },
   "companies": [
     {
       "id": "contoso",
@@ -6551,21 +6610,6 @@
         }
       ]
     }
-  },
-  "health": {
-    "level": "yellow",
-    "reasons": [
-      {
-        "code": "projects_unassigned",
-        "count": 2,
-        "projects": [
-          "scratch",
-          "relatorios-bi"
-        ]
-      }
-    ],
-    "last_event_at": "2026-10-09T10:10:00-03:00",
-    "last_raw_at": "2026-10-09T10:21:10-03:00"
   },
   "usage": {
     "collected_at": "2026-10-09T10:24:30-03:00",

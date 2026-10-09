@@ -229,15 +229,32 @@ suite.test('invalid data fails with exit 2 and a clear message, and records noth
   });
 });
 
-suite.test('the panel no longer answers pending decisions: the answer route and the Brain notice are gone', async () => {
+suite.test('the panel no longer answers pending decisions: the answer route is gone', async () => {
   const r = buildRoot('no-answer');
   await withServer(r, async (get, port) => {
     const x = await request(port, '/api/pending-decisions/P-0001/answer', { method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: '{"option":"A"}' });
     assert.deepStrictEqual([x.status, x.json], [404, { error: { code: 'route_not_found' } }]);
     const post = await request(port, '/api/pending-decisions', { method: 'POST', headers: { 'X-Panel': '1' } });
     assert.strictEqual(post.status, 405);
-    const state = await get('/api/state');
-    assert.ok(!('answers' in state), 'no brain notice in /api/state');
+  });
+});
+
+suite.test('the menu counter (/api/state) counts the open pending decisions of every company, by severity', async () => {
+  const r = buildRoot('counter');
+  await withServer(r, async (get) => {
+    assert.deepStrictEqual((await get('/api/state')).kpis.pending_decisions, { total: 0, by_severity: { critical: 0, high: 0, normal: 0, low: 0 } });
+  });
+  startItem(r);
+  ok(flow(r, ['item', 'start', '7', '--title', 'Outro', '--stage', 'implementation'], { cwd: r.repo2 }));
+  openedId(flow(r, ['pending', 'open', '12', '--task', '13', '--kind', 'worker_blocked', '--severity', 'critical', '--title', 'Falta o certificado']));
+  openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Qual formato?']));
+  openedId(flow(r, ['pending', 'open', '7', '--kind', 'decision', '--severity', 'high', '--title', 'De gadgets'], { cwd: r.repo2 }));
+  const resolved = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--severity', 'high', '--title', 'Já decidida']));
+  ok(flow(r, ['pending', 'resolve', String(resolved), '--decision', 'A']));
+  const canceled = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--severity', 'low', '--title', 'Cancelada']));
+  ok(flow(r, ['pending', 'cancel', String(canceled)]));
+  await withServer(r, async (get) => {
+    assert.deepStrictEqual((await get('/api/state')).kpis.pending_decisions, { total: 3, by_severity: { critical: 1, high: 1, normal: 1, low: 0 } });
   });
 });
 

@@ -132,8 +132,8 @@ suite.test('server codes keep the texts the page showed before', () => {
   assert.strictEqual(c({ code: 'projects_unassigned', count: 1, projects: ['scratch'] }), '1 projeto em "Sem empresa" (scratch): escolha a empresa na tela Itens');
   assert.strictEqual(c({ code: 'projects_unassigned', count: 2, projects: ['scratch', 'bi'] }), '2 projetos em "Sem empresa" (scratch, bi): escolha a empresa na tela Itens');
   assert.strictEqual(c({ code: 'database_unreadable', file: 'bruto.db', detail: 'file is not a database' }), 'Não consegui ler o bruto.db (file is not a database)');
-  assert.strictEqual(c({ code: 'file_unreadable', file: 'estado/pendencias.json', error: { code: 'invalid_json', detail: 'x' } }),
-    'estado/pendencias.json ilegível (JSON inválido (x))');
+  assert.strictEqual(c({ code: 'file_unreadable', file: 'state/usage.json', error: { code: 'invalid_json', detail: 'x' } }),
+    'state/usage.json ilegível (JSON inválido (x))');
   assert.strictEqual(c({ code: 'invalid_param', param: 'since', value: 'lixo', expected: 'date' }), 'Parâmetro "desde" inválido: "lixo" (use AAAA-MM-DD).');
   assert.strictEqual(c({ code: 'invalid_param', param: 'per_page', value: '0', expected: 'positive_integer' }),
     'Parâmetro "por_pagina" inválido: "0" (use um inteiro a partir de 1).');
@@ -141,8 +141,6 @@ suite.test('server codes keep the texts the page showed before', () => {
   assert.strictEqual(c({ code: 'plan_windows_unavailable', window_5h_reason: { code: 'window_missing', window: '5h' }, weekly_reason: { code: 'window_without_pct', window: 'weekly' } }),
     'O Maestri não trouxe a janela de 5 h. A janela semanal veio sem o percentual usado.');
   assert.strictEqual(c({ code: 'plan_read_failed', state: 'error', error: 'timeout' }), 'O Maestri não conseguiu ler o uso do Claude (estado "error": timeout).');
-  assert.strictEqual(c({ code: 'event_lines_ignored', file: 'logs/eventos/2026-10.jsonl', count: 2 }),
-    'logs/eventos/2026-10.jsonl: 2 linha(s) ilegível(is) ou sem id válido ignorada(s)');
   assert.strictEqual(c({ code: 'maestri_claude_provider' }), 'provedor Claude do Maestri');
   assert.strictEqual(c({ code: 'invalid_filter', param: 'severity', value: 'alta', allowed: ['critical', 'high', 'normal', 'low'] }),
     'Filtro "severity" inválido: "alta" (use critical, high, normal ou low).');

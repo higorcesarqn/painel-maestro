@@ -199,9 +199,10 @@ suite.test('the usage collector counts only the sessions of registered projects,
   }
   await withServer(r, async (get) => {
     const rc = (await get('/api/recalculate', { method: 'POST', headers: { 'X-Panel': '1' } })).json;
-    assert.strictEqual(rc.usage.collection.sessions, 1);
+    assert.strictEqual(rc.recalculation.ok, true);
+    assert.strictEqual((await get('/api/usage')).json.collection.sessions, 1);
   });
-  assert.ok(!fs.existsSync(path.join(r.data, 'state', 'sessions')), 'the old model\'s state/sessions files are gone');
+  assert.ok(!fs.existsSync(path.join(r.data, 'state', 'sessions')), 'no session files');
 });
 
 suite.run().then(() => {

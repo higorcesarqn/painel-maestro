@@ -13,10 +13,9 @@ export function Sidebar() {
   const { state, screen, goTo } = usePanel();
   const kp = (state && obj(state.kpis) && obj(state.kpis.pending_decisions)) || {};
   const bySeverity = obj(kp.by_severity) || {};
-  const ws = (state && obj(state.workspace)) || {};
-  // Counter next to the name: { n, tone, label }
+  // Counter next to the name: { n, tone, label }. The open pending decisions of every company (GET /api/state).
   const counters = {
-    pending: kp.total ? { n: kp.total, tone: bySeverity.critica ? 'strong' : 'blue', label: t('sidebar.pendingCounter', { count: kp.total }) } : null,
+    pending: kp.total ? { n: kp.total, tone: bySeverity.critical ? 'strong' : 'blue', label: t('sidebar.pendingCounter', { count: kp.total }) } : null,
   };
   const key = (ev) => {
     const delta = ev.key === 'ArrowDown' || ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' ? -1 : 0;
@@ -33,7 +32,7 @@ export function Sidebar() {
     <aside class="sidebar">
       <div class="brand">
         <span class="brand-name">{t('sidebar.brand')}<b>.</b>{t('sidebar.brandSuffix')}</span>
-        <span class="label" title={ws.root || ''}>{t('sidebar.workspace', { name: ws.name || '—' })}</span>
+        <span class="label">{t('sidebar.tagline')}</span>
       </div>
       <nav class="nav" role="tablist" aria-orientation="vertical" aria-label={t('sidebar.screens')} onKeyDown={key}>
         {GROUPS.map((g, gi) => {

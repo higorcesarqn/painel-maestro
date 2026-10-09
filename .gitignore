@@ -5,21 +5,19 @@ node_modules/
 # (o index.html compilado É versionado; o dist/ não)
 panel/ui/dist/
 
-# Raízes temporárias dos testes e da demonstração (build-mock-root.js)
+# Raízes temporárias dos testes e da demonstração com o servidor real (build-mock-root.js)
 panel/tests/tmp/
 
-# Dados do seu workspace. Sem MAESTRO_DIR, o servidor e os scripts de bin/ leem e gravam
-# na raiz deste repositório: nada disso pode ir para o git.
+# Os dados ficam fora do repositório (MAESTRO_DIR, padrão ~/.painel-maestro). Versões antigas do painel gravavam
+# nestas pastas, dentro do repositório; elas não são mais lidas, mas continuam ignoradas para nunca irem ao git.
 registro/
 estado/
 /state/
 logs/
 .segredos/
 
-# Travas e temporários das gravações atômicas (lib.js)
-*.lock
+# Temporários
 *.tmp
-*.tmp-*
 
 # Diversos
 npm-debug.log*

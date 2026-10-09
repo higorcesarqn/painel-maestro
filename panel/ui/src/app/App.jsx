@@ -1,5 +1,6 @@
 // Panel shell: reads /api/state every 20 s, keeps the current screen in the URL (#overview, #log...),
-// the Log filters and the event modal. Only the visible screen is drawn.
+// the Log filters and the pending decision to open when the Overview sends the person there. Only the visible
+// screen is drawn.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { PanelContext, SCREENS, OLD_SCREEN_IDS, newFilter } from '../data/context.js';
 import { REFRESH_MS, MOCK, readState, recalculateUsage, readLog } from '../data/api.js';
@@ -15,7 +16,6 @@ import { PendingDecisions } from '../screens/PendingDecisions.jsx';
 import { Log } from '../screens/Log.jsx';
 import { Agents } from '../screens/Agents.jsx';
 import { Usage } from '../screens/Usage.jsx';
-import { EventModal } from '../screens/EventModal.jsx';
 import { Icon, TriangleAlert, Info } from '../components/Icon.jsx';
 
 // One screen per item of SCREENS (data/context.js). A new screen goes here and there.
@@ -37,7 +37,6 @@ export function App() {
   const [subroute, setSubroute] = useState(() => hashParts().sub);
   const [actionStatus, setActionStatus] = useState('');
   const [recalculating, setRecalculating] = useState(false);
-  const [modal, setModal] = useState(null); // { id, list, table }
   const [pendingTarget, setPendingTarget] = useState(null);
   const screenRef = useRef(screen);
   screenRef.current = screen;
@@ -88,10 +87,8 @@ export function App() {
     return () => window.removeEventListener('hashchange', h);
   }, []);
   useEffect(() => {
-    const ws = state && obj(state.workspace);
-    const panel = ws && ws.name ? t('app.panelOf', { name: ws.name }) : t('app.panelDefault');
-    document.title = t('app.documentTitle', { screen: t(`nav.${screen}`), panel });
-  }, [screen, state && state.workspace && state.workspace.name]);
+    document.title = t('app.documentTitle', { screen: t(`nav.${screen}`), panel: t('app.panel') });
+  }, [screen]);
 
   // ---------- company selector (#6) ----------
   const companySelector = useCompanies();
@@ -157,23 +154,7 @@ export function App() {
     }
   }, []);
 
-  const openModal = useCallback((id, list, table) => {
-    if (!id) return;
-    setModal((m) => (Array.isArray(list)
-      ? { id, list: list.filter((x) => typeof x === 'string' && x), table: table || null }
-      : { id, list: m ? m.list : [], table: m ? m.table : null }));
-  }, []);
-  const closeModal = useCallback(() => setModal(null), []);
-
-  // Old-model flows have no place in the new Log (#12): opens it without filters.
-  const filterByFlow = useCallback(() => {
-    setModal(null);
-    setRawFilters(newFilter());
-    setPage(1);
-    goTo('log');
-  }, []);
   const goToPendingDecision = useCallback((id) => {
-    setModal(null);
     goTo('pending');
     setPendingTarget({ id, at: Date.now() });
   }, []);
@@ -181,7 +162,7 @@ export function App() {
   const ctx = {
     ...companySelector,
     state, connectionError, failingSince, screen, goTo, actionStatus, setActionStatus, recalculating, recalculate,
-    modal, openModal, closeModal, setModal, filterByFlow, goToPendingDecision, pendingTarget,
+    goToPendingDecision, pendingTarget,
     filters, setFilters, setRawFilters, page, setPage, log, loadLog,
     subroute,
   };
@@ -210,7 +191,6 @@ export function App() {
           </main>
         </div>
       </div>
-      {modal && <EventModal />}
     </PanelContext.Provider>
   );
 }

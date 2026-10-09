@@ -1,6 +1,6 @@
 // Panel build: Preact + own components, compiled into a single HTML file (scripts/publish.js).
 // npm run dev   → http://127.0.0.1:5173 with /api pointing to the real panel (127.0.0.1:4777)
-//                 and /tests/mock-*.json for the test mode (?mock=1)
+//                 and /tests/mock-items.json for the test mode (?mock=1)
 // npm run build → ../index.html (the file server.js serves)
 import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
@@ -14,8 +14,6 @@ const TESTS = path.resolve(HERE, '..', 'tests');
 /** In dev, serves the test mode files as tests/serve-mock.js does. */
 function mockFiles() {
   const map = {
-    '/tests/mock-state.json': 'mock-state.json',
-    '/tests/mock-details.json': 'mock-details.json',
     '/tests/mock-items.json': 'mock-items.json',
   };
   return {

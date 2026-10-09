@@ -36,17 +36,16 @@ export async function api(urlPath, options) {
   return answer;
 }
 
+// The shell: health badge, menu counter of open pending decisions and plan usage. Recalculate runs the usage collector.
 export const readState = () => api('/api/state');
 export const recalculateUsage = () => api('/api/recalculate', { method: 'POST' });
-export const readEvents = (params) => api(`/api/events?${new URLSearchParams(params).toString()}`);
-export const readEvent = (id) => api(`/api/event/${encodeURIComponent(id)}`);
-// New model (maestro.db): items with their state computed from the events.
+// Items (maestro.db) with their state computed from the events.
 export const readItems = (filters) => api(withQuery('/api/items', filters));
 export const readItem = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`);
-// New model Log: the events of maestro.db with filters and, for one event, the raw commands of bruto.db linked to it.
+// The Log: the events of maestro.db with filters and, for one event, the raw commands of bruto.db linked to it.
 export const readLog = (params) => api(`/api/log?${new URLSearchParams(params).toString()}`);
 export const readLogEvent = (id) => api(`/api/log/${encodeURIComponent(id)}`);
-// Pending decisions of the new model, read only: params { company, project, severity, status }.
+// Pending decisions, read only: params { company, project, severity, status }.
 export const readPendingDecisions = (params) => api(`/api/pending-decisions?${new URLSearchParams(params).toString()}`);
 // "Mark as merged" (#11): records the PR merge by hand when the merge check cannot read it. Returns { item }.
 export const markItemMerged = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}/merged`, { method: 'POST' });
@@ -54,7 +53,7 @@ export const markItemMerged = (project, number) => api(`/api/items/${encodeURICo
 export const readUsage = (filters) => api(withQuery('/api/usage', filters));
 export const readAgents = (filters) => api(withQuery('/api/agents', filters));
 
-// Overview of the new model (#14): the picture of the day, narrowed by the company of the selector (companyFilter).
+// Overview (#14): the picture of the day, narrowed by the company of the selector (companyFilter).
 export const readOverview = (filters) => api(withQuery('/api/overview', filters));
 
 // Companies and projects (#6). The company selector reaches each list as ?company=<id> (see companyFilter).

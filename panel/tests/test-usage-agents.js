@@ -131,7 +131,7 @@ suite.test('the collector splits the tokens by item and by agent (the item\'s ma
   const r = buildRoot('split');
   itemWithSessions(r);
   collect(r);
-  assert.ok(!fs.existsSync(path.join(r.data, 'state', 'sessions')), 'the hook no longer writes the old model\'s session files');
+  assert.ok(!fs.existsSync(path.join(r.data, 'state', 'sessions')), 'the hook writes no session files');
   await withServer(r, async (get) => {
     const res = await get('/api/usage');
     assert.strictEqual(res.status, 200, res.text);

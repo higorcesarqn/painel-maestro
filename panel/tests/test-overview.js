@@ -210,7 +210,7 @@ const health = async (r, env) => {
   return h;
 };
 
-suite.test('health: green when the hook recorded the agents\' work; the old model (registro/agentes.json, logs/raw) no longer counts', async () => {
+suite.test('health: green when the hook recorded the agents\' work', async () => {
   const r = buildRoot('green');
   registerContoso(r);
   flow(r, r.widgets, sp('09:00:00'), 'item', 'start', '12', '--title', 'Exportar PDF');
@@ -219,8 +219,7 @@ suite.test('health: green when the hook recorded the agents\' work; the old mode
   hook(r, r.widgets, sp('11:00:04'));
   const h = await health(r);
   assert.deepStrictEqual([h.level, h.reasons], ['green', []], JSON.stringify(h));
-  assert.deepStrictEqual([h.last_event_at, h.last_raw_at, h.wire], [sp('11:00:00'), sp('11:00:04'), false]);
-  assert.ok(!('hooks' in h), 'no list of old-model agents');
+  assert.deepStrictEqual([h.last_event_at, h.last_raw_at], [sp('11:00:00'), sp('11:00:04')]);
 });
 
 suite.test('health: the hook is stopped when the agents recorded work after its last entry; without active items nothing is expected', async () => {
@@ -263,8 +262,10 @@ suite.test('health: an unreadable maestro.db is red and an unreadable bruto.db i
   fs.writeFileSync(path.join(r.data, 'maestro.db'), 'isto não é um banco SQLite '.repeat(100));
   fs.writeFileSync(path.join(r.data, 'bruto.db'), 'nem isto '.repeat(100));
   await withServer(r, async (get, raw) => {
-    const h = (await get('/api/state')).health;
+    const state = await get('/api/state');
+    const h = state.health;
     assert.strictEqual(h.level, 'red');
+    assert.strictEqual(state.kpis.pending_decisions.total, 0, 'the menu counter counts nothing, the badge says why');
     assert.deepStrictEqual(h.reasons.map((x) => [x.code, x.file, typeof x.detail]), [['database_unreadable', 'maestro.db', 'string'], ['database_unreadable', 'bruto.db', 'string']]);
     const o = await raw('/api/overview');
     assert.deepStrictEqual([o.status, o.json.error.code, o.json.error.file], [503, 'database_unreadable', 'maestro.db']);

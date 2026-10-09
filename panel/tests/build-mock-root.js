@@ -1,26 +1,22 @@
 #!/usr/bin/env node
 'use strict';
 /*
- * build-mock-root.js: builds a fake data root (MAESTRO_DIR) from mock-state.json and mock-details.json,
- * to see index.html with the real server.js (and not with ?mock=1).
- *
- * The mocks are in the API shape (English fields); the files written here are the ones the server reads:
- * the hook's raw log (logs/raw), the collector's usage (state/usage.json) and the old model's files
- * (registro/agentes.json, logs/eventos, estado/pendencias.json, estado/contador-fluxos.json), converted
- * back to their Portuguese field names (legacy-records.js; removed in #18).
+ * build-mock-root.js: builds a fake data folder (MAESTRO_DIR) with the demo's companies, projects and events
+ * (generate-mock-items.js) in a real maestro.db, to look at index.html with the real server.js (and not with ?mock=1).
  *
  * Usage:
  *   node tests/build-mock-root.js [folder] [--hostile]
  *     folder     default: tests/tmp/mock-root (always inside tests/tmp/)
- *     --hostile  adds an event and a pending decision with HTML, javascript: and huge texts,
- *                to check that the page shows everything as text
+ *     --hostile  adds an item whose texts carry HTML, javascript: links and huge texts (title, report, finding,
+ *                pending decision), to check that the page shows everything as text
  *   Then:
- *     MAESTRO_DIR=<folder> PANEL_NOW=<generated_at of the mock> PANEL_COLLECTOR=0 node server.js --port 4793
+ *     MAESTRO_DIR=<folder> PANEL_NOW=<the demo's moment> PANEL_COLLECTOR=0 node server.js --port 4793
  *   (the script prints the ready line)
  */
 const fs = require('fs');
 const path = require('path');
-const { eventFromApi, pendingDecisionFromApi } = require('../legacy-records.js');
+const { openStore } = require('../../bin/flow-store.js');
+const { GENERATED_AT, companies, projects, events } = require('./generate-mock-items.js');
 
 const TMP = path.join(__dirname, 'tmp');
 const args = process.argv.slice(2);
@@ -32,83 +28,56 @@ if (!root.startsWith(TMP + path.sep)) {
   process.exit(2);
 }
 
-const state = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-state.json'), 'utf8'));
-const det = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-details.json'), 'utf8'));
+const HOSTILE_ITEM = 4242;
+const HTML = '<img src=x onerror="document.title=\'XSS\'">';
+/** Events of an item whose every text tries to become HTML. */
+function hostileEvents() {
+  const at = (hhmm) => `2026-10-09T${hhmm}:00-03:00`;
+  const e = (time, type, payload, task = null, role = 'maestro', name = '<b>Bento</b>') => ({
+    at: at(time), project_id: 'portal', item_number: HOSTILE_ITEM, task_number: task, agent: { role, name }, source: 'cli', type, payload,
+  });
+  return [
+    e('09:00', 'item-started', { title: `<script>document.title="XSS"</script> ${HTML} ${'título longo '.repeat(40)}`, stage: 'implementation' }),
+    e('09:01', 'task-graph', { tasks: [{ number: 4243, title: `<a href="javascript:alert(1)">task</a>`, blocked_by: [], out: false }] }),
+    e('09:02', 'task-dispatched', { floor: '<i>floor</i>', worker: '<u>Ária</u>', branch: 'task/4243-<b>x</b>' }, 4243),
+    e('09:30', 'task-report', {
+      status: 'blocked', blocked_reason: HTML, branch: 'task/4243', sha: '<b>sha</b>', tests: '<svg onload=alert(1)>', changes: 'longa '.repeat(400),
+      decisions: ['<iframe src=//x>'], risks: '<style>body{display:none}</style>', shared_files: ['<b>a</b>'], text: `${HTML}\nsegunda linha`,
+    }, 4243, 'worker', '<u>Ária</u>'),
+    e('09:40', 'finding-recorded', { finding: 1, title: HTML, description: '<script>alert(1)</script>', classification: 'defect', origin_task: 4243, new_task: null }, 4243),
+    e('09:50', 'pending-decision-opened', {
+      kind: 'decision', severity: 'critical', title: `${HTML} pendência hostil`, context: '<script>alert(1)</script>\nsegunda linha',
+      options: ['<b>A</b>', 'B: javascript:alert(1)'], recommendation: '<u>sublinhado</u>', maestri: { workspace: '<b>ws</b>', terminal: '<i>t</i>' },
+    }),
+    e('09:55', 'pr-changed', { state: 'draft', url: 'javascript:alert(1)', branch: '<b>feature/pbi-4242</b>' }),
+  ];
+}
 
 fs.rmSync(root, { recursive: true, force: true });
-const write = (rel, content) => {
-  const f = path.join(root, rel);
-  fs.mkdirSync(path.dirname(f), { recursive: true });
-  fs.writeFileSync(f, typeof content === 'string' ? content : JSON.stringify(content, null, 2));
-};
-const jsonl = (lines) => lines.map((l) => JSON.stringify(l)).join('\n') + '\n';
-const spDay = (ts) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts));
-
-// registro/agentes.json (old model registry)
-const agents = state.agents.map((a) => ({
-  slug: a.slug, nome: a.name, tipo: a.type, cor: a.color, responsabilidade: a.responsibility, terminal_id: null,
-  diretorios: [], modelo: a.model, nivel: a.effort, conectado_a: a.connected_to, skills: a.skills, status: a.status,
-  desde: a.since || '2026-10-08', observacao: a.remark || null,
-}));
-write('registro/agentes.json', { workspace: { id: 'mock', nome: state.workspace.name, raiz: state.workspace.root }, padrao: { modelo: 'claude-opus-5-5[1m]', nivel: 'xhigh' }, agentes: agents });
-
-// events by month
-const events = det.events.slice();
-const pending = state.pending_decisions.slice();
-if (hostile) {
-  const ts = '2026-10-09T10:24:00-03:00';
-  events.push({
-    id: 'EV-20261009-102400-beef', ts, agent: 'coordenador', flow_id: 'F-20261008-0002', origin: 'agente:<b>x</b>', type: 'execucao', project: '<i>D</i>',
-    summary: '<script>document.title="XSS"</script> resumo com HTML', direction: '<img src=x onerror="document.title=\'XSS\'"> ' + 'longa '.repeat(200),
-    steps: ['<a href="javascript:alert(1)">passo</a>'], commands: ['rm -rf / <b>'], changes: [{ arquivo: '<b>a</b>', antes: 1 }],
-    result: 'falhou', validation: '<svg onload=alert(1)>', next_step: '<iframe src=//x>', needs_owner: true, pending_decisions: ['P-0006', '<b>P-9</b>'], duration_s: 3725,
+const store = openStore({ dir: root });
+try {
+  store.transaction(() => {
+    for (const [id, name] of Object.entries(companies)) store.ensureCompany(id, name, '2026-10-01T09:00:00-03:00');
+    for (const p of projects) {
+      const [first, ...others] = p.repos;
+      store.addProject({
+        id: p.id, name: p.name, companyId: p.company_id, tracker: p.tracker, stages: p.stages, remote: first, at: p.created_at,
+        doneState: p.done_state, maestriWorkspace: p.maestri_workspace,
+      });
+      for (const r of others) store.addRepo(p.id, r);
+    }
+    // The ids of maestro.db follow the order of writing: the same order (and ids) of the generator.
+    for (const e of [...events, ...(hostile ? hostileEvents() : [])]) {
+      store.appendEvent({
+        at: e.at, type: e.type, projectId: e.project_id, itemNumber: e.item_number, taskNumber: e.task_number,
+        agentRole: e.agent.role, agentName: e.agent.name, source: e.source, payload: e.payload,
+      });
+    }
   });
-  pending.unshift({
-    id: 'P-0099', opened_at: ts, agent: 'cerebro', flow_id: 'F-20261008-0002', severity: 'critica', type: 'decisao',
-    title: '<img src=x onerror="document.title=\'XSS\'"> pendência hostil', context: '<script>alert(1)</script>\nsegunda linha',
-    options: ['<b>A</b>', 'B: javascript:alert(1)'], recommendation: '<u>sublinhado</u>',
-    status: 'aberta', answer: null, answered_at: null, resolved_at: null, note: null, reason: null, test: false, updated_at: ts,
-  });
+} finally {
+  store.close();
 }
-const byMonth = new Map();
-for (const e of events) {
-  const month = spDay(e.ts).slice(0, 7);
-  if (!byMonth.has(month)) byMonth.set(month, []);
-  byMonth.get(month).push(eventFromApi(e));
-}
-for (const [month, list] of byMonth) {
-  list.sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
-  write(`logs/eventos/${month}.jsonl`, jsonl(list));
-}
-
-// raw log by agent and day (hook format)
-const raw = new Map();
-for (const b of det.raw_commands) {
-  const folder = String(b.agent).replace(':', '-');
-  const k = `logs/raw/${folder}/${spDay(b.ts)}.jsonl`;
-  if (!raw.has(k)) raw.set(k, []);
-  raw.get(k).push(b);
-}
-for (const [k, list] of raw) write(k, jsonl(list.sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts))));
-
-// old model state files
-const records = pending.map((p) => {
-  const r = pendingDecisionFromApi(p);
-  delete r.age_min;
-  return r;
-});
-const maxP = Math.max(0, ...records.map((p) => Number(String(p.id).replace(/\D/g, '')) || 0));
-write('estado/pendencias.json', { proximo: maxP + 1, pendencias: records });
-const days = {};
-const flows = {};
-for (const [id, f] of Object.entries(det.flows || {})) {
-  const m = /^F-(\d{8})-(\d{4})$/.exec(id);
-  if (m) days[m[1]] = { ultimo: Math.max(Number(m[2]), (days[m[1]] && days[m[1]].ultimo) || 0) };
-  flows[id] = { titulo: f.title, agente: f.agent, criado_em: f.created_at };
-}
-write('estado/contador-fluxos.json', { dias: days, fluxos: flows });
-if (state.usage) write('state/usage.json', state.usage);
 
 const rel = root.replace(/\\/g, '/');
-console.log(`Raiz falsa montada em ${rel}${hostile ? ' (com dados hostis)' : ''}`);
-console.log(`Para subir: MAESTRO_DIR=${rel} PANEL_NOW=${state.generated_at} PANEL_COLLECTOR=0 node ${path.join(__dirname, '..', 'server.js').replace(/\\/g, '/')} --port 4793`);
+console.log(`Raiz falsa montada em ${rel}${hostile ? ` (com o item hostil portal/${HOSTILE_ITEM})` : ''}`);
+console.log(`Para subir: MAESTRO_DIR=${rel} PANEL_NOW=${GENERATED_AT} PANEL_COLLECTOR=0 node ${path.join(__dirname, '..', 'server.js').replace(/\\/g, '/')} --port 4793`);
