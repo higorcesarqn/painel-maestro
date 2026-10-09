@@ -2,12 +2,11 @@
 // (Ask the Brain), which stays disabled and explains why.
 import { useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
-import { time, elapsedText, dateTime, arr, obj, objs, txt } from '../data/format.js';
+import { time, elapsedText, dateTime, age, arr, obj, txt } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Popover } from '../components/Modal.jsx';
 import { CompanySelect } from './CompanySelect.jsx';
 import { Dot } from '../components/base.jsx';
-import { Agent } from '../components/domain.jsx';
 import { Icon, RefreshCw, Send, Clock, TriangleAlert, CircleCheck, CircleAlert } from '../components/Icon.jsx';
 
 const LEVEL_COLORS = { green: 'var(--ok)', yellow: 'var(--warning)', red: 'var(--danger)', gray: 'var(--faint)' };
@@ -68,10 +67,12 @@ function HealthPopover({ onClose }) {
   const { state } = usePanel();
   const h = (state && obj(state.health)) || {};
   const reasons = arr(h.reasons).map(txt);
-  const hooks = objs(h.hooks);
   const warnings = arr(state && state.warnings);
+  // Health of the new model (#14): the agents' last record in maestro.db and the hook's last entry in bruto.db.
+  const when = (v) => (v ? t('health.when', { date: dateTime(v), age: age(v) }) : t('common.never'));
   const rows = [
-    [t('health.lastEvent'), elapsedText(h.last_event_age_min)],
+    [t('health.lastEvent'), when(h.last_event_at)],
+    [t('health.lastRaw'), when(h.last_raw_at)],
     [t('health.planData'), elapsedText(h.usage_age_min)],
     [t('health.wire'), h.wire ? t('health.wireOn') : t('health.wireOff')],
   ];
@@ -82,14 +83,6 @@ function HealthPopover({ onClose }) {
         ? <ul>{reasons.map((m) => <li key={m}><Icon of={TriangleAlert} size={14} class="blue" />{m}</li>)}</ul>
         : <p class="text-2" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><Icon of={CircleCheck} size={14} />{t('health.noProblem')}</p>}
       <table><tbody>{rows.map(([a, b]) => <tr key={a}><th scope="row">{a}</th><td>{b}</td></tr>)}</tbody></table>
-      {hooks.length > 0 && (
-        <table>
-          <thead><tr><th>{t('health.hooks')}</th><th>{t('health.lastRecord')}</th><th>{t('health.age')}</th></tr></thead>
-          <tbody>{hooks.map((x) => (
-            <tr key={x.agent}><td><Agent slug={x.agent} /></td><td>{x.last_raw ? dateTime(x.last_raw) : t('common.never')}</td><td>{x.last_raw ? elapsedText(x.age_min) : '—'}</td></tr>
-          ))}</tbody>
-        </table>
-      )}
       {warnings.length > 0 && (
         <div style={{ marginTop: '10px' }}>
           <span class="label">{t('health.readWarnings', { count: warnings.length })}</span>

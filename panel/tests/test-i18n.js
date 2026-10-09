@@ -41,7 +41,7 @@ function leafKeys(o, prefix = '', acc = []) {
 
 /** Codes the server writes ({code: '...'}) in the API (pending decisions included) and the usage collector. */
 function serverCodes() {
-  const files = ['panel/server.js', 'panel/api-pending-decisions.js', 'panel/api-log.js', 'panel/api-projects.js', 'panel/api-usage.js', 'bin/collect-usage.js', 'panel/merge-check.js'];
+  const files = ['panel/server.js', 'panel/api-pending-decisions.js', 'panel/api-log.js', 'panel/api-projects.js', 'panel/api-usage.js', 'panel/api-overview.js', 'panel/health.js', 'bin/collect-usage.js', 'panel/merge-check.js'];
   const codes = new Set();
   for (const f of files) {
     for (const m of fs.readFileSync(path.join(REPO, f), 'utf8').matchAll(/\bcode: '([a-z][a-z0-9_]*)'/g)) codes.add(m[1]);
@@ -122,9 +122,16 @@ suite.test('every code the server can return has a pt-BR translation', () => {
 
 suite.test('server codes keep the texts the page showed before', () => {
   const c = i18n.translateCode;
-  assert.strictEqual(c({ code: 'hook_stale', agent: 'b', name: 'Agente B', minutes: 1500 }), 'Agente B sem log bruto há 25 h');
-  assert.strictEqual(c({ code: 'hook_stale', name: 'Agente B', minutes: 3 * 1440 }), 'Agente B sem log bruto há 3 dias');
-  assert.strictEqual(c({ code: 'hook_never', name: 'Agente B' }), 'Agente B: nenhum log bruto ainda (hooks instalados?)');
+  // health of the new model (#14)
+  assert.strictEqual(c({ code: 'hook_stale', last_raw_at: '2026-10-08T11:00:00-03:00', last_event_at: '2026-10-08T12:30:00-03:00', minutes: 1500 }),
+    'Hook parado: nenhum registro no log bruto há 25 h, mas os agentes registraram trabalho em 08/10 12:30');
+  assert.strictEqual(c({ code: 'hook_stale', last_raw_at: 'x', last_event_at: '2026-10-05T09:00:00-03:00', minutes: 3 * 1440 }),
+    'Hook parado: nenhum registro no log bruto há 3 dias, mas os agentes registraram trabalho em 05/10 09:00');
+  assert.strictEqual(c({ code: 'hook_never', last_event_at: '2026-10-05T09:00:00-03:00' }),
+    'O hook nunca gravou no log bruto, mas os agentes registraram trabalho em 05/10 09:00 (hooks instalados?)');
+  assert.strictEqual(c({ code: 'projects_unassigned', count: 1, projects: ['scratch'] }), '1 projeto em "Sem empresa" (scratch): escolha a empresa na tela Itens');
+  assert.strictEqual(c({ code: 'projects_unassigned', count: 2, projects: ['scratch', 'bi'] }), '2 projetos em "Sem empresa" (scratch, bi): escolha a empresa na tela Itens');
+  assert.strictEqual(c({ code: 'database_unreadable', file: 'bruto.db', detail: 'file is not a database' }), 'Não consegui ler o bruto.db (file is not a database)');
   assert.strictEqual(c({ code: 'file_unreadable', file: 'estado/pendencias.json', error: { code: 'invalid_json', detail: 'x' } }),
     'estado/pendencias.json ilegível (JSON inválido (x))');
   assert.strictEqual(c({ code: 'invalid_param', param: 'since', value: 'lixo', expected: 'date' }), 'Parâmetro "desde" inválido: "lixo" (use AAAA-MM-DD).');

@@ -1,10 +1,10 @@
 // Panel shell: reads /api/state every 20 s, keeps the current screen in the URL (#overview, #log...),
 // the Log filters and the event modal. Only the visible screen is drawn.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { PanelContext, SCREENS, OLD_SCREEN_IDS, newFilter } from '../data/context.js';
-import { REFRESH_MS, ANALYSIS_REFRESH_MS, MOCK, readState, recalculateUsage, readEvents, readLog } from '../data/api.js';
-import { syncClock, now, spDay, time, txt, obj, arr } from '../data/format.js';
-import { logParams, analyze } from '../data/queries.js';
+import { REFRESH_MS, MOCK, readState, recalculateUsage, readLog } from '../data/api.js';
+import { syncClock, time, txt, obj } from '../data/format.js';
+import { logParams } from '../data/queries.js';
 import { useCompanies } from '../data/companies.js';
 import { t } from '../i18n/index.js';
 import { Sidebar } from './Sidebar.jsx';
@@ -136,35 +136,6 @@ export function App() {
     setPage(1);
   }, []);
 
-  // ---------- analysis of the last 7 days (Overview) ----------
-  const [analytics, setAnalytics] = useState({ events: null, at: 0, error: null });
-  const readingAnalysis = useRef(false);
-  const readAnalysis = useCallback(async () => {
-    if (readingAnalysis.current) return;
-    readingAnalysis.current = true;
-    try {
-      const since = spDay(now() - 6 * 86400000);
-      let events = [];
-      for (let p = 1; p <= 4; p++) {
-        const sp = new URLSearchParams({ since, page: String(p), per_page: '500' });
-        const r = await readEvents(sp);
-        events = events.concat(arr(r.events));
-        if (!r.pages || p >= r.pages) break;
-      }
-      setAnalytics({ events, at: Date.now(), error: null });
-    } catch (e) {
-      setAnalytics((a) => ({ ...a, at: Date.now(), error: e }));
-    } finally {
-      readingAnalysis.current = false;
-    }
-  }, []);
-  useEffect(() => {
-    if (!state || screen !== 'overview') return;
-    if (Date.now() - analytics.at > ANALYSIS_REFRESH_MS) readAnalysis();
-  }, [screen, state]);
-
-  const analysis = useMemo(() => (analytics.events ? analyze(analytics.events) : null), [analytics.events]);
-
   // ---------- actions ----------
   const recalculate = useCallback(async () => {
     setRecalculating(true);
@@ -212,7 +183,7 @@ export function App() {
     state, connectionError, failingSince, screen, goTo, actionStatus, setActionStatus, recalculating, recalculate,
     modal, openModal, closeModal, setModal, filterByFlow, goToPendingDecision, pendingTarget,
     filters, setFilters, setRawFilters, page, setPage, log, loadLog,
-    analytics, analysis, subroute,
+    subroute,
   };
 
   const Screen = SCREEN_COMPONENTS[screen] || Overview;

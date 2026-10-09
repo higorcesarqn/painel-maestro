@@ -1,62 +1,103 @@
-// Overview: what needs the owner, the plan, the week's activity and the agents.
-// The card holds the number and the signal; the explanation of each one sits in the (i) icon next to the label.
+// Overview (new model, #14): the picture of the day from maestro.db (GET /api/overview): active items by company,
+// project and stage, the owner's open pending decisions, items parked on the same stage for too long and the recent
+// activity. The company of the selector at the top (companyFilter) narrows all of it. Reads again every 20 s.
+// The plan cards read the usage collector (/api/state), as before.
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import '../styles/overview.css';
 import { usePanel } from '../data/context.js';
-import { obj, objs, arr, number, pct, age, time, hm, spDay, now, dayMonthFormat, toDate, elapsedText, txt, spHour, weekdayShort } from '../data/format.js';
-import { SEVERITIES, severityName, severityPlural, SEVERITY_TONE, RESULTS, resultName, FAILURE_RESULTS, needsOwner, agentInfo, typeName } from '../data/domain.js';
+import { REFRESH_MS, readOverview } from '../data/api.js';
+import { obj, objs, arr, number, pct, age, hm, spDay, now, dayMonthFormat, toDate, elapsedText, dateTime, txt, weekdayShort } from '../data/format.js';
 import { t } from '../i18n/index.js';
-import { Card, Kpi, Badge, Dot, Ring, Empty, Skeleton, InfoHint } from '../components/base.jsx';
-import { BarChart, Donut, Sparkline, Legend } from '../components/charts.jsx';
-import { Agent, Result } from '../components/domain.jsx';
-import { Icon, ArrowRight, Activity, RefreshCw } from '../components/Icon.jsx';
+import { Card, Kpi, Badge, Ring, Empty, Skeleton, InfoHint } from '../components/base.jsx';
+import { Icon, ArrowRight, Activity, RefreshCw, Workflow, Inbox, Clock } from '../components/Icon.jsx';
+import { LogEventModal, eventTypeName, eventDetail, agentText } from './LogEventModal.jsx';
+
+// The flow's stages in their order; "done" never shows (only active items are counted).
+const STAGE_ORDER = ['specification', 'implementation', 'final_adjustment', 'pr_ready', 'merge', 'hml_validation'];
+const SEVERITIES = ['critical', 'high', 'normal', 'low'];
+const SEVERITY_COLOR = { critical: 'var(--danger)', high: 'var(--warning)', normal: 'var(--blue-text)', low: 'var(--muted)' };
+const stageName = (id) => t(`items.stages.${id}`);
 
 export function Overview() {
-  const { state } = usePanel();
-  if (!state) return <OverviewSkeleton />;
+  const { companyFilter } = usePanel();
+  const [read, setRead] = useState({ answer: null, error: null });
+  const seq = useRef(0);
+  const load = useCallback(async () => {
+    const mine = ++seq.current;
+    try {
+      const answer = await readOverview(companyFilter);
+      if (mine === seq.current) setRead({ answer, error: null });
+    } catch (error) {
+      if (mine === seq.current) setRead((r) => ({ answer: r.answer, error }));
+    }
+  }, [companyFilter]);
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [load]);
+
+  const o = read.answer;
+  if (!o) return <OverviewSkeleton error={read.error} />;
   return (
     <div class="screen screen-overview">
       <div class="overview-kpis">
-        <PendingKpi />
+        <ActiveKpi o={o} />
+        <PendingKpi o={o} />
+        <StaleKpi o={o} />
+        <TodayKpi o={o} />
         <PlanKpi kind="5h" />
         <PlanKpi kind="weekly" />
-        <EventsTodayKpi />
       </div>
-      <div class="overview-charts">
-        <WeekActivity />
-        <WeekResults />
+      <div class="overview-middle">
+        <ActiveItems o={o} error={read.error} />
+        <OpenPendingDecisions o={o} />
       </div>
       <div class="overview-bottom">
-        <AgentList />
-        <RecentActivity />
+        <StaleItems o={o} />
+        <RecentActivity o={o} />
       </div>
     </div>
   );
 }
 
-function OverviewSkeleton() {
+function OverviewSkeleton({ error }) {
   const block = (n) => Array.from({ length: n }, (_, i) => <div class="card" key={i} style={{ padding: '18px' }}><Skeleton width="40%" height={10} /><Skeleton width="55%" height={30} style={{ marginTop: '16px' }} /></div>);
   return (
     <div class="screen screen-overview" aria-busy="true">
-      <div class="overview-kpis">{block(4)}</div>
-      <div class="overview-charts">{block(2)}</div>
+      <div class="overview-kpis">{block(6)}</div>
+      <div class="overview-middle">
+        {error ? <div class="card"><p class="overview-error" role="alert">{t('overview.readFailed', { message: error.message })}</p></div> : block(1)}
+        {block(1)}
+      </div>
       <div class="overview-bottom">{block(2)}</div>
     </div>
   );
 }
 
-// Color of each severity in the dots of the pending decisions card (same colors as the badges).
-const TONE_COLOR = { danger: 'var(--danger)', warning: 'var(--warning)', blue: 'var(--blue-text)', neutral: 'var(--muted)' };
-const severityCount = (n, s) => t('severity.count', { count: n, name: n === 1 ? severityName(s) : severityPlural(s) });
+// ---------- numbers on top ----------
 
-function PendingKpi() {
-  const { state, goTo } = usePanel();
-  const kp = (obj(state.kpis) && obj(state.kpis.pending_decisions)) || { total: 0 };
-  const bySeverity = obj(kp.by_severity) || {};
-  const total = kp.total || 0;
-  const parts = SEVERITIES.filter((s) => bySeverity[s]);
-  const summary = parts.map((s) => severityCount(bySeverity[s], s)).join(' · ');
+function ActiveKpi({ o }) {
+  const { goTo } = usePanel();
+  const a = obj(o.active) || {};
+  const companies = objs(a.companies);
+  const projects = companies.reduce((n, c) => n + objs(c.projects).length, 0);
   return (
-    <button type="button" class={`card kpi clickable kpi-owner${bySeverity.critica ? ' critical' : total ? ' highlight' : ''}`} onClick={() => goTo('pending')}
+    <Kpi label={t('overview.activeItems')} value={number(a.total || 0)} onClick={() => goTo('items')}
+      detail={t('overview.activeDetail', { projects: t('overview.projectCount', { count: projects }), companies: t('overview.companyCount', { count: companies.length }) })}
+      info={t('overview.activeInfo')} />
+  );
+}
+
+function PendingKpi({ o }) {
+  const { goTo } = usePanel();
+  const p = obj(o.pending_decisions) || {};
+  const bySeverity = obj(p.by_severity) || {};
+  const total = p.total || 0;
+  const parts = SEVERITIES.filter((s) => bySeverity[s]);
+  const summary = parts.map((s) => t('severity.count', { count: bySeverity[s], name: t(`pending.severityPlural.${s}`).toLowerCase() })).join(' · ');
+  return (
+    <button type="button" class={`card kpi clickable kpi-owner${bySeverity.critical ? ' critical' : total ? ' highlight' : ''}`} onClick={() => goTo('pending')}
       aria-label={summary ? t('overview.pendingAriaWithSummary', { total, summary }) : t('overview.pendingAria', { total })}>
       <span class="label-row">
         <span class="label">{t('overview.pending')}</span>
@@ -66,15 +107,32 @@ function PendingKpi() {
         <span class="value">{total}</span>
         {parts.length > 0 && (
           <span class="sev-mini" aria-hidden="true">
-            {parts.map((s) => (
-              <span key={s} title={severityCount(bySeverity[s], s)}><i style={{ background: TONE_COLOR[SEVERITY_TONE[s]] }} />{bySeverity[s]}</span>
-            ))}
+            {parts.map((s) => <span key={s}><i style={{ background: SEVERITY_COLOR[s] }} />{bySeverity[s]}</span>)}
           </span>
         )}
       </div>
-      {total > 0 && <span class="stripe" aria-hidden="true" style={bySeverity.critica ? { background: 'var(--danger)' } : undefined} />}
+      {total > 0 && <span class="stripe" aria-hidden="true" style={bySeverity.critical ? { background: 'var(--danger)' } : undefined} />}
     </button>
   );
+}
+
+function StaleKpi({ o }) {
+  const n = arr(o.stale_items).length;
+  return (
+    <Kpi label={t('overview.stale')} value={number(n)} highlight={n > 0}
+      detail={t('overview.staleDetail', { limit: limitText(o.stale_hours) })} info={t('overview.staleInfo', { limit: limitText(o.stale_hours) })} />
+  );
+}
+
+function TodayKpi({ o }) {
+  const { goTo } = usePanel();
+  return <Kpi label={t('overview.eventsToday')} value={number(o.events_today || 0)} onClick={() => goTo('log')} info={t('overview.eventsTodayInfo')} />;
+}
+
+/** "48 h" or "3 dias" for the stale limit. */
+function limitText(hours) {
+  const h = Number(hours) || 0;
+  return h >= 48 && h % 24 === 0 ? t('overview.days', { count: h / 24 }) : t('overview.hours', { count: h });
 }
 
 /** "07:10" on the same day; otherwise "seg 01:00". */
@@ -86,7 +144,7 @@ function shortWhen(v) {
 
 function PlanKpi({ kind }) {
   const { state, goTo } = usePanel();
-  const ku = (obj(state.kpis) && obj(state.kpis.usage)) || {};
+  const ku = (state && obj(state.kpis) && obj(state.kpis.usage)) || {};
   const value = kind === '5h' ? ku.window_5h_pct : ku.weekly_pct;
   const reset = kind === '5h' ? ku.reset_5h : ku.weekly_reset;
   const reason = kind === '5h' ? ku.window_5h_reason : ku.weekly_reason;
@@ -115,142 +173,154 @@ function PlanKpi({ kind }) {
   );
 }
 
-function EventsTodayKpi() {
-  const { state, analysis: a, goTo } = usePanel();
-  const ags = objs(state.agents);
-  const today = ags.reduce((s, x) => s + (Number(x.events_today) || 0), 0);
-  const flows = ags.reduce((s, x) => s + (Number(x.open_flows) || 0), 0);
-  const hourNow = spHour(now()) ?? 23;
-  const series = a ? a.hoursToday.slice(0, hourNow + 1) : [];
-  return (
-    <Kpi label={t('overview.eventsToday')} value={number(today)} onClick={() => goTo('log')}
-      info={t('overview.eventsTodayInfo', { flows: t('overview.openFlows', { count: flows }) })}>
-      {series.length > 0 && <Sparkline values={series.slice(-14)} width={86} height={30} ariaLabel={t('overview.eventsPerHour')} />}
-    </Kpi>
-  );
-}
+// ---------- active items by company, project and stage ----------
 
-/** First name of the agent (short legend); the whole name stays in the chart tooltip. */
-const short = (name) => txt(name).split(/\s+/)[0] || txt(name);
-
-function WeekActivity() {
-  const { state, analysis: a, analytics } = usePanel();
-  const series = objs(state.agents).map((ag) => ({ key: ag.slug, name: ag.name || ag.slug, color: agentInfo(state, ag.slug).color || 'var(--muted)' }));
-  if (a) {
-    const known = new Set(series.map((s) => s.key));
-    const others = Object.keys(a.byAgent).filter((k) => !known.has(k));
-    for (const k of others) series.push({ key: k, name: agentInfo(state, k).name, color: 'var(--faint)' });
-  }
-  const legend = series.filter((s) => !a || a.byAgent[s.key]).map((s) => ({ ...s, name: short(s.name) }));
-  let extra = t('common.reading');
-  if (a) extra = t('overview.eventCount', { count: a.total });
-  else if (analytics.error) extra = t('overview.noRead', { message: analytics.error.message });
+function ActiveItems({ o, error }) {
+  const { goTo } = usePanel();
+  const a = obj(o.active) || {};
+  const companies = objs(a.companies);
+  const used = new Set(companies.flatMap((c) => objs(c.projects).flatMap((p) => arr(p.stages))));
+  const stages = STAGE_ORDER.filter((s) => used.has(s));
+  const byStage = obj(a.by_stage) || {};
+  const cell = (p, s) => {
+    const n = (obj(p.by_stage) || {})[s] || 0;
+    if (!arr(p.stages).includes(s)) return <td key={s} class="num off" title={t('overview.stageNotUsed')} />;
+    return <td key={s} class={`num${n ? '' : ' faint'}`}>{n ? number(n) : '·'}</td>;
+  };
   return (
-    <Card label={t('overview.activity7d')} info={t('overview.activity7dInfo')} extra={extra}>
-      {a ? (
-        <>
-          <BarChart data={a.days.map((d) => ({ key: d.day, label: d.label, title: d.title, values: d.values }))} series={series}
-            ariaLabel={t('overview.activity7dAria')} highlightLast />
-          <div class="legend-bottom"><Legend series={legend} /></div>
-        </>
-      ) : <Skeleton height={200} style={{ marginTop: '8px' }} />}
+    <Card label={t('overview.activeTitle')} info={t('overview.activeTableInfo')} extra={t('overview.itemCount', { count: a.total || 0 })} scroll flush
+      actions={<button type="button" class="link small go-link" onClick={() => goTo('items')}>{t('overview.openItems')} <Icon of={ArrowRight} size={13} /></button>}>
+      {error && <p class="overview-error" role="alert">{t('overview.readFailed', { message: error.message })}</p>}
+      {!companies.length && <Empty icon={Workflow} center>{t('overview.noActive')}</Empty>}
+      {companies.length > 0 && (
+        <div class="table-box">
+          <table class="table overview-stages">
+            <thead>
+              <tr>
+                <th>{t('overview.columns.project')}</th>
+                {stages.map((s) => <th key={s} class="num" title={stageName(s)}>{stageName(s)}</th>)}
+                <th class="num">{t('overview.columns.total')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {companies.map((c) => [
+                <tr key={`c-${c.id}`} class={`company-row${c.unassigned ? ' unassigned' : ''}`}>
+                  <th scope="rowgroup" colSpan={stages.length + 1}>{txt(c.name)}</th>
+                  <td class="num">{number(c.total || 0)}</td>
+                </tr>,
+                ...objs(c.projects).map((p) => (
+                  <tr key={`p-${c.id}-${p.id}`} class="clickable" tabindex="0" onClick={() => goTo('items')} onKeyDown={(e) => { if (e.key === 'Enter') goTo('items'); }}>
+                    <td class="project-cell" title={txt(p.name)}>{txt(p.name)}</td>
+                    {stages.map((s) => cell(p, s))}
+                    <td class="num strong">{number(p.total || 0)}</td>
+                  </tr>
+                )),
+              ])}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row">{t('overview.columns.total')}</th>
+                {stages.map((s) => <td key={s} class="num">{number(byStage[s] || 0)}</td>)}
+                <td class="num strong">{number(a.total || 0)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
     </Card>
   );
 }
 
-const RESULT_ORDER = ['ok', 'em-andamento', 'parcial', 'aguardando-dono', 'bloqueado', 'falhou'];
-function WeekResults() {
-  const { analysis: a, goTo, setFilters } = usePanel();
-  const info = t('overview.results7dInfo');
-  if (!a) return <Card label={t('overview.results7d')} info={info}><Skeleton height={200} style={{ marginTop: '8px' }} /></Card>;
-  const slices = RESULT_ORDER.map((r) => ({ key: r, name: resultName(r), value: a.results[r] || 0, color: RESULTS[r].color }));
-  const total = slices.reduce((s, f) => s + f.value, 0);
-  const seeLog = (r) => { setFilters({ result: r, period: '7d' }); goTo('log'); };
-  return (
-    <Card label={t('overview.results7d')} info={info} extra={t('overview.askedYou', { count: number(a.needsOwner) })}>
-      <div class="results">
-        <Donut slices={slices} size={132} thickness={11} center={number(total)} sub={t('overview.events')} ariaLabel={t('overview.results7dAria')} />
-        <ul class="legend-list">
-          {slices.map((f) => (
-            <li key={f.key}>
-              <button type="button" class="link neutral" onClick={() => seeLog(f.key)}
-                title={t('overview.resultTitle', { name: f.name, value: number(f.value), share: total ? pct(Math.round((f.value / total) * 1000) / 10) : '—' })}>
-                <i style={{ background: f.color }} /><span class="truncate">{f.name}</span><b class={f.value ? '' : 'faint'}>{number(f.value)}</b>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Card>
-  );
-}
+// ---------- open pending decisions ----------
 
-function AgentList() {
-  const { state, analysis: a, openModal, goTo } = usePanel();
-  const ags = objs(state.agents);
-  const ids = arr(state.events).map((e) => e && e.id);
+function OpenPendingDecisions({ o }) {
+  const { goTo, goToPendingDecision } = usePanel();
+  const p = obj(o.pending_decisions) || {};
+  const open = objs(p.open);
+  const more = (p.total || 0) - open.length;
   return (
-    <Card label={t('overview.agents')} scroll flush
-      info={t('overview.agentsInfo')}
-      actions={<button type="button" class="link small go-link" onClick={() => goTo('agents')}>{t('overview.seeAll')} <Icon of={ArrowRight} size={13} /></button>}>
-      {!ags.length && <Empty>{t('agents.noneRegistered')}</Empty>}
-      <div class="agent-rows">
-        {ags.map((ag) => {
-          const u = obj(ag.last_event);
-          const color = agentInfo(state, ag.slug).color;
-          const nToday = Number(ag.events_today) || 0;
+    <Card label={t('overview.openPending')} info={t('overview.openPendingInfo')} extra={t('overview.openCount', { count: p.total || 0 })} scroll flush
+      actions={<button type="button" class="link small go-link" onClick={() => goTo('pending')}>{t('overview.openPendingScreen')} <Icon of={ArrowRight} size={13} /></button>}>
+      {!open.length && <Empty icon={Inbox} center>{t('overview.pendingNone')}</Empty>}
+      <div class="list overview-pending">
+        {open.map((x) => {
+          const it = obj(x.item) || {};
+          const project = obj(it.project) || {};
           return (
-            <div class="agent-row" key={ag.slug}>
-              <div class="agent-head">
-                <Agent slug={ag.slug} size={9} />
-                {ag.status && ag.status !== 'ativo' && <Badge>{ag.status}</Badge>}
-                <span class="spacer" />
-                <span class="muted tiny">{t('overview.eventsTodayCount', { count: nToday })}</span>
-                {a && <Sparkline values={a.agentSeries(ag.slug)} width={70} height={20} color={color || 'var(--muted)'} ariaLabel={t('overview.agentSparkAria', { name: ag.name })} />}
-              </div>
-              {u ? (
-                <button type="button" class="link neutral agent-last truncate" disabled={!u.id} title={txt(u.summary)}
-                  onClick={() => u.id && openModal(u.id, ids)}>{txt(u.summary) || t('common.noSummary')}</button>
-              ) : <span class="muted small">{t('common.noEvents')}</span>}
-              {u && (
-                <div class="agent-meta">
-                  <span title={time(u.ts)}>{age(u.ts)} · {typeName(u.type)}</span>
-                  <Result value={u.result} />
-                </div>
-              )}
-            </div>
+            <button type="button" key={x.id} class="list-item" onClick={() => goToPendingDecision(`P-${x.id}`)}>
+              <span class={`overview-sev is-${x.severity}`} aria-hidden="true" />
+              <span class="overview-pending-main">
+                <span class="truncate" title={txt(x.title)}>{txt(x.title)}</span>
+                <span class="muted tiny">{t('overview.pendingLine', { id: x.id, kind: t(`pending.kinds.${x.kind}`), ref: txt(it.tracker_ref), project: txt(project.name) })}</span>
+              </span>
+              <span class="muted tiny" title={dateTime(x.opened_at)}>{age(x.opened_at)}</span>
+            </button>
           );
         })}
+        {more > 0 && <p class="muted small overview-more">{t('overview.morePending', { count: more })}</p>}
       </div>
     </Card>
   );
 }
 
-function RecentActivity() {
-  const { state, openModal, goTo } = usePanel();
-  const recent = objs(state.events).slice(0, 40);
-  const ids = recent.map((e) => e.id);
-  const today = spDay(now());
+// ---------- items parked on the same stage ----------
+
+function StaleItems({ o }) {
+  const { goTo } = usePanel();
+  const list = objs(o.stale_items);
   return (
-    <Card label={t('overview.recent')} scroll flush
-      info={t('overview.recentInfo')}
-      actions={<button type="button" class="link small go-link" onClick={() => goTo('log')}>{t('overview.openLog')} <Icon of={ArrowRight} size={13} /></button>}>
-      {!recent.length && <Empty icon={Activity} center>{t('common.noEvents')}</Empty>}
-      <div class="list activity">
-        {recent.map((e) => {
-          const rowClass = FAILURE_RESULTS.has(e.result) ? 'failure' : needsOwner(e) ? 'needs-owner' : '';
-          const ag = agentInfo(state, e.agent);
+    <Card label={t('overview.staleTitle', { limit: limitText(o.stale_hours) })} info={t('overview.staleInfo', { limit: limitText(o.stale_hours) })} scroll flush>
+      {!list.length && <Empty icon={Clock} center>{t('overview.noStale')}</Empty>}
+      <div class="list overview-stale">
+        {list.map((it) => {
+          const project = obj(it.project) || {};
+          const company = obj(project.company) || {};
           return (
-            <button type="button" key={e.id || e.ts} class={`list-item ${rowClass}`} onClick={() => openModal(e.id, ids)}
-              aria-label={`${time(e.ts)} ${ag.name}: ${txt(e.summary)}`}>
-              <span class="muted small" title={time(e.ts)}>{spDay(e.ts) === today ? hm(e.ts) : `${dayMonthFormat.format(toDate(e.ts) || new Date(0))} ${hm(e.ts)}`}</span>
-              <Dot color={ag.color} title={ag.name} />
-              <span class="truncate" title={txt(e.summary)}>{txt(e.summary) || t('common.noSummary')}</span>
-              <Result value={e.result} />
+            <button type="button" key={it.key} class="list-item" onClick={() => goTo('items', it.key)}
+              aria-label={t('overview.staleAria', { ref: txt(it.tracker_ref), title: txt(it.title), stage: stageName(it.stage), age: age(it.stage_since) })}>
+              <span class="mono">{txt(it.tracker_ref)}</span>
+              <span class="overview-pending-main">
+                <span class="truncate" title={txt(it.title)}>{txt(it.title)}</span>
+                <span class="muted tiny">{[txt(project.name), txt(company.name)].filter(Boolean).join(' · ')}</span>
+              </span>
+              <Badge tone="warning">{stageName(it.stage)}</Badge>
+              <span class="muted small" title={dateTime(it.stage_since)}>{age(it.stage_since)}</span>
             </button>
           );
         })}
       </div>
+    </Card>
+  );
+}
+
+// ---------- recent activity ----------
+
+function RecentActivity({ o }) {
+  const { goTo } = usePanel();
+  const [open, setOpen] = useState(null);
+  const events = objs(o.recent_events);
+  const today = spDay(now());
+  return (
+    <Card label={t('overview.recent')} info={t('overview.recentInfo')} scroll flush
+      actions={<button type="button" class="link small go-link" onClick={() => goTo('log')}>{t('overview.openLog')} <Icon of={ArrowRight} size={13} /></button>}>
+      {!events.length && <Empty icon={Activity} center>{t('common.noEvents')}</Empty>}
+      <div class="list activity">
+        {events.map((e) => {
+          const project = obj(e.project) || {};
+          return (
+            <button type="button" key={e.id} class="list-item" onClick={() => setOpen(e.id)}
+              aria-label={t('overview.recentAria', { time: dateTime(e.at), ref: txt(e.tracker_ref), event: eventTypeName(e.type) })}>
+              <span class="muted small" title={dateTime(e.at)}>{spDay(e.at) === today ? hm(e.at) : `${dayMonthFormat.format(toDate(e.at) || new Date(0))} ${hm(e.at)}`}</span>
+              <span class="mono small">{txt(e.tracker_ref)}</span>
+              <span class="truncate" title={txt(e.item_title)}>
+                <Badge>{eventTypeName(e.type)}</Badge> <span class="text-2">{eventDetail(e) || txt(e.item_title)}</span>
+              </span>
+              <span class="muted tiny truncate">{agentText(e.agent) || txt(project.name)}</span>
+            </button>
+          );
+        })}
+      </div>
+      {open !== null && <LogEventModal id={open} ids={events.map((e) => e.id)} onOpen={setOpen} onClose={() => setOpen(null)} />}
     </Card>
   );
 }

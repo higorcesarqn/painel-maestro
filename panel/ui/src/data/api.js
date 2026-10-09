@@ -6,7 +6,6 @@ import { t, translateCode } from '../i18n/index.js';
 
 export const REFRESH_MS = 20000;
 export const PAGE_SIZE = 50;
-export const ANALYSIS_REFRESH_MS = 60000;
 export const MOCK = new URLSearchParams(location.search).get('mock') === '1';
 
 /** options: { method: 'GET' | 'POST', body: value sent as JSON (POST only) }. Returns the API answer as is. */
@@ -54,6 +53,9 @@ export const markItemMerged = (project, number) => api(`/api/items/${encodeURICo
 // Usage and agents per item (#13). filters: the company selector's companyFilter ({ company }) and/or { project }.
 export const readUsage = (filters) => api(withQuery('/api/usage', filters));
 export const readAgents = (filters) => api(withQuery('/api/agents', filters));
+
+// Overview of the new model (#14): the picture of the day, narrowed by the company of the selector (companyFilter).
+export const readOverview = (filters) => api(withQuery('/api/overview', filters));
 
 // Companies and projects (#6). The company selector reaches each list as ?company=<id> (see companyFilter).
 export const readCompanies = () => api('/api/companies');

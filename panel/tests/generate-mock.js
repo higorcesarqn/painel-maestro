@@ -524,26 +524,18 @@ const sortedPending = [
     .sort((a, b) => Date.parse(b.resolvida_em || b.atualizada_em) - Date.parse(a.resolvida_em || a.atualizada_em)).slice(0, 20),
 ];
 
-// Health, with the server's rule: an active agent without raw log for more than 24 h (or ever) → yellow.
-const hooks = AGENTS.map((a) => ({ agent: a.slug, last_raw: lastRaw(a.slug), age_min: min(lastRaw(a.slug), NOW) }));
-const reasons = [];
-for (const a of AGENTS) {
-  const h = hooks.find((x) => x.agent === a.slug);
-  if (a.status !== 'ativo') continue;
-  if (!h.last_raw) reasons.push({ code: 'hook_never', agent: a.slug, name: a.nome });
-  else if (h.age_min > 24 * 60) reasons.push({ code: 'hook_stale', agent: a.slug, name: a.nome, minutes: h.age_min });
-}
-
 const countSeverity = (s) => open.filter((p) => p.severidade === s).length;
 const state = {
   generated_at: NOW,
   workspace: { name: 'Exemplo', root: ROOT },
+  // Health of the new model (#14): the test mode takes level, reasons, last_event_at and last_raw_at from
+  // mock-items.json (generate-mock-items.js, with the server's own rules); only the plan's age comes from here.
   health: {
-    level: reasons.length ? 'yellow' : 'green',
-    reasons,
-    last_event_age_min: min(recent[0].ts, NOW),
+    level: 'green',
+    reasons: [],
+    last_event_at: null,
+    last_raw_at: null,
     usage_age_min: min(PLAN.updated_at, NOW),
-    hooks,
     wire: false,
   },
   kpis: {

@@ -20,6 +20,8 @@
 //         POST /api/projects/<id>/company {company}; GET /api/items also takes ?company= and ?project=.
 //         Merge check (merge-check.js, #11): POST /api/items/<project>/<number>/merged ("mark as merged").
 //         Usage and agents per item (api-usage.js, #13): GET /api/usage, GET /api/agents (?company=&project=).
+//         Overview of the new model (api-overview.js, #14): GET /api/overview[?company=]. The health badge of
+//         /api/state reads the new model too (health.js): maestro.db, bruto.db and projects in "Sem empresa".
 // The API never returns sentences: reasons, warnings and errors are codes with parameters
 // ({code, ...params}) and the page translates them (ADR 0004). Old-model records (events and pending
 // decisions written by bin/registrar.js and bin/pendencia.js) go out with English field names
@@ -31,7 +33,8 @@
 // Variables: PANEL_PORT (default 4777; --port wins), MAESTRO_DIR (default: the folder above panel/ for the old
 //   model and ~/.painel-maestro for the new model's maestro.db),
 //   MAESTRI_DATA_DIR and CLAUDE_CONFIG_DIR (passed to the collector), PANEL_COLLECTOR=0 (does not run
-//   the collector by itself) and, for tests only, PANEL_INDEX (another index.html) and PANEL_NOW
+//   the collector by itself), PANEL_STALE_HOURS (default 48: hours on the same stage that make an active item
+//   "stale" in the Overview) and, for tests only, PANEL_INDEX (another index.html) and PANEL_NOW
 //   (fixed clock; MAESTRO_NOW also works).
 //   Merge check (merge-check.js): PANEL_MERGE_CHECK=0|1, PANEL_MERGE_CHECK_SECONDS, PANEL_GH_CLI, PANEL_AZ_CLI,
 //   PANEL_AZURE_DEVOPS_URL.
@@ -49,6 +52,8 @@ const logApi = require(path.join(__dirname, 'api-log.js'));
 const projectsApi = require(path.join(__dirname, 'api-projects.js'));
 const mergeCheck = require(path.join(__dirname, 'merge-check.js'));
 const usageApi = require(path.join(__dirname, 'api-usage.js'));
+const overviewApi = require(path.join(__dirname, 'api-overview.js'));
+const { evaluateHealth } = require(path.join(__dirname, 'health.js'));
 const { eventToApi, pendingDecisionToApi } = require(path.join(__dirname, 'legacy-records.js'));
 const { asDate, isoSP, spDay, readJson, readText, withRetries, writeAtomic } = collector.util;
 
@@ -57,6 +62,7 @@ const HOUR_MS = 60 * MIN_MS;
 const DAY_MS = 24 * HOUR_MS;
 const DEFAULT_PORT = 4777;
 const COLLECTOR_INTERVAL_MS = 5 * MIN_MS;
+const DEFAULT_STALE_HOURS = 48;               // Overview (#14): PANEL_STALE_HOURS
 const RAW_PURGE_INTERVAL_MS = DAY_MS;          // bruto.db: entries older than 90 days leave once a day
 const STATE_EVENT_LIMIT = 200;
 const CLOSED_LIMIT = 20;
@@ -66,7 +72,6 @@ const RAW_BYTES_PER_REQUEST = 160 * 1024 * 1024; // ceiling of NEW raw log bytes
 const RAW_MAX_INDEX_LINES = 4e6;              // indexed lines kept (≈ 30 bytes each)
 const WINDOW_MAX_MS = 6 * HOUR_MS;            // without flow_id: at most 6 h before the event
 const WINDOW_NO_PREVIOUS_MS = 15 * MIN_MS;    // without a previous event nor flow start before: 15 min (like the registrar)
-const RAW_STALE_MS = 24 * HOUR_MS;
 const OWNER_RESULTS = new Set(['falhou', 'bloqueado', 'aguardando-dono']);
 const OPEN_RESULTS = new Set(['em-andamento', 'aguardando-dono', 'bloqueado', 'parcial']);
 const SEVERITY_ORDER = new Map([['critica', 0], ['alta', 1], ['normal', 2], ['baixa', 3]]);
@@ -111,6 +116,10 @@ function parseConfig(argv = [], env = process.env) {
   const nowText = env.PANEL_NOW || env.MAESTRO_NOW || '';
   const fixedNow = nowText ? asDate(nowText) : null;
   if (nowText && !fixedNow) throw new UsageError(`Relógio fixo inválido: "${nowText}" (use ISO, ex.: 2026-10-08T15:50:00-03:00).`);
+  // Overview (#14): an active item on the same stage for longer than this is "stale".
+  const staleText = env.PANEL_STALE_HOURS;
+  const staleHours = staleText === undefined || staleText === '' ? DEFAULT_STALE_HOURS : Number(staleText);
+  if (!(Number.isFinite(staleHours) && staleHours > 0)) throw new UsageError(`PANEL_STALE_HOURS inválido: "${staleText}" (use um número de horas maior que zero).`);
   let mergeCheckConfig;
   try {
     mergeCheckConfig = mergeCheck.parseConfig(env, { collectorActive: env.PANEL_COLLECTOR !== '0', fixedNow });
@@ -119,6 +128,7 @@ function parseConfig(argv = [], env = process.env) {
   }
   return {
     mergeCheck: mergeCheckConfig,
+    staleHours,
     port: p,
     maestroDir: path.resolve(env.MAESTRO_DIR || path.join(__dirname, '..')),
     indexPath: path.resolve(env.PANEL_INDEX || path.join(__dirname, 'index.html')),
@@ -818,28 +828,6 @@ class Data {
   }
 }
 
-// ---------- health ----------
-
-/**
- * level: green | yellow | red. Rules: an active agent without raw log for more than 24 h (or ever)
- * → yellow; unreadable state files → yellow. Each reason is a code with parameters.
- */
-function computeHealth({ hooks, problems = [] }) {
-  let level = 0;
-  const reasons = [];
-  const raise = (n, reason) => {
-    level = Math.max(level, n);
-    reasons.push(reason);
-  };
-  for (const p of problems) raise(1, p);
-  for (const h of hooks) {
-    if (!h.active) continue;
-    if (!h.last_raw) raise(1, { code: 'hook_never', agent: h.agent, name: h.name });
-    else if (h.age_min !== null && h.age_min * MIN_MS > RAW_STALE_MS) raise(1, { code: 'hook_stale', agent: h.agent, name: h.name, minutes: h.age_min });
-  }
-  return { level: ['green', 'yellow', 'red'][level], reasons };
-}
-
 // ---------- building the answers ----------
 
 /** Event as shown in the table: the table fields, with English names. */
@@ -1034,10 +1022,9 @@ async function buildState(ctx) {
     data.json(data.p.flowCounter), data.json(data.p.usage),
   ]);
 
-  // Registry (old model)
+  // Registry (old model): no longer part of the health (#14); an unreadable file is only a read warning.
   const registry = obj(reg.data) || {};
-  if (!reg.exists) problems.push({ code: 'registry_missing', file: LEGACY.agents });
-  else if (reg.error) problems.push({ code: 'file_unreadable', file: LEGACY.agents, error: reg.error });
+  if (reg.exists && reg.error) warnings.push({ code: 'file_unreadable', file: LEGACY.agents, error: reg.error });
   const defaults = obj(registry.padrao) || {};
   const ws = obj(registry.workspace) || {};
   const agentList = arr(registry.agentes).filter((a) => obj(a) && typeof a.slug === 'string' && a.slug);
@@ -1076,13 +1063,11 @@ async function buildState(ctx) {
     };
   const usageAnswer = usage ? Object.assign({}, usage, { plan: plan || usage.plan }) : null;
 
-  // Agents and hooks
+  // Agents
   const agents = [];
-  const hooks = [];
   for (const a of agentList) {
     const folder = agentFolder(a.slug);
     const lastRaw = folder ? await data.lastRaw(folder) : null;
-    hooks.push({ agent: a.slug, name: a.nome || a.slug, active: a.status === 'ativo', last_raw: lastRaw, age_min: ageMin(lastRaw, t) });
     const last = events.find((e) => e.agente === a.slug) || null;
     agents.push({
       slug: a.slug, name: a.nome || a.slug, type: a.tipo || null, color: a.cor || null,
@@ -1096,18 +1081,11 @@ async function buildState(ctx) {
       last_raw: lastRaw,
     });
   }
-  const known = new Set(agentList.map((a) => agentFolder(a.slug)));
-  for (const folder of await data.rawFolders()) {
-    // Folders starting with "_" or "." are archives (e.g. _reassigned-desconhecido-x): not agents.
-    if (known.has(folder) || /^[._]/.test(folder)) continue;
-    const lr = await data.lastRaw(folder);
-    hooks.push({ agent: folderAgent(folder), name: folderAgent(folder), active: false, registered: false, last_raw: lr, age_min: ageMin(lr, t) });
-  }
 
   // Pending decisions (old model; tests stay out)
   const pd = pend.data;
   const allPending = Array.isArray(pd) ? pd : obj(pd) && Array.isArray(pd.pendencias) ? pd.pendencias : null;
-  if (pend.exists && !allPending) problems.push({ code: 'file_unreadable', file: LEGACY.pendingDecisions, error: pend.error || { code: 'missing_list', list: 'pendencias' } });
+  if (pend.exists && !allPending) warnings.push({ code: 'file_unreadable', file: LEGACY.pendingDecisions, error: pend.error || { code: 'missing_list', list: 'pendencias' } });
   const valid = arr(allPending).filter((p) => obj(p) && p.teste !== true);
   const severityName = (p) => (SEVERITY_ORDER.has(p.severidade) ? p.severidade : 'normal');
   const severity = (p) => SEVERITY_ORDER.get(severityName(p));
@@ -1131,16 +1109,12 @@ async function buildState(ctx) {
 
   if (counter.exists && counter.error) warnings.push({ code: 'file_unreadable', file: LEGACY.flowCounter, error: counter.error });
 
-  // Health
+  // Health (#14): the new model (maestro.db, bruto.db, projects in "Sem empresa"); problems carries the codes other
+  // checks of the server add (yellow), such as the merge check (#11).
   problems.push(...ctx.mergeCheck.healthReasons());
-  const base = computeHealth({ hooks, problems });
-  const lastEvent = events[0] || null;
   const health = {
-    level: base.level,
-    reasons: base.reasons,
-    last_event_age_min: lastEvent ? ageMin(lastEvent.ts, t) : null,
+    ...evaluateHealth({ items: ctx.items, raw: ctx.raw, nowMs: t, problems }),
     usage_age_min: kUsage.age_min,
-    hooks,
     wire: false,
   };
 
@@ -1632,6 +1606,7 @@ const FIXED_ROUTES = {
   '/api/projects': { name: 'projects', methods: ['GET', 'HEAD'] },
   '/api/usage': { name: 'usage', methods: ['GET', 'HEAD'] },
   '/api/agents': { name: 'agents', methods: ['GET', 'HEAD'] },
+  '/api/overview': { name: 'overview', methods: ['GET', 'HEAD'] },
 };
 
 function findRoute(urlPath) {
@@ -1765,6 +1740,8 @@ async function route(ctx, req, res) {
       return respondJson(req, res, 200, await usageAnswer(ctx, query));
     case 'agents':
       return respondJson(req, res, 200, usageApi.listAgents(ctx.items, ctx.raw, await ctx.data.json(ctx.data.p.usage), query));
+    case 'overview':
+      return respondJson(req, res, 200, overviewApi.overview(ctx.items, query, { nowMs: ctx.now().getTime(), staleHours: ctx.cfg.staleHours }));
     case 'recalculate': {
       const run = await ctx.runCollector('recalculate');
       const state = await buildState(ctx);
@@ -1880,13 +1857,14 @@ const HELP = `Uso: node server.js [--port 4777]
   Sobe o painel do workspace em http://127.0.0.1:<porta> (só nesta máquina).
   Parar: Ctrl+C neste terminal, ou taskkill /PID <pid de state/panel.pid> /F
 Variáveis: PANEL_PORT, MAESTRO_DIR, MAESTRI_DATA_DIR, CLAUDE_CONFIG_DIR,
-  PANEL_COLLECTOR=0 (sem coletor automático).
+  PANEL_COLLECTOR=0 (sem coletor automático), PANEL_STALE_HOURS (padrão 48: horas na mesma
+  etapa para um item contar como parado na Visão geral).
   Verificador de merge: PANEL_MERGE_CHECK=0 (desliga) ou 1 (liga), PANEL_MERGE_CHECK_SECONDS
   (intervalo, padrão 600), PANEL_GH_CLI, PANEL_AZ_CLI, PANEL_AZURE_DEVOPS_URL.
 `;
 
 module.exports = {
-  start, parseConfig, computeHealth, buildState, listEvents,
+  start, parseConfig, buildState, listEvents,
   eventDetail, flowDetail, findRoute, agentFolder, promptOrigin, flowDays, JsonlReader, Data,
   RawIndex, requestWindow, initialRequest, cleanUsage, CSP,
 };

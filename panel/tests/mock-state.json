@@ -7,20 +7,9 @@
   "health": {
     "level": "green",
     "reasons": [],
-    "last_event_age_min": 4,
+    "last_event_at": null,
+    "last_raw_at": null,
     "usage_age_min": 3,
-    "hooks": [
-      {
-        "agent": "cerebro",
-        "last_raw": "2026-10-09T10:23:58-03:00",
-        "age_min": 1
-      },
-      {
-        "agent": "coordenador",
-        "last_raw": "2026-10-09T08:58:12-03:00",
-        "age_min": 86
-      }
-    ],
     "wire": false
   },
   "kpis": {

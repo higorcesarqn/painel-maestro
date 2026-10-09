@@ -198,22 +198,14 @@ suite.test('GET /api/state: contract shape, KPIs, health codes, agents, pending 
   const e = r.json;
   assert.deepStrictEqual(Object.keys(e).sort(), ['agents', 'collector', 'events', 'generated_at', 'health', 'kpis', 'pending_decisions', 'usage', 'warnings', 'workspace']);
   assert.deepStrictEqual(Object.keys(e.kpis).sort(), ['pending_decisions', 'usage']);
-  assert.deepStrictEqual(Object.keys(e.health).sort(), ['hooks', 'last_event_age_min', 'level', 'reasons', 'usage_age_min', 'wire']);
+  assert.deepStrictEqual(Object.keys(e.health).sort(), ['last_event_at', 'last_raw_at', 'level', 'reasons', 'usage_age_min', 'wire']);
   assert.strictEqual(e.generated_at, NOW);
   assert.deepStrictEqual({ name: e.workspace.name, root: e.workspace.root }, { name: 'Exemplo', root: 'C:/teste/raiz' });
-  // Health: Auditor active without raw log (yellow), Futuro "a-criar" does not count.
-  assert.strictEqual(e.health.level, 'yellow');
-  assert.deepStrictEqual(e.health.reasons, [{ code: 'hook_never', agent: 'auditor', name: 'Agente Auditor' }]);
-  assert.strictEqual(e.health.last_event_age_min, 30);
+  // Health (#14) reads the new model only: the old registry with an active agent without raw log (Auditor) and the
+  // logs/raw folders no longer turn it yellow (test-overview.js covers the new rules).
+  assert.deepStrictEqual([e.health.level, e.health.reasons, e.health.last_event_at, e.health.last_raw_at], ['green', [], null, null]);
   assert.strictEqual(e.health.usage_age_min, 3);
   assert.strictEqual(e.health.wire, false);
-  const hook = (a) => e.health.hooks.find((h) => h.agent === a);
-  assert.strictEqual(hook('cerebro').last_raw, sp('15:10:00'));
-  assert.strictEqual(hook('cerebro').age_min, 40);
-  assert.strictEqual(hook('coordenador').last_raw, sp('15:00:30'));
-  assert.strictEqual(hook('auditor').last_raw, null);
-  assert.strictEqual(hook('desconhecido:abc12345').last_raw, sp('11:00:00'));
-  assert.ok(!e.health.hooks.some((h) => String(h.agent).startsWith('_')), 'a "_..." folder is not an agent');
   // KPIs
   assert.deepStrictEqual(e.kpis.pending_decisions, { total: 4, by_severity: { critica: 1, alta: 2, normal: 1, baixa: 0 } });
   const u = e.kpis.usage;
@@ -530,7 +522,7 @@ suite.test('gzip when the client accepts it; the answer is still valid JSON', as
   assert.strictEqual(e.workspace.name, 'Exemplo');
 });
 
-suite.test('tolerant reading: a new event shows up without restarting; unreadable files become a reason, not an error', async () => {
+suite.test('tolerant reading: a new event shows up without restarting; unreadable files become a read warning, not an error', async () => {
   const octFile = path.join(R.m, 'logs', 'eventos', '2026-10.jsonl');
   // Completes the half line and adds another one.
   fs.appendFileSync(octFile, ',"fluxo_id":"F-20261008-0004","origem":"cerebro","tipo":"aviso","resumo":"Linha completada depois","resultado":"ok"}\n');
@@ -539,8 +531,9 @@ suite.test('tolerant reading: a new event shows up without restarting; unreadabl
   fs.writeFileSync(path.join(R.m, 'estado', 'pendencias.json'), '{"pendencias": [');
   e = (await request(S.port, '/api/state')).json;
   assert.deepStrictEqual(e.kpis.pending_decisions, { total: 0, by_severity: { critica: 0, alta: 0, normal: 0, baixa: 0 } });
-  const reason = e.health.reasons.find((x) => x.code === 'file_unreadable');
-  assert.ok(reason, JSON.stringify(e.health.reasons));
+  const reason = e.warnings.find((x) => x.code === 'file_unreadable');
+  assert.ok(reason, JSON.stringify(e.warnings));
+  assert.strictEqual(e.health.level, 'green', 'an old-model file is not part of the health (#14)');
   assert.strictEqual(reason.file, 'estado/pendencias.json');
   assert.strictEqual(reason.error.code, 'invalid_json');
 });
@@ -568,9 +561,8 @@ suite.test('empty root: everything missing becomes null/zero with clear reason c
     assert.strictEqual(e.usage, null);
     assert.strictEqual(e.kpis.usage.available, false);
     assert.deepStrictEqual(e.kpis.usage.reason, { code: 'collector_not_run' });
-    assert.strictEqual(e.health.level, 'yellow');
-    assert.deepStrictEqual(e.health.reasons, [{ code: 'registry_missing', file: 'registro/agentes.json' }], 'only the missing registry');
-    assert.strictEqual(e.health.last_event_age_min, null);
+    // Nothing to watch yet: no registry is no problem anymore (#14).
+    assert.deepStrictEqual([e.health.level, e.health.reasons, e.health.last_event_at], ['green', [], null]);
     assert.deepStrictEqual(e.collector, { interval_min: 5, active: false, last: null, running: false });
     assert.strictEqual((await request(s.port, '/api/events')).json.total, 0);
     // Without the Maestri file, recalculating writes a usage.json with the plan unavailable.
@@ -620,23 +612,6 @@ suite.test('in process: start() writes the PID and stop() deletes it; Host check
     await s.stop();
   }
   assert.ok(!fs.existsSync(pidFile), 'stop() must delete state/panel.pid');
-});
-
-suite.test('health: stopped hooks and unreadable files', () => {
-  const v = srv.computeHealth({ hooks: [] });
-  assert.deepStrictEqual([v.level, v.reasons], ['green', []]);
-  assert.deepStrictEqual(Object.keys(v).sort(), ['level', 'reasons']);
-  const h = srv.computeHealth({ hooks: [
-    { agent: 'a', name: 'Agente A', active: true, last_raw: null, age_min: null },
-    { agent: 'b', name: 'Agente B', active: true, last_raw: 'x', age_min: 25 * 60 },
-    { agent: 'c', name: 'Agente C', active: true, last_raw: 'x', age_min: 23 * 60 },
-    { agent: 'd', name: 'Agente D', active: false, last_raw: null, age_min: null },
-  ] });
-  assert.strictEqual(h.level, 'yellow');
-  assert.deepStrictEqual(h.reasons, [{ code: 'hook_never', agent: 'a', name: 'Agente A' }, { code: 'hook_stale', agent: 'b', name: 'Agente B', minutes: 25 * 60 }]);
-  const problem = { code: 'file_unreadable', file: 'estado/pendencias.json', error: { code: 'invalid_json', detail: 'x' } };
-  const p = srv.computeHealth({ hooks: [], problems: [problem] });
-  assert.deepStrictEqual([p.level, p.reasons], ['yellow', [problem]]);
 });
 
 suite.test('routes and request origin: traversal refused; envelopes recognized', () => {

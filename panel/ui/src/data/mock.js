@@ -1,10 +1,11 @@
 // Test mode (?mock=1): reads tests/mock-*.json and imitates /api/state, /api/events, /api/event, /api/flow, the companies and
 // projects routes (#6: /api/companies, /api/projects, POST /api/projects/<id>/company in memory), the new model's
-// /api/items, /api/items/<project>/<number>, /api/pending-decisions, /api/log and /api/log/<id> (tests/mock-items.json,
-// written by tests/generate-mock-items.js with the real projection; the Log's raw commands are made up on the spot) and
-// the usage and agents per item (#13: /api/usage and /api/agents, written by the real collector and API), answering in
-// the API shape (English fields and codes), as the real server does. Items, pending decisions, the Log, usage and
-// agents take ?company=<id> (the company selector of the header) like the server.
+// /api/items, /api/items/<project>/<number>, /api/pending-decisions, /api/log, /api/log/<id>, /api/overview and the health
+// of /api/state (#14) (tests/mock-items.json, written by tests/generate-mock-items.js with the real projection; the Log's
+// raw commands are made up on the spot) and the usage and agents per item (#13: /api/usage and /api/agents, written by
+// the real collector and API), answering in the API shape (English fields and codes), as the real server does. Items,
+// pending decisions, the Log, the Overview, usage and agents take ?company=<id> (the company selector of the header)
+// like the server.
 // Serve with "node tests/serve-mock.js" and open http://127.0.0.1:4795/?mock=1 (or use npm run dev).
 import { t } from '../i18n/index.js';
 import { arr, obj, spDay, normalize, txt, now } from './format.js';
@@ -115,6 +116,13 @@ async function mockItems(u, method) {
     return { items: arr(m.items).filter((it) => (!company || it.project.company.id === company) && (!project || it.project.id === project)) };
   }
   if (p === '/api/pending-decisions') return mockPendingDecisions(await loadMockItems(), sp);
+  if (p === '/api/overview') {
+    // Overview (#14): the generator wrote the answer of every company of the selector ('' = all).
+    const all = obj((await loadMockItems()).overview) || {};
+    const answer = all[sp.get('company') || ''];
+    if (!answer) throw error('invalid_filter', 400, { param: 'company', value: sp.get('company') });
+    return JSON.parse(JSON.stringify(answer));
+  }
   const x = /^\/api\/items\/([^/]+)\/([^/]+)$/.exec(p);
   if (!x) return null;
   const m = await loadMockItems();
@@ -277,7 +285,13 @@ export async function mockApi(urlPath, method, body) {
   const sp = u.searchParams;
   const evs = arr(det.events).slice().sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts));
   const asc = evs.slice().reverse();
-  if (p === '/api/state' || (p === '/api/recalculate' && method === 'POST')) return JSON.parse(JSON.stringify(state));
+  if (p === '/api/state' || (p === '/api/recalculate' && method === 'POST')) {
+    // The health of the new model (#14) comes from mock-items.json, computed by the server's own rules.
+    const items = await loadMockItems();
+    const answer = JSON.parse(JSON.stringify(state));
+    answer.health = { ...answer.health, ...(obj(items.health) || {}) };
+    return answer;
+  }
   if (p === '/api/events') {
     // Like the server: hours=N, many comma-separated values and counts where each facet ignores its own filter.
     const set = (n) => (sp.get(n) ? new Set(sp.get(n).split(',').map((x) => x.trim()).filter(Boolean)) : null);

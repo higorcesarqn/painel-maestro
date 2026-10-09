@@ -255,10 +255,14 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
     },
     /** Health reasons: one merge_check_failed per item whose last check failed. */
     healthReasons() {
-      const store = items.store();
       const reasons = [];
+      let store;
       for (const [key, s] of statuses) {
         if (!s.error) continue;
+        // An unreadable maestro.db is the health's own reason (database_unreadable, #14): never throws from here.
+        if (store === undefined) {
+          try { store = items.store(); } catch (_) { store = null; }
+        }
         const [projectId, number] = key.split('/');
         const project = store && store.project(projectId);
         reasons.push({ code: 'merge_check_failed', item: key, tracker_ref: trackerRef(project ? project.tracker : 'github', Number(number)), error: s.error });
