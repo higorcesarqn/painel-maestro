@@ -82,7 +82,7 @@ function itemDetail(source, projectId, number) {
   const events = store.itemEvents(projectId, number);
   const state = projectItem(events, project);
   if (!state) return null;
-  return { item: { ...summary(project, state), stages: state.stages, timeline: events.map(timelineEntry) } };
+  return { item: { ...summary(project, state), stages: state.stages, tasks: state.tasks, timeline: events.map(timelineEntry) } };
 }
 
 /** Route of an item page: { project, number } or null when the address is not one. */

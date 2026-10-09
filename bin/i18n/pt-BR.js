@@ -13,8 +13,17 @@ const STAGES = {
   done: 'Concluído',
 };
 
+// What a worker posts with "flow status --state" (the states of "maestri floor status").
+const WORKER_STATES = {
+  working: 'trabalhando',
+  blocked: 'bloqueada',
+  review: 'revisão',
+  done: 'pronta (revisão)',
+};
+
 module.exports = {
   stages: STAGES,
+  workerStates: WORKER_STATES,
   companies: {
     unassigned: 'Sem empresa',
   },
@@ -22,6 +31,13 @@ module.exports = {
     itemStarted: (p) => `Item ${p.key} (${p.ref}) iniciado em ${STAGES[p.stage] || p.stage}.`,
     stageChanged: (p) => `Item ${p.key} (${p.ref}) agora em ${STAGES[p.stage] || p.stage}.`,
     projectRegistered: 'Projeto "{project}" cadastrado em "{company}" a partir de {remote}. Mova-o para a empresa certa pelo painel.',
+    taskGraph: (p) => `Grafo de tasks do item ${p.key} (${p.ref}) registrado: ${p.count} task${p.count === 1 ? '' : 's'}.`,
+    taskDispatched: (p) => `Task ${p.task} do item ${p.key} (${p.ref}) despachada${p.floor ? ` no floor "${p.floor}"` : ''}${p.worker ? ` para ${p.worker}` : ''}${p.branch ? ` (branch ${p.branch})` : ''}.`,
+    taskIntegrated: 'Task {task} do item {key} ({ref}) integrada em {sha}.',
+    taskStatus: (p) => `Status da task ${p.task} do item ${p.key}: ${WORKER_STATES[p.state] || p.state} · "${p.text}".`,
+    floorStatusPosted: 'Status do floor atualizado no Maestri (maestri floor status).',
+    floorStatusFailed: 'O status foi gravado no painel, mas o maestri floor status falhou.',
+    outsideMaestri: 'Fora do Maestri (sem MAESTRI_TERMINAL_ID): só gravado no painel.',
   },
   errors: {
     prefix: 'erro: {message}',
@@ -49,6 +65,30 @@ module.exports = {
     notARepository: 'não achei o "git remote origin" em {cwd}. Rode o comando dentro do repositório do projeto (ou do worktree de um floor).',
     itemAlreadyStarted: (p) => `o item ${p.key} (${p.ref}) já foi iniciado em ${p.at}. Para mudar a etapa, use: flow stage ${p.number} <etapa>.`,
     itemNotStarted: (p) => `o item ${p.key} (${p.ref}) ainda não foi iniciado. Comece com: flow item start ${p.number} --title "...".`,
+    missingTask: 'falta o número da task (ex.: flow task dispatch 12 13 --floor "..." --worker "...").',
+    invalidTaskNumber: 'número de task inválido: "{value}" (use um inteiro positivo, como no tracker).',
+    missingTasks: 'falta o grafo de tasks: use --task "<número>|<título>[|<bloqueios>]" (uma vez por task) ou "tasks" no JSON.',
+    tooManyTasks: 'o grafo tem tasks demais (máximo {max}).',
+    invalidTaskSpec: 'task inválida: "{value}". Use --task "<número>|<título>" ou "<número>|<título>|<bloqueios separados por vírgula>", ex.: --task "14|Enviar por e-mail|13".',
+    missingTaskTitle: 'falta o título da task {task}.',
+    duplicateTask: 'a task {task} aparece mais de uma vez no grafo.',
+    selfBlocker: 'a task {task} não pode bloquear a si mesma.',
+    unknownBlocker: 'a task {task} é bloqueada pela {blocker}, que não está no grafo.',
+    unknownOutTask: 'a task {task} de --out não está no grafo.',
+    graphCycle: 'os bloqueios formam um ciclo: {cycle}.',
+    taskNotInItem: 'a task {task} não é do item {key} (tasks do item: {tasks}). Registre o grafo com: flow task graph.',
+    taskNotFound: 'nenhum item do projeto "{project}" tem a task {task}. Informe o item com --item <número> ou registre o grafo.',
+    taskAmbiguous: 'a task {task} aparece em mais de um item ({items}): informe qual com --item <número>.',
+    branchAmbiguous: 'a branch {branch} foi despachada para mais de uma task ({tasks}): informe qual com --item e --task.',
+    statusNoTask: 'não sei de qual task é este status (branch atual: {branch}). Rode na branch da task (task/<id>-…) ou informe --item e --task.',
+    missingSha: 'falta o SHA da integração (--sha <sha> ou "sha" no JSON).',
+    invalidSha: 'SHA inválido em {field}: "{value}" (use de 7 a 64 caracteres hexadecimais).',
+    invalidText: 'o campo "{field}" precisa ter até {max} caracteres, numa linha só.',
+    missingStatusText: 'falta o texto do status (ex.: flow status "Testes verdes, ligando a tela" --progress 3/5).',
+    invalidStatusState: 'estado inválido: "{value}" (use {allowed}).',
+    invalidProgress: 'progresso inválido: "{value}" (use n/m, ex.: 3/5).',
+    maestriNotFound: 'não achei o executável "{cli}" (configure FLOW_MAESTRI_CLI ou MAESTRI_CLI)',
+    maestriFailed: 'o status foi gravado no painel, mas o maestri floor status falhou: {detail}',
     unexpected: 'falha inesperada: {detail}',
   },
   help: (p) => `flow · registra o fluxo dos itens no painel (eventos em ${p.db})
@@ -63,13 +103,33 @@ USO
   node bin/flow.js stage <número> <etapa> [opções do agente]
       Muda a etapa do item.
 
+TASKS (maestro)
+  node bin/flow.js task graph <número> --task "<task>|<título>[|<bloqueios>]" ... [--out <task,...>]
+      Registra o grafo de tasks do item (repita --task uma vez por task). Bloqueios: as tasks, separadas por
+      vírgula, que precisam estar integradas antes desta. --out marca tasks fora do item. O último grafo
+      registrado vale; um item sem grafo é uma task só, ele mesmo (o número da task é o do item).
+      ex.: --task "13|Gerar o PDF" --task "14|Enviar por e-mail|13"
+  node bin/flow.js task dispatch <número> <task> [--floor "<floor>"] [--worker "<codinome>"] [--branch <branch>]
+      Registra a task despachada: floor do Maestri, trabalhador (codinome ou "subagente") e branch.
+  node bin/flow.js task integrate <número> <task> --sha <sha> [--sha-before <sha>]
+      Registra a task integrada na branch integradora (SHA depois e, opcional, antes da integração).
+
+STATUS (trabalhador)
+  node bin/flow.js status "<texto>" [--state working|blocked|review|done] [--progress n/m] [--item <número>] [--task <task>]
+      O comando único de status: dentro do Maestri (com MAESTRI_TERMINAL_ID) roda "maestri floor status"
+      com os mesmos argumentos e grava o evento; fora do Maestri (subagente) só grava. --state padrão: working;
+      "done" conta como pronta para revisão. Sem --item/--task, a task vem da branch atual: a task despachada
+      com esta branch ou, senão, task/<task>-… (--item resolve quando a task existe em mais de um item).
+      Papel padrão: worker. Se o maestri falhar, o evento é gravado e o comando sai com 1.
+
 OPÇÕES DO AGENTE
-  --role maestro|worker|owner     quem grava (padrão: maestro)
+  --role maestro|worker|owner     quem grava (padrão: maestro; no status, worker)
   --agent "<nome>"                codinome do agente (opcional)
 
 JSON PELA ENTRADA PADRÃO (texto com acentos, aspas e várias linhas chega intacto em qualquer shell)
   --json -     os campos vêm num objeto JSON pela entrada padrão; os argumentos valem mais que o JSON
-  Campos: number, title, stage, role, agent.
+  Campos: number (o item), title, stage, task, tasks ([{number, title, blocked_by, out}]), floor, worker,
+  branch, sha, sha_before, text, state, progress, role, agent.
   ex.: node bin/flow.js item start --json - < item.json
 
 ETAPAS
@@ -79,6 +139,8 @@ CÓDIGOS DE SAÍDA
   0 ok · 2 dados inválidos (a mensagem diz o que corrigir) · 1 outros erros
 
 VARIÁVEIS
-  MAESTRO_DIR   pasta dos dados (padrão: ~/.painel-maestro)
+  MAESTRO_DIR           pasta dos dados (padrão: ~/.painel-maestro)
+  MAESTRI_TERMINAL_ID   presente num terminal do Maestri: o status também roda "maestri floor status"
+  FLOW_MAESTRI_CLI      executável do maestri usado pelo status (padrão: MAESTRI_CLI ou "maestri")
 `,
 };

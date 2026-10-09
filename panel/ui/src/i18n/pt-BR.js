@@ -166,6 +166,29 @@ export default {
     events: {
       itemStarted: 'Item iniciado em {stage}',
       stageChanged: 'Etapa: {stage}',
+      taskGraph: { one: 'Grafo de tasks: {count} task', other: 'Grafo de tasks: {count} tasks' },
+      taskDispatched: 'Task {task} despachada para {worker} (floor {floor})',
+      taskStatus: 'Task {task}: {state} · {text}',
+      taskIntegrated: 'Task {task} integrada em {sha}',
+    },
+    tasks: {
+      title: 'Tasks',
+      info: 'As tasks do item e os bloqueios entre elas, como o maestro registrou (flow task graph). Uma seta vai da task que bloqueia para a bloqueada; tracejada enquanto a que bloqueia não foi integrada. Um item sem grafo registrado é uma task só, ele mesmo.',
+      stateCount: '{count} {state}',
+      graphLabel: { one: 'Grafo de tasks: {count} task, {edges} bloqueio(s)', other: 'Grafo de tasks: {count} tasks, {edges} bloqueio(s)' },
+      nodeTitle: '{ref} {title} · {state}',
+      untitled: '(sem título)',
+      self: 'o próprio item',
+      statusWithProgress: '{text} ({done}/{total})',
+      shaRange: '{before} → {after}',
+      columns: {
+        task: 'Task', title: 'Título', state: 'Estado', blockedBy: 'Bloqueada por', worker: 'Trabalhador', floor: 'Floor',
+        branch: 'Branch', sha: 'SHA', updated: 'Atualizada',
+      },
+      states: {
+        waiting: 'aguardando', working: 'trabalhando', review: 'revisão', blocked: 'bloqueada', integrated: 'integrada', out: 'fora',
+      },
+      workerStates: { working: 'trabalhando', blocked: 'bloqueada', review: 'revisão', done: 'pronta' },
     },
   },
 

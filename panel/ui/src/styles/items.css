@@ -9,7 +9,7 @@ table.items .col-project { width: 260px; }
 table.items .col-updated { width: 130px; }
 table.items td.col-ref { color: var(--text); }
 
-.screen-item { grid-template-rows: auto minmax(0, 1fr); }
+.screen-item { grid-template-rows: auto minmax(0, 1.15fr) minmax(0, 1fr); }
 .item-head { display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; }
 .item-ref { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 13px; }
 .item-number { font-size: 15px; color: var(--text); }

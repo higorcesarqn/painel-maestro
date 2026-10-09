@@ -4,6 +4,7 @@
  * since a worktree shares the main repository's configuration).
  *
  *   originOf(cwd)          → the origin URL, or null (not a git repository, or no origin)
+ *   branchOf(cwd)          → the checked-out branch ("task/13-gerar-pdf"), or null (detached HEAD, no repository)
  *   normalizeRemote(url)   → "github.com/acme/widgets": host + path, lower case, without credentials, scheme,
  *                            ".git" or the "_git" of Azure DevOps; SSH and HTTPS forms give the same key
  *   describeRemote(url)    → { remote, tracker: 'github' | 'azure_devops', repo }  (repo: the repository name)
@@ -15,6 +16,13 @@ function originOf(cwd) {
   if (r.error || r.status !== 0) return null;
   const url = String(r.stdout || '').trim();
   return url || null;
+}
+
+/** The checked-out branch of cwd (a floor's worktree has its own), or null (detached HEAD, not a repository). */
+function branchOf(cwd) {
+  const r = spawnSync('git', ['symbolic-ref', '--quiet', '--short', 'HEAD'], { cwd, encoding: 'utf8', windowsHide: true, timeout: 10000 });
+  if (r.error || r.status !== 0) return null;
+  return String(r.stdout || '').trim() || null;
 }
 
 function normalizeRemote(url) {
@@ -47,4 +55,4 @@ function describeRemote(url) {
   return { remote, tracker: azure ? 'azure_devops' : 'github', repo: parts[parts.length - 1] || host };
 }
 
-module.exports = { originOf, normalizeRemote, describeRemote };
+module.exports = { originOf, branchOf, normalizeRemote, describeRemote };

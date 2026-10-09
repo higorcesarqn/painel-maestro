@@ -210,6 +210,10 @@ function openStore({ dir, create = true } = {}) {
     itemEvents(projectId, itemNumber) {
       return db.prepare('SELECT * FROM events WHERE project_id = ? AND item_number = ? ORDER BY id').all(projectId, itemNumber).map(eventRow);
     },
+    /** Every event of a project, oldest first (the status command looks for the task of the current branch). */
+    projectEvents(projectId) {
+      return db.prepare('SELECT * FROM events WHERE project_id = ? ORDER BY id').all(projectId).map(eventRow);
+    },
     /** Every event, oldest first (the server groups them by item). */
     allEvents() {
       return db.prepare('SELECT * FROM events ORDER BY id').all().map(eventRow);
