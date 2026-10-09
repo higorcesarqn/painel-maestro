@@ -64,6 +64,36 @@ suite.test('install links every declared skill into an empty Claude folder', () 
   assert.ok(!exists(path.join(r.claude, 'skills', 'compartilhadas')));
 });
 
+suite.test('the Maestri skills and their orchestration folder are declared, the folder where the skills look for it', () => {
+  const pairs = MANIFEST.links.map((l) => `${l.source} → ${l.target}`);
+  for (const name of ['implementar-issue-maestri', 'implementar-pbi-maestri', 'trabalhador-floor']) {
+    assert.ok(pairs.includes(`skills/${name} → skills/${name}`), pairs.join(', '));
+  }
+  assert.ok(pairs.includes('skills/docs/orquestracao-maestri → docs/orquestracao-maestri'), pairs.join(', '));
+});
+
+suite.test('after install, every ~/.claude path the installed skills and documents cite exists', () => {
+  const r = buildRoot('refs');
+  ok(install(r));
+  const cited = new Set();
+  const scan = (dir) => {
+    for (const n of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, n.name);
+      if (n.isDirectory()) scan(p);
+      else if (/\.(md|sh)$/.test(n.name)) {
+        for (const m of fs.readFileSync(p, 'utf8').matchAll(/~\/\.claude\/([^\s`"'<>)]+)/g)) {
+          if (!m[1].includes('*')) cited.add(m[1].replace(/[.,:;]+$/, '')); // globs are looked up by the agent
+        }
+      }
+    }
+  };
+  for (const l of MANIFEST.links) scan(path.join(REPO, l.source));
+  assert.ok(cited.has('docs/orquestracao-maestri/README.md'), [...cited].join(', '));
+  assert.ok(cited.has('docs/orquestracao-maestri/scripts/integrar.sh'), [...cited].join(', '));
+  for (const rel of cited) assert.ok(exists(path.join(r.claude, rel)), `~/.claude/${rel} is cited but not installed`);
+  assert.ok(!exists(path.join(r.claude, 'docs', 'orquestracao-maestri', 'scripts', 'fluxo.py')), 'fluxo.py is gone');
+});
+
 /** Every entry of a Claude folder: { 'skills/especificar': 'link' | 'dir' | 'file' }, links not followed. */
 function snapshot(dir, base = dir, acc = {}) {
   for (const n of fs.readdirSync(dir, { withFileTypes: true })) {
