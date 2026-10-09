@@ -41,6 +41,9 @@ export const readState = () => api('/api/state');
 export const recalculateUsage = () => api('/api/recalculate', { method: 'POST' });
 export const readEvents = (params) => api(`/api/events?${new URLSearchParams(params).toString()}`);
 export const readEvent = (id) => api(`/api/event/${encodeURIComponent(id)}`);
+// New model (maestro.db): items with their state computed from the events.
+export const readItems = () => api('/api/items');
+export const readItem = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`);
 
 // Option letter at the start of an option of the old model ("A: ...", or the Portuguese word for "option" + "B) ...");
 // the word is data written by the agents, in Portuguese.

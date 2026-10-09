@@ -13,6 +13,7 @@
 // Routes: GET /, GET /api/state, GET /api/events, GET /api/event/<id>, GET /api/flow/<id>,
 //         POST /api/recalculate, POST /api/brain (future phase: 501). Pending decisions (api-pendencias.js):
 //         POST /api/pending-decisions/<P-NNNN>/answer {option, text}. Details in README.md.
+//         New model (api-items.js, maestro.db): GET /api/items, GET /api/items/<project>/<number>.
 // The API never returns sentences: reasons, warnings and errors are codes with parameters
 // ({code, ...params}) and the page translates them (ADR 0004). Old-model records (events and pending
 // decisions written by bin/registrar.js and bin/pendencia.js) go out with English field names
@@ -21,7 +22,8 @@
 //   (otherwise 403); POST only with the header X-Panel: 1 (otherwise 403); no CORS header; only
 //   "/" and "/api/*" exist (the rest is 404); JSON always with Cache-Control: no-store.
 //
-// Variables: PANEL_PORT (default 4777; --port wins), MAESTRO_DIR (default: the folder above panel/),
+// Variables: PANEL_PORT (default 4777; --port wins), MAESTRO_DIR (default: the folder above panel/ for the old
+//   model and ~/.painel-maestro for the new model's maestro.db),
 //   MAESTRI_DATA_DIR and CLAUDE_CONFIG_DIR (passed to the collector), PANEL_COLLECTOR=0 (does not run
 //   the collector by itself) and, for tests only, PANEL_INDEX (another index.html) and PANEL_NOW
 //   (fixed clock; MAESTRO_NOW also works).
@@ -37,6 +39,7 @@ const zlib = require('zlib');
 
 const collector = require(path.join(__dirname, '..', 'bin', 'collect-usage.js'));
 const pendingApi = require(path.join(__dirname, 'api-pendencias.js'));
+const itemsApi = require(path.join(__dirname, 'api-items.js'));
 const { eventToApi, pendingDecisionToApi } = require(path.join(__dirname, 'legacy-records.js'));
 const { asDate, isoSP, spDay, readJson, readText, withRetries, writeAtomic } = collector.util;
 
@@ -954,6 +957,7 @@ function createContext(cfg) {
   const ctx = {
     cfg,
     data: new Data(cfg.maestroDir),
+    items: itemsApi.createItemsSource(cfg.env),
     port: cfg.port,
     allowedHosts: new Set(),
     allowedOrigins: new Set(),
@@ -1610,10 +1614,16 @@ const FIXED_ROUTES = {
   '/api/events': { name: 'events', methods: ['GET', 'HEAD'] },
   '/api/recalculate': { name: 'recalculate', methods: ['POST'] },
   '/api/brain': { name: 'brain', methods: ['POST'] },
+  '/api/items': { name: 'items', methods: ['GET', 'HEAD'] },
 };
 
 function findRoute(urlPath) {
   if (Object.prototype.hasOwnProperty.call(FIXED_ROUTES, urlPath)) return FIXED_ROUTES[urlPath];
+  const mi = /^\/api\/items\/([^/]+)\/([^/]+)$/.exec(urlPath);
+  if (mi) {
+    const it = itemsApi.parseItemPath(mi[1], mi[2]);
+    return it ? { name: 'item', methods: ['GET', 'HEAD'], project: it.project, number: it.number } : null;
+  }
   const mp = /^\/api\/pending-decisions\/([^/]+)\/answer$/.exec(urlPath);
   if (mp) {
     const pid = pendingApi.normalizeId(mp[1]);
@@ -1685,6 +1695,13 @@ async function route(ctx, req, res) {
     case 'flow': {
       const x = await flowDetail(ctx, r.id, query);
       if (!x) return respondError(req, res, 404, { code: 'flow_not_found', id: r.id });
+      return respondJson(req, res, 200, x);
+    }
+    case 'items':
+      return respondJson(req, res, 200, itemsApi.listItems(ctx.items));
+    case 'item': {
+      const x = itemsApi.itemDetail(ctx.items, r.project, r.number);
+      if (!x) return respondError(req, res, 404, { code: 'item_not_found', project: r.project, number: r.number });
       return respondJson(req, res, 200, x);
     }
     case 'recalculate': {
@@ -1770,6 +1787,7 @@ async function start(options = {}) {
     stopped = true;
     if (timer) clearInterval(timer);
     removePidSync(pidFile);
+    ctx.items.close();
     await new Promise((resolve) => {
       server.close(() => resolve());
       if (typeof server.closeAllConnections === 'function') server.closeAllConnections();

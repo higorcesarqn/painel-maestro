@@ -70,7 +70,7 @@ export default {
     recalculated: 'Uso recalculado às {time}',
     recalculatedMock: 'Uso recalculado às {time} (modo de teste)',
     recalculateFailed: 'Não consegui recalcular: {message}',
-    mockBanner: 'Modo de teste (?mock=1): dados fictícios de tests/mock-state.json e mock-details.json. Nada aqui vem do servidor.',
+    mockBanner: 'Modo de teste (?mock=1): dados fictícios de tests/mock-state.json, mock-details.json e mock-items.json. Nada aqui vem do servidor.',
     connectionError: 'Não consegui ler o painel ({message}). Tento de novo a cada 20 s.',
     connectionErrorWithData: 'Não consegui ler o painel ({message}). Tento de novo a cada 20 s. O que está na tela é a última leitura boa.',
   },
@@ -85,9 +85,9 @@ export default {
 
   groups: { workspace: 'Workspace' },
   // Name of each screen in the menu (and in the browser tab title).
-  nav: { overview: 'Visão geral', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso' },
+  nav: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso' },
   // Title of each screen in the header.
-  screens: { overview: 'Visão geral', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude' },
+  screens: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude' },
 
   sidebar: {
     brand: 'painel',
@@ -132,6 +132,42 @@ export default {
   },
 
   charts: { total: 'Total' },
+
+  // New model: items and the stages of their flow (maestro.db, written by bin/flow.js).
+  items: {
+    title: 'Itens',
+    count: { one: '{count} item', other: '{count} itens' },
+    listInfo: 'Issues do GitHub e PBIs do Azure DevOps com fluxo registrado pelo comando flow. A etapa de cada item é calculada dos eventos; clique num item para abrir a página dele.',
+    none: 'Nenhum item ainda. O maestro inicia um item com: node bin/flow.js item start <número> --title "..." (dentro do repositório do projeto).',
+    readFailed: 'Não consegui ler os itens ({message}).',
+    columns: { item: 'Item', title: 'Título', stage: 'Etapa', project: 'Projeto', updated: 'Atualizado' },
+    back: 'Itens',
+    itemLabel: 'Item {key}',
+    projectOf: '{project} · {company}',
+    currentStage: 'Etapa atual',
+    since: 'desde {when} ({age})',
+    flowTitle: 'Etapas do fluxo',
+    flowInfo: 'As etapas que este projeto usa, em ordem. As anteriores à atual contam como concluídas.',
+    timelineTitle: 'Linha do tempo',
+    eventCount: { one: '{count} evento', other: '{count} eventos' },
+    dates: 'Iniciado em {started} · última mudança em {updated} · {events} evento(s)',
+    stages: {
+      specification: 'Especificação',
+      implementation: 'Implementação',
+      final_adjustment: 'Ajuste final',
+      pr_ready: 'PR pronto',
+      merge: 'Merge',
+      hml_validation: 'Validação HML',
+      done: 'Concluído',
+    },
+    stageStatus: { done: 'concluída', current: 'atual', pending: 'a seguir' },
+    trackers: { github: 'GitHub', azure_devops: 'Azure DevOps' },
+    roles: { maestro: 'Maestro', worker: 'Trabalhador', owner: 'Dono' },
+    events: {
+      itemStarted: 'Item iniciado em {stage}',
+      stageChanged: 'Etapa: {stage}',
+    },
+  },
 
   flow: {
     none: 'sem fluxo',
@@ -572,6 +608,7 @@ export default {
     method_not_allowed: (c) => `Método ${c.method} não aceito aqui (use ${(c.allowed || []).join(' ou ')}).`,
     event_not_found: 'Evento não encontrado: {id}',
     flow_not_found: 'Fluxo não encontrado: {id}',
+    item_not_found: 'Item não encontrado: {project}/{number}. Ele é criado pelo comando flow item start.',
     not_implemented: 'Fase B: exige o Maestri Wire (ver §11.7)',
     body_too_large: 'Corpo grande demais ou incompleto (até {limit_kb} KB).',
     internal_error: 'Erro interno do painel (detalhes no terminal do servidor).',

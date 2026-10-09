@@ -1,5 +1,7 @@
-// Test mode (?mock=1): reads tests/mock-*.json and imitates /api/state, /api/events, /api/event and /api/flow,
-// answering in the API shape (English fields and codes), as the real server does.
+// Test mode (?mock=1): reads tests/mock-*.json and imitates /api/state, /api/events, /api/event, /api/flow and the
+// new model's /api/items and /api/items/<project>/<number> (tests/mock-items.json, written by
+// tests/generate-mock-items.js with the real projection), answering in the API shape (English fields and codes),
+// as the real server does.
 // Serve with "node tests/serve-mock.js" and open http://127.0.0.1:4795/?mock=1 (or use npm run dev).
 import { t } from '../i18n/index.js';
 import { arr, obj, spDay, normalize, txt, now } from './format.js';
@@ -25,6 +27,37 @@ function loadMock() {
 }
 
 const TABLE_FIELDS = ['id', 'ts', 'agent', 'project', 'summary', 'direction', 'result', 'type', 'flow_id', 'needs_owner', 'origin', 'test'];
+
+let loadItems = null;
+function loadMockItems() {
+  if (!loadItems) {
+    loadItems = fetch('tests/mock-items.json', { cache: 'no-store' }).then((r) => {
+      if (!r.ok) throw new Error(`tests/mock-items.json: ${r.status}`);
+      return r.json();
+    }).catch((e) => {
+      loadItems = null;
+      throw new Error(t('mock.loadFailed', { detail: e.message }));
+    });
+  }
+  return loadItems;
+}
+
+/** /api/items and /api/items/<project>/<number> from tests/mock-items.json; null for any other path. */
+async function mockItems(p) {
+  if (p === '/api/items') {
+    const m = await loadMockItems();
+    return { items: arr(m.items) };
+  }
+  const x = /^\/api\/items\/([^/]+)\/([^/]+)$/.exec(p);
+  if (!x) return null;
+  const m = await loadMockItems();
+  const project = decodeURIComponent(x[1]);
+  const number = Number(x[2]);
+  const item = obj(m.details) && m.details[`${project}/${number}`];
+  if (!item) throw error('item_not_found', 404, { project, number });
+  return { item };
+}
+
 function tableFields(e) {
   const r = {};
   for (const k of TABLE_FIELDS) if (e[k] !== undefined) r[k] = e[k];
@@ -38,9 +71,11 @@ function error(code, status, params = {}) {
 }
 
 export async function mockApi(urlPath, method) {
-  const { state, det } = await loadMock();
   const u = new URL(urlPath, location.href);
   const p = u.pathname;
+  const items = await mockItems(p);
+  if (items) return items;
+  const { state, det } = await loadMock();
   const sp = u.searchParams;
   const evs = arr(det.events).slice().sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts));
   const asc = evs.slice().reverse();

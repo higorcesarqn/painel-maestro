@@ -4,10 +4,10 @@ import '../styles/menu.css';
 import { usePanel, SCREENS, GROUPS } from '../data/context.js';
 import { obj } from '../data/format.js';
 import { t } from '../i18n/index.js';
-import { Icon, LayoutDashboard, Inbox, ScrollText, Bot, Gauge } from '../components/Icon.jsx';
+import { Icon, LayoutDashboard, Inbox, ScrollText, Bot, Gauge, Workflow } from '../components/Icon.jsx';
 
 // Icon of each screen (new screen: add it here).
-const ICONS = { overview: LayoutDashboard, pending: Inbox, log: ScrollText, agents: Bot, usage: Gauge };
+const ICONS = { overview: LayoutDashboard, items: Workflow, pending: Inbox, log: ScrollText, agents: Bot, usage: Gauge };
 
 export function Sidebar() {
   const { state, screen, goTo } = usePanel();

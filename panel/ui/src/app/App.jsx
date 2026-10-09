@@ -9,6 +9,7 @@ import { t } from '../i18n/index.js';
 import { Sidebar } from './Sidebar.jsx';
 import { Header } from './Header.jsx';
 import { Overview } from '../screens/Overview.jsx';
+import { Items } from '../screens/Items.jsx';
 import { PendingDecisions } from '../screens/PendingDecisions.jsx';
 import { Log } from '../screens/Log.jsx';
 import { Agents } from '../screens/Agents.jsx';
@@ -17,7 +18,7 @@ import { EventModal } from '../screens/EventModal.jsx';
 import { Icon, TriangleAlert, Info } from '../components/Icon.jsx';
 
 // One screen per item of SCREENS (data/context.js). A new screen goes here and there.
-const SCREEN_COMPONENTS = { overview: Overview, pending: PendingDecisions, log: Log, agents: Agents, usage: Usage };
+const SCREEN_COMPONENTS = { overview: Overview, items: Items, pending: PendingDecisions, log: Log, agents: Agents, usage: Usage };
 // URL: #<screen> or #<screen>/<sub-tab>.
 const hashParts = () => {
   const [raw, ...rest] = decodeURIComponent(location.hash.slice(1)).split('/');

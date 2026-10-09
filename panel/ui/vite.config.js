@@ -16,6 +16,7 @@ function mockFiles() {
   const map = {
     '/tests/mock-state.json': 'mock-state.json',
     '/tests/mock-details.json': 'mock-details.json',
+    '/tests/mock-items.json': 'mock-items.json',
   };
   return {
     name: 'mock-files',

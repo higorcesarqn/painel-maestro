@@ -73,13 +73,14 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   new vm.Script(js, { filename: 'index.html#script' });
   const api = source['data/api.js'];
   for (const route of ["api('/api/state')", '`/api/events?', '`/api/event/${encodeURIComponent(id)}`', "api('/api/recalculate', { method: 'POST' })",
-    'api(`/api/pending-decisions/${encodeURIComponent(p.id)}/answer`']) {
+    'api(`/api/pending-decisions/${encodeURIComponent(p.id)}/answer`', "api('/api/items')",
+    'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)']) {
     assert.ok(api.includes(route), `the page calls ${route}`);
   }
-  for (const route of ['/api/state', '/api/events?', '/api/event/', '/api/recalculate', '/api/pending-decisions/']) {
+  for (const route of ['/api/state', '/api/events?', '/api/event/', '/api/recalculate', '/api/pending-decisions/', '/api/items']) {
     assert.ok(js.includes(route), `the build calls ${route}`);
   }
-  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions\/)$/;
+  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions\/|items|items\/)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
   assert.ok(/export const REFRESH_MS = 20000;/.test(api), 'refreshes every 20 s');
@@ -109,6 +110,23 @@ suite.test('mock-state.json follows the contract and has the requested scenario'
   // No sentence from the server: reasons and sources are codes.
   assert.ok(e.health.reasons.every((r) => typeof r.code === 'string'));
   assert.strictEqual(e.usage.plan.source.code, 'maestri_claude_provider');
+});
+
+suite.test('mock-items.json: items in different stages, both trackers, several companies; the item page has a fixed address', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const stages = require('../../bin/flow-store.js').STAGES;
+  assert.deepStrictEqual([...new Set(m.items.map((i) => i.stage))].sort(), stages.slice().sort(), 'every stage has an item');
+  assert.deepStrictEqual([...new Set(m.items.map((i) => i.tracker))].sort(), ['azure_devops', 'github']);
+  assert.ok(new Set(m.items.map((i) => i.project.company.id)).size >= 3, 'several companies');
+  for (const it of m.items) {
+    assert.strictEqual(it.tracker_ref, it.tracker === 'azure_devops' ? `PBI ${it.number}` : `#${it.number}`);
+    const d = m.details[it.key];
+    assert.ok(d && d.stage === it.stage && Array.isArray(d.stages) && d.stages.some((s) => s.status === 'current' && s.id === it.stage), `details of ${it.key}`);
+  }
+  // The page of an item: #items/<project>/<number> (subroute of the Items screen).
+  assert.ok(/RE_ITEM = \/\^\(\[a-z0-9\]\[a-z0-9-\]\*\)\\\/\(\[1-9\]\\d\*\)\$\//.test(source['screens/Items.jsx']), 'Items reads <project>/<number> from the address');
+  assert.ok(/goTo\('items', it\.key\)/.test(source['screens/Items.jsx']), 'a click on an item opens #items/<key>');
+  assert.ok(js.includes('mock-items.json'), 'the test mode reads mock-items.json');
 });
 
 let port = null;

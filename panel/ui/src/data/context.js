@@ -4,7 +4,7 @@
 // come from the dictionary, nav.<id> and screens.<id>) + its component in SCREEN_COMPONENTS (app/App.jsx) + its
 // icon in ICONS (app/Sidebar.jsx). No separate page. The group decides in which menu block it appears (GROUPS,
 // in menu order); the URL is #<id> and, if the screen has sub-tabs, #<id>/<sub> (the App hands the sub-tab in
-// `subroute`).
+// `subroute`). The page of an item has a fixed address, #items/<project>/<number>, which the Maestri portal opens.
 import { createContext } from 'preact';
 import { useContext } from 'preact/hooks';
 
@@ -17,6 +17,7 @@ export const GROUPS = [
 
 export const SCREENS = [
   { id: 'overview', group: 'workspace' },
+  { id: 'items', group: 'workspace' },
   { id: 'pending', group: 'workspace' },
   { id: 'log', group: 'workspace' },
   { id: 'agents', group: 'workspace' },
