@@ -37,6 +37,19 @@ suite.test('the manifest declares /especificar and none of the old Cérebro skil
   assert.ok(sources.every((s) => !/^skills\/(cerebro|compartilhadas)(\/|$)/.test(s)), sources.join(', '));
 });
 
+suite.test('the manifest declares the subagent skills and the folder of the document they follow (#17)', () => {
+  const byTarget = new Map(MANIFEST.links.map((l) => [l.target, l.source]));
+  assert.strictEqual(byTarget.get('skills/implementar-issue'), 'skills/implementar-issue');
+  assert.strictEqual(byTarget.get('skills/implementar-pbi'), 'skills/implementar-pbi');
+  assert.strictEqual(byTarget.get('docs/orquestracao-subagentes'), 'skills/docs/orquestracao-subagentes');
+  for (const skill of ['implementar-issue', 'implementar-pbi']) {
+    const text = fs.readFileSync(path.join(REPO, 'skills', skill, 'SKILL.md'), 'utf8');
+    assert.ok(text.includes(`name: ${skill}`), skill);
+    assert.ok(text.includes('~/.claude/docs/orquestracao-subagentes/README.md'), `${skill} points to the installed document`);
+  }
+  assert.ok(fs.existsSync(path.join(REPO, 'skills', 'docs', 'orquestracao-subagentes', 'README.md')));
+});
+
 suite.test('install links every declared skill into an empty Claude folder', () => {
   const r = buildRoot('fresh');
   ok(install(r));
@@ -46,6 +59,7 @@ suite.test('install links every declared skill into an empty Claude folder', () 
     assert.ok(same(target, path.join(REPO, l.source)), `${l.target} points elsewhere`);
   }
   assert.ok(fs.readFileSync(path.join(r.claude, 'skills', 'especificar', 'SKILL.md'), 'utf8').includes('name: especificar'));
+  assert.ok(fs.existsSync(path.join(r.claude, 'docs', 'orquestracao-subagentes', 'README.md')), 'the document is reachable where the skills point');
   assert.ok(!exists(path.join(r.claude, 'skills', 'cerebro')));
   assert.ok(!exists(path.join(r.claude, 'skills', 'compartilhadas')));
 });
