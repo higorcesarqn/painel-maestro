@@ -99,12 +99,14 @@ async function mockCompanies(u, method, body) {
 }
 
 /**
- * /api/items[?company=&project=], /api/items/<project>/<number> and /api/pending-decisions[?company=&...] from
- * tests/mock-items.json; null for any other path.
+ * /api/items[?company=&project=], /api/items/<project>/<number>, POST /api/items/<project>/<number>/merged and
+ * /api/pending-decisions[?company=&...] from tests/mock-items.json; null for any other path.
  */
-async function mockItems(u) {
+async function mockItems(u, method) {
   const p = u.pathname;
   const sp = u.searchParams;
+  const merged = /^\/api\/items\/([^/]+)\/([^/]+)\/merged$/.exec(p);
+  if (merged && method === 'POST') return mockMarkMerged(decodeURIComponent(merged[1]), Number(merged[2]));
   if (p === '/api/items') {
     const m = await loadMockItems();
     const company = u.searchParams.get('company');
@@ -203,6 +205,31 @@ async function mockLog(p, sp) {
   };
 }
 
+/** "Mark as merged" (#11) in the mock: changes the item in memory only (like the server: only a ready PR). */
+async function mockMarkMerged(project, number) {
+  const m = await loadMockItems();
+  const key = `${project}/${number}`;
+  const item = obj(m.details) && m.details[key];
+  if (!item) throw error('item_not_found', 404, { project, number });
+  const pr = obj(item.pr);
+  if (!pr || pr.state !== 'ready') throw error('pr_not_ready', 409, { project, number, state: pr ? pr.state : null });
+  const at = new Date().toISOString();
+  pr.state = 'merged';
+  pr.merged_at = at;
+  item.merge_check = null;
+  if (arr(item.stages).some((s) => s.id === 'merge')) {
+    item.stage = 'merge';
+    item.stage_since = at;
+    const current = item.stages.findIndex((s) => s.id === 'merge');
+    item.stages = item.stages.map((s, i) => ({ ...s, status: i < current ? 'done' : i === current ? 'current' : 'pending', entered_at: i === current ? at : i < current ? s.entered_at : null }));
+  }
+  item.timeline = [...arr(item.timeline), { id: Date.now(), at, type: 'pr-changed', task_number: null, agent: { role: 'owner', name: null }, source: 'panel', payload: { state: 'merged' } }];
+  const listed = arr(m.items).find((it) => it.key === key);
+  if (listed) Object.assign(listed, { stage: item.stage, stage_since: item.stage_since, updated_at: at });
+  item.updated_at = at;
+  return { item };
+}
+
 function tableFields(e) {
   const r = {};
   for (const k of TABLE_FIELDS) if (e[k] !== undefined) r[k] = e[k];
@@ -220,7 +247,7 @@ export async function mockApi(urlPath, method, body) {
   const p = u.pathname;
   const companies = await mockCompanies(u, method, body);
   if (companies) return companies;
-  const items = await mockItems(u);
+  const items = await mockItems(u, method);
   if (items) return items;
   const log = await mockLog(p, u.searchParams);
   if (log) return log;

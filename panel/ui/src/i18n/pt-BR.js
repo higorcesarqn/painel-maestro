@@ -35,6 +35,8 @@ const PARAM_NAMES = {
 };
 const PARAM_HINTS = { date: 'use AAAA-MM-DD', flag: 'use 1 ou 0', positive_integer: 'use um inteiro a partir de 1', id: 'use letras minúsculas, números e hífen', item_key: 'use <projeto>/<número>' };
 const failedState = (c) => `estado "${c.state}"${c.error ? `: ${c.error}` : ''}`;
+// Merge check (#11): the tool that read (or failed to read) the PR.
+const toolName = (c) => ({ gh: 'gh', az: 'az', azure_devops: 'Azure DevOps' }[c.tool] || c.tool || '?');
 
 export default {
   common: {
@@ -245,6 +247,18 @@ export default {
       adjustment: { passed: 'Ajuste final aprovado', failed: 'Ajuste final reprovado' },
       hml: 'Validação HML: {passed} aprovado(s), {failed} reprovado(s), {blocked} bloqueado(s)',
       itemDone: 'Item concluído',
+      prMergedByPanel: { check: 'PR mergeado (confirmado no tracker pelo painel)', owner: 'PR marcado como mergeado no painel' },
+    },
+    mergeCheck: {
+      waiting: 'O painel ainda vai consultar o merge deste PR no tracker.',
+      checkedAt: 'Ainda não mergeado (consultado em {when}).',
+      failed: 'A consulta do merge falhou em {when}: {reason}',
+      off: 'Consulta automática do merge: {reason}.',
+      button: 'Marcar como mergeado',
+      buttonTitle: 'Grava o merge do PR à mão, quando a consulta ao tracker não consegue confirmá-lo.',
+      marking: 'Gravando…',
+      confirm: 'Marcar o PR de {ref} como mergeado? O item vai para a etapa Merge.',
+      markFailed: 'Não consegui marcar como mergeado: {message}',
     },
     listFilter: {
       label: 'Mostrar itens',
@@ -795,5 +809,19 @@ export default {
     invalid_field: 'Campo "{field}" inválido: "{value}".',
     company_not_found: 'Empresa não encontrada: {company}. Cadastre com: node bin/flow.js company add.',
     project_not_found: 'Projeto não encontrado: {project}.',
+    // merge check (#11)
+    merge_check_failed: (c, h) => `Consulta do merge de ${c.tracker_ref || c.item || '?'}${c.item ? ` (${c.item})` : ''} falhou: ${h.display(c.error) || '?'}`,
+    merge_check_cli_missing: (c) => `não achei o ${c.cli || toolName(c)} (instalado e no PATH?)`,
+    merge_check_cli_failed: (c) => `${toolName(c)} falhou${Number.isInteger(c.exit) ? ` (saída ${c.exit})` : ''}${c.detail ? `: ${c.detail}` : ''}`,
+    merge_check_timeout: (c) => `${toolName(c)} não respondeu em ${c.seconds || '?'} s`,
+    merge_check_bad_answer: (c) => `resposta inesperada de ${toolName(c)}`,
+    merge_check_http_failed: (c) => `o Azure DevOps respondeu HTTP ${c.status}${c.status === 401 || c.status === 403 ? ' (o token do az tem acesso? rode az login)' : ''}`,
+    merge_check_request_failed: 'não consegui falar com o Azure DevOps ({detail})',
+    merge_check_bad_url: 'a URL do PR não é de um PR do GitHub nem do Azure DevOps',
+    merge_check_no_url: 'o PR não tem URL registrada',
+    merge_check_off: (c) => (c.variable === 'PANEL_COLLECTOR' ? 'desligada junto com o coletor (PANEL_COLLECTOR=0; ligue com PANEL_MERGE_CHECK=1)' : `desligada (${c.variable || 'PANEL_MERGE_CHECK'}=0)`),
+    merge_check_fixed_clock: 'desligada com relógio fixo (teste)',
+    pr_not_ready: (c) => (c.state === 'merged' ? 'O PR já está mergeado.'
+      : c.state === 'draft' ? 'O PR ainda está em rascunho: só um PR pronto pode ser marcado como mergeado.' : 'O item não tem PR registrado.'),
   },
 };

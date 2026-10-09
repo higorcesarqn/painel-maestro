@@ -49,6 +49,8 @@ export const readLog = (params) => api(`/api/log?${new URLSearchParams(params).t
 export const readLogEvent = (id) => api(`/api/log/${encodeURIComponent(id)}`);
 // Pending decisions of the new model, read only: params { company, project, severity, status }.
 export const readPendingDecisions = (params) => api(`/api/pending-decisions?${new URLSearchParams(params).toString()}`);
+// "Mark as merged" (#11): records the PR merge by hand when the merge check cannot read it. Returns { item }.
+export const markItemMerged = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}/merged`, { method: 'POST' });
 
 // Companies and projects (#6). The company selector reaches each list as ?company=<id> (see companyFilter).
 export const readCompanies = () => api('/api/companies');

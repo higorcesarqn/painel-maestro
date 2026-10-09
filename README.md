@@ -302,6 +302,8 @@ Sobre o uso do Claude:
 
 O painel não responde pendências (#10): o dono responde no terminal do maestro, e a resposta pelo painel e o aviso ao Cérebro (`PANEL_NOTIFY_BRAIN`) saíram.
 
+**Verificador de merge (#11).** Para os itens com PR pronto e ainda não mergeado, o servidor consulta o PR na subida e a cada 10 min (`PANEL_MERGE_CHECK_SECONDS`), só leitura: GitHub pelo `gh pr view`, Azure DevOps pela REST com o token do `az account get-access-token`. Merge confirmado vira evento (origem "painel") e leva o item para Merge; uma falha aparece na página do item e no selo de saúde, e o botão **Marcar como mergeado** resolve à mão. `PANEL_MERGE_CHECK=0` desliga (e `=1` liga mesmo com `PANEL_COLLECTOR=0`); `PANEL_GH_CLI`, `PANEL_AZ_CLI` e `PANEL_AZURE_DEVOPS_URL` trocam os executáveis e a base da REST. Detalhes em `panel/README.md`.
+
 ### Variáveis de ambiente (nomes novos)
 
 As variáveis passaram para o inglês (#3). Quem tinha as antigas no ambiente precisa trocar:
@@ -371,7 +373,7 @@ npm test                                   # node panel/tests/run-all.js
 node panel/tests/run-all.js server       # só os arquivos com "server" no nome
 ```
 
-Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das tasks usa uma CLI do Maestri falsa, que só grava os argumentos. São 15 arquivos: coletor de uso, modelo novo (`test-flow.js`, `test-flow-tasks.js`, `test-flow-delivery.js`, PR, ajuste final, HML e conclusão, `test-flow-pending.js`, pendências, `test-flow-reports.js`, relatórios, achados e linha do tempo, e `test-companies.js`, empresas e projetos), hook do log bruto (`bruto.db`), tela Log (`test-log.js`), dicionário, desempenho (`maestro.db` com 20 mil eventos e `bruto.db` com 400 mil registros), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária), filtro de horário e servidor. Eles conferem códigos, não frases. O `test-flow.js`, o `test-flow-tasks.js`, o `test-flow-delivery.js`, o `test-flow-pending.js` e o `test-flow-reports.js` seguem uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
+Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das tasks usa uma CLI do Maestri falsa, que só grava os argumentos. São 16 arquivos: coletor de uso, modelo novo (`test-flow.js`, `test-flow-tasks.js`, `test-flow-delivery.js`, PR, ajuste final, HML e conclusão, `test-flow-pending.js`, pendências, `test-flow-reports.js`, relatórios, achados e linha do tempo, e `test-companies.js`, empresas e projetos), hook do log bruto (`bruto.db`), tela Log (`test-log.js`), dicionário, desempenho (`maestro.db` com 20 mil eventos e `bruto.db` com 400 mil registros), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária), filtro de horário, verificador de merge (`test-merge-check.js`, com `gh`, `az` e REST do Azure DevOps falsos) e servidor. Eles conferem códigos, não frases. O `test-flow.js`, o `test-flow-tasks.js`, o `test-flow-delivery.js`, o `test-flow-pending.js` e o `test-flow-reports.js` seguem uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
 
 Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, para os itens e as pendências, `node panel/tests/generate-mock-items.js` (usa a mesma projeção do servidor).
 
@@ -398,6 +400,7 @@ painel-maestro/
 │   ├── server.js             servidor HTTP e API (em inglês, devolve códigos)
 │   ├── api-items.js          itens do modelo novo (/api/items)
 │   ├── api-projects.js       empresas e projetos (/api/companies, /api/projects, mover de empresa)
+│   ├── merge-check.js        verificador de merge do PR (gh / REST do Azure DevOps) e "marcar como mergeado"
 │   ├── legacy-records.js     nomes em inglês para os registros do modelo antigo
 │   ├── api-pending-decisions.js  pendências do modelo novo, só leitura (/api/pending-decisions)
 │   ├── index.html            a página compilada (não edite à mão)
