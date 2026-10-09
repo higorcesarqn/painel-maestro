@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 O usuário passou o ID de um PBI do Azure DevOps. Siga o fluxo em `~/.claude/docs/orquestracao-maestri/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `pbi` (ex.: `feature/pbi-10`).
 
-Fora do Maestri (sem `$MAESTRI_CLI`, ou sem Maestro Mode no Ground), pare e sugira `/implementar-pbi`, que usa subagentes.
+Fora do Maestri (sem `$MAESTRI_CLI`, ou sem Maestro Mode no Ground), pare e sugira `/implementar-pbi`, que usa subagentes (o fluxo está em `~/.claude/docs/orquestracao-subagentes/README.md`).
 
 ## Adaptador Azure DevOps
 

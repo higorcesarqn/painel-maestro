@@ -2,7 +2,7 @@
 
 Fluxo compartilhado por `/implementar-pbi-maestri` (Azure DevOps) e `/implementar-issue-maestri` (GitHub). A skill que apontou para cá fornece o **adaptador do tracker**: como ler o item pai e as tasks, achar os bloqueios, marcar uma task concluída e abrir e finalizar o PR. Tudo abaixo é agnóstico de tracker.
 
-É a versão para o Maestri do fluxo de `/implementar-issue` e `/implementar-pbi` (subagentes). O resultado é o mesmo, **um único PR** numa **branch integradora**, mas cada task roda num **floor** (worktree git) com um **terminal Claude Code** visível no canvas, em vez de um subagente invisível. O usuário vê cada trabalhador, pode falar com ele e aprova cada integração.
+É a versão para o Maestri do fluxo de `/implementar-issue` e `/implementar-pbi` com subagentes, descrito em `~/.claude/docs/orquestracao-subagentes/README.md`. O resultado é o mesmo, **um único PR** numa **branch integradora**, mas cada task roda num **floor** (worktree git) com um **terminal Claude Code** visível no canvas, em vez de um subagente invisível. O usuário vê cada trabalhador, pode falar com ele e aprova cada integração.
 
 Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel](#painel)); o portal do canvas abre a página do item no painel.
 

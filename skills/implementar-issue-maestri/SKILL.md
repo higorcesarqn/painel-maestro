@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 O usuário passou o número de uma issue pai do GitHub. Siga o fluxo em `~/.claude/docs/orquestracao-maestri/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `issue` (ex.: `feature/issue-10`). As "tasks" do fluxo são as sub-issues.
 
-Fora do Maestri (sem `$MAESTRI_CLI`, ou sem Maestro Mode no Ground), pare e sugira `/implementar-issue`, que usa subagentes.
+Fora do Maestri (sem `$MAESTRI_CLI`, ou sem Maestro Mode no Ground), pare e sugira `/implementar-issue`, que usa subagentes (o fluxo está em `~/.claude/docs/orquestracao-subagentes/README.md`).
 
 ## Adaptador GitHub
 
