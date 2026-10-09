@@ -105,7 +105,7 @@ O `bin/hook-log.js` grava o log bruto (prompts, comandos, ferramentas) de cada s
 ```
 
 - **Só projetos cadastrados:** o hook grava só as sessões cuja pasta pertence a um projeto do `maestro.db` (pelo `git remote origin`, inclusive no worktree de um floor; um repositório entra no cadastro na primeira vez que o `flow` roda nele). As outras sessões da máquina saem em poucos milissegundos, sem gravar nada.
-- **Ligação pela branch:** `task/<id>-…` (ou `task/<id>`) é a task `<id>`; `feature/pbi-<id>` ou `feature/issue-<n>` é o maestro do item; outra branch liga só ao projeto ("sem item" no uso).
+- **Ligação pela branch:** `task/<id>-…` (ou `task/<id>`) é a task `<id>`; `feature/pbi-<id>` ou `feature/issue-<n>` é o maestro do item; `task/<item>-ajuste-final` (o floor do ajuste final) não é task: conta como o maestro do item; outra branch liga só ao projeto ("sem item" no uso). A convenção vive num lugar só (`parseBranch` em `bin/flow-repo.js`), usado pelo hook e pelo `flow status`/`flow report`; o `integrar.sh` segue a mesma regra.
 - **Garantias:** nunca escreve no stdout nem no stderr, sai sempre com 0, desiste de tudo em cerca de 1,5 s (nunca atrasa nem quebra a sessão), trunca entradas (600 caracteres) e saídas (300) e redige segredos (`«redigido»`).
 - **Retenção:** o servidor apaga do `bruto.db` o que tem mais de 90 dias, ao subir e uma vez por dia.
 - O hook entende esses sete eventos; se a sua versão do Claude Code não tiver algum deles, deixe-o de fora. O hook e o servidor precisam ver o mesmo `MAESTRO_DIR` (ou nenhum).

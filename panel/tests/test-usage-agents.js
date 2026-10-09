@@ -172,6 +172,22 @@ function companyRepo(r, { company, companyName, project, name, remote }) {
   return repo;
 }
 
+suite.test('the final adjustment floor (task/<item>-ajuste-final) counts for the item\'s maestro, never as a task of the same number', async () => {
+  const r = buildRoot('final-adjustment');
+  itemWithSessions(r);
+  const floor = addWorktree(r, 'task/12-ajuste-final', 'floor-ajuste');
+  writeJsonl(session(r, 'sess-adjustment', floor), [assistantLine({ id: 'm6', ts: sp('15:15:00'), i: 50 })]); // 50
+  collect(r);
+  await withServer(r, async (get) => {
+    const u = (await get('/api/usage')).json;
+    assert.deepStrictEqual(u.by_agent.window_5h.map((a) => [a.key, a.relative_consumption]), [
+      ['widgets/12/maestro', 200], ['widgets/12/task-31', 100], ['widgets/-/other', 50],
+    ]);
+    const raw = (await get('/api/raw?session=sess-adjustment')).json.entries;
+    assert.deepStrictEqual(raw.map((e) => [e.branch, e.item_number, e.task_number]), [['task/12-ajuste-final', 12, null]]);
+  });
+});
+
 suite.test('a worker session hooked before its task was in the graph counts for the item; company and project filters choose the lines', async () => {
   const r = buildRoot('filters');
   itemWithSessions(r);

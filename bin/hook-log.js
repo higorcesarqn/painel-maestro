@@ -11,7 +11,9 @@
 // inside a floor's worktree), normalized like the flow CLI does, must be in maestro.db. Anything else exits in a
 // few ms, writing nothing. The session is linked to the item and the task by the current branch:
 //   task/<id>-… (or task/<id>)            the task <id> (its item comes from maestro.db when known)
+//   task/<item>-ajuste-final               the item (the final adjustment floor is not a task: counts as its maestro)
 //   feature/pbi-<id> or feature/issue-<n>  the maestro of the item
+// (the convention lives in parseBranch of bin/flow-repo.js)
 // Entry in bruto.db (bin/raw-store.js): {at, t, session_id, project_id, item_number, task_number, branch,
 //   hook_event, tool?, input?, ok?, output_summary?, error?, duration_ms?, prompt?, detail?, agent_id?,
 //   agent_type?, cwd, version?}.
@@ -40,15 +42,12 @@ const PROMPT_LIMIT = 1000;
 const READ_WAIT_MS = 300;  // maestro.db busy: gives up after this
 const WRITE_WAIT_MS = 500; // bruto.db busy: gives up after this
 
-const RE_TASK_BRANCH = /^task\/(\d{1,9})(?:[-_/.].*)?$/i;
-const RE_ITEM_BRANCH = /^feature\/(?:pbi|issue)-(\d{1,9})(?:[-_/.].*)?$/i;
-
-/** { item, task } of a branch name (null when the branch says nothing). */
-function branchLink(branch) {
-  const task = RE_TASK_BRANCH.exec(branch || '');
-  if (task) return { item: null, task: Number(task[1]) };
-  const item = RE_ITEM_BRANCH.exec(branch || '');
-  return { item: item ? Number(item[1]) : null, task: null };
+/** { item, task } of a branch name (bin/flow-repo.js parseBranch): the final adjustment floor is the item's, not a task. */
+function branchLink(parseBranch, branch) {
+  const b = parseBranch(branch);
+  if (b.kind === 'task') return { item: null, task: b.task };
+  if (b.kind === 'maestro' || b.kind === 'final_adjustment') return { item: b.item, task: null };
+  return { item: null, task: null };
 }
 
 /** "input" of the line: command (Bash/PowerShell), file + size (Read/Write/Edit) or truncated JSON. */
@@ -132,7 +131,7 @@ function versionOf(p, env) {
 
 /** The registered project of the folder and the session's link, or null when the session is not ours. */
 function linkOf(cwd, env) {
-  const { repoInfo, normalizeRemote } = require('./flow-repo');
+  const { repoInfo, normalizeRemote, parseBranch } = require('./flow-repo');
   const info = repoInfo(cwd, env);
   if (!info || !info.origin) return null;
   const { openStore, flowDir } = require('./flow-store');
@@ -142,7 +141,7 @@ function linkOf(cwd, env) {
   try {
     const project = store.projectByRemote(normalizeRemote(info.origin));
     if (!project) return null;
-    const { item, task } = branchLink(info.branch);
+    const { item, task } = branchLink(parseBranch, info.branch);
     return { dir, project: project.id, branch: info.branch, task, item: task !== null ? store.itemOfTask(project.id, task) : item };
   } finally {
     store.close();

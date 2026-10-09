@@ -197,6 +197,19 @@ suite.test('status finds its task by the branch: the dispatched branch, else tas
   assert.deepStrictEqual(maestriCalls(r), [['floor', 'status', 'Pela branch despachada', '--state', 'working']]);
 });
 
+suite.test('the final adjustment floor (task/<item>-ajuste-final) is not a task: status there finds no task and records nothing', async () => {
+  const r = buildRoot('final-adjustment');
+  ok(flow(r, ['item', 'start', '60', '--title', 'Issue sem filhas', '--stage', 'implementation']));
+  const floor = addFloor(r, 'floor-ajuste', 'task/60-ajuste-final');
+  const x = flow(r, ['status', 'Revisando tudo'], { cwd: floor });
+  assert.strictEqual(x.status, 2, x.stderr);
+  assert.ok(/não sei de qual task.*task\/60-ajuste-final/.test(x.stderr), x.stderr);
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/60')).item;
+    assert.deepStrictEqual(item.timeline.map((e) => e.type), ['item-started']);
+  });
+});
+
 suite.test('when maestri floor status fails the event is still recorded and the command ends with exit 1', async () => {
   const r = buildRoot('maestri-fails');
   ok(flow(r, ['item', 'start', '50', '--title', 'Falha do Maestri', '--stage', 'implementation']));

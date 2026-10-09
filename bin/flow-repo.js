@@ -9,6 +9,12 @@
  *                            ".git" or the "_git" of Azure DevOps; SSH and HTTPS forms give the same key
  *   describeRemote(url)    → { remote, tracker: 'github' | 'azure_devops', repo }  (repo: the repository name)
  *   repoInfo(cwd)          → { origin, branch } read from the .git files (the hook's fast path), or null
+ *   parseBranch(name)      → what a branch name says about the flow (the single home of the branch convention):
+ *       task/<item>-ajuste-final               { kind: 'final_adjustment', item }  the final adjustment floor: not a task
+ *       task/<id>, task/<id>-…                 { kind: 'task', task }               the worker of task <id>
+ *       feature/issue-<n>, feature/pbi-<id>…   { kind: 'maestro', item }            the maestro of the item (integration branch)
+ *       anything else (or none)                { kind: 'other' }
+ *     Used by the hook (bin/hook-log.js), by flow status/report (bin/flow.js) and mirrored by integrar.sh (skills).
  */
 const fs = require('fs');
 const path = require('path');
@@ -26,6 +32,23 @@ function branchOf(cwd) {
   const r = spawnSync('git', ['symbolic-ref', '--quiet', '--short', 'HEAD'], { cwd, encoding: 'utf8', windowsHide: true, timeout: 10000 });
   if (r.error || r.status !== 0) return null;
   return String(r.stdout || '').trim() || null;
+}
+
+const RE_FINAL_ADJUSTMENT_BRANCH = /^task\/(\d{1,9})-ajuste-final$/i;
+const RE_TASK_BRANCH = /^task\/(\d{1,9})(?:[-_/.].*)?$/i;
+const RE_ITEM_BRANCH = /^feature\/(?:pbi|issue)-(\d{1,9})(?:[-_/.].*)?$/i;
+
+/** What a branch name says about the flow: { kind: 'final_adjustment'|'task'|'maestro'|'other', item?, task? }. */
+function parseBranch(name) {
+  const s = String(name || '');
+  const positive = (m) => m && Number(m[1]) > 0;
+  let m = RE_FINAL_ADJUSTMENT_BRANCH.exec(s);
+  if (positive(m)) return { kind: 'final_adjustment', item: Number(m[1]) };
+  m = RE_TASK_BRANCH.exec(s);
+  if (positive(m)) return { kind: 'task', task: Number(m[1]) };
+  m = RE_ITEM_BRANCH.exec(s);
+  if (positive(m)) return { kind: 'maestro', item: Number(m[1]) };
+  return { kind: 'other' };
 }
 
 function normalizeRemote(url) {
@@ -122,4 +145,4 @@ function repoInfo(cwd, env = process.env) {
   return { origin: origin || null, branch };
 }
 
-module.exports = { originOf, branchOf, normalizeRemote, describeRemote, repoInfo };
+module.exports = { originOf, branchOf, normalizeRemote, describeRemote, repoInfo, parseBranch };

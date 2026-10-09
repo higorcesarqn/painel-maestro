@@ -14,6 +14,7 @@
 //     subagents the first line carries partial usage). The agent of a session comes from its link:
 //       task/<id> branch                      the worker of task <id>    key <project>/<item>/task-<id>
 //       feature/pbi-<id>, feature/issue-<n>    the maestro of the item    key <project>/<item>/maestro
+//       task/<item>-ajuste-final               the maestro of the item    (the final adjustment floor is not a task)
 //       any other branch of the project        no item ("other")          key <project>/-/other
 //     A task's item missing in the session (the task was not in maestro.db yet when the hook ran) is looked up in
 //     maestro.db on every round. The items are <project>/<item> (or <project>/- for the sessions without one).

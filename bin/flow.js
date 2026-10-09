@@ -18,8 +18,9 @@
 // "maestri floor status" (executable: FLOW_MAESTRI_CLI, else MAESTRI_CLI, else "maestri"; a .js path runs with
 // node) and records task-status; outside of Maestri (a subagent) it only records. The task comes from --item/--task
 // or, without them, from the current branch: the task dispatched with this branch, else "task/<n>-…" → task n
-// (looked up in the project's items; --item settles an ambiguity). When the maestri call fails the event is
-// still recorded (payload.maestri = 'failed') and the command ends with exit 1.
+// (looked up in the project's items; --item settles an ambiguity). The branch convention is parseBranch of
+// flow-repo.js: "task/<item>-ajuste-final" is the final adjustment floor, never a task. When the maestri call fails
+// the event is still recorded (payload.maestri = 'failed') and the command ends with exit 1.
 //
 // Exit codes: 0 ok · 2 invalid data (clear message on stderr) · 1 anything else.
 // Messages for people come from the pt-BR dictionary (bin/i18n/pt-BR.js); nothing else is printed (the
@@ -29,7 +30,7 @@ const { spawnSync } = require('child_process');
 const lib = require('./lib');
 const { t } = require('./i18n');
 const { openStore, flowDir, STAGES, UNASSIGNED_COMPANY } = require('./flow-store');
-const { originOf, branchOf, describeRemote } = require('./flow-repo');
+const { originOf, branchOf, describeRemote, parseBranch } = require('./flow-repo');
 const { projectItem, trackerRef, EVENT_TYPES, WORKER_STATES } = require('./flow-projection');
 const { PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES } = require('./flow-projection');
 const { createAdmin, isAdminCommand } = require('./flow-admin');
@@ -286,8 +287,8 @@ function locateTask(store, project, cmd, branch) {
     const hits = scope.flatMap((s) => s.tasks.filter((x) => x.branch === branch).map((x) => ({ item: s, task: x.number })));
     if (hits.length === 1) return hits[0];
     if (hits.length > 1) throw new InvalidData('errors.branchAmbiguous', { branch, tasks: hits.map((h) => `${key(h.item.number)} task ${h.task}`).join(', ') });
-    const m = /^task\/(\d{1,9})(?:[-_/.]|$)/i.exec(branch);
-    if (m && Number(m[1]) > 0) return withTask(Number(m[1]));
+    const named = parseBranch(branch); // task/<item>-ajuste-final is the final adjustment floor, never a task
+    if (named.kind === 'task') return withTask(named.task);
   }
   if (cmd.item && scope[0].tasks.length === 1) return { item: scope[0], task: scope[0].tasks[0].number };
   throw new InvalidData('errors.statusNoTask', { branch: branch || '-' });
