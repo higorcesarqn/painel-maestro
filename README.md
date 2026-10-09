@@ -193,7 +193,7 @@ flow pending resolve P-7 --decision "A, com a ressalva X"     # a decisão fica 
 flow pending cancel P-7 --reason "Entrou na especificação"
 ```
 
-Tipos (`--kind`): `task_review` (exige `--task`; resolvida sozinha pela integração da task), `worker_blocked`, `decision`, `finding`, `parallelize`, `hml`. Severidades: `critical`, `high`, `normal` (padrão), `low`. Onde responder: `--workspace`/`--terminal`, senão o terminal do Maestri onde o comando roda (`MAESTRI_WORKSPACE_NAME`/`_ID`, `MAESTRI_TERMINAL_NAME`/`_ID`) e o workspace do projeto.
+Tipos (`--kind`): `task_review` (exige `--task`; resolvida sozinha pela integração da task), `worker_blocked`, `decision`, `finding`, `parallelize`, `hml` (um `flow hml` com falha ou bloqueio já abre uma sozinho, que fecha quando uma HML seguinte passar em tudo ou o item for concluído; abrir uma `hml` à mão a substitui). Severidades: `critical`, `high`, `normal` (padrão), `low`. Onde responder: `--workspace`/`--terminal`, senão o terminal do Maestri onde o comando roda (`MAESTRI_WORKSPACE_NAME`/`_ID`, `MAESTRI_TERMINAL_NAME`/`_ID`) e o workspace do projeto.
 
 **Achados (maestro):**
 

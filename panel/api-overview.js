@@ -8,7 +8,7 @@
 //     active: { total, by_stage: {stage: n}, companies: [{ id, name, unassigned, total,
 //               projects: [{ id, name, tracker, stages, total, by_stage: {stage: n} }] }] },
 //                                     active items; "Sem empresa" last, the rest alphabetical
-//     pending_decisions: { total, by_severity: {critical, high, normal, low}, open: [{ id, kind, severity, title,
+//     pending_decisions: { total, by_severity: {critical, high, normal, low}, open: [{ id, kind, severity, title, derived_from,
 //                          opened_at, item, task }] }   the open ones, the most urgent first (at most 8 listed)
 //     stale_items: [{ key, project, number, tracker_ref, title, stage, stage_since, updated_at, hours }]
 //                                     active items on the same stage for at least stale_hours, the longest first
@@ -106,7 +106,7 @@ function picture(items, company, nowMs, staleHours) {
 
 /** The open pending decision as the Overview lists it (the whole one is on the Pendências screen). */
 function pendingSummary(p) {
-  return { id: p.id, kind: p.kind, severity: p.severity, title: p.title, opened_at: p.opened_at, item: p.item, task: p.task };
+  return { id: p.id, kind: p.kind, severity: p.severity, title: p.title, derived_from: p.derived_from, opened_at: p.opened_at, item: p.item, task: p.task };
 }
 
 /** Active items on the same stage for at least staleHours, the longest parked first. */

@@ -11,10 +11,15 @@ import { objs, obj, arr, txt, age, dateTime, number } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Kpi, Badge, Segmented, Empty, InfoHint } from '../components/base.jsx';
 import { Icon, Inbox, X } from '../components/Icon.jsx';
+import { pendingTitle } from '../data/domain.js';
+import { TrackerLink } from './ItemDelivery.jsx';
 import '../styles/pending-decisions.css';
 
 const SEVERITIES = ['critical', 'high', 'normal', 'low'];
 const STATUSES = ['open', 'resolved', 'canceled'];
+// Resolved without the owner's decision: by the task's integration, an approved HML, the item's conclusion or the
+// maestro's own HML pending decision (bin/flow-projection.js).
+const AUTO_RESOLUTIONS = ['task_integrated', 'hml_approved', 'item_done', 'replaced'];
 const SEVERITY_TONE = { critical: 'danger', high: 'warning', normal: 'blue', low: 'neutral' };
 const STATUS_TONE = { open: 'blue', resolved: 'ok', canceled: 'neutral' };
 const ref = (p) => t('pending.ref', { id: p.id });
@@ -124,7 +129,7 @@ export function PendingDecisions() {
                   <span class="spacer" />
                   <span class="muted tiny" title={dateTime(p.opened_at)}>{age(p.opened_at)}</span>
                 </span>
-                <span class="pending-title two-lines">{txt(p.title) || t('pending.noTitle')}</span>
+                <span class="pending-title two-lines">{pendingTitle(p)}</span>
                 <span class="pending-foot muted tiny">{t('pending.itemLine', { ref: txt(it.tracker_ref), project: projectName(it) })}</span>
               </button>
             );
@@ -156,7 +161,7 @@ function PendingDetail({ p, goTo }) {
         <Badge tone={STATUS_TONE[p.status] || 'neutral'}>{t(`pending.status.${p.status}`)}</Badge>
         <span class="muted" title={dateTime(p.opened_at)}>{t('pending.openedAgo', { age: age(p.opened_at) })}</span>
       </div>
-      <h2 class="pending-heading">{txt(p.title) || t('pending.noTitle')}</h2>
+      <h2 class="pending-heading">{pendingTitle(p)}</h2>
       <dl class="pending-facts">
         <dt>{t('pending.item')}</dt>
         <dd>
@@ -172,6 +177,12 @@ function PendingDetail({ p, goTo }) {
         </dd>
       </dl>
       {p.context && <p class="pending-context pre">{txt(p.context)}</p>}
+      {obj(p.derived_from) && (
+        <p class="pending-context">
+          {t('pending.derivedHmlContext', { passed: p.derived_from.passed, failed: p.derived_from.failed, blocked: p.derived_from.blocked })}
+          {p.derived_from.card_url && <> <TrackerLink url={p.derived_from.card_url}>{t('pending.derivedHmlCard')}</TrackerLink></>}
+        </p>
+      )}
       {options.length > 0 && (
         <div class="pending-options-read">
           <span class="label">{t('pending.options')}</span>
@@ -183,9 +194,9 @@ function PendingDetail({ p, goTo }) {
       )}
       {p.status === 'resolved' && (
         <div class="pending-answer">
-          <span class="label">{p.resolution === 'task_integrated' ? t('pending.resolvedByIntegration') : t('pending.decision')}</span>
-          {p.resolution === 'task_integrated'
-            ? <p>{t('pending.integratedText', { task: task ? task.number : '—' })}</p>
+          <span class="label">{AUTO_RESOLUTIONS.includes(p.resolution) ? t(`pending.resolvedBy.${p.resolution}`) : t('pending.decision')}</span>
+          {AUTO_RESOLUTIONS.includes(p.resolution)
+            ? <p>{t(`pending.resolvedText.${p.resolution}`, { task: task ? task.number : '—' })}</p>
             : <p class="pre">{txt(p.decision) || t('pending.noDecision')}</p>}
         </div>
       )}

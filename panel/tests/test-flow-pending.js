@@ -108,7 +108,7 @@ suite.test('the maestro opens a pending decision on a task; the API shows it wit
       task: { number: 13, title: 'Gerar o PDF', state: 'waiting' },
       maestri: { workspace: 'Contoso', terminal: 'Maestro 12' },
       opened_at: p.opened_at, opened_by: { role: 'maestro', name: null },
-      closed_at: null, closed_by: null, resolution: null, decision: null, reason: null,
+      closed_at: null, closed_by: null, resolution: null, decision: null, reason: null, derived_from: null,
     });
     assert.ok(Date.parse(p.opened_at) > 0, p.opened_at);
   });
@@ -134,6 +134,61 @@ suite.test('integrating a task resolves its review pending decision, without an 
     assert.deepStrictEqual(all.map((p) => p.id), [blocked, review14, review13]);
     const types = (await get('/api/items/widgets/12')).item.timeline.map((e) => e.type);
     assert.deepStrictEqual(types.slice(-1), ['task-integrated'], 'the integration records no pending decision event');
+  });
+});
+
+suite.test('a failed or blocked HML result opens an "hml" pending decision by itself; an approved result resolves it, without extra events', async () => {
+  const r = buildRoot('hml');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Exportar relatório', '--stage', 'hml_validation']));
+  ok(flow(r, ['hml', '12', '--passed', '7', '--failed', '1', '--blocked', '2', '--card', 'https://github.com/acme/widgets/issues/12']));
+  let hmlId;
+  await withServer(r, async (get) => {
+    const open = await list(get, '?status=open');
+    assert.strictEqual(open.length, 1);
+    const p = open[0];
+    hmlId = p.id;
+    assert.deepStrictEqual([p.kind, p.severity, p.status, p.title, p.item.key, p.task], ['hml', 'high', 'open', null, 'widgets/12', null]);
+    assert.deepStrictEqual(p.derived_from, { type: 'hml-recorded', passed: 7, failed: 1, blocked: 2, card_url: 'https://github.com/acme/widgets/issues/12' });
+    const overview = (await get('/api/overview')).pending_decisions;
+    assert.deepStrictEqual([overview.total, overview.open[0].id, overview.open[0].derived_from.failed], [1, hmlId, 1]);
+    assert.strictEqual((await get('/api/state')).kpis.pending_decisions.by_severity.high, 1);
+  });
+  // Another failing round keeps one pending decision, with the latest numbers; then everything passes.
+  ok(flow(r, ['hml', '12', '--passed', '9', '--failed', '1']));
+  await withServer(r, async (get) => {
+    const open = await list(get, '?status=open');
+    assert.deepStrictEqual(open.map((p) => [p.id, p.derived_from.passed, p.derived_from.failed, p.derived_from.blocked]), [[hmlId, 9, 1, 0]]);
+  });
+  ok(flow(r, ['hml', '12', '--passed', '10']));
+  await withServer(r, async (get) => {
+    const all = await list(get);
+    assert.deepStrictEqual(all.map((p) => [p.id, p.status, p.resolution]), [[hmlId, 'resolved', 'hml_approved']]);
+    const types = (await get('/api/items/widgets/12')).item.timeline.map((e) => e.type);
+    assert.deepStrictEqual(types, ['item-started', 'hml-recorded', 'hml-recorded', 'hml-recorded'], 'nothing but the HML results was recorded');
+  });
+});
+
+suite.test('the HML pending decision is not repeated when the maestro opened one, closes when the item is done and can be resolved by id', async () => {
+  const r = buildRoot('hml-rules');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Já com pendência', '--stage', 'hml_validation']));
+  const explicit = openedId(flow(r, ['pending', 'open', '12', '--kind', 'hml', '--title', 'Cenário 4 falhou: aceitar?']));
+  ok(flow(r, ['hml', '12', '--passed', '3', '--failed', '1']));
+  ok(flow(r, ['item', 'start', '20', '--title', 'Concluído com falha aceita', '--stage', 'hml_validation']));
+  ok(flow(r, ['hml', '20', '--passed', '3', '--blocked', '1']));
+  ok(flow(r, ['item', 'done', '20']));
+  ok(flow(r, ['item', 'start', '30', '--title', 'Resolvido pelo maestro', '--stage', 'hml_validation']));
+  ok(flow(r, ['hml', '30', '--passed', '3', '--failed', '2']));
+  let derived30;
+  await withServer(r, async (get) => {
+    const all = await list(get);
+    assert.deepStrictEqual(all.filter((p) => p.item.number === 12).map((p) => [p.id, p.status, p.derived_from || null]), [[explicit, 'open', null]]);
+    assert.deepStrictEqual(all.filter((p) => p.item.number === 20).map((p) => [p.status, p.resolution]), [['resolved', 'item_done']]);
+    derived30 = all.find((p) => p.item.number === 30).id;
+  });
+  ok(flow(r, ['pending', 'resolve', `P-${derived30}`, '--decision', 'Os 2 cenários viram task nova.']));
+  await withServer(r, async (get) => {
+    const p = (await list(get)).find((x) => x.id === derived30);
+    assert.deepStrictEqual([p.status, p.resolution, p.decision], ['resolved', 'decision', 'Os 2 cenários viram task nova.']);
   });
 });
 

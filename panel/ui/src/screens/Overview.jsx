@@ -10,6 +10,7 @@ import { obj, objs, arr, number, pct, age, hm, spDay, now, dayMonthFormat, toDat
 import { t } from '../i18n/index.js';
 import { Card, Kpi, Badge, Ring, Empty, Skeleton, InfoHint } from '../components/base.jsx';
 import { Icon, ArrowRight, Activity, RefreshCw, Workflow, Inbox, Clock } from '../components/Icon.jsx';
+import { pendingTitle } from '../data/domain.js';
 import { LogEventModal, eventTypeName, eventDetail, agentText } from './LogEventModal.jsx';
 
 // The flow's stages in their order; "done" never shows (only active items are counted).
@@ -250,7 +251,7 @@ function OpenPendingDecisions({ o }) {
             <button type="button" key={x.id} class="list-item" onClick={() => goToPendingDecision(`P-${x.id}`)}>
               <span class={`overview-sev is-${x.severity}`} aria-hidden="true" />
               <span class="overview-pending-main">
-                <span class="truncate" title={txt(x.title)}>{txt(x.title)}</span>
+                <span class="truncate" title={pendingTitle(x)}>{pendingTitle(x)}</span>
                 <span class="muted tiny">{t('overview.pendingLine', { id: x.id, kind: t(`pending.kinds.${x.kind}`), ref: txt(it.tracker_ref), project: txt(project.name) })}</span>
               </span>
               <span class="muted tiny" title={dateTime(x.opened_at)}>{age(x.opened_at)}</span>

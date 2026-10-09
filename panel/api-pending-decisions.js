@@ -9,7 +9,9 @@
 //   pending_decisions: [{ id, kind, severity, status, title, context, options, recommendation,
 //     item: { key, number, tracker_ref, title, stage, project: { id, name, tracker, company: { id, name } } },
 //     task: { number, title, state } | null, maestri: { workspace, terminal },
-//     opened_at, opened_by, closed_at, closed_by, resolution, decision, reason }],
+//     opened_at, opened_by, closed_at, closed_by, resolution, decision, reason,
+//     derived_from: null | { type: 'hml-recorded', passed, failed, blocked, card_url } }]  (derived: opened by a failing
+//     HML result itself, title null; see bin/flow-projection.js)
 //     open ones first (by severity, then the oldest), then the closed ones (the most recently closed first)
 //   counts: { status: {open, resolved, canceled}, severity: {critical, high, normal, low} }
 //     each facet counts with the other filters applied but not its own

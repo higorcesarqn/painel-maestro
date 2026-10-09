@@ -41,7 +41,7 @@ function Block({ title, children }) {
 }
 
 /** A link that opens the tracker, or plain text when the URL is not a tracker's. */
-function TrackerLink({ url, children }) {
+export function TrackerLink({ url, children }) {
   if (!trackerHref(url)) return <span>{children}</span>;
   return (
     <a class="link delivery-link" href={trackerHref(url)} target="_blank" rel="noopener noreferrer" title={t('delivery.openInTracker')}>

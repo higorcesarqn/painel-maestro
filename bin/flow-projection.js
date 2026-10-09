@@ -171,7 +171,7 @@ function projectItem(events, project) {
     stage_since: stageSince,
     ...reviewState(own, projectTasks(own, start.item_number, title)),
     ...delivery.result(stage, stageSince),
-    pending_decisions: projectPendingDecisions(own),
+    pending_decisions: projectPendingDecisions(own, project),
   };
 }
 
@@ -297,7 +297,8 @@ function deliveryState() {
 //     maestri: { workspace, terminal },   where the owner answers (the maestro's Maestri terminal)
 //     opened_at, opened_by: { role, name },
 //     closed_at, closed_by: { role, name } | null,
-//     resolution,               'decision' (resolved with the owner's decision) | 'task_integrated' | null
+//     resolution,               'decision' (resolved with the owner's decision) | 'task_integrated' | 'hml_approved' |
+//                               'item_done' | 'replaced' | null
 //     decision,                 what the owner decided (pending-decision-resolved), or null
 //     reason,                   why it was canceled (pending-decision-canceled), or null
 //   }
@@ -309,13 +310,26 @@ function deliveryState() {
 //   pending-decision-canceled  payload { pending_decision: id, reason }
 //   task-integrated            also resolves the open task_review of that task (the review and the OK to integrate are
 //                              the same pending decision): resolution 'task_integrated', no extra event is written.
+//   hml-recorded               with failed or blocked scenarios, opens an "hml" pending decision by itself (#1, story
+//                              51), derived, with no event of its own: id = the hml-recorded event's id, severity high,
+//                              title null and derived_from { type: 'hml-recorded', passed, failed, blocked, card_url }
+//                              (the page writes the sentence); where to answer: the project's Maestri workspace. Rule
+//                              against duplicates: none is derived while the item has an open "hml" pending decision
+//                              (the maestro's own or the derived one, which then takes the latest numbers). It is
+//                              resolved by a later hml-recorded with everything passed (resolution 'hml_approved'), by
+//                              item-done ('item_done'), by the maestro opening an "hml" one ('replaced') or, like any
+//                              other, by pending-decision-resolved/-canceled with its id.
 // Only an open pending decision changes; a second resolution or a cancel after it is ignored.
+// Every pending decision carries derived_from (null when it was opened by a pending-decision-opened event).
 
 const PENDING_DECISION_KINDS = ['task_review', 'worker_blocked', 'decision', 'finding', 'parallelize', 'hml'];
 const PENDING_DECISION_SEVERITIES = ['critical', 'high', 'normal', 'low'];
 const PENDING_DECISION_STATUSES = ['open', 'resolved', 'canceled'];
 
-function projectPendingDecisions(list) {
+/** derived_from of the HML pending decision: the numbers of the last failing result. */
+const hmlOrigin = (p, passed, failed, blocked) => ({ type: EVENT_TYPES.hmlRecorded, passed, failed, blocked, card_url: trackerUrl(p.card_url) });
+
+function projectPendingDecisions(list, project) {
   const byId = new Map();
   const agentOf = (e) => ({ role: (e.agent && e.agent.role) || null, name: (e.agent && e.agent.name) || null });
   const close = (p, e, fields) => Object.assign(p, { closed_at: e.at, closed_by: agentOf(e) }, fields);
@@ -323,6 +337,8 @@ function projectPendingDecisions(list) {
     const p = payloadOf(e);
     if (e.type === EVENT_TYPES.pendingDecisionOpened) {
       const maestri = p.maestri && typeof p.maestri === 'object' ? p.maestri : {};
+      // The maestro's own "hml" pending decision takes the place of the derived one.
+      if (p.kind === 'hml') for (const pd of byId.values()) if (pd.status === 'open' && pd.derived_from) close(pd, e, { status: 'resolved', resolution: 'replaced' });
       byId.set(e.id, {
         id: e.id,
         kind: textOrNull(p.kind),
@@ -341,12 +357,33 @@ function projectPendingDecisions(list) {
         resolution: null,
         decision: null,
         reason: null,
+        derived_from: null,
       });
     } else if (e.type === EVENT_TYPES.pendingDecisionResolved || e.type === EVENT_TYPES.pendingDecisionCanceled) {
       const pd = byId.get(p.pending_decision);
       if (!pd || pd.status !== 'open') continue;
       if (e.type === EVENT_TYPES.pendingDecisionResolved) close(pd, e, { status: 'resolved', resolution: 'decision', decision: textOrNull(p.decision) });
       else close(pd, e, { status: 'canceled', reason: textOrNull(p.reason) });
+    } else if (e.type === EVENT_TYPES.hmlRecorded) {
+      const passed = count(p.passed);
+      const failed = count(p.failed);
+      const blocked = count(p.blocked);
+      const openHml = [...byId.values()].filter((pd) => pd.status === 'open' && pd.kind === 'hml');
+      const derived = openHml.find((pd) => pd.derived_from);
+      if (!failed && !blocked) {
+        if (derived) close(derived, e, { status: 'resolved', resolution: 'hml_approved' });
+      } else if (derived) {
+        Object.assign(derived, { derived_from: hmlOrigin(p, passed, failed, blocked) });
+      } else if (!openHml.length) {
+        const workspace = project && typeof project.maestri_workspace === 'string' ? textOrNull(project.maestri_workspace) : null;
+        byId.set(e.id, {
+          id: e.id, kind: 'hml', severity: 'high', status: 'open', title: null, context: null, options: [], recommendation: null,
+          task_number: null, maestri: { workspace, terminal: null }, opened_at: e.at, opened_by: agentOf(e), closed_at: null, closed_by: null,
+          resolution: null, decision: null, reason: null, derived_from: hmlOrigin(p, passed, failed, blocked),
+        });
+      }
+    } else if (e.type === EVENT_TYPES.itemDone) {
+      for (const pd of byId.values()) if (pd.status === 'open' && pd.derived_from) close(pd, e, { status: 'resolved', resolution: 'item_done' });
     } else if (e.type === EVENT_TYPES.taskIntegrated && isNumber(e.task_number)) {
       for (const pd of byId.values()) {
         if (pd.status === 'open' && pd.kind === 'task_review' && pd.task_number === e.task_number) {

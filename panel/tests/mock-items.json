@@ -3938,6 +3938,7 @@
         "resolution": null,
         "decision": null,
         "reason": null,
+        "derived_from": null,
         "item": {
           "key": "portal/3112",
           "number": 3112,
@@ -3986,6 +3987,7 @@
         "resolution": null,
         "decision": null,
         "reason": null,
+        "derived_from": null,
         "item": {
           "key": "portal/3100",
           "number": 3100,
@@ -4031,6 +4033,7 @@
         "resolution": null,
         "decision": null,
         "reason": null,
+        "derived_from": null,
         "item": {
           "key": "portal/3112",
           "number": 3112,
@@ -4079,6 +4082,7 @@
         "resolution": null,
         "decision": null,
         "reason": null,
+        "derived_from": null,
         "item": {
           "key": "storefront/48",
           "number": 48,
@@ -4126,6 +4130,7 @@
         "resolution": null,
         "decision": null,
         "reason": "Entrou na especificação do item.",
+        "derived_from": null,
         "item": {
           "key": "billing-api/2901",
           "number": 2901,
@@ -4173,6 +4178,7 @@
         "resolution": "decision",
         "decision": "B: vira task nova para triagem.",
         "reason": null,
+        "derived_from": null,
         "item": {
           "key": "painel-maestro/5",
           "number": 5,
@@ -4194,6 +4200,57 @@
           "title": "Item ponta a ponta (tracer bullet)",
           "state": "working"
         }
+      },
+      {
+        "id": 45,
+        "kind": "hml",
+        "severity": "high",
+        "status": "resolved",
+        "title": null,
+        "context": null,
+        "options": [],
+        "recommendation": null,
+        "maestri": {
+          "workspace": "Contoso Portal",
+          "terminal": null
+        },
+        "opened_at": "2026-10-08T09:05:00-03:00",
+        "opened_by": {
+          "role": "owner",
+          "name": null
+        },
+        "closed_at": "2026-10-08T16:30:00-03:00",
+        "closed_by": {
+          "role": "owner",
+          "name": "Higor"
+        },
+        "resolution": "replaced",
+        "decision": null,
+        "reason": null,
+        "derived_from": {
+          "type": "hml-recorded",
+          "passed": 5,
+          "failed": 1,
+          "blocked": 1,
+          "card_url": "https://dev.azure.com/contoso/Portal/_workitems/edit/3100"
+        },
+        "item": {
+          "key": "portal/3100",
+          "number": 3100,
+          "tracker_ref": "PBI 3100",
+          "title": "Conciliação de boletos com o extrato do banco",
+          "stage": "hml_validation",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          }
+        },
+        "task": null
       },
       {
         "id": 60,
@@ -4224,6 +4281,7 @@
         "resolution": "decision",
         "decision": "Pode paralelizar. A 3115 integra primeiro.",
         "reason": null,
+        "derived_from": null,
         "item": {
           "key": "portal/3112",
           "number": 3112,
@@ -4271,6 +4329,7 @@
         "resolution": "task_integrated",
         "decision": null,
         "reason": null,
+        "derived_from": null,
         "item": {
           "key": "portal/3112",
           "number": 3112,
@@ -4322,6 +4381,7 @@
         "resolution": "decision",
         "decision": "A: 3 retentativas, com intervalo de 24 h.",
         "reason": null,
+        "derived_from": null,
         "item": {
           "key": "billing-api/2875",
           "number": 2875,
@@ -4344,12 +4404,12 @@
     "counts": {
       "status": {
         "open": 4,
-        "resolved": 4,
+        "resolved": 5,
         "canceled": 1
       },
       "severity": {
         "critical": 1,
-        "high": 2,
+        "high": 3,
         "normal": 4,
         "low": 2
       }
@@ -4582,6 +4642,7 @@
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
+            "derived_from": null,
             "opened_at": "2026-10-09T10:06:00-03:00",
             "item": {
               "key": "portal/3112",
@@ -4610,6 +4671,7 @@
             "kind": "hml",
             "severity": "high",
             "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
+            "derived_from": null,
             "opened_at": "2026-10-08T16:30:00-03:00",
             "item": {
               "key": "portal/3100",
@@ -4634,6 +4696,7 @@
             "kind": "task_review",
             "severity": "high",
             "title": "Revisar e integrar a task 3115 (botão de exportar)",
+            "derived_from": null,
             "opened_at": "2026-10-09T08:42:00-03:00",
             "item": {
               "key": "portal/3112",
@@ -4662,6 +4725,7 @@
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
+            "derived_from": null,
             "opened_at": "2026-10-09T09:45:00-03:00",
             "item": {
               "key": "storefront/48",
@@ -5204,6 +5268,7 @@
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
+            "derived_from": null,
             "opened_at": "2026-10-09T10:06:00-03:00",
             "item": {
               "key": "portal/3112",
@@ -5232,6 +5297,7 @@
             "kind": "hml",
             "severity": "high",
             "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
+            "derived_from": null,
             "opened_at": "2026-10-08T16:30:00-03:00",
             "item": {
               "key": "portal/3100",
@@ -5256,6 +5322,7 @@
             "kind": "task_review",
             "severity": "high",
             "title": "Revisar e integrar a task 3115 (botão de exportar)",
+            "derived_from": null,
             "opened_at": "2026-10-09T08:42:00-03:00",
             "item": {
               "key": "portal/3112",
@@ -5760,6 +5827,7 @@
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
+            "derived_from": null,
             "opened_at": "2026-10-09T09:45:00-03:00",
             "item": {
               "key": "storefront/48",
