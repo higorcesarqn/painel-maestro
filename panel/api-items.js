@@ -83,7 +83,7 @@ function itemDetail(source, projectId, number) {
   const events = store.itemEvents(projectId, number);
   const state = projectItem(events, project);
   if (!state) return null;
-  return { item: { ...summary(project, state), stages: state.stages, tasks: state.tasks, ...deliveryDetail(state), timeline: events.map(timelineEntry) } };
+  return { item: { ...summary(project, state), stages: state.stages, tasks: state.tasks, ...deliveryDetail(state), ...reviewDetail(state), timeline: events.map(timelineEntry) } };
 }
 
 // ---------- delivery (#9): PR, final adjustment, HML and conclusion ----------
@@ -102,6 +102,14 @@ function activeFilter(query) {
 
 function deliveryDetail(state) {
   return { completed_at: state.completed_at, pr: state.pr, final_adjustment: state.final_adjustment, hml: state.hml };
+}
+
+// ---------- reports and findings (#8) ----------
+// The item page also carries the workers' reports (every one, oldest first, with the texts exactly as recorded)
+// and the maestro's findings; the tasks that came from a finding carry its number (tasks[].finding).
+
+function reviewDetail(state) {
+  return { reports: state.reports, findings: state.findings };
 }
 
 /** Route of an item page: { project, number } or null when the address is not one. */

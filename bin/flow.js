@@ -466,6 +466,174 @@ function recordDelivery(store, cmd, { project, events, base, key, ref }) {
   return t(`delivery.done.${cmd.kind}`, { key, ref, stage: after.stage, state: cmd.state, outcome: cmd.outcome, passed: cmd.passed, failed: cmd.failed, blocked: cmd.blocked });
 }
 
+// ---------- reports and findings (#8): the worker's report of a task and the maestro's findings ----------
+//
+//   flow report [--item N] [--task N] [--status ok|blocked] [--reason "..."] [--branch B] [--sha S] --json -
+//       → task-report: the whole report the worker sends to the maestro, recorded before it is sent. The long
+//         fields (tests, changes, decisions, risks, shared_files, text) come by JSON on standard input and are kept
+//         exactly as written. The task is found like in "status" (--item/--task or the current branch); branch and
+//         SHA default to the current folder's when the task was found by the branch or the folder is on its branch.
+//   flow finding add <number> --title "..." --classification defect|owner_decision|discarded [--description "..."]
+//         [--task <origin task>] [--new-task <n> [--new-task-title "..."]]                    → finding-recorded
+//   flow finding link <number> <finding> --new-task <n> [--new-task-title "..."]             → finding-linked
+//       A finding's new task is a task of the item in state "out" (for triage); its number is numbered per item.
+
+const MAX_REPORT_TEXT = 20000;
+const MAX_REPORT_LIST = 100;
+const REPORT_TEXTS = ['tests', 'changes', 'risks', 'text'];
+const REPORT_LISTS = ['decisions', 'shared_files'];
+const REVIEW_COMMANDS = ['report', 'finding'];
+const FINDING_KINDS = ['finding-add', 'finding-link'];
+
+Object.assign(OPTIONS, {
+  report: ['item', 'task', 'status', 'reason', 'branch', 'sha', ...AGENT],
+  'finding-add': ['title', 'classification', 'description', 'task', 'new-task', 'new-task-title', ...AGENT],
+  'finding-link': ['new-task', 'new-task-title', ...AGENT],
+});
+
+/** A free text of a report or finding, kept exactly as written; null when absent or blank. */
+function freeText(value, field) {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'texto' });
+  if (value.length > MAX_REPORT_TEXT) throw new InvalidData('review.errors.textTooLong', { field, length: value.length, max: MAX_REPORT_TEXT });
+  return value.trim() ? value : null;
+}
+
+/** A list of texts of the JSON (decisions, shared_files): blank entries are dropped. */
+function textList(value, field) {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || value.some((x) => typeof x !== 'string')) throw new InvalidData('errors.jsonFieldType', { field, expected: 'uma lista de textos' });
+  if (value.length > MAX_REPORT_LIST) throw new InvalidData('review.errors.listTooLong', { field, max: MAX_REPORT_LIST });
+  return value.map((x, i) => freeText(x, `${field}[${i}]`)).filter((x) => x !== null);
+}
+
+function parseReport(rest) {
+  const { opts, json } = prepare(rest, 'report', 0);
+  const statusValue = pick(opts.status, jsonText(json, 'status'));
+  if (statusValue === undefined || !String(statusValue).trim()) throw new InvalidData('review.errors.missingStatus');
+  const status = String(statusValue).trim().toLowerCase();
+  if (!projection.REPORT_STATUSES.includes(status)) throw new InvalidData('review.errors.invalidStatus', { value: statusValue });
+  const fields = { blocked_reason: freeText(pick(opts.reason, json.blocked_reason), 'blocked_reason') };
+  for (const f of REPORT_TEXTS) fields[f] = freeText(json[f], f);
+  for (const f of REPORT_LISTS) fields[f] = textList(json[f], f);
+  const empty = REPORT_TEXTS.every((f) => fields[f] === null) && REPORT_LISTS.every((f) => !fields[f].length) && !fields.blocked_reason;
+  if (empty) throw new InvalidData('review.errors.emptyReport');
+  const shaValue = pick(opts.sha, jsonText(json, 'sha'));
+  const item = pick(opts.item, jsonNumber(json, 'number'));
+  const task = pick(opts.task, jsonNumber(json, 'task'));
+  return {
+    kind: 'report', status, fields,
+    branch: lineText(pick(opts.branch, jsonText(json, 'branch')), 'branch'),
+    sha: shaValue === undefined || !String(shaValue).trim() ? null : sha(shaValue, 'sha'),
+    item: item === undefined ? null : itemNumber(item), task: task === undefined ? null : taskNumber(task),
+    ...agentFields(opts, json, 'worker'),
+  };
+}
+
+function newTaskFields(opts, json) {
+  const value = pick(opts['new-task'], jsonNumber(json, 'new_task'));
+  const title = pick(opts['new-task-title'], jsonText(json, 'new_task_title'));
+  if (value === undefined) {
+    if (title !== undefined) throw new InvalidData('review.errors.missingNewTask');
+    return null;
+  }
+  const t2 = title === undefined ? '' : String(title).trim();
+  if (t2.length > MAX_TITLE || /[\r\n]/.test(t2)) throw new InvalidData('errors.invalidText', { field: 'new_task_title', max: MAX_TITLE });
+  return { number: taskNumber(value), title: t2 || null };
+}
+
+function parseFinding(rest) {
+  const [sub, ...args] = rest;
+  if (sub === 'add') {
+    const { opts, pos, json } = prepare(args, 'finding-add', 1);
+    const number = itemNumber(pick(pos[0], jsonNumber(json, 'number')));
+    const title = String(pick(opts.title, jsonText(json, 'title'), '')).trim();
+    if (!title) throw new InvalidData('review.errors.missingFindingTitle');
+    if (title.length > MAX_TITLE || /[\r\n]/.test(title)) throw new InvalidData('errors.invalidText', { field: 'title', max: MAX_TITLE });
+    const classValue = pick(opts.classification, jsonText(json, 'classification'));
+    if (classValue === undefined || !String(classValue).trim()) throw new InvalidData('review.errors.missingClassification');
+    const classification = String(classValue).trim().toLowerCase();
+    if (!projection.FINDING_CLASSIFICATIONS.includes(classification)) throw new InvalidData('review.errors.invalidClassification', { value: classValue });
+    const origin = pick(opts.task, jsonNumber(json, 'task'));
+    const newTask = newTaskFields(opts, json);
+    if (newTask && classification === 'discarded') throw new InvalidData('review.errors.discardedNewTask');
+    return {
+      kind: 'finding-add', number, title, classification, description: freeText(pick(opts.description, json.description), 'description'),
+      origin: origin === undefined ? null : taskNumber(origin), newTask, ...agentFields(opts, json),
+    };
+  }
+  if (sub === 'link') {
+    const { opts, pos, json } = prepare(args, 'finding-link', 2);
+    const number = itemNumber(pick(pos[0], jsonNumber(json, 'number')));
+    const findingValue = pick(pos[1], jsonNumber(json, 'finding'));
+    if (findingValue === undefined) throw new InvalidData('review.errors.missingFinding');
+    const s = String(findingValue).trim();
+    if (!/^[1-9]\d{0,8}$/.test(s)) throw new InvalidData('review.errors.invalidFinding', { value: findingValue });
+    const newTask = newTaskFields(opts, json);
+    if (!newTask) throw new InvalidData('review.errors.missingNewTask');
+    return { kind: 'finding-link', number, finding: Number(s), newTask, ...agentFields(opts, json) };
+  }
+  throw new InvalidData(sub === undefined ? 'errors.missingCommand' : 'errors.unknownCommand', { command: `finding ${sub || ''}`.trim() });
+}
+
+/** Writes the finding event of cmd (inside the transaction); returns the line to print. */
+function recordFinding(store, cmd, { project, events, base, key, ref }) {
+  const before = projection.projectItem(events, project);
+  const taskNumbers = before.tasks.map((x) => x.number);
+  const T = projection.EVENT_TYPES;
+  const checkNew = (task) => {
+    if (taskNumbers.includes(task.number)) throw new InvalidData('review.errors.taskAlreadyInItem', { task: task.number, key });
+  };
+  if (cmd.kind === 'finding-add') {
+    if (cmd.origin !== null && !taskNumbers.includes(cmd.origin)) throw new InvalidData('errors.taskNotInItem', { key, task: cmd.origin, tasks: taskNumbers.join(', ') });
+    if (cmd.newTask) checkNew(cmd.newTask);
+    const finding = before.findings.reduce((max, f) => Math.max(max, f.number), 0) + 1;
+    const newTask = cmd.newTask ? { number: cmd.newTask.number, title: cmd.newTask.title || cmd.title } : null;
+    store.appendEvent({
+      ...base, taskNumber: cmd.origin, type: T.findingRecorded,
+      payload: { finding, title: cmd.title, description: cmd.description, classification: cmd.classification, origin_task: cmd.origin, new_task: newTask },
+    });
+    return t('review.done.findingRecorded', { key, ref, finding, classification: cmd.classification, task: newTask && newTask.number });
+  }
+  const found = before.findings.find((f) => f.number === cmd.finding);
+  if (!found) throw new InvalidData('review.errors.findingNotFound', { key, finding: cmd.finding });
+  if (found.new_task) throw new InvalidData('review.errors.findingAlreadyLinked', { key, finding: cmd.finding, task: found.new_task.number });
+  if (found.classification === 'discarded') throw new InvalidData('review.errors.discardedNewTask');
+  checkNew(cmd.newTask);
+  const newTask = { number: cmd.newTask.number, title: cmd.newTask.title || found.title };
+  store.appendEvent({ ...base, taskNumber: found.origin_task, type: T.findingLinked, payload: { finding: cmd.finding, new_task: newTask } });
+  return t('review.done.findingLinked', { key, ref, finding: cmd.finding, task: newTask.number });
+}
+
+/** The HEAD commit of cwd, or null. */
+function headOf(cwd) {
+  const r = spawnSync('git', ['rev-parse', '--verify', '--quiet', 'HEAD'], { cwd, encoding: 'utf8', windowsHide: true, timeout: 10000 });
+  if (r.error || r.status !== 0) return null;
+  return String(r.stdout || '').trim().toLowerCase() || null;
+}
+
+/** The worker's report: find the task (as "status" does) and record task-report. */
+function recordReport(store, cmd, origin, at, cwd) {
+  const branch = branchOf(cwd);
+  return withProject(store, origin, at, (project) => {
+    const target = locateTask(store, project, cmd, branch);
+    const task = target.item.tasks.find((x) => x.number === target.task);
+    const fromCwd = !cmd.task || (branch && task && task.branch === branch);
+    const payload = {
+      status: cmd.status, blocked_reason: cmd.fields.blocked_reason,
+      branch: cmd.branch || (fromCwd ? branch : null) || (task && task.branch) || null,
+      sha: cmd.sha || (fromCwd ? headOf(cwd) : null),
+      tests: cmd.fields.tests, changes: cmd.fields.changes, decisions: cmd.fields.decisions, risks: cmd.fields.risks,
+      shared_files: cmd.fields.shared_files, text: cmd.fields.text,
+    };
+    store.appendEvent({
+      at, projectId: project.id, itemNumber: target.item.number, taskNumber: target.task, agentRole: cmd.agentRole, agentName: cmd.agentName,
+      source: SOURCE, type: projection.EVENT_TYPES.taskReport, payload,
+    });
+    return [t('review.done.report', { key: `${project.id}/${target.item.number}`, task: target.task, status: cmd.status })];
+  });
+}
+
 // ---------- commands ----------
 
 function prepare(argv, kind, maxPositional) {
@@ -538,6 +706,7 @@ function parseCommand(argv) {
   if (command === 'task') return parseTask(rest);
   if (command === 'status') return parseStatus(rest);
   if (DELIVERY_COMMANDS.includes(command)) return parseDelivery(command, rest);
+  if (REVIEW_COMMANDS.includes(command)) return command === 'report' ? parseReport(rest) : parseFinding(rest);
   if (command === undefined) throw new InvalidData('errors.missingCommand');
   throw new InvalidData('errors.unknownCommand', { command });
 }
@@ -559,6 +728,7 @@ function recordItemCommand(store, cmd, { project, at }) {
   if (DELIVERY_KINDS.includes(cmd.kind)) return [recordDelivery(store, cmd, { project, events, base, key, ref })];
   if (cmd.kind === 'stage' &&!project.stages.includes(cmd.stage)) throw new InvalidData('errors.stageNotInProject', { project: project.id, stage: cmd.stage, allowed: project.stages });
   if (!started) throw new InvalidData('errors.itemNotStarted', { key, ref, number: cmd.number });
+  if (FINDING_KINDS.includes(cmd.kind)) return [recordFinding(store, cmd, { project, events, base, key, ref })];
   if (cmd.kind === 'stage') {
     store.appendEvent({ ...base, type: EVENT_TYPES.stageChanged, payload: { stage: cmd.stage } });
     return [t('done.stageChanged', { key, ref, stage: cmd.stage })];
@@ -625,6 +795,10 @@ function run(argv, cwd) {
   try {
     if (cmd.kind === 'status') {
       recordStatus(store, cmd, origin, at, branchOf(cwd));
+      return;
+    }
+    if (cmd.kind === 'report') {
+      for (const l of recordReport(store, cmd, origin, at, cwd)) lib.print(l);
       return;
     }
     const out = withProject(store, origin, at, (project) => recordItemCommand(store, cmd, { project, at }));

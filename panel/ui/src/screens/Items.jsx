@@ -11,6 +11,7 @@ import { Card, Badge, Empty, Skeleton } from '../components/base.jsx';
 import { Icon, Workflow, ArrowLeft, Check, CircleDashed } from '../components/Icon.jsx';
 import { ItemTasks } from './ItemTasks.jsx';
 import { ItemDelivery, deliveryEventText, useDoneFilter } from './ItemDelivery.jsx';
+import { ItemReports, ItemFindings, reviewEventText } from './ItemReview.jsx';
 import '../styles/items.css';
 
 const RE_ITEM = /^([a-z0-9][a-z0-9-]*)\/([1-9]\d*)$/;
@@ -132,6 +133,10 @@ function ItemPage({ project, number: itemNumber }) {
       </Card>
       <ItemDelivery item={item} />
       <ItemTasks item={item} />
+      <div class="item-review-grid">
+        <ItemReports item={item} />
+        <ItemFindings item={item} />
+      </div>
       <div class="item-grid">
         <Card label={t('items.flowTitle')} info={t('items.flowInfo')}>
           <ol class="stage-list">
@@ -174,7 +179,9 @@ function eventText(e) {
   if (e.type === 'task-integrated') return t('items.events.taskIntegrated', { task: e.task_number, sha: txt(p.sha).slice(0, 7) });
   const delivery = deliveryEventText(e);
   if (delivery) return delivery;
-  return txt(e.type);
+  const review = reviewEventText(e);
+  if (review) return review;
+  return t('items.events.unknown', { type: txt(e.type) });
 }
 
 function agentText(agent) {

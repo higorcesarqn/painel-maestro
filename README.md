@@ -18,7 +18,7 @@ O painel junta tudo isso num lugar só e não usa IA nem gasta tokens: ele só l
 
 O menu tem um grupo, Workspace (fonte em `panel/ui/src/data/context.js`):
 
-- **Itens** (modelo novo): a lista de itens (Issues do GitHub e PBIs do Azure DevOps) com a etapa de cada um, e a **página do item**, com a etapa atual, as etapas do fluxo e a linha do tempo. A página de um item tem endereço fixo, `http://127.0.0.1:4777/#items/<projeto>/<número>` (ex.: `#items/cidax/3100`), que o portal do Maestri abre direto.
+- **Itens** (modelo novo): a lista de itens (Issues do GitHub e PBIs do Azure DevOps) com a etapa de cada um, e a **página do item**, com a etapa atual, a entrega, as tasks, os relatórios dos trabalhadores por task, os achados do maestro, as etapas do fluxo e a linha do tempo (todos os eventos, com quem gravou e quando). A página de um item tem endereço fixo, `http://127.0.0.1:4777/#items/<projeto>/<número>` (ex.: `#items/cidax/3100`), que o portal do Maestri abre direto.
 - **Visão geral:** números do topo (pendências por severidade, uso do plano, eventos de hoje), atividade e resultados de 7 dias por agente, último evento de cada agente e atividade recente. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) com os motivos: hooks parados, arquivos ilegíveis.
 - **Pendências:** a fila do dono, com filtros por severidade e status; cada pendência mostra contexto, opções e recomendação, e o dono responde ali mesmo (opção + comentário, Ctrl+Enter envia).
 - **Log:** a tabela de eventos com busca, período, chips de agente e projeto, tipo, resultado e "só o que precisa de mim". Clicar numa linha abre o **modal do evento**: o pedido inicial, a direção, os passos, os comandos brutos ligados a ele e a sequência do fluxo.
@@ -37,7 +37,7 @@ cd painel-maestro
 npm run demo
 ```
 
-Abra **http://127.0.0.1:4795/?mock=1**. O `?mock=1` faz a página ler dados fictícios de `panel/tests/mock-*.json` (um workspace "Exemplo" com dois agentes, pendências, eventos e comandos brutos, e, na tela Itens, itens de três empresas e de "Sem empresa" em todas as etapas, no GitHub e no Azure DevOps); uma faixa azul avisa que são dados de teste. Para parar, Ctrl+C.
+Abra **http://127.0.0.1:4795/?mock=1**. O `?mock=1` faz a página ler dados fictícios de `panel/tests/mock-*.json` (um workspace "Exemplo" com dois agentes, pendências, eventos e comandos brutos, e, na tela Itens, itens de três empresas e de "Sem empresa" em todas as etapas, no GitHub e no Azure DevOps, com tasks, relatórios e achados); uma faixa azul avisa que são dados de teste. Para parar, Ctrl+C.
 
 O servidor da demonstração aceita só as portas 4790 a 4799 (padrão 4795). Outra porta: `npm run demo -- 4794`.
 
@@ -104,6 +104,22 @@ node .../bin/flow.js item done 12                                               
 - **Links** (`--url`, `--card`): só `https` de `github.com`, `dev.azure.com` ou `*.visualstudio.com`; outro endereço é recusado (código 2), e a página só mostra links desses domínios.
 - **Etapas do projeto:** um evento cuja etapa o projeto não usa é recusado (por exemplo, `hml` num projeto sem Validação HML, que vai de Merge direto a Concluído).
 - **JSON:** os mesmos campos (`state`, `url`, `pr`, `branch`; `action`, `outcome`, `summary`; `passed`, `failed`, `blocked`, `card`, `summary`) vêm por `--json -`.
+
+Relatórios e achados (#8): o trabalhador grava o relatório completo **antes** de enviá-lo ao maestro (para ele não se perder no terminal); o maestro registra os achados da revisão.
+
+```
+# trabalhador (no worktree da task): o relatório inteiro por JSON na entrada padrão
+node .../bin/flow.js report --json - < relatorio.json        # {"status": "ok", "tests": "...", "changes": "...", "decisions": ["...", "..."], "risks": "...", "shared_files": ["..."], "text": "<o relatório inteiro>"}
+node .../bin/flow.js report --status blocked --reason "Falta o certificado" --json - < relatorio.json   # ou --item 12 --task 13, --branch, --sha
+# maestro
+node .../bin/flow.js finding add 12 --title "Corrida ao juntar carrinhos" --classification defect --task 13 --description "..." --new-task 27
+node .../bin/flow.js finding add 12 --title "Limite do carrinho" --classification owner_decision
+node .../bin/flow.js finding link 12 2 --new-task 28 [--new-task-title "Limitar o carrinho a 50 itens"]
+```
+
+- **Relatório:** `status` (`ok` ou `blocked`, com `blocked_reason`/`--reason`), `branch`, `sha`, `tests`, `changes`, `decisions` (lista), `risks`, `shared_files` (lista) e `text` (o relatório inteiro, em texto livre), no formato do trabalhador (`trabalhador-floor`). Os textos ficam **exatamente como escritos** (acentos, aspas, várias linhas; até 20 000 caracteres por campo) e voltam iguais pela API. A task é achada como no `status` (`--item`/`--task` ou a branch atual); branch e SHA, quando não vêm, saem da pasta atual (a branch e o `HEAD` do worktree). Uma task pode ter vários relatórios (retrabalho); o relatório não muda o estado da task (quem faz isso é o `status`). Papel padrão: `worker`.
+- **Achado:** título, descrição (várias linhas), classificação (`defect` defeito claro, `owner_decision` depende do dono, `discarded` descartado) e a task de origem (opcional). Os achados são numerados por item (1, 2, …). `--new-task <n>` (na hora ou depois, com `finding link`) liga o achado à **task nova para triagem**: ela aparece nas tasks do item com o estado **fora** (`out`) e o número do achado, até o grafo ou um `task dispatch` trazê-la para o item. Achado descartado não vira task; uma task que já é do item não serve de task nova.
+- **Linha do tempo:** a página do item lista todos os eventos (inclusive relatórios e achados) com o momento e quem gravou (papel e nome).
 
 - **Projeto:** sai do `git remote origin` da pasta atual (também dentro do worktree de um floor; as formas SSH e HTTPS do mesmo repositório dão o mesmo projeto). Um repositório sem cadastro é cadastrado sozinho na empresa **"Sem empresa"** (id e nome tirados do nome do repositório; GitHub ou Azure DevOps pelo endereço) e o comando segue. A chave de um item é `projeto/número` (`cidax/3100`); o número aparece como no tracker: `PBI 3100` no Azure DevOps, `#12` no GitHub.
 - **Etapas** (ids em inglês, nomes em português): `specification` Especificação, `implementation` Implementação, `final_adjustment` Ajuste final, `pr_ready` PR pronto, `merge` Merge, `hml_validation` Validação HML, `done` Concluído. Etapa fora da lista do projeto é recusada.

@@ -164,7 +164,7 @@ function projectItem(events, project) {
     started_at: start.at,
     updated_at: updatedAt,
     stage_since: stageSince,
-    tasks: projectTasks(own, start.item_number, title),
+    ...reviewState(own, projectTasks(own, start.item_number, title)),
     ...delivery.result(stage, stageSince),
   };
 }
@@ -279,4 +279,78 @@ function deliveryState() {
   return { apply, result };
 }
 
-module.exports = { projectItem, trackerRef, EVENT_TYPES, TASK_STATES, WORKER_STATES, trackerUrl, PR_STATES, FINAL_ADJUSTMENT_OUTCOMES };
+// ---------- reports and findings (#8): the worker's report of a task and the maestro's findings ----------
+//
+// Event types (none of them moves the item's stage):
+//   task-report        task_number, payload { status: 'ok' | 'blocked', blocked_reason, branch, sha, tests, changes,
+//                      decisions: [text], risks, shared_files: [text], text }   (texts may have many lines)
+//   finding-recorded   task_number = the origin task (or null), payload { finding, title, description,
+//                      classification: 'defect' | 'owner_decision' | 'discarded', origin_task,
+//                      new_task: { number, title } | null }
+//   finding-linked     payload { finding, new_task: { number, title } }   a finding that later became a task
+//
+// Fields added to ItemState:
+//   reports    [{ id, at, task_number, agent, status, blocked_reason, branch, sha, tests, changes, decisions,
+//                 risks, shared_files, text }]   every report, oldest first (a task may have several)
+//   findings   [{ number, title, description, classification, origin_task, new_task, agent, recorded_at,
+//                 linked_at }]   in the order they were recorded
+// and to each TaskState: finding (the number of the finding the task came from, or null). The new task of a
+// finding is a task of the item in state "out" (for triage) until the graph or a dispatch brings it in.
+
+Object.assign(EVENT_TYPES, {
+  taskReport: 'task-report',
+  findingRecorded: 'finding-recorded',
+  findingLinked: 'finding-linked',
+});
+const REPORT_STATUSES = ['ok', 'blocked'];
+const FINDING_CLASSIFICATIONS = ['defect', 'owner_decision', 'discarded'];
+
+const texts = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
+const rawText = (v) => (typeof v === 'string' ? v : null);
+const agentOf = (e) => ({ role: e.agent && e.agent.role ? e.agent.role : null, name: e.agent && e.agent.name ? e.agent.name : null });
+
+function newTaskOf(v) {
+  return v && isNumber(v.number) ? { number: v.number, title: textOrNull(v.title) } : null;
+}
+
+/** { tasks, reports, findings }: the tasks gain the link to their finding; the findings' new tasks join as "out". */
+function reviewState(list, tasks) {
+  const reports = [];
+  const findings = new Map();
+  for (const e of list) {
+    const p = payloadOf(e);
+    if (e.type === EVENT_TYPES.taskReport && isNumber(e.task_number) && REPORT_STATUSES.includes(p.status)) {
+      reports.push({
+        id: e.id, at: e.at, task_number: e.task_number, agent: agentOf(e), status: p.status, blocked_reason: rawText(p.blocked_reason),
+        branch: textOrNull(p.branch), sha: textOrNull(p.sha), tests: rawText(p.tests), changes: rawText(p.changes), decisions: texts(p.decisions),
+        risks: rawText(p.risks), shared_files: texts(p.shared_files), text: rawText(p.text),
+      });
+    } else if (e.type === EVENT_TYPES.findingRecorded && isNumber(p.finding) && !findings.has(p.finding) && textOrNull(p.title)
+      && FINDING_CLASSIFICATIONS.includes(p.classification)) {
+      const newTask = newTaskOf(p.new_task);
+      findings.set(p.finding, {
+        number: p.finding, title: p.title, description: rawText(p.description), classification: p.classification,
+        origin_task: isNumber(p.origin_task) ? p.origin_task : null, new_task: newTask, agent: agentOf(e), recorded_at: e.at, linked_at: null,
+      });
+    } else if (e.type === EVENT_TYPES.findingLinked && findings.has(p.finding) && newTaskOf(p.new_task)) {
+      Object.assign(findings.get(p.finding), { new_task: newTaskOf(p.new_task), linked_at: e.at });
+    }
+  }
+  const all = tasks.map((x) => ({ ...x, finding: null }));
+  for (const f of findings.values()) {
+    if (!f.new_task) continue;
+    let task = all.find((x) => x.number === f.new_task.number);
+    if (!task) {
+      task = newTask(f.new_task.number, f.new_task.title || f.title, { state: 'out', updated_at: f.linked_at || f.recorded_at, finding: f.number });
+      all.push(task);
+    }
+    if (task.finding === null) task.finding = f.number;
+    if (!task.title) task.title = f.new_task.title || f.title;
+  }
+  return { tasks: all, reports, findings: [...findings.values()] };
+}
+
+module.exports = {
+  projectItem, trackerRef, EVENT_TYPES, TASK_STATES, WORKER_STATES, trackerUrl, PR_STATES, FINAL_ADJUSTMENT_OUTCOMES,
+  REPORT_STATUSES, FINDING_CLASSIFICATIONS,
+};

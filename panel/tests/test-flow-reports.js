@@ -1,0 +1,243 @@
+'use strict';
+// Tests for the worker's reports, the maestro's findings and the item's timeline (#8), through the agreed seam only:
+// the bin/flow.js CLI runs as a process inside a temporary git repository (fictitious remote origin, floors as
+// worktrees) → temporary maestro.db (MAESTRO_DIR) → the server's HTTP API. No test reads the database or calls
+// internal functions.
+
+const fs = require('fs');
+const path = require('path');
+const { spawnSync } = require('child_process');
+const { assert, REPO, createSuite, tmpDir, remove, freePort, request } = require('./util');
+
+const FLOW = path.join(REPO, 'bin', 'flow.js');
+const srv = require(path.join(REPO, 'panel', 'server.js'));
+const suite = createSuite('reports, findings and timeline: flow CLI → maestro.db → items API');
+const roots = [];
+
+function git(cwd, ...args) {
+  const r = spawnSync('git', ['-c', 'user.name=Teste', '-c', 'user.email=teste@example.com', ...args], { cwd, encoding: 'utf8', windowsHide: true });
+  if (r.status !== 0) throw new Error(`git ${args.join(' ')}: ${r.stderr}`);
+  return r.stdout.trim();
+}
+
+function buildRoot(name) {
+  const root = tmpDir(`reports-${name}`);
+  roots.push(root);
+  const data = path.join(root, 'data');
+  const repo = path.join(root, 'repo');
+  fs.mkdirSync(repo, { recursive: true });
+  git(repo, 'init', '-q', '-b', 'feature/issue-12');
+  git(repo, 'remote', 'add', 'origin', 'https://github.com/acme/widgets.git');
+  git(repo, 'commit', '-q', '--allow-empty', '-m', 'inicio');
+  return { root, data, repo };
+}
+
+/** A floor: a worktree of the repository on the given branch, with one commit of its own. */
+function addFloor(r, name, branch) {
+  const wt = path.join(r.root, name);
+  git(r.repo, 'worktree', 'add', '-q', '-b', branch, wt);
+  git(wt, 'commit', '-q', '--allow-empty', '-m', `trabalho em ${branch}`);
+  return { dir: wt, head: git(wt, 'rev-parse', 'HEAD') };
+}
+
+function flow(r, args, { cwd = r.repo, input } = {}) {
+  const env = Object.assign({}, process.env, { MAESTRO_DIR: r.data, MAESTRO_NOW: '', NODE_OPTIONS: '' });
+  delete env.MAESTRI_TERMINAL_ID;
+  return spawnSync(process.execPath, [FLOW, ...args], { cwd, env, input: input === undefined ? '' : input, encoding: 'utf8', windowsHide: true, timeout: 30000 });
+}
+
+function ok(x) {
+  assert.strictEqual(x.status, 0, `exit ${x.status}\nstdout: ${x.stdout}\nstderr: ${x.stderr}`);
+  assert.strictEqual(x.stderr, '', 'nothing on stderr');
+}
+
+async function withServer(r, fn) {
+  const port = await freePort();
+  const s = await srv.start({
+    argv: ['--port', String(port)],
+    env: { MAESTRO_DIR: r.data, PANEL_COLLECTOR: '0', PANEL_INDEX: path.join(r.root, 'x.html'), MAESTRI_DATA_DIR: path.join(r.root, 'maestri') },
+  });
+  try {
+    await fn(async (p) => {
+      const x = await request(port, p);
+      assert.strictEqual(x.status, 200, `${p}: ${x.text}`);
+      return x.json;
+    });
+  } finally {
+    await s.stop();
+  }
+}
+
+const REPORT_TEXT = [
+  'Task 13, branch task/13-gerar-pdf, SHA final no topo da integradora (sem push, sem tracker, sem merge). Status: ok.',
+  '',
+  'Testes: npm test, duas rodadas seguidas, banco "maestro-13.db" recriado vazio; 0 falhas.',
+  'O que mudou: o relatório em PDF sai com cabeçalho, rodapé e acentuação (ç, ã, é, ü) corretos.',
+  'Decisões:',
+  '  1. Usei a fonte embutida "Noto Sans" — o servidor não tem fontes do sistema.',
+  '  2. Página A4 por padrão; Carta fica para depois.',
+  'Riscos: o arquivo C:\\temp\\saida.pdf é sobrescrito; tabs\tdentro do texto.',
+  'Arquivos compartilhados: panel/server.js e README.md.',
+].join('\n');
+
+suite.test('the worker records the whole report by JSON on standard input and it comes back the same through the API', async () => {
+  const r = buildRoot('report');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Exportar relatório', '--stage', 'implementation']));
+  ok(flow(r, ['task', 'graph', '12', '--task', '13|Gerar o PDF', '--task', '14|Enviar por e-mail|13']));
+  const floor = addFloor(r, 'floor-13', 'task/13-gerar-pdf');
+  ok(flow(r, ['task', 'dispatch', '12', '13', '--floor', 'Gerar PDF', '--worker', 'Ária', '--branch', 'task/13-gerar-pdf']));
+  const report = {
+    status: 'ok',
+    tests: 'npm test: 2 rodadas seguidas, 0 falhas\nnpm run check: ok',
+    changes: 'O relatório sai em PDF com "cabeçalho" e rodapé.\nAcentos: ç ã é ü.',
+    decisions: ['Fonte embutida "Noto Sans" — sem fontes do sistema.', 'Página A4 por padrão;\nCarta fica para depois.'],
+    risks: 'Sobrescreve C:\\temp\\saida.pdf.',
+    shared_files: ['panel/server.js', 'README.md'],
+    text: REPORT_TEXT,
+  };
+  // In the floor's worktree: the task comes from the dispatched branch, the branch and the SHA from git.
+  const x = flow(r, ['report', '--agent', 'Ária', '--json', '-'], { cwd: floor.dir, input: `\uFEFF${JSON.stringify(report)}` });
+  ok(x);
+  assert.ok(/Relatório da task 13 do item widgets\/12 gravado/.test(x.stdout), x.stdout);
+  // A second report of the same task (after a fix), blocked, with its fields as arguments.
+  ok(flow(r, ['report', '--item', '12', '--task', '13', '--status', 'blocked', '--reason', 'Falta o certificado de HML', '--sha', 'ABCDEF1',
+    '--branch', 'task/13-ajuste', '--agent', 'Ária', '--json', '-'], { input: JSON.stringify({ text: 'Travado.\nPreciso do certificado.', status: 'ok', sha: '1234567' }) }));
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/12')).item;
+    assert.strictEqual(item.reports.length, 2);
+    const [first, second] = item.reports;
+    assert.deepStrictEqual(
+      { status: first.status, blocked_reason: first.blocked_reason, tests: first.tests, changes: first.changes, decisions: first.decisions, risks: first.risks, shared_files: first.shared_files, text: first.text },
+      { ...report, blocked_reason: null },
+      'every field comes back exactly as written',
+    );
+    assert.deepStrictEqual([first.task_number, first.branch, first.sha, first.agent], [13, 'task/13-gerar-pdf', floor.head, { role: 'worker', name: 'Ária' }]);
+    assert.ok(first.at && first.id, 'moment and event id');
+    assert.deepStrictEqual([second.task_number, second.status, second.blocked_reason, second.sha, second.branch, second.text, second.decisions, second.tests],
+      [13, 'blocked', 'Falta o certificado de HML', 'abcdef1', 'task/13-ajuste', 'Travado.\nPreciso do certificado.', [], null], 'arguments win over the JSON');
+    const timeline = item.timeline.filter((e) => e.type === 'task-report');
+    assert.deepStrictEqual(timeline.map((e) => [e.task_number, e.agent.role, e.payload.status]), [[13, 'worker', 'ok'], [13, 'worker', 'blocked']]);
+    assert.strictEqual(timeline[0].payload.text, REPORT_TEXT);
+  });
+});
+
+suite.test('findings of an item: classification, origin task, and a finding that becomes a new task shows as an "out" task of the item', async () => {
+  const r = buildRoot('findings');
+  ok(flow(r, ['item', 'start', '20', '--title', 'Carrinho salvo', '--stage', 'implementation']));
+  ok(flow(r, ['task', 'graph', '20', '--task', '21|Modelo', '--task', '22|API|21']));
+  ok(flow(r, ['finding', 'add', '20', '--title', 'Corrida ao juntar carrinhos', '--classification', 'defect', '--task', '22',
+    '--description', 'Dois dispositivos ao mesmo tempo\nduplicam itens ("race").', '--new-task', '27', '--agent', 'Bento']));
+  ok(flow(r, ['finding', 'add', '--json', '-'], { input: JSON.stringify({ number: 20, title: 'Limite do carrinho', classification: 'owner_decision', description: 'Quantos itens no máximo?' }) }));
+  ok(flow(r, ['finding', 'add', '20', '--title', 'Nome de variável', '--classification', 'discarded', '--task', '21']));
+  // The owner decided: the second finding also becomes a task for triage, linked later.
+  ok(flow(r, ['finding', 'link', '20', '2', '--new-task', '28', '--new-task-title', 'Limitar o carrinho a 50 itens']));
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/20')).item;
+    assert.deepStrictEqual(item.findings.map((f) => [f.number, f.title, f.classification, f.origin_task, f.new_task]), [
+      [1, 'Corrida ao juntar carrinhos', 'defect', 22, { number: 27, title: 'Corrida ao juntar carrinhos' }],
+      [2, 'Limite do carrinho', 'owner_decision', null, { number: 28, title: 'Limitar o carrinho a 50 itens' }],
+      [3, 'Nome de variável', 'discarded', 21, null],
+    ]);
+    assert.strictEqual(item.findings[0].description, 'Dois dispositivos ao mesmo tempo\nduplicam itens ("race").');
+    assert.deepStrictEqual(item.findings[0].agent, { role: 'maestro', name: 'Bento' });
+    assert.ok(item.findings[0].recorded_at && !item.findings[0].linked_at);
+    assert.ok(item.findings[1].linked_at, 'when the finding was linked to its task');
+    assert.deepStrictEqual(item.tasks.map((x) => [x.number, x.title, x.state, x.finding]), [
+      [21, 'Modelo', 'waiting', null],
+      [22, 'API', 'waiting', null],
+      [27, 'Corrida ao juntar carrinhos', 'out', 1],
+      [28, 'Limitar o carrinho a 50 itens', 'out', 2],
+    ]);
+  });
+  // Triage brought task 27 into the item: dispatching it puts it to work, still linked to its finding.
+  ok(flow(r, ['task', 'dispatch', '20', '27', '--worker', 'Caio', '--branch', 'task/27-corrida']));
+  await withServer(r, async (get) => {
+    const t27 = (await get('/api/items/widgets/20')).item.tasks.find((x) => x.number === 27);
+    assert.deepStrictEqual([t27.state, t27.worker, t27.finding], ['working', 'Caio', 1]);
+  });
+});
+
+suite.test('the timeline lists every event of the item, in order, with the agent (role and name) and the moment', async () => {
+  const r = buildRoot('timeline');
+  ok(flow(r, ['item', 'start', '30', '--title', 'Linha do tempo', '--agent', 'Bento']));
+  ok(flow(r, ['stage', '30', 'implementation', '--agent', 'Bento']));
+  ok(flow(r, ['task', 'graph', '30', '--task', '31|Única', '--agent', 'Bento']));
+  ok(flow(r, ['task', 'dispatch', '30', '31', '--worker', 'Ária', '--branch', 'task/31-unica', '--agent', 'Bento']));
+  ok(flow(r, ['status', 'Trabalhando', '--item', '30', '--task', '31', '--agent', 'Ária']));
+  ok(flow(r, ['report', '--item', '30', '--task', '31', '--status', 'ok', '--branch', 'task/31-unica', '--sha', 'abc1234', '--agent', 'Ária', '--json', '-'], { input: JSON.stringify({ text: 'Pronto.' }) }));
+  ok(flow(r, ['finding', 'add', '30', '--title', 'Falta teste de borda', '--classification', 'defect', '--task', '31', '--new-task', '32', '--agent', 'Bento']));
+  ok(flow(r, ['task', 'integrate', '30', '31', '--sha', 'abc1234', '--agent', 'Bento']));
+  ok(flow(r, ['pr', '30', 'ready', '--url', 'https://github.com/acme/widgets/pull/9', '--agent', 'Bento']));
+  ok(flow(r, ['item', 'done', '30', '--role', 'owner', '--agent', 'Higor']));
+  await withServer(r, async (get) => {
+    const timeline = (await get('/api/items/widgets/30')).item.timeline;
+    assert.deepStrictEqual(timeline.map((e) => [e.type, e.task_number, e.agent.role, e.agent.name]), [
+      ['item-started', null, 'maestro', 'Bento'],
+      ['stage-changed', null, 'maestro', 'Bento'],
+      ['task-graph', null, 'maestro', 'Bento'],
+      ['task-dispatched', 31, 'maestro', 'Bento'],
+      ['task-status', 31, 'worker', 'Ária'],
+      ['task-report', 31, 'worker', 'Ária'],
+      ['finding-recorded', 31, 'maestro', 'Bento'],
+      ['task-integrated', 31, 'maestro', 'Bento'],
+      ['pr-changed', null, 'maestro', 'Bento'],
+      ['item-done', null, 'owner', 'Higor'],
+    ]);
+    for (let i = 1; i < timeline.length; i++) {
+      assert.ok(timeline[i].id > timeline[i - 1].id && Date.parse(timeline[i].at) >= Date.parse(timeline[i - 1].at), 'in order');
+    }
+  });
+});
+
+suite.test('invalid reports and findings end with a clear message and exit code 2, writing nothing', async () => {
+  const r = buildRoot('invalid');
+  ok(flow(r, ['item', 'start', '40', '--title', 'Válido', '--stage', 'implementation']));
+  ok(flow(r, ['task', 'graph', '40', '--task', '41|Uma', '--task', '42|Outra']));
+  ok(flow(r, ['finding', 'add', '40', '--title', 'Primeiro', '--classification', 'defect', '--new-task', '45']));
+  const json = (o) => JSON.stringify(o);
+  const cases = [
+    [['report', '--item', '40', '--task', '41'], /falta o status do relatório/],
+    [['report', '--item', '40', '--task', '41', '--status', 'talvez'], /status do relatório inválido: "talvez"/],
+    [['report', '--item', '40', '--task', '41', '--status', 'ok'], /o relatório está vazio/],
+    [['report', '--item', '40', '--task', '41', '--json', '-'], /campo "decisions" do JSON precisa ser uma lista de textos/, json({ status: 'ok', text: 'x', decisions: 'uma só' })],
+    [['report', '--item', '40', '--task', '41', '--json', '-'], /campo "text" do JSON precisa ser texto/, json({ status: 'ok', text: 3 })],
+    [['report', '--item', '40', '--task', '41', '--json', '-'], /o campo "text" tem 20001 caracteres; o máximo é 20000/, json({ status: 'ok', text: 'a'.repeat(20001) })],
+    [['report', '--item', '40', '--task', '41', '--status', 'ok', '--sha', 'xyz', '--json', '-'], /SHA inválido em sha: "xyz"/, json({ text: 'x' })],
+    [['report', '--item', '40', '--task', '49', '--status', 'ok', '--json', '-'], /a task 49 não é do item widgets\/40/, json({ text: 'x' })],
+    [['finding', 'add', '40', '--classification', 'defect'], /falta o título do achado/],
+    [['finding', 'add', '40', '--title', 'X'], /falta a classificação do achado/],
+    [['finding', 'add', '40', '--title', 'X', '--classification', 'bug'], /classificação inválida: "bug" \(use defect, owner_decision ou discarded\)/],
+    [['finding', 'add', '40', '--title', 'X', '--classification', 'defect', '--task', '49'], /a task 49 não é do item widgets\/40/],
+    [['finding', 'add', '40', '--title', 'X', '--classification', 'defect', '--new-task', '41'], /a task 41 já é do item widgets\/40/],
+    [['finding', 'add', '40', '--title', 'X', '--classification', 'discarded', '--new-task', '46'], /achado descartado não vira task/],
+    [['finding', 'add', '99', '--title', 'X', '--classification', 'defect'], /ainda não foi iniciado/],
+    [['finding', 'link', '40', '7', '--new-task', '46'], /o item widgets\/40 não tem o achado 7/],
+    [['finding', 'link', '40', '1', '--new-task', '46'], /o achado 1 do item widgets\/40 já virou a task 45/],
+    [['finding', 'link', '40', '1'], /falta a task nova/],
+    [['finding', 'close', '40'], /subcomando desconhecido: "finding close"/],
+  ];
+  for (const [args, message, input] of cases) {
+    const x = flow(r, args, { input });
+    assert.strictEqual(x.status, 2, `${args.join(' ')} → exit ${x.status}: ${x.stderr}`);
+    assert.ok(message.test(x.stderr), `${args.join(' ')} → ${x.stderr}`);
+    assert.ok(x.stderr.startsWith('erro: '), x.stderr);
+  }
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/40')).item;
+    assert.deepStrictEqual(item.timeline.map((e) => e.type), ['item-started', 'task-graph', 'finding-recorded']);
+    assert.deepStrictEqual(item.reports, []);
+  });
+});
+
+suite.test('help lists the report and finding subcommands', () => {
+  const r = buildRoot('help');
+  const x = flow(r, ['--help']);
+  ok(x);
+  for (const s of ['report [--item <número>] [--task <task>]', 'finding add <número>', 'finding link <número> <achado>', 'defect|owner_decision|discarded']) {
+    assert.ok(x.stdout.includes(s), `${s} in:\n${x.stdout}`);
+  }
+});
+
+suite.run().finally(() => {
+  if (!process.env.KEEP_TMP) for (const d of roots) remove(d);
+});

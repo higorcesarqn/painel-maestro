@@ -23,6 +23,8 @@ const WORKER_STATES = {
 
 const PR_STATES = { draft: 'em rascunho', ready: 'pronto', merged: 'mergeado' };
 
+const FINDING_CLASSES = { defect: 'defeito claro', owner_decision: 'depende do dono', discarded: 'descartado' };
+
 module.exports = {
   stages: STAGES,
   workerStates: WORKER_STATES,
@@ -161,6 +163,31 @@ CÓDIGOS DE SAÍDA
       alreadyDone: 'o item {key} ({ref}) já está concluído.',
     },
   },
+  // Worker's reports and maestro's findings (#8).
+  review: {
+    done: {
+      report: (p) => `Relatório da task ${p.task} do item ${p.key} gravado (${p.status === 'ok' ? 'ok' : 'bloqueado'}). Agora envie-o ao maestro.`,
+      findingRecorded: (p) => `Achado ${p.finding} do item ${p.key} (${p.ref}) registrado: ${FINDING_CLASSES[p.classification] || p.classification}${p.task ? `; virou a task ${p.task} (fora, para triagem)` : ''}.`,
+      findingLinked: 'Achado {finding} do item {key} ({ref}) ligado à task {task} (fora, para triagem).',
+    },
+    errors: {
+      missingStatus: 'falta o status do relatório (--status ok|blocked ou "status" no JSON).',
+      invalidStatus: 'status do relatório inválido: "{value}" (use ok ou blocked).',
+      emptyReport: 'o relatório está vazio: mande o texto ("text") e os campos (tests, changes, decisions, risks, shared_files) pelo --json -.',
+      textTooLong: 'o campo "{field}" tem {length} caracteres; o máximo é {max}.',
+      listTooLong: 'o campo "{field}" tem itens demais (máximo {max}).',
+      missingFindingTitle: 'falta o título do achado (--title "..." ou "title" no JSON).',
+      missingClassification: 'falta a classificação do achado (--classification defect|owner_decision|discarded).',
+      invalidClassification: 'classificação inválida: "{value}" (use defect, owner_decision ou discarded).',
+      discardedNewTask: 'um achado descartado não vira task (tire --new-task ou mude a classificação).',
+      missingNewTask: 'falta a task nova (--new-task <número>).',
+      missingFinding: 'falta o número do achado (ex.: flow finding link 12 2 --new-task 27).',
+      invalidFinding: 'número de achado inválido: "{value}".',
+      findingNotFound: 'o item {key} não tem o achado {finding}.',
+      findingAlreadyLinked: 'o achado {finding} do item {key} já virou a task {task}.',
+      taskAlreadyInItem: 'a task {task} já é do item {key}; o achado vira uma task nova (use outro número).',
+    },
+  },
   help: (p) => `flow · registra o fluxo dos itens no painel (eventos em ${p.db})
 
 O projeto é reconhecido pelo "git remote origin" da pasta atual (vale dentro do worktree de um floor).
@@ -206,6 +233,21 @@ STATUS (trabalhador)
       com esta branch ou, senão, task/<task>-… (--item resolve quando a task existe em mais de um item).
       Papel padrão: worker. Se o maestri falhar, o evento é gravado e o comando sai com 1.
 
+RELATÓRIO (trabalhador, antes de enviá-lo ao maestro)
+  node bin/flow.js report [--item <número>] [--task <task>] [--status ok|blocked] [--reason "..."] [--branch <b>] [--sha <sha>] --json - < relatorio.json
+      Grava o relatório completo da task. Os campos longos vêm pelo JSON e ficam exatamente como escritos:
+      status (ok|blocked), blocked_reason, branch, sha, tests, changes, decisions (lista), risks,
+      shared_files (lista) e text (o relatório inteiro, em texto livre). A task vem como no status (--item/--task
+      ou a branch atual); branch e SHA, quando não vêm, saem da pasta atual. Papel padrão: worker.
+
+ACHADOS (maestro)
+  node bin/flow.js finding add <número> --title "..." --classification defect|owner_decision|discarded [--description "..."] [--task <origem>] [--new-task <n> [--new-task-title "..."]]
+      Registra um achado do item (defect: defeito claro; owner_decision: depende do dono; discarded: descartado),
+      opcionalmente com a task de origem. --new-task liga o achado a uma task nova para triagem: ela aparece no
+      item com o estado "fora" até entrar no grafo ou ser despachada. Os achados são numerados por item (1, 2, …).
+  node bin/flow.js finding link <número> <achado> --new-task <n> [--new-task-title "..."]
+      Liga depois um achado já registrado à task nova que ele virou.
+
 OPÇÕES DO AGENTE
   --role maestro|worker|owner     quem grava (padrão: maestro; no status, worker)
   --agent "<nome>"                codinome do agente (opcional)
@@ -214,7 +256,9 @@ JSON PELA ENTRADA PADRÃO (texto com acentos, aspas e várias linhas chega intac
   --json -     os campos vêm num objeto JSON pela entrada padrão; os argumentos valem mais que o JSON
   Campos: number (o item), title, stage, role, agent; task, tasks ([{number, title, blocked_by, out}]), floor,
   worker, branch, sha, sha_before, text, state, progress (tasks e status); state, url, pr, branch (pr);
-  action, outcome, summary (final-adjustment); passed, failed, blocked, card, summary (hml).
+  action, outcome, summary (final-adjustment); passed, failed, blocked, card, summary (hml); status,
+  blocked_reason, tests, changes, decisions, risks, shared_files, text (report); title, description,
+  classification, task, new_task, new_task_title, finding (finding).
   ex.: node bin/flow.js item start --json - < item.json
 
 ETAPAS
