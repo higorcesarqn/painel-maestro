@@ -1,91 +1,99 @@
 'use strict';
-// Server performance with a lot of data: 50 thousand events in 2 months and a big raw log.
-// Checks times with slack (machine with antivirus) and that the second read is incremental.
-// HEAVY_TEST=1 multiplies the raw log by 5.
+// Server performance over the SQLite of the new model (#12, ADR 0003): maestro.db with 20 thousand events and
+// bruto.db with a big raw log (400 thousand entries in 120 days, a third of them past the 90 days retention).
+// The volume is generated with the stores' own write functions (the hook would take hours to write it); every
+// check goes through the server API, plus one hook run over the big database.
+// Checks times with slack (machine with antivirus). HEAVY_TEST=1 multiplies the raw log by 5.
 
 const fs = require('fs');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
-const { assert, REPO, createSuite, tmpDir, remove, writeJson, freePort, request, waitFor, kill } = require('./util');
+const { assert, REPO, createSuite, tmpDir, remove, freePort, request, waitFor, kill } = require('./util');
 
 const SERVER = path.join(REPO, 'panel', 'server.js');
-const suite = createSuite('server performance (50 thousand events, big raw log)');
+const HOOK = path.join(REPO, 'bin', 'hook-log.js');
+const { openStore } = require(path.join(REPO, 'bin', 'flow-store.js'));
+const { openRawStore } = require(path.join(REPO, 'bin', 'raw-store.js'));
+// São Paulo has no daylight saving time: -03:00 all year (fast; Intl would take most of the generation).
+const isoSP = (d) => `${new Date(d.getTime() - 3 * 3600000).toISOString().slice(0, 19)}-03:00`;
+const suite = createSuite('server performance (SQLite: 20 thousand events, big raw log)');
 const HEAVY = process.env.HEAVY_TEST === '1';
-const N_EVENTS = 50000;
-const RAW_PER_DAY = HEAVY ? 50000 : 10000;
+const N_EVENTS = 20000;
+const N_RAW = HEAVY ? 2000000 : 400000;
 const NOW = '2026-10-08T15:50:00-03:00';
-const LONG_FLOW = 'F-20260908-0001';
-const LONG_PER_DAY = HEAVY ? 8000 : 2000;
+const NOW_MS = Date.parse(NOW);
+const DAY_MS = 86400000;
+const PROJECTS = ['widgets', 'gadgets', 'cidax-api'];
+const ITEMS_PER_PROJECT = 150;
 let root;
 let S;
-
-function pad(n, t = 2) {
-  return String(n).padStart(t, '0');
-}
+let hot; // the item whose maestro has thousands of commands in the last event's window
 
 function build() {
   root = tmpDir('performance');
-  const m = path.join(root, 'maestro');
-  writeJson(path.join(m, 'registro', 'agentes.json'), {
-    workspace: { nome: 'Exemplo', raiz: 'C:/teste' }, padrao: { modelo: 'x', nivel: 'xhigh' },
-    agentes: [{ slug: 'cerebro', nome: 'Cérebro Principal', status: 'ativo' }, { slug: 'coordenador', nome: 'Coordenador', status: 'ativo' }],
+  const data = path.join(root, 'data');
+  const store = openStore({ dir: data });
+  const at0 = isoSP(new Date(NOW_MS - 120 * DAY_MS));
+  store.transaction(() => {
+    store.ensureCompany('contoso', 'Contoso', at0);
+    PROJECTS.forEach((id, i) => store.addProject({
+      id, name: id, companyId: i === 2 ? 'contoso' : 'contoso', tracker: i === 2 ? 'azure_devops' : 'github',
+      remote: `github.com/acme/${id}`, at: at0,
+    }));
+    const stages = ['implementation', 'final_adjustment', 'pr_ready', 'merge'];
+    const step = (60 * DAY_MS) / N_EVENTS;
+    const started = new Set();
+    for (let i = 0; i < N_EVENTS; i++) {
+      const project = PROJECTS[i % PROJECTS.length];
+      const number = 1 + (Math.floor(i / PROJECTS.length) % ITEMS_PER_PROJECT);
+      const key = `${project}/${number}`;
+      const at = isoSP(new Date(NOW_MS - 60 * DAY_MS + i * step));
+      const base = { at, projectId: project, itemNumber: number, agentRole: 'maestro', agentName: null, source: 'cli' };
+      if (!started.has(key)) {
+        started.add(key);
+        store.appendEvent({ ...base, type: 'item-started', payload: { title: `Item ${key} com acentuação`, stage: 'specification' } });
+      } else {
+        store.appendEvent({ ...base, type: 'stage-changed', payload: { stage: stages[i % stages.length] } });
+      }
+    }
   });
-  // Old-model events (bin/registrar.js format).
-  const dir = path.join(m, 'logs', 'eventos');
-  fs.mkdirSync(dir, { recursive: true });
-  const base = Date.parse('2026-09-01T00:00:00-03:00');
-  const step = (Date.parse(NOW) - base) / N_EVENTS;
-  const byMonth = { '2026-09': [], '2026-10': [] };
-  for (let i = 0; i < N_EVENTS; i++) {
-    const t = new Date(base + i * step - 3 * 3600000);
-    const ts = `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}T${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}:${pad(t.getUTCSeconds())}-03:00`;
-    const day = ts.slice(0, 10).replace(/-/g, '');
-    const flow = `F-${day}-${pad(1 + (i % 40), 4)}`;
-    const ev = {
-      id: `EV-${day}-${ts.slice(11, 19).replace(/:/g, '')}-${i.toString(16).padStart(4, '0')}`, ts, agente: i % 3 ? 'cerebro' : 'coordenador',
-      fluxo_id: flow, origem: 'cerebro', tipo: i % 7 ? 'execucao' : 'decisao', projeto: 'HNMSTG'[i % 6],
-      resumo: `Executada a etapa número ${i} do fluxo ${flow}, com acentuação`, direcao: `Escolhi o caminho ${i % 5} porque é o mais simples; ${'detalhe '.repeat(10)}`,
-      passos: ['a', 'b', 'c'], comandos: ['node x.js'], alteracoes: [], resultado: i % 50 ? 'ok' : 'falhou', validacao: 'conferido',
-      precisa_dono: i % 97 === 0, pendencias: [], duracao_s: i % 120, teste: i % 1000 === 0,
-    };
-    byMonth[ts.slice(0, 7)].push(JSON.stringify(ev));
+  const last = store.logEvents({}, { limit: 1 }).events[0];
+  hot = { id: last.id, project: last.project_id, number: last.item_number, at: Date.parse(last.at) };
+  store.close();
+
+  const raw = openRawStore({ dir: data });
+  const span = 120 * DAY_MS;
+  const batch = [];
+  const flush = () => { raw.recordMany(batch); batch.length = 0; };
+  for (let i = 0; i < N_RAW; i++) {
+    const t = NOW_MS - span + Math.floor((i * span) / N_RAW);
+    const project = PROJECTS[i % PROJECTS.length];
+    const task = i % 4 === 0 ? 1000 + (i % 300) : null;
+    const item = task === null ? 1 + (i % ITEMS_PER_PROJECT) : null;
+    batch.push({
+      at: isoSP(new Date(t)), t, session_id: `s-${i % 500}`, project_id: project, item_number: item, task_number: task,
+      branch: task === null ? `feature/issue-${item}` : `task/${task}`, hook_event: 'PostToolUse', tool: 'Bash',
+      input: `comando ${i} ${'arg '.repeat(60)}`, ok: true, output_summary: 'x'.repeat(200), cwd: 'C:/x',
+    });
+    if (batch.length >= 20000) flush();
   }
-  // Long and open flow (09/08 until today) with raw log every day: the raw index avoids reading it all again.
-  byMonth['2026-09'].push(JSON.stringify({ id: 'EV-20260908-090000-f001', ts: '2026-09-08T09:00:00-03:00', agente: 'cerebro', fluxo_id: LONG_FLOW, origem: 'dono-direto', tipo: 'pedido-recebido', resumo: 'Fluxo longo', resultado: 'em-andamento', sessao: 's1' }));
-  byMonth['2026-10'].push(JSON.stringify({ id: 'EV-20261008-150000-f002', ts: '2026-10-08T15:00:00-03:00', agente: 'cerebro', fluxo_id: LONG_FLOW, origem: 'cerebro', tipo: 'execucao', resumo: 'Fluxo longo segue', resultado: 'em-andamento', sessao: 's1' }));
-  for (const [month, lines] of Object.entries(byMonth)) fs.writeFileSync(path.join(dir, `${month}.jsonl`), `${lines.join('\n')}\n`);
-  for (const ag of ['cerebro', 'coordenador']) {
-    for (const day of ['2026-10-07', '2026-10-08']) {
-      const lines = [];
-      const start = Date.parse(`${day}T00:00:00-03:00`);
-      for (let i = 0; i < RAW_PER_DAY; i++) {
-        const t = new Date(start + i * (86400000 / RAW_PER_DAY) - 3 * 3600000);
-        const ts = `${day}T${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}:${pad(t.getUTCSeconds())}-03:00`;
-        lines.push(JSON.stringify({
-          ts, agent: ag, terminal: 't', session: 's1', flow_id: i % 2 ? `F-${day.replace(/-/g, '')}-0001` : undefined,
-          hook_event: 'PostToolUse', tool: 'Bash', input: `comando ${i} ${'arg '.repeat(60)}`, ok: true, output_summary: 'x'.repeat(200), cwd: 'C:/x',
-        }));
-      }
-      const file = path.join(m, 'logs', 'raw', ag, `${day}.jsonl`);
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      fs.writeFileSync(file, `${lines.join('\n')}\n`);
-    }
+  // The hot item's maestro: one command every 3 s in the 6 h before its last event.
+  for (let t = hot.at - 6 * 3600000 + 3000; t <= hot.at; t += 3000) {
+    batch.push({
+      at: isoSP(new Date(t)), t, session_id: 's-hot', project_id: hot.project, item_number: hot.number, task_number: null,
+      branch: `feature/issue-${hot.number}`, hook_event: 'PostToolUse', tool: 'Bash', input: `quente ${t}`, ok: true, cwd: 'C:/x',
+    });
   }
-  for (const ag of ['cerebro', 'coordenador']) {
-    for (let d = Date.parse('2026-09-08T12:00:00Z'); d < Date.parse('2026-10-07T00:00:00Z'); d += 86400000) {
-      const day = new Date(d).toISOString().slice(0, 10);
-      const lines = [];
-      for (let i = 0; i < LONG_PER_DAY; i++) {
-        const sec = Math.floor(i * 86400 / LONG_PER_DAY);
-        const ts = `${day}T${pad(Math.floor(sec / 3600))}:${pad(Math.floor(sec / 60) % 60)}:${pad(sec % 60)}-03:00`;
-        lines.push(JSON.stringify({ ts, agent: ag, terminal: 't', session: 's1', flow_id: i % 3 ? LONG_FLOW : undefined, hook_event: 'PostToolUse', tool: 'Bash', input: `comando ${i} ${'arg '.repeat(80)}`, ok: true, output_summary: 'y'.repeat(200), cwd: 'C:/x' }));
-      }
-      const file = path.join(m, 'logs', 'raw', ag, `${day}.jsonl`);
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      fs.writeFileSync(file, `${lines.join('\n')}\n`);
-    }
+  flush();
+  raw.close();
+  // A git repository of a registered project, for one hook run over the big database.
+  const repo = path.join(root, 'repo');
+  fs.mkdirSync(repo);
+  for (const args of [['init', '-q', '-b', 'task/1042'], ['remote', 'add', 'origin', 'https://github.com/acme/widgets.git']]) {
+    const x = spawnSync('git', args, { cwd: repo, encoding: 'utf8', windowsHide: true });
+    assert.strictEqual(x.status, 0, x.stderr);
   }
-  return m;
+  return { data, repo };
 }
 
 async function time(fn) {
@@ -101,80 +109,74 @@ function memoryMb(pid) {
   return m ? Math.round(Number(m[1].replace(/[^\d]/g, '')) / 1024) : null;
 }
 
-const stillPending = (body) => (body.raw_commands_warnings || []).some((w) => w.code === 'raw_files_pending');
+let D;
 
-suite.test('generates 50 thousand events and the raw log and starts the server', async () => {
-  const m = build();
+suite.test(`generates ${N_EVENTS} events and ${N_RAW} raw entries and starts the server (the startup cleanup deletes the old third)`, async () => {
+  const t0 = Date.now();
+  D = build();
+  console.log(`        generated in ${((Date.now() - t0) / 1000).toFixed(1)} s · bruto.db ${(fs.statSync(path.join(D.data, 'bruto.db')).size / 1048576).toFixed(0)} MB`);
   const port = await freePort();
-  const env = Object.assign({}, process.env, { MAESTRO_DIR: m, PANEL_NOW: NOW, PANEL_COLLECTOR: '0', PANEL_INDEX: path.join(root, 'x.html'), MAESTRI_DATA_DIR: path.join(root, 'maestri') });
+  const env = Object.assign({}, process.env, { MAESTRO_DIR: D.data, PANEL_NOW: NOW, PANEL_COLLECTOR: '0', PANEL_INDEX: path.join(root, 'x.html'), MAESTRI_DATA_DIR: path.join(root, 'maestri') });
+  const t1 = Date.now();
   const child = spawn(process.execPath, [SERVER, '--port', String(port)], { env, windowsHide: true });
   let out = '';
   child.stdout.on('data', (c) => { out += c; });
-  const mm = await waitFor(() => /\(PID (\d+)\)/.exec(out), 15000);
+  const mm = await waitFor(() => /\(PID (\d+)\)/.exec(out), 60000);
   S = { port, pid: Number(mm[1]) };
+  // The server answers while the cleanup runs in short rounds; it is up once the first cleanup ends.
+  console.log(`        server up (startup cleanup included) in ${Date.now() - t1} ms`);
+  const purged = /Log bruto: (\d+) registro/.exec(out);
+  assert.ok(purged && Number(purged[1]) > N_RAW / 5, `the cleanup deleted the entries older than 90 days: ${out}`);
 });
 
-suite.test('/api/state: first read < 8 s, the next ones < 1 s (incremental)', async () => {
-  const cold = await time(() => request(S.port, '/api/state'));
+suite.test('/api/log: first page < 2 s, filters (item, type, period, company) < 1 s each', async () => {
+  const cold = await time(() => request(S.port, '/api/log'));
   assert.strictEqual(cold.r.status, 200);
-  assert.strictEqual(cold.r.json.events.length, 200);
-  const warm = await time(() => request(S.port, '/api/state'));
-  console.log(`        /api/state: cold ${cold.ms.toFixed(0)} ms, warm ${warm.ms.toFixed(0)} ms, ${(cold.r.buf.length / 1024).toFixed(0)} KB`);
-  assert.ok(cold.ms < 8000, `slow cold read: ${cold.ms} ms`);
-  assert.ok(warm.ms < 1000, `slow warm read: ${warm.ms} ms`);
-  // A new event at the end of the month enters without reading the whole file again.
-  const added = { id: 'EV-20261008-155000-ffff', ts: '2026-10-08T15:50:00-03:00', agente: 'cerebro', fluxo_id: 'F-20261008-0001', origem: 'cerebro', tipo: 'aviso', resumo: 'Evento novíssimo', resultado: 'ok' };
-  fs.appendFileSync(path.join(root, 'maestro', 'logs', 'eventos', '2026-10.jsonl'), `${JSON.stringify(added)}\n`);
-  const after = await time(() => request(S.port, '/api/state'));
-  assert.strictEqual(after.r.json.events[0].id, 'EV-20261008-155000-ffff');
-  assert.ok(after.ms < 1500, `after the append: ${after.ms} ms`);
+  assert.strictEqual(cold.r.json.total, N_EVENTS);
+  assert.strictEqual(cold.r.json.events.length, 50);
+  const warm = await time(() => request(S.port, '/api/log?page=200'));
+  const queries = [
+    `item=${hot.project}/${hot.number}`, 'type=item-started&project=gadgets', 'since=2026-09-20&until=2026-09-30&per_page=500', 'company=contoso&hours=48',
+  ];
+  const times = [];
+  for (const q of queries) {
+    const x = await time(() => request(S.port, `/api/log?${q}`));
+    assert.strictEqual(x.r.status, 200, q);
+    assert.ok(x.r.json.total > 0, q);
+    times.push(x.ms);
+  }
+  console.log(`        /api/log: cold ${cold.ms.toFixed(0)} ms, page 200 ${warm.ms.toFixed(0)} ms, filters ${times.map((x) => x.toFixed(0)).join(' / ')} ms`);
+  assert.ok(cold.ms < 2000, `slow first read: ${cold.ms} ms`);
+  assert.ok(warm.ms < 1000 && times.every((x) => x < 1000), 'slow filters');
 });
 
-suite.test('/api/events with search and filters over every month < 2 s', async () => {
-  const q = await time(() => request(S.port, `/api/events?q=${encodeURIComponent('ACENTUAÇÃO 4999')}&owner_only=0&page=1`));
-  assert.strictEqual(q.r.status, 200);
-  assert.ok(q.r.json.total >= 1);
-  const f = await time(() => request(S.port, '/api/events?agent=coordenador&type=decisao&since=2026-09-10&until=2026-10-05&per_page=500'));
-  console.log(`        /api/events: search ${q.ms.toFixed(0)} ms, filters ${f.ms.toFixed(0)} ms (${f.r.json.total} events)`);
-  assert.ok(q.ms < 2000 && f.ms < 2000);
-});
-
-suite.test('/api/event/<id> with thousands of raw commands in the flow < 4 s, limited answer', async () => {
-  const list = (await request(S.port, '/api/events?since=2026-10-08&until=2026-10-08&q=F-20261008-0001&per_page=1')).json;
-  const id = list.events[0].id;
-  const d = await time(() => request(S.port, `/api/event/${id}`));
+suite.test('/api/log/<id> with thousands of linked raw commands < 1.5 s, limited answer', async () => {
+  const d = await time(() => request(S.port, `/api/log/${hot.id}`));
   assert.strictEqual(d.r.status, 200);
-  assert.ok(d.r.json.raw_commands.length <= 1500);
+  assert.strictEqual(d.r.json.raw_commands.length, 1500);
   assert.strictEqual(d.r.json.raw_commands_truncated, true);
-  const f = await time(() => request(S.port, '/api/flow/F-20261008-0001'));
-  console.log(`        /api/event: ${d.ms.toFixed(0)} ms (${(d.r.buf.length / 1024).toFixed(0)} KB) · /api/flow: ${f.ms.toFixed(0)} ms · server memory: ${memoryMb(S.pid)} MB`);
-  assert.ok(d.ms < 4000 && f.ms < 4000);
+  assert.ok(d.r.json.raw_commands_total >= 7000, `${d.r.json.raw_commands_total}`);
+  assert.ok(d.r.json.raw_commands.every((c) => c.item_number === hot.number && c.task_number === null));
+  const t = await time(() => request(S.port, '/api/raw?project=widgets&task=1036&limit=1500'));
+  assert.strictEqual(t.r.status, 200);
+  assert.ok(t.r.json.total > 0);
+  const mb = memoryMb(S.pid);
+  console.log(`        /api/log/<id>: ${d.ms.toFixed(0)} ms (${(d.r.buf.length / 1024).toFixed(0)} KB) · /api/raw by task: ${t.ms.toFixed(0)} ms · server memory: ${mb} MB`);
+  assert.ok(d.ms < 1500 && t.ms < 1500);
+  if (mb !== null) assert.ok(mb < 400, `high memory: ${mb} MB`);
 });
 
-suite.test('long and open flow (31 days of raw log): the 2nd and 3rd queries read nothing again', async () => {
-  const f1 = await time(() => request(S.port, `/api/flow/${LONG_FLOW}`));
-  assert.strictEqual(f1.r.status, 200);
-  assert.ok(f1.r.json.raw_commands.length > 0 && f1.r.json.raw_commands.length <= 1500);
-  assert.strictEqual(f1.r.json.raw_commands_truncated, true);
-  assert.ok(f1.r.json.raw_commands_omitted > 0);
-  // With the read ceiling per query, a huge raw log completes in a few queries.
-  let queries = 1;
-  for (let r = f1.r; stillPending(r.json) && queries < 8; queries++) r = await request(S.port, `/api/flow/${LONG_FLOW}`);
-  assert.ok(queries < 8, 'the index should complete');
-  if (queries > 1) console.log(`        index complete after ${queries} query(ies)`);
-  const f2 = await time(() => request(S.port, `/api/flow/${LONG_FLOW}`));
-  assert.ok(!stillPending(f2.r.json));
-  const f3 = await time(() => request(S.port, `/api/flow/${LONG_FLOW}`));
-  const e1 = await time(() => request(S.port, '/api/event/EV-20261008-150000-f002'));
-  assert.strictEqual(e1.r.status, 200);
-  const mb = memoryMb(S.pid);
-  console.log(`        long /api/flow: ${f1.ms.toFixed(0)} ms, then ${f2.ms.toFixed(0)} and ${f3.ms.toFixed(0)} ms · /api/event ${e1.ms.toFixed(0)} ms (${(e1.r.buf.length / 1024).toFixed(0)} KB) · memory ${mb} MB`);
-  // The warm query costs the same as building ~670 KB of answer: /api/event (same index, same size)
-  // measures that cost on the current machine; reading the raw log again would cost much more.
-  const ceiling = Math.max(800, f1.ms / 3, e1.ms * 1.5);
-  assert.ok(f2.ms < ceiling && f3.ms < ceiling, `the following queries should use the index (ceiling ${ceiling.toFixed(0)} ms)`);
-  assert.ok(e1.ms < 1500);
-  if (mb !== null) assert.ok(mb < 700, `high memory: ${mb} MB`);
+suite.test('the hook writes over the big bruto.db well within its 1.5 s', async () => {
+  const env = Object.assign({}, process.env, { MAESTRO_DIR: D.data, MAESTRO_NOW: NOW, NODE_OPTIONS: '', GIT_CEILING_DIRECTORIES: root });
+  const payload = { session_id: 'sess-perf', cwd: D.repo, hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command: 'npm test' }, tool_response: { stdout: 'ok' } };
+  const t0 = Date.now();
+  const x = spawnSync(process.execPath, [HOOK], { input: JSON.stringify(payload), env, encoding: 'utf8', windowsHide: true, timeout: 10000 });
+  const ms = Date.now() - t0;
+  assert.deepStrictEqual([x.status, x.stdout, x.stderr], [0, '', '']);
+  const r = (await request(S.port, '/api/raw?session=sess-perf')).json;
+  console.log(`        hook: ${ms} ms`);
+  assert.deepStrictEqual(r.entries.map((e) => [e.input, e.task_number, e.branch]), [['npm test', 1042, 'task/1042']]);
+  assert.ok(ms < 1400, `slow hook: ${ms} ms`);
 });
 
 suite.run().then(() => {

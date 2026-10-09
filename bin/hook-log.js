@@ -1,17 +1,23 @@
 #!/usr/bin/env node
 'use strict';
-// hook-log.js · Claude Code hook → raw log in <MAESTRO_DIR>/logs/raw/<agent>/YYYY-MM-DD.jsonl.
+// hook-log.js · Claude Code hook → raw log in bruto.db (MAESTRO_DIR or ~/.painel-maestro; ADR 0003, #12).
 // Installed in ~/.claude/settings.json in exec form, without a shell:
-//   {"type":"command","command":"node","args":["bin/hook-log.js"]}
+//   {"type":"command","command":"node","args":["<repo>/bin/hook-log.js"]}
 // Rules: never writes to stdout nor stderr (on SessionStart and UserPromptSubmit stdout becomes model
-// context); always exits with 0; gives up on everything in ~1.5 s; never waits for a lock longer than
-// ~300 ms; when the session is not from the workspace, exits in a few ms (without reading any file, if
-// possible); truncates input (600) and output (300) and redacts secrets with «redigido».
+// context); always exits with 0; gives up on everything in ~1.5 s (SQLite waits at most ~300-500 ms for a busy
+// database); truncates input (600) and output (300) and redacts secrets with «redigido».
 //
-// Raw line: {ts, agent, terminal, session, agent_id?, agent_type?, flow_id?, hook_event, tool?, input?,
-//   ok?, output_summary?, error?, duration_ms?, prompt?, detail?, cwd, version?}.
-// Session state (state/sessions/<session_id>.json): {session_id, agent, terminal, cwd, transcript_path,
-//   started_at, seen_at, flow_id, flow_since}; the usage collector attributes tokens with it.
+// Only sessions whose cwd belongs to a registered project are written: the git remote origin of the cwd (also
+// inside a floor's worktree), normalized like the flow CLI does, must be in maestro.db. Anything else exits in a
+// few ms, writing nothing. The session is linked to the item and the task by the current branch:
+//   task/<id>-… (or task/<id>)            the task <id> (its item comes from maestro.db when known)
+//   feature/pbi-<id> or feature/issue-<n>  the maestro of the item
+// Entry in bruto.db (bin/raw-store.js): {at, t, session_id, project_id, item_number, task_number, branch,
+//   hook_event, tool?, input?, ok?, output_summary?, error?, duration_ms?, prompt?, detail?, agent_id?,
+//   agent_type?, cwd, version?}.
+// Until #13 the usage collector still reads the old model's session files: on SessionStart, UserPromptSubmit and
+// Stop the hook keeps state/sessions/<session_id>.json (under the old data root) with an owner label derived from
+// the link ("<project>/<item>" for the maestro, "<project>/task-<id>" for a worker, "<project>" otherwise).
 
 // ---- total silence and guaranteed exit with code 0
 process.stdout.write = () => true;
@@ -33,77 +39,26 @@ const INPUT_LIMIT = 600;
 const OUTPUT_LIMIT = 300;
 const PROMPT_LIMIT = 1000;
 const LOCK_WAIT_MS = 300;
+const READ_WAIT_MS = 300;  // maestro.db busy: gives up after this
+const WRITE_WAIT_MS = 500; // bruto.db busy: gives up after this
 const SESSION_EVENTS = ['SessionStart', 'UserPromptSubmit', 'Stop'];
 
-/** Quick filter (without the lib): is the path inside the root? */
-function quickInside(child, parent) {
-  if (typeof child !== 'string' || !child.trim()) return false;
-  const path = require('path');
-  const n = (s) => path.resolve(s.trim().replace(/\\/g, '/').replace(/^\/([a-zA-Z])(\/|$)/, '$1:/'))
-    .replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
-  const c = n(child);
-  const r = n(parent);
-  return c === r || c.startsWith(`${r}/`);
+const RE_TASK_BRANCH = /^task\/(\d{1,9})(?:[-_/.].*)?$/i;
+const RE_ITEM_BRANCH = /^feature\/(?:pbi|issue)-(\d{1,9})(?:[-_/.].*)?$/i;
+
+/** { item, task } of a branch name (null when the branch says nothing). */
+function branchLink(branch) {
+  const task = RE_TASK_BRANCH.exec(branch || '');
+  if (task) return { item: null, task: Number(task[1]) };
+  const item = RE_ITEM_BRANCH.exec(branch || '');
+  return { item: item ? Number(item[1]) : null, task: null };
 }
 
-/** Sleeps without burning CPU (synchronous). */
-function sleep(ms) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
-let pendingCacheWrite = null;
-
-/** Keeps the last good copy of the registry in state/agents-cache.json (only when agentes.json changed). */
-function saveCache(fs, path, file, cache, text) {
-  try {
-    let stale = true;
-    try { stale = fs.statSync(cache).mtimeMs < fs.statSync(file).mtimeMs; } catch (_) { /* no cache yet */ }
-    if (!stale) return;
-    fs.mkdirSync(path.dirname(cache), { recursive: true });
-    const tmp = `${cache}.tmp-${process.pid}-${Math.floor(Math.random() * 0xffff).toString(16)}`;
-    fs.writeFileSync(tmp, text);
-    try { fs.renameSync(tmp, cache); } catch (_) { try { fs.unlinkSync(tmp); } catch (__) { /* ignore */ } }
-  } catch (_) { /* the cache is only a safety net */ }
-}
-
-/**
- * Reads registro/agentes.json (old model registry) WITHOUT the lib (fast, to decide "is it ours?" before
- * loading it). On EBUSY/EPERM retries for up to ~200 ms; with half a JSON (someone rewriting), retries once
- * after ~30 ms. If it still fails, uses the last good copy (state/agents-cache.json). A missing file returns null.
- */
-function readRegistry(base) {
-  const fs = require('fs');
-  const path = require('path');
-  const file = path.join(base, 'registro', 'agentes.json');
-  const cache = path.join(base, 'state', 'agents-cache.json');
-  const normal = (c) => {
-    if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
-    if (!Array.isArray(c.agentes)) c.agentes = [];
-    return c;
-  };
-  const start = Date.now();
-  let retriedJson = false;
-  for (;;) {
-    let text;
-    try {
-      text = fs.readFileSync(file, 'utf8').replace(/^﻿/, '');
-      const c = normal(JSON.parse(text));
-      // The cache is only written after confirming the session is ours (someone else's session writes nothing).
-      if (c) { pendingCacheWrite = () => saveCache(fs, path, file, cache, text); return c; }
-      break;
-    } catch (e) {
-      if (e && e.code === 'ENOENT') return null;
-      if (e instanceof SyntaxError) {
-        if (retriedJson) break;
-        retriedJson = true;
-        sleep(30);
-        continue;
-      }
-      if (!(e && ['EBUSY', 'EPERM', 'EACCES'].includes(e.code)) || Date.now() - start >= 200) break;
-      sleep(10);
-    }
-  }
-  try { return normal(JSON.parse(fs.readFileSync(cache, 'utf8'))); } catch (_) { return null; }
+/** Owner label of the session for the usage collector (old model, until #13). */
+function ownerLabel(project, item, task) {
+  if (task !== null) return `${project}/task-${task}`;
+  if (item !== null) return `${project}/${item}`;
+  return project;
 }
 
 /** "input" of the line: command (Bash/PowerShell), file + size (Read/Write/Edit) or truncated JSON. */
@@ -185,97 +140,101 @@ function versionOf(p, env) {
   return m ? `${m[1]} ${m[2].replace(/-/g, '.')}` : a.slice(0, 60);
 }
 
+/** The registered project of the folder and the session's link, or null when the session is not ours. */
+function linkOf(cwd, env) {
+  const { repoInfo, normalizeRemote } = require('./flow-repo');
+  const info = repoInfo(cwd, env);
+  if (!info || !info.origin) return null;
+  const { openStore, flowDir } = require('./flow-store');
+  const dir = flowDir(env);
+  const store = openStore({ dir, readOnly: true, busyTimeoutMs: READ_WAIT_MS });
+  if (!store) return null;
+  try {
+    const project = store.projectByRemote(normalizeRemote(info.origin));
+    if (!project) return null;
+    const { item, task } = branchLink(info.branch);
+    return { dir, project: project.id, branch: info.branch, task, item: task !== null ? store.itemOfTask(project.id, task) : item };
+  } finally {
+    store.close();
+  }
+}
+
 function handle(text) {
-  const path = require('path');
   let p;
   try { p = JSON.parse(String(text).replace(/^﻿/, '')); } catch (_) { return; }
   if (!p || typeof p !== 'object' || Array.isArray(p) || typeof p.hook_event_name !== 'string') return;
   const env = process.env;
   const cwd = typeof p.cwd === 'string' && p.cwd.trim() ? p.cwd : process.cwd();
 
-  // 1) Quick filters, before loading the lib:
-  //    outside Maestri and outside the workspace root → not ours (without reading any file);
-  //    Maestri of ANOTHER workspace → not ours (reads only agentes.json, or its last good copy).
-  const base = path.resolve(env.MAESTRO_DIR || path.join(__dirname, '..'));
-  if (!env.MAESTRI_WORKSPACE_ID) {
-    const root = path.dirname(base);
-    if (![cwd, env.CLAUDE_PROJECT_DIR].some((d) => quickInside(d, root))) return;
-  }
-  const registry = readRegistry(base);
-  const wsId = registry && registry.workspace && typeof registry.workspace.id === 'string' ? registry.workspace.id : null;
-  if (env.MAESTRI_WORKSPACE_ID && wsId && env.MAESTRI_WORKSPACE_ID !== wsId) return;
+  // 1) Is it ours? Reads only the .git files of the cwd and, for a repository, maestro.db (read only).
+  const link = linkOf(cwd, env);
+  if (!link) return;
 
-  // 2) Workspace and agent.
+  // 2) The entry, redacted and truncated.
   const lib = require('./lib');
-  const id = lib.identifyAgent({ env, cwd, registry });
-  if (!id.ours) return;
-  if (pendingCacheWrite) pendingCacheWrite();
-
   const when = lib.now();
-  const iso = lib.isoSP(when);
+  const at = lib.isoSP(when);
   const hookEvent = p.hook_event_name;
   const sid = lib.safeSessionId(p.session_id);
-  const promptFlow = hookEvent === 'UserPromptSubmit' ? lib.lastFlowInText(p.prompt) : null;
-
-  // 3) Session state and flow correlation. Never waits for a lock longer than ~300 ms.
-  let flow = null;
-  if (sid && SESSION_EVENTS.includes(hookEvent)) {
-    try {
-      const s = lib.updateSession(sid, (current) => {
-        const a = current && typeof current === 'object' && !Array.isArray(current) ? current : {};
-        const changed = !!promptFlow && promptFlow !== a.flow_id;
-        return {
-          ...a,
-          session_id: sid,
-          agent: id.agent,
-          terminal: id.terminal || null,
-          cwd,
-          transcript_path: typeof p.transcript_path === 'string' ? p.transcript_path : (a.transcript_path || null),
-          started_at: a.started_at || iso,
-          seen_at: iso,
-          flow_id: promptFlow || a.flow_id || null,
-          flow_since: changed ? iso : (a.flow_since || null),
-        };
-      }, { timeoutMs: LOCK_WAIT_MS, sync: false, cleanTemps: false }); // the session is derived state: no fsync
-      flow = s && s.flow_id;
-    } catch (_) {
-      flow = promptFlow || lib.flowOfSession(sid, { timeoutMs: 100 });
-    }
-  } else if (sid) {
-    flow = lib.flowOfSession(sid, { timeoutMs: 100 });
-  }
-
-  // 4) The raw log line.
-  const line = { ts: iso, agent: id.agent, terminal: id.terminal || null, session: sid || null };
-  if (p.agent_id !== undefined && p.agent_id !== null) line.agent_id = String(p.agent_id);
-  if (p.agent_type !== undefined && p.agent_type !== null) line.agent_type = String(p.agent_type);
-  if (flow) line.flow_id = flow;
-  line.hook_event = hookEvent;
+  const entry = {
+    at, t: when.getTime(), session_id: sid || null, project_id: link.project, item_number: link.item, task_number: link.task,
+    branch: link.branch, hook_event: hookEvent, cwd,
+  };
+  if (p.agent_id !== undefined && p.agent_id !== null) entry.agent_id = String(p.agent_id).slice(0, 120);
+  if (p.agent_type !== undefined && p.agent_type !== null) entry.agent_type = String(p.agent_type).slice(0, 120);
   if (typeof p.tool_name === 'string') {
-    line.tool = p.tool_name;
+    entry.tool = p.tool_name.slice(0, 120);
     const i = inputSummary(lib, p.tool_name, p.tool_input);
-    if (i !== undefined && i !== '') line.input = i;
+    if (i !== undefined && i !== '') entry.input = i;
   }
   if (hookEvent === 'PostToolUse') {
-    line.ok = true;
+    entry.ok = true;
     const o = outputSummary(lib, p.tool_name, p.tool_response);
-    if (o) line.output_summary = o;
+    if (o) entry.output_summary = o;
   } else if (hookEvent === 'PostToolUseFailure') {
-    line.ok = false;
+    entry.ok = false;
     const raw = typeof p.error === 'string' ? p.error : (p.error === undefined || p.error === null ? '' : JSON.stringify(p.error));
     const error = `${p.is_interrupt ? '(interrompido) ' : ''}${raw}`;
-    if (error) line.error = lib.summarize(error, OUTPUT_LIMIT);
+    if (error) entry.error = lib.summarize(error, OUTPUT_LIMIT);
   } else if ((hookEvent === 'Stop' || hookEvent === 'SubagentStop') && typeof p.last_assistant_message === 'string' && p.last_assistant_message) {
-    line.output_summary = lib.summarize(p.last_assistant_message, OUTPUT_LIMIT);
+    entry.output_summary = lib.summarize(p.last_assistant_message, OUTPUT_LIMIT);
   }
-  if (typeof p.duration_ms === 'number' && Number.isFinite(p.duration_ms)) line.duration_ms = p.duration_ms;
-  if (hookEvent === 'UserPromptSubmit' && typeof p.prompt === 'string') line.prompt = lib.summarize(p.prompt, PROMPT_LIMIT);
-  if (hookEvent === 'SessionStart' && p.source) line.detail = String(p.source).slice(0, 40);
-  if (hookEvent === 'SessionEnd' && p.reason) line.detail = String(p.reason).slice(0, 40);
-  line.cwd = cwd;
+  if (typeof p.duration_ms === 'number' && Number.isFinite(p.duration_ms)) entry.duration_ms = p.duration_ms;
+  if (hookEvent === 'UserPromptSubmit' && typeof p.prompt === 'string') entry.prompt = lib.summarize(p.prompt, PROMPT_LIMIT);
+  if (hookEvent === 'SessionStart' && p.source) entry.detail = String(p.source).slice(0, 40);
+  if (hookEvent === 'SessionEnd' && p.reason) entry.detail = String(p.reason).slice(0, 40);
   const version = versionOf(p, env);
-  if (version) line.version = version;
-  lib.appendJsonl(lib.rawFile(id.agent, when), line);
+  if (version) entry.version = version;
+  const transcript = typeof p.transcript_path === 'string' && p.transcript_path ? p.transcript_path : null;
+
+  // 3) bruto.db.
+  const { openRawStore } = require('./raw-store');
+  const raw = openRawStore({ dir: link.dir, busyTimeoutMs: WRITE_WAIT_MS });
+  try {
+    raw.record(entry, { cwd, transcript_path: transcript });
+  } finally {
+    raw.close();
+  }
+
+  // 4) Session file of the old model for the usage collector (until #13). Never waits for a lock longer than ~300 ms.
+  if (sid && SESSION_EVENTS.includes(hookEvent)) {
+    lib.updateSession(sid, (current) => {
+      const a = current && typeof current === 'object' && !Array.isArray(current) ? current : {};
+      return {
+        ...a,
+        session_id: sid,
+        agent: ownerLabel(link.project, link.item, link.task),
+        project: link.project,
+        item_number: link.item,
+        task_number: link.task,
+        branch: link.branch,
+        cwd,
+        transcript_path: transcript || a.transcript_path || null,
+        started_at: a.started_at || at,
+        seen_at: at,
+      };
+    }, { timeoutMs: LOCK_WAIT_MS, sync: false, cleanTemps: false }); // the session is derived state: no fsync
+  }
 }
 
 // ---- reads the whole stdin (asynchronously, so the time limit works) and handles it once

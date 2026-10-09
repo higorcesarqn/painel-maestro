@@ -1,20 +1,8 @@
-// Queries the page builds: the Log filters and the analysis of the last 7 days.
+// Queries the page builds: the Log filters (new model, /api/log) and the analysis of the last 7 days (old model).
 import { PAGE_SIZE } from './api.js';
 import { t } from '../i18n/index.js';
 import { now, spDay, spHour, dayMonth, weekdayShort, dayHeading, arr } from './format.js';
 import { RESULTS } from './domain.js';
-
-/** Many-value filter (agent, project, result): kept as the text "a,b"; returns the list. */
-export function filterList(v) {
-  if (Array.isArray(v)) return v.filter((x) => typeof x === 'string' && x);
-  return typeof v === 'string' && v ? v.split(',').map((x) => x.trim()).filter(Boolean) : [];
-}
-
-/** Adds or removes a value of a many-value filter; returns the text "a,b" ('' when empty). */
-export function toggleFilter(v, item) {
-  const l = filterList(v);
-  return (l.includes(item) ? l.filter((x) => x !== item) : [...l, item]).join(',');
-}
 
 export function dateRange(f) {
   const today = spDay(now());
@@ -30,22 +18,17 @@ export function dateRange(f) {
   }
 }
 
-/** Query parameters of /api/events for the Log filters and page. */
+/** Query parameters of /api/log (new model) for the Log filters and page. */
 export function logParams(f, page) {
   const sp = new URLSearchParams();
   const [since, until] = dateRange(f);
   if (since) sp.set('since', since);
   if (until) sp.set('until', until);
-  // 24 h: yesterday onwards (valid on an old server) and the exact last 24 h on the new one (hours)
+  // 24 h: the exact last 24 hours (since yesterday plus hours)
   if (f.period === '24h') sp.set('hours', '24');
-  for (const k of ['agent', 'project', 'type', 'result']) {
-    const v = filterList(f[k]).join(',');
-    if (v) sp.set(k, v);
+  for (const k of ['company', 'project', 'item', 'type']) {
+    if (typeof f[k] === 'string' && f[k]) sp.set(k, f[k]);
   }
-  if (f.q.trim()) sp.set('q', f.q.trim());
-  if (f.owner_only) sp.set('owner_only', '1');
-  if (f.include_tests) sp.set('include_tests', '1');
-  if (f.flow) sp.set('flow', f.flow);
   sp.set('page', String(page));
   sp.set('per_page', String(PAGE_SIZE));
   return sp;

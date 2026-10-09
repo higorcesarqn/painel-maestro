@@ -1,7 +1,7 @@
 // Test mode (?mock=1): reads tests/mock-*.json and imitates /api/state, /api/events, /api/event, /api/flow and the
-// new model's /api/items and /api/items/<project>/<number> (tests/mock-items.json, written by
-// tests/generate-mock-items.js with the real projection), answering in the API shape (English fields and codes),
-// as the real server does.
+// new model's /api/items, /api/items/<project>/<number>, /api/log and /api/log/<id> (tests/mock-items.json, written
+// by tests/generate-mock-items.js with the real projection; the Log's raw commands are made up on the spot),
+// answering in the API shape (English fields and codes), as the real server does.
 // Serve with "node tests/serve-mock.js" and open http://127.0.0.1:4795/?mock=1 (or use npm run dev).
 import { t } from '../i18n/index.js';
 import { arr, obj, spDay, normalize, txt, now } from './format.js';
@@ -58,6 +58,75 @@ async function mockItems(p) {
   return { item };
 }
 
+/** Events of the Log (new model) from the item timelines of tests/mock-items.json, newest first. */
+function logEvents(m) {
+  const out = [];
+  for (const it of Object.values(obj(m.details) || {})) {
+    for (const e of arr(it.timeline)) {
+      out.push({
+        id: e.id, at: e.at, type: e.type, project: it.project, item_number: it.number, item_key: it.key, item_title: it.title,
+        tracker_ref: it.tracker_ref, task_number: e.task_number ?? null, agent: e.agent, source: e.source, payload: e.payload,
+      });
+    }
+  }
+  return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || b.id - a.id);
+}
+
+/** A few made-up raw commands before each event (the mock has no bruto.db): the maestro working on the item. */
+function mockRaw(ev, start) {
+  const branch = ev.task_number === null ? `feature/issue-${ev.item_number}` : `task/${ev.task_number}`;
+  const tEv = Date.parse(ev.at);
+  const commands = ['git status --short', 'npm test', `node bin/flow.js ${ev.type === 'item-started' ? 'item start' : 'stage'} ${ev.item_number}`];
+  return commands.map((input, i) => ({
+    id: ev.id * 10 + i, at: new Date(Math.max(start + 1000, tEv - (commands.length - 1 - i) * 90000 + (i === commands.length - 1 ? 5000 : 0))).toISOString(),
+    session: `mock-${ev.project.id}-${ev.item_number}`, project_id: ev.project.id, item_number: ev.item_number, task_number: ev.task_number,
+    branch, hook_event: 'PostToolUse', tool: 'Bash', input, ok: true, output_summary: 'ok', error: null, duration_ms: null, prompt: null,
+    detail: null, agent_id: null, agent_type: null, version: null,
+  }));
+}
+
+/** /api/log and /api/log/<id> like the server: filters, counts where each facet ignores its own filter, the raw link. */
+async function mockLog(p, sp) {
+  if (p !== '/api/log' && !/^\/api\/log\/\d+$/.test(p)) return null;
+  const all = logEvents(await loadMockItems());
+  const m = /^\/api\/log\/(\d+)$/.exec(p);
+  if (m) {
+    const id = Number(m[1]);
+    const ev = all.find((e) => e.id === id);
+    if (!ev) throw error('event_not_found', 404, { id });
+    const previous = all.find((e) => e.item_key === ev.item_key && e.task_number === ev.task_number && e.id < ev.id);
+    const start = Math.max(previous ? Date.parse(previous.at) : 0, Date.parse(ev.at) - 6 * 3600000);
+    const raw = mockRaw(ev, start);
+    return {
+      event: ev, item: { key: ev.item_key, title: ev.item_title, tracker_ref: ev.tracker_ref, stage: ev.type === 'stage-changed' ? ev.payload.stage : 'specification' },
+      raw_commands: raw, raw_commands_total: raw.length, raw_commands_truncated: false,
+      raw_link: { by: ev.task_number === null ? 'item' : 'task', item_number: ev.item_number, task_number: ev.task_number, start: new Date(start).toISOString(), end: new Date(Date.parse(ev.at) + 60000).toISOString() },
+    };
+  }
+  const list = (n) => (sp.get(n) ? new Set(sp.get(n).split(',').map((x) => x.trim()).filter(Boolean)) : null);
+  const co = list('company'); const pj = list('project'); const ty = list('type'); const item = sp.get('item') || '';
+  const since = sp.get('since'); const until = sp.get('until');
+  const hours = Number(sp.get('hours')) || 0; const sinceT = hours > 0 ? now() - hours * 3600000 : null;
+  const groups = { company: new Map(), project: new Map(), type: new Map() };
+  const count = (g, k) => { if (k) g.set(k, (g.get(k) || 0) + 1); };
+  const f = all.filter((e) => {
+    const d = spDay(e.at);
+    if ((since && d < since) || (until && d > until) || (sinceT !== null && !(Date.parse(e.at) >= sinceT)) || (item && e.item_key !== item)) return false;
+    const company = e.project.company && e.project.company.id;
+    const okCo = !co || co.has(company); const okPj = !pj || pj.has(e.project.id); const okTy = !ty || ty.has(e.type);
+    if (okPj && okTy) count(groups.company, company);
+    if (okCo && okTy) count(groups.project, e.project.id);
+    if (okCo && okPj) count(groups.type, e.type);
+    return okCo && okPj && okTy;
+  });
+  const pg = Math.max(1, Number(sp.get('page')) || 1); const pp = Math.max(1, Number(sp.get('per_page')) || 50);
+  return {
+    total: f.length, page: pg, per_page: pp, pages: Math.max(1, Math.ceil(f.length / pp)), events: f.slice((pg - 1) * pp, pg * pp),
+    counts: { company: Object.fromEntries(groups.company), project: Object.fromEntries(groups.project), type: Object.fromEntries(groups.type) },
+    raw_last_at: all.length ? all[0].at : null,
+  };
+}
+
 function tableFields(e) {
   const r = {};
   for (const k of TABLE_FIELDS) if (e[k] !== undefined) r[k] = e[k];
@@ -75,6 +144,8 @@ export async function mockApi(urlPath, method) {
   const p = u.pathname;
   const items = await mockItems(p);
   if (items) return items;
+  const log = await mockLog(p, u.searchParams);
+  if (log) return log;
   const { state, det } = await loadMock();
   const sp = u.searchParams;
   const evs = arr(det.events).slice().sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts));

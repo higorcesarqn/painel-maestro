@@ -13,8 +13,8 @@
  *   MAESTRO_NOW            fixed date/time in ISO 8601. Tests only.
  *
  * Data layout under MAESTRO_DIR:
- *   logs/raw/<agent>/YYYY-MM-DD.jsonl   raw log written by the hook (bin/hook-log.js)
- *   state/sessions/<session_id>.json    Claude Code session state (hook), read by the usage collector
+ *   logs/raw/<agent>/YYYY-MM-DD.jsonl   old raw log (the hook writes bruto.db since #12; see bin/raw-store.js)
+ *   state/sessions/<session_id>.json    Claude Code session state (hook), read by the usage collector until #13
  *   state/usage.json, state/usage-cache.json, state/panel.pid
  *   Old model, kept as is until #18 removes it (written by bin/registrar.js and bin/pendencia.js):
  *   registro/agentes.json, logs/eventos/YYYY-MM.jsonl, estado/pendencias.json, estado/contador-fluxos.json

@@ -44,6 +44,9 @@ export const readEvent = (id) => api(`/api/event/${encodeURIComponent(id)}`);
 // New model (maestro.db): items with their state computed from the events.
 export const readItems = () => api('/api/items');
 export const readItem = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`);
+// New model Log: the events of maestro.db with filters and, for one event, the raw commands of bruto.db linked to it.
+export const readLog = (params) => api(`/api/log?${new URLSearchParams(params).toString()}`);
+export const readLogEvent = (id) => api(`/api/log/${encodeURIComponent(id)}`);
 
 // Option letter at the start of an option of the old model ("A: ...", or the Portuguese word for "option" + "B) ...");
 // the word is data written by the agents, in Portuguese.

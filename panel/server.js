@@ -14,6 +14,8 @@
 //         POST /api/recalculate, POST /api/brain (future phase: 501). Pending decisions (api-pendencias.js):
 //         POST /api/pending-decisions/<P-NNNN>/answer {option, text}. Details in README.md.
 //         New model (api-items.js, maestro.db): GET /api/items, GET /api/items/<project>/<number>.
+//         Log of the new model (api-log.js, maestro.db + bruto.db): GET /api/log, GET /api/log/<id>, GET /api/raw;
+//         the raw log older than 90 days is deleted on startup and once a day.
 // The API never returns sentences: reasons, warnings and errors are codes with parameters
 // ({code, ...params}) and the page translates them (ADR 0004). Old-model records (events and pending
 // decisions written by bin/registrar.js and bin/pendencia.js) go out with English field names
@@ -40,6 +42,7 @@ const zlib = require('zlib');
 const collector = require(path.join(__dirname, '..', 'bin', 'collect-usage.js'));
 const pendingApi = require(path.join(__dirname, 'api-pendencias.js'));
 const itemsApi = require(path.join(__dirname, 'api-items.js'));
+const logApi = require(path.join(__dirname, 'api-log.js'));
 const { eventToApi, pendingDecisionToApi } = require(path.join(__dirname, 'legacy-records.js'));
 const { asDate, isoSP, spDay, readJson, readText, withRetries, writeAtomic } = collector.util;
 
@@ -48,6 +51,7 @@ const HOUR_MS = 60 * MIN_MS;
 const DAY_MS = 24 * HOUR_MS;
 const DEFAULT_PORT = 4777;
 const COLLECTOR_INTERVAL_MS = 5 * MIN_MS;
+const RAW_PURGE_INTERVAL_MS = DAY_MS;          // bruto.db: entries older than 90 days leave once a day
 const STATE_EVENT_LIMIT = 200;
 const CLOSED_LIMIT = 20;
 const COMMAND_LIMIT = 1500;
@@ -958,6 +962,7 @@ function createContext(cfg) {
     cfg,
     data: new Data(cfg.maestroDir),
     items: itemsApi.createItemsSource(cfg.env),
+    raw: logApi.createRawSource(cfg.env),
     port: cfg.port,
     allowedHosts: new Set(),
     allowedOrigins: new Set(),
@@ -1615,6 +1620,8 @@ const FIXED_ROUTES = {
   '/api/recalculate': { name: 'recalculate', methods: ['POST'] },
   '/api/brain': { name: 'brain', methods: ['POST'] },
   '/api/items': { name: 'items', methods: ['GET', 'HEAD'] },
+  '/api/log': { name: 'log', methods: ['GET', 'HEAD'] },
+  '/api/raw': { name: 'raw', methods: ['GET', 'HEAD'] },
 };
 
 function findRoute(urlPath) {
@@ -1623,6 +1630,11 @@ function findRoute(urlPath) {
   if (mi) {
     const it = itemsApi.parseItemPath(mi[1], mi[2]);
     return it ? { name: 'item', methods: ['GET', 'HEAD'], project: it.project, number: it.number } : null;
+  }
+  const ml = /^\/api\/log\/([^/]+)$/.exec(urlPath);
+  if (ml) {
+    const id = logApi.parseLogId(ml[1]);
+    return id ? { name: 'log-event', methods: ['GET', 'HEAD'], id } : null;
   }
   const mp = /^\/api\/pending-decisions\/([^/]+)\/answer$/.exec(urlPath);
   if (mp) {
@@ -1704,6 +1716,15 @@ async function route(ctx, req, res) {
       if (!x) return respondError(req, res, 404, { code: 'item_not_found', project: r.project, number: r.number });
       return respondJson(req, res, 200, x);
     }
+    case 'log':
+      return respondJson(req, res, 200, logApi.listLog(ctx.items, ctx.raw, query, ctx.now().getTime()));
+    case 'log-event': {
+      const x = logApi.logDetail(ctx.items, ctx.raw, r.id);
+      if (!x) return respondError(req, res, 404, { code: 'event_not_found', id: r.id });
+      return respondJson(req, res, 200, x);
+    }
+    case 'raw':
+      return respondJson(req, res, 200, logApi.listRaw(ctx.raw, query));
     case 'recalculate': {
       const run = await ctx.runCollector('recalculate');
       const state = await buildState(ctx);
@@ -1728,7 +1749,7 @@ async function route(ctx, req, res) {
 function createHandler(ctx) {
   return (req, res) => {
     route(ctx, req, res).catch((e) => {
-      const known = e instanceof RequestError || e instanceof pendingApi.PendingDecisionError;
+      const known = e instanceof RequestError || e instanceof pendingApi.PendingDecisionError || e instanceof logApi.LogError;
       const status = known ? e.status : 500;
       if (status === 500) ctx.logError(`Erro em ${req.method} ${String(req.url).slice(0, 200)}: ${e && e.stack ? e.stack : e}`);
       if (res.headersSent) {
@@ -1781,13 +1802,30 @@ async function start(options = {}) {
     ctx.runCollector('startup');
     timer = setInterval(() => ctx.runCollector('periodic'), COLLECTOR_INTERVAL_MS);
   }
+  // Raw log retention (ADR 0003): on startup and then once a day, in short rounds (the server keeps answering).
   let stopped = false;
+  let purging = null;
+  const purge = () => {
+    if (purging) return purging;
+    purging = logApi.purgeRaw(ctx.raw, ctx.now().getTime(), { stopped: () => stopped }).then((r) => {
+      if (r && (r.entries || r.sessions)) ctx.log(`Log bruto: ${r.entries} registro(s) e ${r.sessions} sessão(ões) com mais de 90 dias apagados`);
+    }).catch((e) => {
+      ctx.logError(`Falha na limpeza do log bruto: ${e && e.message ? e.message : e}`);
+    }).finally(() => { purging = null; });
+    return purging;
+  };
+  await purge();
+  const purgeTimer = setInterval(purge, RAW_PURGE_INTERVAL_MS);
+  purgeTimer.unref();
   async function stop() {
     if (stopped) return;
     stopped = true;
     if (timer) clearInterval(timer);
+    clearInterval(purgeTimer);
     removePidSync(pidFile);
+    if (purging) await purging;
     ctx.items.close();
+    ctx.raw.close();
     await new Promise((resolve) => {
       server.close(() => resolve());
       if (typeof server.closeAllConnections === 'function') server.closeAllConnections();

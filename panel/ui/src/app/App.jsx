@@ -2,7 +2,7 @@
 // the Log filters and the event modal. Only the visible screen is drawn.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { PanelContext, SCREENS, OLD_SCREEN_IDS, newFilter } from '../data/context.js';
-import { REFRESH_MS, ANALYSIS_REFRESH_MS, MOCK, readState, recalculateUsage, readEvents } from '../data/api.js';
+import { REFRESH_MS, ANALYSIS_REFRESH_MS, MOCK, readState, recalculateUsage, readEvents, readLog } from '../data/api.js';
 import { syncClock, now, spDay, time, txt, obj, arr } from '../data/format.js';
 import { logParams, analyze } from '../data/queries.js';
 import { t } from '../i18n/index.js';
@@ -103,7 +103,7 @@ export function App() {
     const seq = ++logSeq.current;
     if (!silent) setLog((l) => ({ ...l, loading: true }));
     try {
-      const r = await readEvents(logParams(filtersRef.current, pageRef.current));
+      const r = await readLog(logParams(filtersRef.current, pageRef.current));
       if (seq !== logSeq.current) return;
       const pages = r.pages || Math.max(1, Math.ceil((r.total || 0) / (r.per_page || 50)));
       // the page may be gone (fewer events with the filter): back to the last one that exists
@@ -180,9 +180,10 @@ export function App() {
   }, []);
   const closeModal = useCallback(() => setModal(null), []);
 
-  const filterByFlow = useCallback((id) => {
+  // Old-model flows have no place in the new Log (#12): opens it without filters.
+  const filterByFlow = useCallback(() => {
     setModal(null);
-    setRawFilters((f) => ({ ...newFilter(), flow: id, include_tests: f.include_tests }));
+    setRawFilters(newFilter());
     setPage(1);
     goTo('log');
   }, []);

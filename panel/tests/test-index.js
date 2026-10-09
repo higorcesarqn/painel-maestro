@@ -74,13 +74,13 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   const api = source['data/api.js'];
   for (const route of ["api('/api/state')", '`/api/events?', '`/api/event/${encodeURIComponent(id)}`', "api('/api/recalculate', { method: 'POST' })",
     'api(`/api/pending-decisions/${encodeURIComponent(p.id)}/answer`', "api('/api/items')",
-    'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)']) {
+    'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', '`/api/log?', 'api(`/api/log/${encodeURIComponent(id)}`)']) {
     assert.ok(api.includes(route), `the page calls ${route}`);
   }
-  for (const route of ['/api/state', '/api/events?', '/api/event/', '/api/recalculate', '/api/pending-decisions/', '/api/items']) {
+  for (const route of ['/api/state', '/api/events?', '/api/event/', '/api/recalculate', '/api/pending-decisions/', '/api/items', '/api/log?', '/api/log/']) {
     assert.ok(js.includes(route), `the build calls ${route}`);
   }
-  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions\/|items|items\/)$/;
+  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions\/|items|items\/|log|log\/)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
   assert.ok(/export const REFRESH_MS = 20000;/.test(api), 'refreshes every 20 s');

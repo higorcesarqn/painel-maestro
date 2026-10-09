@@ -5,6 +5,7 @@
  *
  *   openStore({ dir })          opens (and creates/migrates) <dir>/maestro.db: WAL, busy_timeout, schema version
  *   openStore({ dir, create: false })  returns null when the file does not exist yet (the server only reads)
+ *   openStore({ dir, readOnly: true, busyTimeoutMs })  reads without writing anything (the hook: is the cwd's project registered?)
  *   flowDir(env)                MAESTRO_DIR, or ~/.painel-maestro (the new model's default)
  *
  * Tables (schema version in PRAGMA user_version):
@@ -154,20 +155,52 @@ function eventRow(row) {
   };
 }
 
+/** WHERE of the Log's event filters; "skip" leaves one facet out (the counts of a facet ignore its own filter). */
+function logWhere(f, skip) {
+  const where = [];
+  const params = [];
+  const many = (column, values) => {
+    where.push(`${column} IN (${values.map(() => '?').join(', ')})`);
+    params.push(...values);
+  };
+  if (f.companies && skip !== 'company') many('p.company_id', f.companies);
+  if (f.projects && skip !== 'project') many('e.project_id', f.projects);
+  if (f.types && skip !== 'type') many('e.type', f.types);
+  if (f.item) {
+    where.push('e.project_id = ? AND e.item_number = ?');
+    params.push(f.item.project, f.item.number);
+  }
+  if (f.since) { where.push('e.at >= ?'); params.push(f.since); }
+  if (f.until) { where.push('e.at < ?'); params.push(f.until); }
+  return { sql: where.length ? `WHERE ${where.join(' AND ')}` : '', params };
+}
+
 /**
  * Opens maestro.db in dir. options.create=false: null if the file does not exist (does not create it).
+ * options.readOnly: opens without writing anything (no WAL switch, no migration) and returns null when the file
+ * does not exist or has no schema yet; busyTimeoutMs shortens the wait for a busy database (the hook's 1.5 s).
  * Returns the store: an object with the read and write operations of the new model.
  */
-function openStore({ dir, create = true } = {}) {
+function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_TIMEOUT_MS } = {}) {
   const file = path.join(dir, DB_FILE);
-  if (!create && !fs.existsSync(file)) return null;
-  fs.mkdirSync(dir, { recursive: true });
+  if ((!create || readOnly) && !fs.existsSync(file)) return null;
   const { DatabaseSync } = loadSqlite();
-  const db = new DatabaseSync(file);
-  db.exec(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`);
-  retryBusy(() => db.exec('PRAGMA journal_mode = WAL'));
-  db.exec('PRAGMA foreign_keys = ON');
-  migrate(db);
+  let db;
+  if (readOnly) {
+    db = new DatabaseSync(file, { readOnly: true });
+    db.exec(`PRAGMA busy_timeout = ${busyTimeoutMs}`);
+    if (db.prepare('PRAGMA user_version').get().user_version < 1) {
+      db.close();
+      return null;
+    }
+  } else {
+    fs.mkdirSync(dir, { recursive: true });
+    db = new DatabaseSync(file);
+    db.exec(`PRAGMA busy_timeout = ${busyTimeoutMs}`);
+    retryBusy(() => db.exec('PRAGMA journal_mode = WAL'), busyTimeoutMs);
+    db.exec('PRAGMA foreign_keys = ON');
+    migrate(db);
+  }
 
   const store = {
     file,
@@ -213,6 +246,44 @@ function openStore({ dir, create = true } = {}) {
     /** Every event, oldest first (the server groups them by item). */
     allEvents() {
       return db.prepare('SELECT * FROM events ORDER BY id').all().map(eventRow);
+    },
+
+    // ---- the Log (#12) ----
+    event(id) {
+      const row = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
+      return row ? eventRow(row) : null;
+    },
+    /** The event written before e for the same item and the same task (null task: the item's own events). */
+    previousEvent(e) {
+      const row = db.prepare(`SELECT * FROM events WHERE project_id = ? AND item_number = ? AND task_number IS ? AND id < ?
+        ORDER BY id DESC LIMIT 1`).get(e.project_id, e.item_number, e.task_number, e.id);
+      return row ? eventRow(row) : null;
+    },
+    /**
+     * Filtered page of events, newest first. f: { companies, projects, types (lists), item: {project, number},
+     * since, until (ISO texts with the São Paulo offset; since inclusive, until exclusive) }.
+     */
+    logEvents(f, { limit = 50, offset = 0 } = {}) {
+      const w = logWhere(f);
+      const from = 'FROM events e JOIN projects p ON p.id = e.project_id';
+      const total = db.prepare(`SELECT COUNT(*) AS n ${from} ${w.sql}`).get(...w.params).n;
+      const rows = db.prepare(`SELECT e.* ${from} ${w.sql} ORDER BY e.id DESC LIMIT ? OFFSET ?`).all(...w.params, limit, offset);
+      return { total, events: rows.map(eventRow) };
+    },
+    /** How many events of each company, project and type match the filters (each facet ignores its own). */
+    logCounts(f) {
+      const count = (facet, column) => {
+        const w = logWhere(f, facet);
+        const rows = db.prepare(`SELECT ${column} AS k, COUNT(*) AS n FROM events e JOIN projects p ON p.id = e.project_id ${w.sql} GROUP BY ${column}`).all(...w.params);
+        return Object.fromEntries(rows.map((r) => [r.k, r.n]));
+      };
+      return { company: count('company', 'p.company_id'), project: count('project', 'e.project_id'), type: count('type', 'e.type') };
+    },
+    /** Item of a task: the item of the events that mention it or, for an item that is its own only task, the item itself. */
+    itemOfTask(projectId, taskNumber) {
+      const row = db.prepare('SELECT item_number FROM events WHERE project_id = ? AND task_number = ? ORDER BY id DESC LIMIT 1').get(projectId, taskNumber);
+      if (row) return row.item_number;
+      return db.prepare('SELECT 1 FROM events WHERE project_id = ? AND item_number = ? LIMIT 1').get(projectId, taskNumber) ? taskNumber : null;
     },
   };
   return store;
