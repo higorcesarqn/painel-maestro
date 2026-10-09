@@ -182,6 +182,27 @@ function logWhere(f, skip) {
 }
 
 /**
+ * The items of a list of events (oldest first), projected (bin/flow-projection.js): Map('<project>/<number>' →
+ * { key, project, state, events }) in the order each item first appeared; projects: Map(id → project). Items whose
+ * project is gone or that never started are left out. Pure: the store's projectedItems() and the demo's generator use it.
+ */
+function projectEventsByItem(events, projects) {
+  const byItem = new Map();
+  for (const e of events) {
+    const k = `${e.project_id}/${e.item_number}`;
+    if (!byItem.has(k)) byItem.set(k, []);
+    byItem.get(k).push(e);
+  }
+  const out = new Map();
+  for (const [key, list] of byItem) {
+    const p = projects.get(list[0].project_id);
+    const state = p ? projectItem(list, p) : null;
+    if (state) out.set(key, { key, project: p, state, events: list });
+  }
+  return out;
+}
+
+/**
  * Opens maestro.db in dir. options.create=false: null if the file does not exist (does not create it).
  * options.readOnly: opens without writing anything (no WAL switch, no migration) and returns null when the file
  * does not exist or has no schema yet; busyTimeoutMs shortens the wait for a busy database (the hook's 1.5 s).
@@ -210,23 +231,6 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
 
   // projectedItems() of every project, kept while MAX(events.id) and the projects stay the same.
   let projectedCache = null;
-
-  /** Map('<project>/<number>' → { key, project, state, events }) of the events (oldest first), skipping non-items. */
-  const projectByItem = (events, projects) => {
-    const byItem = new Map();
-    for (const e of events) {
-      const k = `${e.project_id}/${e.item_number}`;
-      if (!byItem.has(k)) byItem.set(k, []);
-      byItem.get(k).push(e);
-    }
-    const out = new Map();
-    for (const [key, list] of byItem) {
-      const p = projects.get(list[0].project_id);
-      const state = p ? projectItem(list, p) : null;
-      if (state) out.set(key, { key, project: p, state, events: list });
-    }
-    return out;
-  };
 
   const store = {
     file,
@@ -325,11 +329,11 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     projectedItems({ projectId } = {}) {
       const projects = store.projects();
       const byId = new Map(projects.map((p) => [p.id, p]));
-      if (projectId !== undefined) return projectByItem(store.projectEvents(projectId), byId);
+      if (projectId !== undefined) return projectEventsByItem(store.projectEvents(projectId), byId);
       const version = db.prepare('SELECT MAX(id) AS id FROM events').get().id || 0;
       const signature = JSON.stringify(projects);
       if (projectedCache && projectedCache.version === version && projectedCache.signature === signature) return projectedCache.items;
-      const items = projectByItem(store.allEvents(), byId);
+      const items = projectEventsByItem(store.allEvents(), byId);
       projectedCache = { version, signature, items };
       return items;
     },
@@ -375,4 +379,4 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
   return store;
 }
 
-module.exports = { openStore, flowDir, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite };
+module.exports = { openStore, projectEventsByItem, flowDir, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite };

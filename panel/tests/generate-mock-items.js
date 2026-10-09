@@ -22,7 +22,7 @@ const { listCompanies, listProjects } = require('../api-projects.js');
 const { usageAnswer, listAgents } = require('../api-usage.js');
 const { overview: overviewOf } = require('../api-overview.js');
 const { stateAnswer } = require('../server.js');
-const { STAGES } = require('../../bin/flow-store.js');
+const { STAGES, projectEventsByItem } = require('../../bin/flow-store.js');
 const { openRawStore } = require('../../bin/raw-store.js');
 const { collect } = require('../../bin/collect-usage.js');
 
@@ -295,6 +295,7 @@ const store = {
   companies: () => Object.entries(companies).map(([id, name]) => ({ id, name, created_at: '2026-10-01T09:00:00-03:00' })),
   projectRepos: (id) => projects.find((p) => p.id === id).repos.slice().sort(),
   allEvents: () => events,
+  projectedItems: () => projectEventsByItem(events, new Map(projects.map((p) => [p.id, p]))),
   itemEvents: (projectId, number) => events.filter((e) => e.project_id === projectId && e.item_number === number),
   logEvents: (f, { limit = 50, offset = 0 } = {}) => {
     const list = events.filter((e) => (!f.companies || f.companies.includes(companyOf(e))) && (!f.since || e.at >= f.since)).slice().reverse();
