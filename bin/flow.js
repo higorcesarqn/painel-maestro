@@ -30,6 +30,7 @@ const { t } = require('./i18n');
 const { openStore, flowDir, STAGES, UNASSIGNED_COMPANY } = require('./flow-store');
 const { originOf, branchOf, describeRemote } = require('./flow-repo');
 const { projectItem, trackerRef, EVENT_TYPES, WORKER_STATES } = require('./flow-projection');
+const { PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES } = require('./flow-projection');
 
 const ROLES = ['maestro', 'worker', 'owner'];
 const MAX_TITLE = 300;
@@ -388,6 +389,7 @@ function parseCommand(argv) {
   }
   if (command === 'task') return parseTask(rest);
   if (command === 'status') return parseStatus(rest);
+  if (command === 'pending') return parsePending(rest);
   if (command === undefined) throw new InvalidData('errors.missingCommand');
   throw new InvalidData('errors.unknownCommand', { command });
 }
@@ -461,6 +463,149 @@ function recordStatus(store, cmd, origin, at, branch) {
   return [];
 }
 
+// ---------- pending decisions (#10) ----------
+//
+//   flow pending open <item> --kind <kind> --title "..." [--task N] [--severity S] [--context "..."] [--option "A: ..."]...
+//        [--recommendation "..."] [--workspace W] [--terminal T]   → pending-decision-opened (its id is the event id)
+//   flow pending resolve <id> --decision "..."                     → pending-decision-resolved
+//   flow pending cancel <id> [--reason "..."]                      → pending-decision-canceled
+// Where the owner answers: --workspace/--terminal, else the Maestri terminal this runs in (MAESTRI_WORKSPACE_NAME or
+// MAESTRI_WORKSPACE_ID, MAESTRI_TERMINAL_NAME or MAESTRI_TERMINAL_ID), else the project's Maestri workspace.
+
+const PENDING_OPTIONS = {
+  open: ['task', 'kind', 'severity', 'title', 'context', 'option', 'recommendation', 'workspace', 'terminal', ...AGENT],
+  resolve: ['decision', ...AGENT],
+  cancel: ['reason', ...AGENT],
+};
+const PENDING_TEXT = ['kind', 'severity', 'title', 'context', 'recommendation', 'workspace', 'terminal', 'decision', 'reason'];
+const MAX_CONTEXT = 4000;
+const MAX_OPTION = 300;
+const MAX_OPTIONS = 10;
+const MAX_RECOMMENDATION = 1000;
+const MAX_DECISION = 2000;
+
+/** Optional text that may hold several lines: null when absent or blank. */
+function longText(value, field, max) {
+  if (value === undefined || value === null || String(value).trim() === '') return null;
+  const s = String(value).replace(/\r\n?/g, '\n').trim();
+  if (s.length > max) throw new InvalidData('pending.errors.textTooLong', { field, length: s.length, max });
+  return s;
+}
+
+/** "P-12", "p-12" or "12" → 12. */
+function pendingId(value) {
+  if (value === undefined || value === null || String(value).trim() === '') throw new InvalidData('pending.errors.missingId');
+  const m = /^(?:p-)?(\d{1,12})$/i.exec(String(value).trim());
+  if (!m || Number(m[1]) < 1) throw new InvalidData('pending.errors.invalidId', { value });
+  return Number(m[1]);
+}
+
+function pendingJson(opts) {
+  const json = readJson(opts);
+  for (const field of PENDING_TEXT) {
+    if (json[field] !== undefined && json[field] !== null && typeof json[field] !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'texto' });
+  }
+  if (json.options !== undefined && json.options !== null && !(Array.isArray(json.options) && json.options.every((o) => typeof o === 'string'))) {
+    throw new InvalidData('errors.jsonFieldType', { field: 'options', expected: 'uma lista de textos' });
+  }
+  if (json.id !== undefined && json.id !== null && typeof json.id !== 'number' && typeof json.id !== 'string') throw new InvalidData('errors.jsonFieldType', { field: 'id', expected: 'número' });
+  return json;
+}
+
+function parsePending(rest) {
+  const [sub, ...args] = rest;
+  if (!Object.prototype.hasOwnProperty.call(PENDING_OPTIONS, sub)) {
+    throw new InvalidData(sub === undefined ? 'errors.missingCommand' : 'errors.unknownCommand', { command: `pending ${sub || ''}`.trim() });
+  }
+  const { opts, pos } = parseArgs(args, PENDING_OPTIONS[sub], 1, sub === 'open' ? ['option'] : []);
+  const json = pendingJson(opts);
+  if (sub === 'open') {
+    const kind = String(pick(opts.kind, json.kind, '')).trim().toLowerCase().replace(/-/g, '_');
+    if (!kind) throw new InvalidData('pending.errors.missingKind', { allowed: PENDING_DECISION_KINDS.join(', ') });
+    if (!PENDING_DECISION_KINDS.includes(kind)) throw new InvalidData('pending.errors.invalidKind', { value: kind, allowed: PENDING_DECISION_KINDS.join(', ') });
+    const severity = String(pick(opts.severity, json.severity, 'normal')).trim().toLowerCase();
+    if (!PENDING_DECISION_SEVERITIES.includes(severity)) throw new InvalidData('pending.errors.invalidSeverity', { value: severity, allowed: PENDING_DECISION_SEVERITIES.join(', ') });
+    const title = lineText(pick(opts.title, json.title), 'title', MAX_TITLE);
+    if (!title) throw new InvalidData('pending.errors.missingTitle');
+    const options = (opts.option || json.options || []).map((o) => lineText(o, 'option', MAX_OPTION)).filter(Boolean);
+    if (options.length > MAX_OPTIONS) throw new InvalidData('pending.errors.tooManyOptions', { max: MAX_OPTIONS });
+    const task = pick(opts.task, json.task);
+    if (kind === 'task_review' && task === undefined) throw new InvalidData('pending.errors.reviewNeedsTask');
+    return {
+      kind: 'pending-open', number: itemNumber(pick(pos[0], json.number)), task: task === undefined ? null : taskNumber(task),
+      pendingKind: kind, severity, title, options,
+      context: longText(pick(opts.context, json.context), 'context', MAX_CONTEXT),
+      recommendation: longText(pick(opts.recommendation, json.recommendation), 'recommendation', MAX_RECOMMENDATION),
+      workspace: lineText(pick(opts.workspace, json.workspace), 'workspace'),
+      terminal: lineText(pick(opts.terminal, json.terminal), 'terminal'),
+      ...agentFields(opts, json),
+    };
+  }
+  const id = pendingId(pick(pos[0], json.id));
+  if (sub === 'resolve') {
+    const decision = longText(pick(opts.decision, json.decision), 'decision', MAX_DECISION);
+    if (!decision) throw new InvalidData('pending.errors.missingDecision');
+    return { kind: 'pending-resolve', id, decision, ...agentFields(opts, json) };
+  }
+  return { kind: 'pending-cancel', id, reason: longText(pick(opts.reason, json.reason), 'reason', MAX_DECISION), ...agentFields(opts, json) };
+}
+
+/** Where the owner answers: the arguments, else the Maestri terminal this command runs in, else the project's workspace. */
+function answerIn(cmd, project, env = process.env) {
+  const first = (...values) => values.map((v) => lineText(v, 'maestri')).find(Boolean) || null;
+  return {
+    workspace: first(cmd.workspace, env.MAESTRI_WORKSPACE_NAME, env.MAESTRI_WORKSPACE_ID, project.maestri_workspace),
+    terminal: first(cmd.terminal, env.MAESTRI_TERMINAL_NAME, env.MAESTRI_TERMINAL_ID),
+  };
+}
+
+/** The pending decision with this id among the project's items: { item, pending } (InvalidData when absent). */
+function findPending(store, project, id) {
+  const byItem = new Map();
+  for (const e of store.projectEvents(project.id)) {
+    if (!byItem.has(e.item_number)) byItem.set(e.item_number, []);
+    byItem.get(e.item_number).push(e);
+  }
+  for (const events of byItem.values()) {
+    const item = projectItem(events, project);
+    const pending = item && item.pending_decisions.find((p) => p.id === id);
+    if (pending) return { item, pending };
+  }
+  throw new InvalidData('pending.errors.notFound', { id, project: project.id });
+}
+
+function recordPending(store, cmd, { project, at }) {
+  const base = { at, projectId: project.id, agentRole: cmd.agentRole, agentName: cmd.agentName, source: SOURCE };
+  if (cmd.kind === 'pending-open') {
+    const key = `${project.id}/${cmd.number}`;
+    const ref = trackerRef(project.tracker, cmd.number);
+    const item = projectItem(store.itemEvents(project.id, cmd.number), project);
+    if (!item) throw new InvalidData('errors.itemNotStarted', { key, ref, number: cmd.number });
+    if (cmd.task !== null && !item.tasks.some((x) => x.number === cmd.task)) {
+      throw new InvalidData('errors.taskNotInItem', { key, task: cmd.task, tasks: item.tasks.map((x) => x.number).join(', ') });
+    }
+    const maestri = answerIn(cmd, project);
+    const id = store.appendEvent({
+      ...base, itemNumber: cmd.number, taskNumber: cmd.task, type: EVENT_TYPES.pendingDecisionOpened,
+      payload: {
+        kind: cmd.pendingKind, severity: cmd.severity, title: cmd.title, context: cmd.context, options: cmd.options,
+        recommendation: cmd.recommendation, maestri,
+      },
+    });
+    return [t('pending.done.opened', { id, key, ref, task: cmd.task, kind: cmd.pendingKind, ...maestri })];
+  }
+  const { item, pending } = findPending(store, project, cmd.id);
+  if (pending.status !== 'open') throw new InvalidData('pending.errors.notOpen', { id: cmd.id, status: pending.status, at: pending.closed_at });
+  const event = { ...base, itemNumber: item.number, taskNumber: pending.task_number };
+  const key = `${project.id}/${item.number}`;
+  if (cmd.kind === 'pending-resolve') {
+    store.appendEvent({ ...event, type: EVENT_TYPES.pendingDecisionResolved, payload: { pending_decision: cmd.id, decision: cmd.decision } });
+    return [t('pending.done.resolved', { id: cmd.id, key })];
+  }
+  store.appendEvent({ ...event, type: EVENT_TYPES.pendingDecisionCanceled, payload: { pending_decision: cmd.id, reason: cmd.reason } });
+  return [t('pending.done.canceled', { id: cmd.id, key })];
+}
+
 function run(argv, cwd) {
   if (argv.includes('--help') || argv.includes('-h') || argv[0] === 'help') {
     lib.print(t('help', { db: lib.slashes(path.join(flowDir(), 'maestro.db')) }));
@@ -476,7 +621,8 @@ function run(argv, cwd) {
       recordStatus(store, cmd, origin, at, branchOf(cwd));
       return;
     }
-    const out = withProject(store, origin, at, (project) => recordItemCommand(store, cmd, { project, at }));
+    const record = cmd.kind.startsWith('pending-') ? recordPending : recordItemCommand;
+    const out = withProject(store, origin, at, (project) => record(store, cmd, { project, at }));
     for (const l of out) lib.print(l);
   } finally {
     store.close();

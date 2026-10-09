@@ -1,5 +1,5 @@
 // Test mode (?mock=1): reads tests/mock-*.json and imitates /api/state, /api/events, /api/event, /api/flow and the
-// new model's /api/items and /api/items/<project>/<number> (tests/mock-items.json, written by
+// new model's /api/items, /api/items/<project>/<number> and /api/pending-decisions (tests/mock-items.json, written by
 // tests/generate-mock-items.js with the real projection), answering in the API shape (English fields and codes),
 // as the real server does.
 // Serve with "node tests/serve-mock.js" and open http://127.0.0.1:4795/?mock=1 (or use npm run dev).
@@ -42,12 +42,32 @@ function loadMockItems() {
   return loadItems;
 }
 
-/** /api/items and /api/items/<project>/<number> from tests/mock-items.json; null for any other path. */
-async function mockItems(p) {
+/**
+ * /api/pending-decisions from tests/mock-items.json (the unfiltered answer, already in the server's order), with the
+ * server's filters (company, project, severity, status: comma-separated lists) and counts (each facet without its own filter).
+ */
+function mockPendingDecisions(m, sp) {
+  const all = obj(m.pending_decisions) || {};
+  const set = (n) => (sp.get(n) ? new Set(sp.get(n).split(',').map((v) => v.trim().toLowerCase()).filter(Boolean)) : null);
+  const f = { company: set('company'), project: set('project'), severity: set('severity'), status: set('status') };
+  const passes = (p, skip) => (!f.company || f.company.has(p.item.project.company.id)) && (!f.project || f.project.has(p.item.project.id))
+    && (skip === 'severity' || !f.severity || f.severity.has(p.severity)) && (skip === 'status' || !f.status || f.status.has(p.status));
+  const list = arr(all.pending_decisions);
+  const counts = { status: { open: 0, resolved: 0, canceled: 0 }, severity: { critical: 0, high: 0, normal: 0, low: 0 } };
+  for (const p of list) {
+    if (passes(p, 'status')) counts.status[p.status]++;
+    if (passes(p, 'severity')) counts.severity[p.severity]++;
+  }
+  return { pending_decisions: list.filter((p) => passes(p)), counts, companies: arr(all.companies) };
+}
+
+/** /api/items, /api/items/<project>/<number> and /api/pending-decisions from tests/mock-items.json; null for any other path. */
+async function mockItems(p, sp) {
   if (p === '/api/items') {
     const m = await loadMockItems();
     return { items: arr(m.items) };
   }
+  if (p === '/api/pending-decisions') return mockPendingDecisions(await loadMockItems(), sp);
   const x = /^\/api\/items\/([^/]+)\/([^/]+)$/.exec(p);
   if (!x) return null;
   const m = await loadMockItems();
@@ -73,7 +93,7 @@ function error(code, status, params = {}) {
 export async function mockApi(urlPath, method) {
   const u = new URL(urlPath, location.href);
   const p = u.pathname;
-  const items = await mockItems(p);
+  const items = await mockItems(p, u.searchParams);
   if (items) return items;
   const { state, det } = await loadMock();
   const sp = u.searchParams;

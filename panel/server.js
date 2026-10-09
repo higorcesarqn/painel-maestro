@@ -11,9 +11,9 @@
 // Stop:   Ctrl+C in the server terminal, or taskkill /PID <pid from state/panel.pid> /F
 //
 // Routes: GET /, GET /api/state, GET /api/events, GET /api/event/<id>, GET /api/flow/<id>,
-//         POST /api/recalculate, POST /api/brain (future phase: 501). Pending decisions (api-pendencias.js):
-//         POST /api/pending-decisions/<P-NNNN>/answer {option, text}. Details in README.md.
+//         POST /api/recalculate, POST /api/brain (future phase: 501). Details in README.md.
 //         New model (api-items.js, maestro.db): GET /api/items, GET /api/items/<project>/<number>.
+//         Pending decisions of the new model, read only (api-pending-decisions.js): GET /api/pending-decisions.
 // The API never returns sentences: reasons, warnings and errors are codes with parameters
 // ({code, ...params}) and the page translates them (ADR 0004). Old-model records (events and pending
 // decisions written by bin/registrar.js and bin/pendencia.js) go out with English field names
@@ -27,9 +27,6 @@
 //   MAESTRI_DATA_DIR and CLAUDE_CONFIG_DIR (passed to the collector), PANEL_COLLECTOR=0 (does not run
 //   the collector by itself) and, for tests only, PANEL_INDEX (another index.html) and PANEL_NOW
 //   (fixed clock; MAESTRO_NOW also works).
-//   Brain notice (pending decision answer): PANEL_NOTIFY_BRAIN=0 turns it off and =1 on; without it,
-//   on only inside a Maestri terminal (MAESTRI_TERMINAL_ID) and with a real clock. PANEL_MAESTRI_CLI
-//   replaces the executable (tests; default MAESTRI_CLI or "maestri").
 
 const http = require('http');
 const fs = require('fs');
@@ -38,8 +35,8 @@ const path = require('path');
 const zlib = require('zlib');
 
 const collector = require(path.join(__dirname, '..', 'bin', 'collect-usage.js'));
-const pendingApi = require(path.join(__dirname, 'api-pendencias.js'));
 const itemsApi = require(path.join(__dirname, 'api-items.js'));
+const pendingApi = require(path.join(__dirname, 'api-pending-decisions.js'));
 const { eventToApi, pendingDecisionToApi } = require(path.join(__dirname, 'legacy-records.js'));
 const { asDate, isoSP, spDay, readJson, readText, withRetries, writeAtomic } = collector.util;
 
@@ -65,7 +62,7 @@ const RE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/;
 const RE_DAY = /^\d{4}-\d{2}-\d{2}$/;
 // index.html is a single file (embedded CSS and JS); nothing external is loaded.
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (pending decision answer)
+const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (none reads one today)
 const JSON_TYPE = 'application/json; charset=utf-8';
 const HTML_TYPE = 'text/html; charset=utf-8';
 // Old-model files, relative to MAESTRO_DIR (bin/registrar.js and bin/pendencia.js; removed in #18).
@@ -107,19 +104,8 @@ function parseConfig(argv = [], env = process.env) {
     indexPath: path.resolve(env.PANEL_INDEX || path.join(__dirname, 'index.html')),
     fixedNow,
     collectorActive: env.PANEL_COLLECTOR !== '0',
-    brainNotice: parseBrainNotice(env, fixedNow),
     env,
   };
-}
-
-// Brain notice when the owner answers a pending decision through the panel (maestri ask in its terminal).
-function parseBrainNotice(env, fixedNow) {
-  const cli = env.PANEL_MAESTRI_CLI || env.MAESTRI_CLI || 'maestri';
-  if (env.PANEL_NOTIFY_BRAIN === '0') return { active: false, cli, reason: { code: 'brain_notice_off', variable: 'PANEL_NOTIFY_BRAIN' } };
-  if (env.PANEL_NOTIFY_BRAIN === '1') return { active: true, cli };
-  if (!env.MAESTRI_TERMINAL_ID) return { active: false, cli, reason: { code: 'brain_notice_no_terminal' } };
-  if (fixedNow) return { active: false, cli, reason: { code: 'brain_notice_fixed_clock' } };
-  return { active: true, cli };
 }
 
 // ---------- helpers ----------
@@ -1154,8 +1140,6 @@ async function buildState(ctx) {
     usage: usageAnswer,
     events: events.slice(0, STATE_EVENT_LIMIT).map(tableFields),
     collector: { interval_min: COLLECTOR_INTERVAL_MS / MIN_MS, active: cfg.collectorActive, last: ctx.lastRun, running: !!ctx.currentRun },
-    // Pending decision answer through the panel: always written; the notice in the Brain's terminal depends on Maestri.
-    answers: { brain_notice: !!(cfg.brainNotice && cfg.brainNotice.active), reason: cfg.brainNotice && !cfg.brainNotice.active ? cfg.brainNotice.reason : null },
     warnings,
   };
 }
@@ -1615,6 +1599,7 @@ const FIXED_ROUTES = {
   '/api/recalculate': { name: 'recalculate', methods: ['POST'] },
   '/api/brain': { name: 'brain', methods: ['POST'] },
   '/api/items': { name: 'items', methods: ['GET', 'HEAD'] },
+  '/api/pending-decisions': { name: 'pending-decisions', methods: ['GET', 'HEAD'] },
 };
 
 function findRoute(urlPath) {
@@ -1623,11 +1608,6 @@ function findRoute(urlPath) {
   if (mi) {
     const it = itemsApi.parseItemPath(mi[1], mi[2]);
     return it ? { name: 'item', methods: ['GET', 'HEAD'], project: it.project, number: it.number } : null;
-  }
-  const mp = /^\/api\/pending-decisions\/([^/]+)\/answer$/.exec(urlPath);
-  if (mp) {
-    const pid = pendingApi.normalizeId(mp[1]);
-    return pid ? { name: 'pending-decision-answer', methods: ['POST'], id: pid } : null;
   }
   const m = /^\/api\/(event|flow)\/([^/]+)$/.exec(urlPath);
   if (!m) return null;
@@ -1641,7 +1621,7 @@ function findRoute(urlPath) {
 }
 
 async function route(ctx, req, res) {
-  // Only the pending decision answer reads the body (up to 16 KB); the rest is discarded, capped at 1 MB.
+  // No route reads the body today (a POST that reads JSON gets up to 16 KB); the rest is discarded, capped at 1 MB.
   let received = 0;
   const parts = [];
   const body = new Promise((resolve) => {
@@ -1704,6 +1684,8 @@ async function route(ctx, req, res) {
       if (!x) return respondError(req, res, 404, { code: 'item_not_found', project: r.project, number: r.number });
       return respondJson(req, res, 200, x);
     }
+    case 'pending-decisions':
+      return respondJson(req, res, 200, pendingApi.listPendingDecisions(ctx.items, query));
     case 'recalculate': {
       const run = await ctx.runCollector('recalculate');
       const state = await buildState(ctx);
@@ -1712,14 +1694,6 @@ async function route(ctx, req, res) {
     }
     case 'brain':
       return respondError(req, res, 501, { code: 'not_implemented', feature: 'brain' });
-    case 'pending-decision-answer': {
-      const buf = await body;
-      if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });
-      const x = await pendingApi.answerPendingDecision(ctx.cfg, ctx.now(), r.id, buf);
-      const n = x.brain_notice;
-      ctx.log(`Pendência ${r.id} respondida pelo painel; aviso ao Cérebro: ${n.sent ? `enviado (${n.to})` : `não enviado (${n.reason && n.reason.code})`}`);
-      return respondJson(req, res, 200, x);
-    }
     default:
       return respondError(req, res, 404, { code: 'route_not_found' });
   }
@@ -1728,7 +1702,7 @@ async function route(ctx, req, res) {
 function createHandler(ctx) {
   return (req, res) => {
     route(ctx, req, res).catch((e) => {
-      const known = e instanceof RequestError || e instanceof pendingApi.PendingDecisionError;
+      const known = e instanceof RequestError || e instanceof pendingApi.PendingFilterError;
       const status = known ? e.status : 500;
       if (status === 500) ctx.logError(`Erro em ${req.method} ${String(req.url).slice(0, 200)}: ${e && e.stack ? e.stack : e}`);
       if (res.headersSent) {

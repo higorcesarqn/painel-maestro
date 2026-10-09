@@ -144,7 +144,7 @@ function buildRoot(name) {
 function environment(r, extra = {}) {
   return Object.assign({}, process.env, {
     MAESTRO_DIR: r.m, MAESTRI_DATA_DIR: r.maestri, CLAUDE_CONFIG_DIR: r.claude, PANEL_INDEX: r.index,
-    PANEL_NOW: NOW, MAESTRO_NOW: '', PANEL_PORT: '', MAESTRI_TERMINAL_ID: '', PANEL_NOTIFY_BRAIN: '',
+    PANEL_NOW: NOW, MAESTRO_NOW: '', PANEL_PORT: '', MAESTRI_TERMINAL_ID: '',
   }, extra);
 }
 
@@ -202,7 +202,7 @@ suite.test('GET /api/state: contract shape, KPIs, health codes, agents, pending 
   assert.strictEqual(r.headers['cache-control'], 'no-store');
   assert.ok(!Object.keys(r.headers).some((h) => h.startsWith('access-control-')));
   const e = r.json;
-  assert.deepStrictEqual(Object.keys(e).sort(), ['agents', 'answers', 'collector', 'events', 'generated_at', 'health', 'kpis', 'pending_decisions', 'usage', 'warnings', 'workspace']);
+  assert.deepStrictEqual(Object.keys(e).sort(), ['agents', 'collector', 'events', 'generated_at', 'health', 'kpis', 'pending_decisions', 'usage', 'warnings', 'workspace']);
   assert.deepStrictEqual(Object.keys(e.kpis).sort(), ['pending_decisions', 'usage']);
   assert.deepStrictEqual(Object.keys(e.health).sort(), ['hooks', 'last_event_age_min', 'level', 'reasons', 'usage_age_min', 'wire']);
   assert.strictEqual(e.generated_at, NOW);
@@ -265,7 +265,6 @@ suite.test('GET /api/state: contract shape, KPIs, health codes, agents, pending 
   // Only the table fields (no steps nor other blocks of the full event).
   assert.deepStrictEqual(Object.keys(ex).sort(), ['agent', 'direction', 'flow_id', 'id', 'needs_owner', 'origin', 'project', 'result', 'summary', 'ts', 'type']);
   assert.deepStrictEqual(e.warnings, [{ code: 'event_lines_ignored', file: 'logs/eventos/2026-10.jsonl', count: 1 }]);
-  assert.deepStrictEqual(e.answers, { brain_notice: false, reason: { code: 'brain_notice_no_terminal' } });
 });
 
 suite.test('no response carries a Portuguese sentence: every reason, warning and error is a code', async () => {

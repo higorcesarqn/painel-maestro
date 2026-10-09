@@ -39,7 +39,7 @@
       "stage": "implementation",
       "stage_since": "2026-10-08T10:20:00-03:00",
       "started_at": "2026-10-07T14:00:00-03:00",
-      "updated_at": "2026-10-09T10:05:00-03:00"
+      "updated_at": "2026-10-09T10:06:00-03:00"
     },
     {
       "key": "scratch/3",
@@ -79,7 +79,7 @@
       "stage": "final_adjustment",
       "stage_since": "2026-10-09T09:40:00-03:00",
       "started_at": "2026-10-02T10:00:00-03:00",
-      "updated_at": "2026-10-09T09:40:00-03:00"
+      "updated_at": "2026-10-09T09:45:00-03:00"
     },
     {
       "key": "billing-api/2901",
@@ -99,7 +99,7 @@
       "stage": "specification",
       "stage_since": "2026-10-09T08:50:00-03:00",
       "started_at": "2026-10-09T08:50:00-03:00",
-      "updated_at": "2026-10-09T08:50:00-03:00"
+      "updated_at": "2026-10-09T09:30:00-03:00"
     },
     {
       "key": "storefront/52",
@@ -159,7 +159,7 @@
       "stage": "hml_validation",
       "stage_since": "2026-10-08T09:05:00-03:00",
       "started_at": "2026-10-01T09:10:00-03:00",
-      "updated_at": "2026-10-08T09:05:00-03:00"
+      "updated_at": "2026-10-08T16:30:00-03:00"
     },
     {
       "key": "painel-maestro/2",
@@ -258,7 +258,7 @@
       ],
       "timeline": [
         {
-          "id": 37,
+          "id": 43,
           "at": "2026-10-09T07:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -273,7 +273,7 @@
           }
         },
         {
-          "id": 38,
+          "id": 44,
           "at": "2026-10-09T07:35:00-03:00",
           "type": "task-dispatched",
           "task_number": 5,
@@ -289,7 +289,46 @@
           }
         },
         {
-          "id": 46,
+          "id": 45,
+          "at": "2026-10-09T08:30:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": 5,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "finding",
+            "severity": "low",
+            "title": "Achado: o selo de saúde não conta o maestro.db",
+            "options": [
+              "A: Corrigir agora",
+              "B: Task nova para triagem"
+            ],
+            "maestri": {
+              "workspace": "Pessoal",
+              "terminal": "Maestro #5"
+            }
+          }
+        },
+        {
+          "id": 50,
+          "at": "2026-10-09T09:00:00-03:00",
+          "type": "pending-decision-resolved",
+          "task_number": 5,
+          "agent": {
+            "role": "owner",
+            "name": null
+          },
+          "source": "cli",
+          "payload": {
+            "pending_decision": 45,
+            "decision": "B: vira task nova para triagem."
+          }
+        },
+        {
+          "id": 59,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -328,7 +367,7 @@
       "stage": "implementation",
       "stage_since": "2026-10-08T10:20:00-03:00",
       "started_at": "2026-10-07T14:00:00-03:00",
-      "updated_at": "2026-10-09T10:05:00-03:00",
+      "updated_at": "2026-10-09T10:06:00-03:00",
       "stages": [
         {
           "id": "specification",
@@ -505,7 +544,7 @@
           }
         },
         {
-          "id": 27,
+          "id": 29,
           "at": "2026-10-08T10:20:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -519,7 +558,7 @@
           }
         },
         {
-          "id": 28,
+          "id": 30,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "task-graph",
           "task_number": null,
@@ -579,7 +618,7 @@
           }
         },
         {
-          "id": 29,
+          "id": 31,
           "at": "2026-10-08T10:30:00-03:00",
           "type": "task-dispatched",
           "task_number": 3113,
@@ -595,7 +634,7 @@
           }
         },
         {
-          "id": 30,
+          "id": 32,
           "at": "2026-10-08T13:10:00-03:00",
           "type": "task-status",
           "task_number": 3113,
@@ -615,7 +654,33 @@
           }
         },
         {
-          "id": 31,
+          "id": 33,
+          "at": "2026-10-08T13:12:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": 3113,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "task_review",
+            "severity": "normal",
+            "title": "Revisar e integrar a task 3113 (modelo do PDF)",
+            "context": "Modelo pronto, 3 testes novos verdes. Diff pequeno: só o template e o teste.",
+            "options": [
+              "A: Integrar",
+              "B: Pedir ajuste"
+            ],
+            "recommendation": "A: o diff está limpo e os testes cobrem o cabeçalho e o rodapé.",
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3112"
+            }
+          }
+        },
+        {
+          "id": 34,
           "at": "2026-10-08T14:02:00-03:00",
           "type": "task-integrated",
           "task_number": 3113,
@@ -630,7 +695,48 @@
           }
         },
         {
-          "id": 32,
+          "id": 35,
+          "at": "2026-10-08T14:04:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "parallelize",
+            "severity": "normal",
+            "title": "Paralelizar as tasks 3114 e 3115?",
+            "context": "As duas mexem no fluxo de exportação do extrato (serviço e tela). Em paralelo terminam um dia antes, com risco de conflito no serviço.",
+            "options": [
+              "A: Paralelizar",
+              "B: Uma depois da outra"
+            ],
+            "recommendation": "A: o conflito fica num arquivo só, fácil de resolver na integração.",
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3112"
+            }
+          }
+        },
+        {
+          "id": 36,
+          "at": "2026-10-08T14:08:00-03:00",
+          "type": "pending-decision-resolved",
+          "task_number": null,
+          "agent": {
+            "role": "owner",
+            "name": null
+          },
+          "source": "cli",
+          "payload": {
+            "pending_decision": 35,
+            "decision": "Pode paralelizar. A 3115 integra primeiro."
+          }
+        },
+        {
+          "id": 37,
           "at": "2026-10-08T14:10:00-03:00",
           "type": "task-dispatched",
           "task_number": 3114,
@@ -646,7 +752,7 @@
           }
         },
         {
-          "id": 33,
+          "id": 38,
           "at": "2026-10-08T14:12:00-03:00",
           "type": "task-dispatched",
           "task_number": 3115,
@@ -662,7 +768,7 @@
           }
         },
         {
-          "id": 39,
+          "id": 46,
           "at": "2026-10-09T08:40:00-03:00",
           "type": "task-status",
           "task_number": 3115,
@@ -682,7 +788,34 @@
           }
         },
         {
-          "id": 41,
+          "id": 47,
+          "at": "2026-10-09T08:42:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": 3115,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "task_review",
+            "severity": "high",
+            "title": "Revisar e integrar a task 3115 (botão de exportar)",
+            "context": "Botão pronto, 4/4 testes verdes. Mudou o componente de cabeçalho da tela do extrato.",
+            "options": [
+              "A: Integrar",
+              "B: Pedir ajuste",
+              "C: Esperar a 3114"
+            ],
+            "recommendation": "A: a 3114 não depende do botão.",
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3112"
+            }
+          }
+        },
+        {
+          "id": 51,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "task_number": 3114,
@@ -702,7 +835,7 @@
           }
         },
         {
-          "id": 43,
+          "id": 55,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "task_number": 3116,
@@ -718,7 +851,7 @@
           }
         },
         {
-          "id": 45,
+          "id": 57,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "task_number": 3116,
@@ -732,6 +865,32 @@
             "text": "Preciso do certificado de homologação",
             "progress": null,
             "maestri": "outside"
+          }
+        },
+        {
+          "id": 58,
+          "at": "2026-10-09T10:06:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": 3116,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "worker_blocked",
+            "severity": "critical",
+            "title": "Falta o certificado de homologação para assinar o PDF",
+            "context": "O subagente da 3116 parou: a assinatura digital precisa do certificado A1 de homologação, que não está no cofre do projeto.",
+            "options": [
+              "A: Enviar o certificado",
+              "B: Assinar com certificado de teste por enquanto"
+            ],
+            "recommendation": "B, e abrir um achado para trocar antes do HML.",
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3112"
+            }
           }
         }
       ]
@@ -813,7 +972,7 @@
       ],
       "timeline": [
         {
-          "id": 44,
+          "id": 56,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -847,7 +1006,7 @@
       "stage": "final_adjustment",
       "stage_since": "2026-10-09T09:40:00-03:00",
       "started_at": "2026-10-02T10:00:00-03:00",
-      "updated_at": "2026-10-09T09:40:00-03:00",
+      "updated_at": "2026-10-09T09:45:00-03:00",
       "stages": [
         {
           "id": "specification",
@@ -1025,7 +1184,7 @@
           }
         },
         {
-          "id": 34,
+          "id": 40,
           "at": "2026-10-08T17:00:00-03:00",
           "type": "task-integrated",
           "task_number": 50,
@@ -1040,7 +1199,7 @@
           }
         },
         {
-          "id": 42,
+          "id": 53,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -1051,6 +1210,32 @@
           "source": "cli",
           "payload": {
             "stage": "final_adjustment"
+          }
+        },
+        {
+          "id": 54,
+          "at": "2026-10-09T09:45:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "finding",
+            "severity": "normal",
+            "title": "Achado: o carrinho anônimo expira em 24 h",
+            "context": "Na revisão final apareceu que o carrinho de quem não entrou na conta some em 24 h; ao juntar carrinhos, itens antigos se perdem.",
+            "options": [
+              "A: Manter 24 h",
+              "B: Estender para 7 dias (task nova)"
+            ],
+            "recommendation": "B, como task nova para triagem.",
+            "maestri": {
+              "workspace": "Fabrikam",
+              "terminal": "Maestro #48"
+            }
           }
         }
       ]
@@ -1073,7 +1258,7 @@
       "stage": "specification",
       "stage_since": "2026-10-09T08:50:00-03:00",
       "started_at": "2026-10-09T08:50:00-03:00",
-      "updated_at": "2026-10-09T08:50:00-03:00",
+      "updated_at": "2026-10-09T09:30:00-03:00",
       "stages": [
         {
           "id": "specification",
@@ -1132,7 +1317,7 @@
       ],
       "timeline": [
         {
-          "id": 40,
+          "id": 48,
           "at": "2026-10-09T08:50:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1144,6 +1329,45 @@
           "payload": {
             "title": "Limite de tentativas por cartão",
             "stage": "specification"
+          }
+        },
+        {
+          "id": 49,
+          "at": "2026-10-09T09:00:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "decision",
+            "severity": "low",
+            "title": "Limite por cartão ou por cliente?",
+            "options": [
+              "A: Por cartão",
+              "B: Por cliente"
+            ],
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 2901"
+            }
+          }
+        },
+        {
+          "id": 52,
+          "at": "2026-10-09T09:30:00-03:00",
+          "type": "pending-decision-canceled",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "pending_decision": 49,
+            "reason": "Entrou na especificação do item."
           }
         }
       ]
@@ -1249,7 +1473,7 @@
           }
         },
         {
-          "id": 36,
+          "id": 42,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -1370,7 +1594,48 @@
           }
         },
         {
-          "id": 35,
+          "id": 25,
+          "at": "2026-10-07T17:00:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "decision",
+            "severity": "normal",
+            "title": "Quantas retentativas para cobrança recusada?",
+            "context": "O gateway recomenda até 4; o contrato fala em 3.",
+            "options": [
+              "A: 3 retentativas",
+              "B: 4 retentativas"
+            ],
+            "recommendation": "A: segue o contrato.",
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 2875"
+            }
+          }
+        },
+        {
+          "id": 27,
+          "at": "2026-10-07T18:20:00-03:00",
+          "type": "pending-decision-resolved",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "pending_decision": 25,
+            "decision": "A: 3 retentativas, com intervalo de 24 h."
+          }
+        },
+        {
+          "id": 41,
           "at": "2026-10-08T18:10:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -1403,7 +1668,7 @@
       "stage": "hml_validation",
       "stage_since": "2026-10-08T09:05:00-03:00",
       "started_at": "2026-10-01T09:10:00-03:00",
-      "updated_at": "2026-10-08T09:05:00-03:00",
+      "updated_at": "2026-10-08T16:30:00-03:00",
       "stages": [
         {
           "id": "specification",
@@ -1629,7 +1894,7 @@
           }
         },
         {
-          "id": 25,
+          "id": 26,
           "at": "2026-10-07T17:30:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -1643,7 +1908,7 @@
           }
         },
         {
-          "id": 26,
+          "id": 28,
           "at": "2026-10-08T09:05:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -1654,6 +1919,32 @@
           "source": "cli",
           "payload": {
             "stage": "hml_validation"
+          }
+        },
+        {
+          "id": 39,
+          "at": "2026-10-08T16:30:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": null,
+          "agent": {
+            "role": "owner",
+            "name": "Higor"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "hml",
+            "severity": "high",
+            "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
+            "context": "Na Validação HML, um boleto pago duas vezes no mesmo dia foi conciliado só uma vez. Cenários 1 a 3 aprovados.",
+            "options": [
+              "A: Voltar para Implementação",
+              "B: Aprovar e abrir um item novo"
+            ],
+            "recommendation": "A: é o caso que motivou o item.",
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3100"
+            }
           }
         }
       ]
@@ -1788,5 +2079,468 @@
         }
       ]
     }
+  },
+  "pending_decisions": {
+    "pending_decisions": [
+      {
+        "id": 58,
+        "kind": "worker_blocked",
+        "severity": "critical",
+        "status": "open",
+        "title": "Falta o certificado de homologação para assinar o PDF",
+        "context": "O subagente da 3116 parou: a assinatura digital precisa do certificado A1 de homologação, que não está no cofre do projeto.",
+        "options": [
+          "A: Enviar o certificado",
+          "B: Assinar com certificado de teste por enquanto"
+        ],
+        "recommendation": "B, e abrir um achado para trocar antes do HML.",
+        "maestri": {
+          "workspace": "Contoso",
+          "terminal": "Maestro PBI 3112"
+        },
+        "opened_at": "2026-10-09T10:06:00-03:00",
+        "opened_by": {
+          "role": "maestro",
+          "name": "Bento"
+        },
+        "closed_at": null,
+        "closed_by": null,
+        "resolution": null,
+        "decision": null,
+        "reason": null,
+        "item": {
+          "key": "portal/3112",
+          "number": 3112,
+          "tracker_ref": "PBI 3112",
+          "title": "Exportar o extrato em PDF",
+          "stage": "implementation",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          }
+        },
+        "task": {
+          "number": 3116,
+          "title": "Assinatura digital do PDF",
+          "state": "blocked"
+        }
+      },
+      {
+        "id": 39,
+        "kind": "hml",
+        "severity": "high",
+        "status": "open",
+        "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
+        "context": "Na Validação HML, um boleto pago duas vezes no mesmo dia foi conciliado só uma vez. Cenários 1 a 3 aprovados.",
+        "options": [
+          "A: Voltar para Implementação",
+          "B: Aprovar e abrir um item novo"
+        ],
+        "recommendation": "A: é o caso que motivou o item.",
+        "maestri": {
+          "workspace": "Contoso",
+          "terminal": "Maestro PBI 3100"
+        },
+        "opened_at": "2026-10-08T16:30:00-03:00",
+        "opened_by": {
+          "role": "owner",
+          "name": "Higor"
+        },
+        "closed_at": null,
+        "closed_by": null,
+        "resolution": null,
+        "decision": null,
+        "reason": null,
+        "item": {
+          "key": "portal/3100",
+          "number": 3100,
+          "tracker_ref": "PBI 3100",
+          "title": "Conciliação de boletos com o extrato do banco",
+          "stage": "hml_validation",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          }
+        },
+        "task": null
+      },
+      {
+        "id": 47,
+        "kind": "task_review",
+        "severity": "high",
+        "status": "open",
+        "title": "Revisar e integrar a task 3115 (botão de exportar)",
+        "context": "Botão pronto, 4/4 testes verdes. Mudou o componente de cabeçalho da tela do extrato.",
+        "options": [
+          "A: Integrar",
+          "B: Pedir ajuste",
+          "C: Esperar a 3114"
+        ],
+        "recommendation": "A: a 3114 não depende do botão.",
+        "maestri": {
+          "workspace": "Contoso",
+          "terminal": "Maestro PBI 3112"
+        },
+        "opened_at": "2026-10-09T08:42:00-03:00",
+        "opened_by": {
+          "role": "maestro",
+          "name": "Bento"
+        },
+        "closed_at": null,
+        "closed_by": null,
+        "resolution": null,
+        "decision": null,
+        "reason": null,
+        "item": {
+          "key": "portal/3112",
+          "number": 3112,
+          "tracker_ref": "PBI 3112",
+          "title": "Exportar o extrato em PDF",
+          "stage": "implementation",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          }
+        },
+        "task": {
+          "number": 3115,
+          "title": "Botão de exportar na tela do extrato",
+          "state": "review"
+        }
+      },
+      {
+        "id": 54,
+        "kind": "finding",
+        "severity": "normal",
+        "status": "open",
+        "title": "Achado: o carrinho anônimo expira em 24 h",
+        "context": "Na revisão final apareceu que o carrinho de quem não entrou na conta some em 24 h; ao juntar carrinhos, itens antigos se perdem.",
+        "options": [
+          "A: Manter 24 h",
+          "B: Estender para 7 dias (task nova)"
+        ],
+        "recommendation": "B, como task nova para triagem.",
+        "maestri": {
+          "workspace": "Fabrikam",
+          "terminal": "Maestro #48"
+        },
+        "opened_at": "2026-10-09T09:45:00-03:00",
+        "opened_by": {
+          "role": "maestro",
+          "name": "Ária"
+        },
+        "closed_at": null,
+        "closed_by": null,
+        "resolution": null,
+        "decision": null,
+        "reason": null,
+        "item": {
+          "key": "storefront/48",
+          "number": 48,
+          "tracker_ref": "#48",
+          "title": "Carrinho salvo entre dispositivos",
+          "stage": "final_adjustment",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          }
+        },
+        "task": null
+      },
+      {
+        "id": 49,
+        "kind": "decision",
+        "severity": "low",
+        "status": "canceled",
+        "title": "Limite por cartão ou por cliente?",
+        "context": null,
+        "options": [
+          "A: Por cartão",
+          "B: Por cliente"
+        ],
+        "recommendation": null,
+        "maestri": {
+          "workspace": "Contoso",
+          "terminal": "Maestro PBI 2901"
+        },
+        "opened_at": "2026-10-09T09:00:00-03:00",
+        "opened_by": {
+          "role": "maestro",
+          "name": "Bento"
+        },
+        "closed_at": "2026-10-09T09:30:00-03:00",
+        "closed_by": {
+          "role": "maestro",
+          "name": "Bento"
+        },
+        "resolution": null,
+        "decision": null,
+        "reason": "Entrou na especificação do item.",
+        "item": {
+          "key": "billing-api/2901",
+          "number": 2901,
+          "tracker_ref": "PBI 2901",
+          "title": "Limite de tentativas por cartão",
+          "stage": "specification",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          }
+        },
+        "task": null
+      },
+      {
+        "id": 45,
+        "kind": "finding",
+        "severity": "low",
+        "status": "resolved",
+        "title": "Achado: o selo de saúde não conta o maestro.db",
+        "context": null,
+        "options": [
+          "A: Corrigir agora",
+          "B: Task nova para triagem"
+        ],
+        "recommendation": null,
+        "maestri": {
+          "workspace": "Pessoal",
+          "terminal": "Maestro #5"
+        },
+        "opened_at": "2026-10-09T08:30:00-03:00",
+        "opened_by": {
+          "role": "maestro",
+          "name": "Ária"
+        },
+        "closed_at": "2026-10-09T09:00:00-03:00",
+        "closed_by": {
+          "role": "owner",
+          "name": null
+        },
+        "resolution": "decision",
+        "decision": "B: vira task nova para triagem.",
+        "reason": null,
+        "item": {
+          "key": "painel-maestro/5",
+          "number": 5,
+          "tracker_ref": "#5",
+          "title": "Item ponta a ponta (tracer bullet)",
+          "stage": "implementation",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          }
+        },
+        "task": {
+          "number": 5,
+          "title": "Item ponta a ponta (tracer bullet)",
+          "state": "working"
+        }
+      },
+      {
+        "id": 35,
+        "kind": "parallelize",
+        "severity": "normal",
+        "status": "resolved",
+        "title": "Paralelizar as tasks 3114 e 3115?",
+        "context": "As duas mexem no fluxo de exportação do extrato (serviço e tela). Em paralelo terminam um dia antes, com risco de conflito no serviço.",
+        "options": [
+          "A: Paralelizar",
+          "B: Uma depois da outra"
+        ],
+        "recommendation": "A: o conflito fica num arquivo só, fácil de resolver na integração.",
+        "maestri": {
+          "workspace": "Contoso",
+          "terminal": "Maestro PBI 3112"
+        },
+        "opened_at": "2026-10-08T14:04:00-03:00",
+        "opened_by": {
+          "role": "maestro",
+          "name": "Bento"
+        },
+        "closed_at": "2026-10-08T14:08:00-03:00",
+        "closed_by": {
+          "role": "owner",
+          "name": null
+        },
+        "resolution": "decision",
+        "decision": "Pode paralelizar. A 3115 integra primeiro.",
+        "reason": null,
+        "item": {
+          "key": "portal/3112",
+          "number": 3112,
+          "tracker_ref": "PBI 3112",
+          "title": "Exportar o extrato em PDF",
+          "stage": "implementation",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          }
+        },
+        "task": null
+      },
+      {
+        "id": 33,
+        "kind": "task_review",
+        "severity": "normal",
+        "status": "resolved",
+        "title": "Revisar e integrar a task 3113 (modelo do PDF)",
+        "context": "Modelo pronto, 3 testes novos verdes. Diff pequeno: só o template e o teste.",
+        "options": [
+          "A: Integrar",
+          "B: Pedir ajuste"
+        ],
+        "recommendation": "A: o diff está limpo e os testes cobrem o cabeçalho e o rodapé.",
+        "maestri": {
+          "workspace": "Contoso",
+          "terminal": "Maestro PBI 3112"
+        },
+        "opened_at": "2026-10-08T13:12:00-03:00",
+        "opened_by": {
+          "role": "maestro",
+          "name": "Bento"
+        },
+        "closed_at": "2026-10-08T14:02:00-03:00",
+        "closed_by": {
+          "role": "maestro",
+          "name": "Bento"
+        },
+        "resolution": "task_integrated",
+        "decision": null,
+        "reason": null,
+        "item": {
+          "key": "portal/3112",
+          "number": 3112,
+          "tracker_ref": "PBI 3112",
+          "title": "Exportar o extrato em PDF",
+          "stage": "implementation",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          }
+        },
+        "task": {
+          "number": 3113,
+          "title": "Modelo do extrato em PDF",
+          "state": "integrated"
+        }
+      },
+      {
+        "id": 25,
+        "kind": "decision",
+        "severity": "normal",
+        "status": "resolved",
+        "title": "Quantas retentativas para cobrança recusada?",
+        "context": "O gateway recomenda até 4; o contrato fala em 3.",
+        "options": [
+          "A: 3 retentativas",
+          "B: 4 retentativas"
+        ],
+        "recommendation": "A: segue o contrato.",
+        "maestri": {
+          "workspace": "Contoso",
+          "terminal": "Maestro PBI 2875"
+        },
+        "opened_at": "2026-10-07T17:00:00-03:00",
+        "opened_by": {
+          "role": "maestro",
+          "name": "Bento"
+        },
+        "closed_at": "2026-10-07T18:20:00-03:00",
+        "closed_by": {
+          "role": "maestro",
+          "name": "Bento"
+        },
+        "resolution": "decision",
+        "decision": "A: 3 retentativas, com intervalo de 24 h.",
+        "reason": null,
+        "item": {
+          "key": "billing-api/2875",
+          "number": 2875,
+          "tracker_ref": "PBI 2875",
+          "title": "Reprocessar cobranças recusadas pelo gateway",
+          "stage": "pr_ready",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          }
+        },
+        "task": null
+      }
+    ],
+    "counts": {
+      "status": {
+        "open": 4,
+        "resolved": 4,
+        "canceled": 1
+      },
+      "severity": {
+        "critical": 1,
+        "high": 2,
+        "normal": 4,
+        "low": 2
+      }
+    },
+    "companies": [
+      {
+        "id": "contoso",
+        "name": "Contoso"
+      },
+      {
+        "id": "fabrikam",
+        "name": "Fabrikam"
+      },
+      {
+        "id": "personal",
+        "name": "Pessoal"
+      },
+      {
+        "id": "unassigned",
+        "name": "Sem empresa"
+      }
+    ]
   }
 }

@@ -168,6 +168,12 @@ function eventText(e) {
   if (e.type === 'task-dispatched') return t('items.events.taskDispatched', { task: e.task_number, worker: txt(p.worker) || '—', floor: txt(p.floor) || '—' });
   if (e.type === 'task-status') return t('items.events.taskStatus', { task: e.task_number, state: t(`items.tasks.workerStates.${p.state}`), text: txt(p.text) });
   if (e.type === 'task-integrated') return t('items.events.taskIntegrated', { task: e.task_number, sha: txt(p.sha).slice(0, 7) });
+  // pending decisions (#10): the owner's decision stays in the timeline
+  if (e.type === 'pending-decision-opened') return t('items.events.pendingOpened', { id: e.id, kind: t(`pending.kinds.${p.kind}`), title: txt(p.title) });
+  if (e.type === 'pending-decision-resolved') return t('items.events.pendingResolved', { id: p.pending_decision, decision: txt(p.decision) });
+  if (e.type === 'pending-decision-canceled') {
+    return p.reason ? t('items.events.pendingCanceledWhy', { id: p.pending_decision, reason: txt(p.reason) }) : t('items.events.pendingCanceled', { id: p.pending_decision });
+  }
   return txt(e.type);
 }
 
