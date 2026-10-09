@@ -60,18 +60,19 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
     return s;
   }
 
-  function tracker(value) {
+  /** The tracker of a project (github | azure_devops); undefined when absent. */
+  function parseTracker(value) {
     if (value === undefined || value === null) return undefined;
-    const s = String(value).trim().toLowerCase().replace(/-/g, '_');
+    const s = lib.normalizeId(value);
     if (!TRACKERS.includes(s)) throw fail('invalidTracker', { value, allowed: TRACKERS.join(', ') });
     return s;
   }
 
   /** "a,b" or ["a","b"] → the stages in the canonical order; undefined when absent. */
-  function stages(value) {
+  function parseStages(value) {
     if (value === undefined || value === null) return undefined;
     const list = Array.isArray(value) ? value : String(value).split(',');
-    const ids = list.map((s) => String(s).trim().toLowerCase().replace(/-/g, '_')).filter(Boolean);
+    const ids = list.map(lib.normalizeId).filter(Boolean);
     if (!ids.length) throw fail('missingStages');
     for (const s of ids) if (!STAGES.includes(s)) throw new InvalidData('errors.unknownStage', { stage: s, allowed: STAGES });
     return STAGES.filter((s) => ids.includes(s));
@@ -112,9 +113,9 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
       id: id(pick(pos[0], json.id), 'project'),
       projectName: text(pick(opts.name, json.name), 'name'),
       company: pick(opts.company, json.company) === undefined ? undefined : id(pick(opts.company, json.company), 'company'),
-      tracker: tracker(pick(opts.tracker, json.tracker)),
+      tracker: parseTracker(pick(opts.tracker, json.tracker)),
       repos: repos(listOf(opts.repo, json.repos)),
-      stages: stages(pick(opts.stages, json.stages)),
+      stages: parseStages(pick(opts.stages, json.stages)),
       doneState: text(pick(opts['done-state'], json.done_state), 'done-state', { clearable: true }),
       workspace: text(pick(opts.workspace, json.maestri_workspace), 'workspace', { clearable: true }),
     };

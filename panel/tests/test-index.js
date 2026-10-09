@@ -75,14 +75,14 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   new vm.Script(js, { filename: 'index.html#script' });
   const api = source['data/api.js'];
   for (const route of ["api('/api/state')", "api('/api/recalculate', { method: 'POST' })",
-    'api(`/api/pending-decisions?${', "api(withQuery('/api/items', filters))",
-    'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', '`/api/log?', 'api(`/api/log/${encodeURIComponent(id)}`)',
+    "api(withQuery('/api/pending-decisions', params))", "api(withQuery('/api/items', filters))",
+    'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', "api(withQuery('/api/log', params))", 'api(`/api/log/${encodeURIComponent(id)}`)',
     "api('/api/companies')", "api(withQuery('/api/projects', filters))",
     "api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } })",
     "api(withQuery('/api/usage', filters))", "api(withQuery('/api/agents', filters))", "api(withQuery('/api/overview', filters))"]) {
     assert.ok(api.includes(route), `the page calls ${route}`);
   }
-  for (const route of ['/api/state', '/api/recalculate', '/api/pending-decisions?', '/api/items', '/api/log?', '/api/log/',
+  for (const route of ['/api/state', '/api/recalculate', '/api/pending-decisions', '/api/items', '/api/log', '/api/log/',
     '/api/companies', '/api/projects', '/api/usage', '/api/agents', '/api/overview']) {
     assert.ok(js.includes(route), `the build calls ${route}`);
   }
@@ -90,6 +90,7 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   for (const old of ['/api/events', '/api/event/', '/api/flow/', '/api/brain']) assert.ok(!js.includes(old), `the build still calls ${old}`);
   const allowed = /^\/api\/(state|recalculate|pending-decisions|items|items\/|log|log\/|companies|projects|projects\/|usage|agents|overview)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
+  assert.ok(!/new URLSearchParams\(\)/.test(api.replace(/export function withQuery[\s\S]*?\r?\n}\r?\n/, '')), 'every query string goes through withQuery');
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
   assert.ok(/export const REFRESH_MS = 20000;/.test(api), 'refreshes every 20 s');
   assert.ok(/export const PAGE_SIZE = 50;/.test(api), 'pages of 50');

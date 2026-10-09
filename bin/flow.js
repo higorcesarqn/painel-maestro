@@ -139,7 +139,7 @@ function taskNumber(value) {
 
 function stageId(value) {
   if (value === undefined || String(value).trim() === '') throw new InvalidData('errors.missingStage');
-  const s = String(value).trim().toLowerCase().replace(/-/g, '_');
+  const s = lib.normalizeId(value);
   if (!STAGES.includes(s)) throw new InvalidData('errors.unknownStage', { stage: value, allowed: STAGES });
   return s;
 }
@@ -830,7 +830,7 @@ function parsePending(rest) {
   const { opts, pos } = parseArgs(args, PENDING_OPTIONS[sub], 1, sub === 'open' ? ['option'] : []);
   const json = pendingJson(opts);
   if (sub === 'open') {
-    const kind = String(pick(opts.kind, json.kind, '')).trim().toLowerCase().replace(/-/g, '_');
+    const kind = lib.normalizeId(pick(opts.kind, json.kind, ''));
     if (!kind) throw new InvalidData('pending.errors.missingKind', { allowed: PENDING_DECISION_KINDS.join(', ') });
     if (!PENDING_DECISION_KINDS.includes(kind)) throw new InvalidData('pending.errors.invalidKind', { value: kind, allowed: PENDING_DECISION_KINDS.join(', ') });
     const severity = String(pick(opts.severity, json.severity, 'normal')).trim().toLowerCase();

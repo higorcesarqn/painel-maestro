@@ -10,13 +10,9 @@ import { obj, objs, arr, number, pct, age, hm, spDay, now, dayMonthFormat, toDat
 import { t } from '../i18n/index.js';
 import { Card, Kpi, Badge, Ring, Empty, Skeleton, InfoHint } from '../components/base.jsx';
 import { Icon, ArrowRight, Activity, RefreshCw, Workflow, Inbox, Clock } from '../components/Icon.jsx';
-import { pendingTitle } from '../data/domain.js';
+import { pendingTitle, ACTIVE_STAGES, SEVERITIES, SEVERITY_COLOR } from '../data/domain.js';
 import { LogEventModal, eventTypeName, eventDetail, agentText } from './LogEventModal.jsx';
 
-// The flow's stages in their order; "done" never shows (only active items are counted).
-const STAGE_ORDER = ['specification', 'implementation', 'final_adjustment', 'pr_ready', 'merge', 'hml_validation'];
-const SEVERITIES = ['critical', 'high', 'normal', 'low'];
-const SEVERITY_COLOR = { critical: 'var(--danger)', high: 'var(--warning)', normal: 'var(--blue-text)', low: 'var(--muted)' };
 const stageName = (id) => t(`items.stages.${id}`);
 
 export function Overview() {
@@ -181,7 +177,7 @@ function ActiveItems({ o, error }) {
   const a = obj(o.active) || {};
   const companies = objs(a.companies);
   const used = new Set(companies.flatMap((c) => objs(c.projects).flatMap((p) => arr(p.stages))));
-  const stages = STAGE_ORDER.filter((s) => used.has(s));
+  const stages = ACTIVE_STAGES.filter((s) => used.has(s)); // only active items are counted: never "done"
   const byStage = obj(a.by_stage) || {};
   const cell = (p, s) => {
     const n = (obj(p.by_stage) || {})[s] || 0;

@@ -5,6 +5,14 @@ import { t } from '../i18n/index.js';
 // The flow's stages in order and the trackers, as the server names them (bin/flow-store.js STAGES and TRACKERS).
 export const STAGES = ['specification', 'implementation', 'final_adjustment', 'pr_ready', 'merge', 'hml_validation', 'done'];
 export const TRACKERS = ['github', 'azure_devops'];
+// The stages an active item can be in (the Overview's funnel: "done" never shows).
+export const ACTIVE_STAGES = STAGES.filter((s) => s !== 'done');
+
+// Severities of a pending decision, the most urgent first (bin/flow-projection.js PENDING_DECISION_SEVERITIES), with
+// the tone of their badge and the color of their mark.
+export const SEVERITIES = ['critical', 'high', 'normal', 'low'];
+export const SEVERITY_TONE = { critical: 'danger', high: 'warning', normal: 'blue', low: 'neutral' };
+export const SEVERITY_COLOR = { critical: 'var(--danger)', high: 'var(--warning)', normal: 'var(--blue-text)', low: 'var(--muted)' };
 
 /**
  * The title of a pending decision: the maestro's own, or, for the one a failing HML result opened by itself

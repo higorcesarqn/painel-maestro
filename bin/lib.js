@@ -29,6 +29,11 @@ function stripAccents(s) {
   return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+/** An id typed by a person ("Azure-DevOps", " pr-ready ") as the code writes it: trimmed, lower case, "-" → "_". */
+function normalizeId(value) {
+  return String(value).trim().toLowerCase().replace(/-/g, '_');
+}
+
 /** Sanitizes a session_id (only letters, digits, _ and -). */
 function safeSessionId(sessionId) {
   return String(sessionId || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 128);
@@ -334,7 +339,7 @@ function warn(text) {
 
 module.exports = {
   // paths and text
-  slashes, stripAccents, safeSessionId,
+  slashes, stripAccents, normalizeId, safeSessionId,
   // dates
   TIME_ZONE, now, asDate, spParts, isoSP,
   // command line

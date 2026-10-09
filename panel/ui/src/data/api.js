@@ -43,10 +43,10 @@ export const recalculateUsage = () => api('/api/recalculate', { method: 'POST' }
 export const readItems = (filters) => api(withQuery('/api/items', filters));
 export const readItem = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`);
 // The Log: the events of maestro.db with filters and, for one event, the raw commands of bruto.db linked to it.
-export const readLog = (params) => api(`/api/log?${new URLSearchParams(params).toString()}`);
+export const readLog = (params) => api(withQuery('/api/log', params));
 export const readLogEvent = (id) => api(`/api/log/${encodeURIComponent(id)}`);
 // Pending decisions, read only: params { company, project, severity, status }.
-export const readPendingDecisions = (params) => api(`/api/pending-decisions?${new URLSearchParams(params).toString()}`);
+export const readPendingDecisions = (params) => api(withQuery('/api/pending-decisions', params));
 // "Mark as merged" (#11): records the PR merge by hand when the merge check cannot read it. Returns { item }.
 export const markItemMerged = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}/merged`, { method: 'POST' });
 // Usage and agents per item (#13). filters: the company selector's companyFilter ({ company }) and/or { project }.
@@ -61,10 +61,15 @@ export const readCompanies = () => api('/api/companies');
 export const readProjects = (filters) => api(withQuery('/api/projects', filters));
 export const moveProject = (project, company) => api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } });
 
-/** path?k=v for the filled values of filters ({ company: 'contoso', project: '' } → path?company=contoso). */
+/**
+ * path?k=v for the filled values of filters ({ company: 'contoso', project: '' } → path?company=contoso): the only way
+ * the page builds a query string. Text and number values count; empty, null and undefined are left out.
+ */
 export function withQuery(path, filters) {
   const sp = new URLSearchParams();
-  for (const [k, v] of Object.entries(filters || {})) if (typeof v === 'string' && v) sp.set(k, v);
+  for (const [k, v] of Object.entries(filters || {})) {
+    if ((typeof v === 'string' && v) || (typeof v === 'number' && Number.isFinite(v))) sp.set(k, String(v));
+  }
   const q = sp.toString();
   return q ? `${path}?${q}` : path;
 }

@@ -16,18 +16,14 @@ export function dateRange(f) {
   }
 }
 
-/** Query parameters of /api/log (new model) for the Log filters and page. */
+/** Filters of /api/log (new model) for the Log filters and page; api.js turns them into the query (withQuery). */
 export function logParams(f, page) {
-  const sp = new URLSearchParams();
   const [since, until] = dateRange(f);
-  if (since) sp.set('since', since);
-  if (until) sp.set('until', until);
-  // 24 h: the exact last 24 hours (since yesterday plus hours)
-  if (f.period === '24h') sp.set('hours', '24');
-  for (const k of ['company', 'project', 'item', 'type']) {
-    if (typeof f[k] === 'string' && f[k]) sp.set(k, f[k]);
-  }
-  sp.set('page', String(page));
-  sp.set('per_page', String(PAGE_SIZE));
-  return sp;
+  return {
+    since, until,
+    // 24 h: the exact last 24 hours (since yesterday plus hours)
+    hours: f.period === '24h' ? '24' : '',
+    company: f.company, project: f.project, item: f.item, type: f.type,
+    page: String(page), per_page: String(PAGE_SIZE),
+  };
 }

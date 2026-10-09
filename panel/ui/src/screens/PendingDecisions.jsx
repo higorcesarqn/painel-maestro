@@ -11,16 +11,14 @@ import { objs, obj, arr, txt, age, dateTime, number } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Kpi, Badge, Segmented, Empty, InfoHint } from '../components/base.jsx';
 import { Icon, Inbox, X } from '../components/Icon.jsx';
-import { pendingTitle } from '../data/domain.js';
+import { pendingTitle, SEVERITIES, SEVERITY_TONE } from '../data/domain.js';
 import { TrackerLink } from './ItemDelivery.jsx';
 import '../styles/pending-decisions.css';
 
-const SEVERITIES = ['critical', 'high', 'normal', 'low'];
 const STATUSES = ['open', 'resolved', 'canceled'];
 // Resolved without the owner's decision: by the task's integration, an approved HML, the item's conclusion or the
 // maestro's own HML pending decision (bin/flow-projection.js).
 const AUTO_RESOLUTIONS = ['task_integrated', 'hml_approved', 'item_done', 'replaced'];
-const SEVERITY_TONE = { critical: 'danger', high: 'warning', normal: 'blue', low: 'neutral' };
 const STATUS_TONE = { open: 'blue', resolved: 'ok', canceled: 'neutral' };
 const ref = (p) => t('pending.ref', { id: p.id });
 const domId = (p) => `pending-${p.id}`;
