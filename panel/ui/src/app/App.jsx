@@ -2,7 +2,7 @@
 // the Log filters and the pending decision to open when the Overview sends the person there. Only the visible
 // screen is drawn.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { PanelContext, SCREENS, OLD_SCREEN_IDS, newFilter } from '../data/context.js';
+import { PanelContext, SCREENS, parseHash, newFilter } from '../data/context.js';
 import { REFRESH_MS, MOCK, readState, recalculateUsage, readLog } from '../data/api.js';
 import { syncClock, time, txt, obj } from '../data/format.js';
 import { logParams } from '../data/queries.js';
@@ -18,14 +18,10 @@ import { Agents } from '../screens/Agents.jsx';
 import { Usage } from '../screens/Usage.jsx';
 import { Icon, TriangleAlert, Info } from '../components/Icon.jsx';
 
-// One screen per item of SCREENS (data/context.js). A new screen goes here and there.
+// One screen per item of SCREENS (data/screens.js). A new screen goes here and there.
 const SCREEN_COMPONENTS = { overview: Overview, items: Items, pending: PendingDecisions, log: Log, agents: Agents, usage: Usage };
-// URL: #<screen> or #<screen>/<sub-tab>.
-const hashParts = () => {
-  const [raw, ...rest] = decodeURIComponent(location.hash.slice(1)).split('/');
-  const id = OLD_SCREEN_IDS[raw] || raw;
-  return SCREENS.some((a) => a.id === id) ? { id, sub: rest.join('/') } : { id: 'overview', sub: '' };
-};
+// URL: #<screen> or #<screen>/<sub-tab> (data/screens.js); a malformed address opens the Overview.
+const hashParts = () => parseHash(location.hash);
 const screenFromHash = () => hashParts().id;
 const hashOf = (id, sub) => `#${id}${sub ? `/${sub}` : ''}`;
 

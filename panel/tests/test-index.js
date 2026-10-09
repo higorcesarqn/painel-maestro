@@ -143,6 +143,16 @@ suite.test('mock-items.json: items in different stages, both trackers, several c
   assert.ok(js.includes('/api/pending-decisions'), 'the Pending decisions screen reads the new model');
 });
 
+suite.test('the address picks the screen: a malformed address (bad percent-encoding) falls back to the Overview instead of breaking the page', async () => {
+  const { parseHash } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
+  assert.deepStrictEqual(parseHash('#items/widgets/12'), { id: 'items', sub: 'widgets/12' });
+  assert.deepStrictEqual(parseHash('#items/caf%C3%A9/3'), { id: 'items', sub: 'café/3' });
+  assert.deepStrictEqual(parseHash('#visao'), { id: 'overview', sub: '' }, 'old address');
+  assert.deepStrictEqual(parseHash(''), { id: 'overview', sub: '' });
+  assert.deepStrictEqual(parseHash('#nao-existe'), { id: 'overview', sub: '' });
+  for (const bad of ['#items/%E0%A4%A', '#log/%', '#%ZZ']) assert.deepStrictEqual(parseHash(bad), { id: 'overview', sub: '' }, bad);
+});
+
 suite.test('links of the item page only go to the trackers (github.com, dev.azure.com, *.visualstudio.com)', async () => {
   const { trackerHref } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'links.js')).href);
   for (const good of ['https://github.com/acme/widgets/pull/34', 'https://dev.azure.com/contoso/CIDAX/_git/api/pullrequest/812',
