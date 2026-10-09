@@ -1,13 +1,13 @@
-// Visão geral: o que precisa do dono, o quadro, o plano, a atividade da semana, a prospecção e os agentes.
+// Visão geral: o que precisa do dono, o plano, a atividade da semana e os agentes.
 // No cartão fica o número e o sinal; a explicação de cada um fica no ícone (i) ao lado do rótulo.
 import '../estilo/visao.css';
 import { usePainel } from '../dados/contexto.js';
 import { obj, objs, arr, numero, pct, idade, hora, hm, diaSP, agora, fDiaMes, quando, textoMin, txt, plural, horaSP, semanaCurta } from '../dados/formato.js';
-import { SEVERIDADES, NOME_SEV, PLURAL_SEV, TOM_SEV, RESULTADOS, RESULTADOS_FALHA, precisaDono, infoAgente, nomeTipo, STATUS_TRELLO } from '../dados/dominio.js';
+import { SEVERIDADES, NOME_SEV, PLURAL_SEV, TOM_SEV, RESULTADOS, RESULTADOS_FALHA, precisaDono, infoAgente, nomeTipo } from '../dados/dominio.js';
 import { Cartao, Kpi, Selo, Ponto, Anel, Vazio, Esqueleto, InfoDica } from '../componentes/base.jsx';
-import { GraficoBarras, Rosca, Sparkline, BarraEmpilhada, Legenda } from '../componentes/graficos.jsx';
+import { GraficoBarras, Rosca, Sparkline, Legenda } from '../componentes/graficos.jsx';
 import { Agente, Resultado } from '../componentes/dominio.jsx';
-import { Icone, ArrowRight, Activity, MessageCircle, RefreshCw } from '../componentes/Icone.jsx';
+import { Icone, ArrowRight, Activity, RefreshCw } from '../componentes/Icone.jsx';
 
 export function Visao() {
   const { estado } = usePainel();
@@ -16,8 +16,6 @@ export function Visao() {
     <div class="tela tela-visao">
       <div class="visao-kpis">
         <KpiPendencias />
-        <KpiTrello />
-        <KpiAlertas />
         <KpiPlano tipo="5h" />
         <KpiPlano tipo="semanal" />
         <KpiEventosHoje />
@@ -25,7 +23,6 @@ export function Visao() {
       <div class="visao-graficos">
         <AtividadeSemana />
         <ResultadosSemana />
-        <ResumoProspeccao />
       </div>
       <div class="visao-baixo">
         <ListaAgentes />
@@ -39,8 +36,8 @@ function VisaoEsqueleto() {
   const bloco = (n) => Array.from({ length: n }, (_, i) => <div class="cartao" key={i} style={{ padding: '18px' }}><Esqueleto largura="40%" altura={10} /><Esqueleto largura="55%" altura={30} estilo={{ marginTop: '16px' }} /></div>);
   return (
     <div class="tela tela-visao" aria-busy="true">
-      <div class="visao-kpis">{bloco(6)}</div>
-      <div class="visao-graficos">{bloco(3)}</div>
+      <div class="visao-kpis">{bloco(4)}</div>
+      <div class="visao-graficos">{bloco(2)}</div>
       <div class="visao-baixo">{bloco(2)}</div>
     </div>
   );
@@ -73,44 +70,6 @@ function KpiPendencias() {
         )}
       </div>
       {total > 0 && <span class="filete" aria-hidden="true" style={kp.critica ? { background: 'var(--perigo)' } : undefined} />}
-    </button>
-  );
-}
-
-function KpiTrello() {
-  const { estado, irPara } = usePainel();
-  const kt = obj(estado.kpis) && obj(estado.kpis.trello);
-  if (!kt) return <Kpi rotulo="Trello" valor="—" info="O quadro ainda não foi lido pelo Coordenador do Trello." onClick={() => irPara('trello')} />;
-  const partes = [
-    { chave: 'afazer', nome: STATUS_TRELLO.afazer.nome, valor: kt.a_fazer || 0, cor: STATUS_TRELLO.afazer.cor },
-    { chave: 'andamento', nome: STATUS_TRELLO.andamento.nome, valor: kt.em_andamento || 0, cor: STATUS_TRELLO.andamento.cor },
-    { chave: 'concluido', nome: STATUS_TRELLO.concluido.nome, valor: kt.concluido || 0, cor: STATUS_TRELLO.concluido.cor },
-  ];
-  const idadeTrello = estado.saude && estado.saude.trello_idade_min;
-  return (
-    <Kpi rotulo="Trello · abertas" valor={numero(kt.abertas)} onClick={() => irPara('trello')}
-      info={`Tarefas abertas no quadro: ${numero(kt.a_fazer)} a fazer, ${numero(kt.em_andamento)} em andamento e ${numero(kt.concluido)} concluídas aguardando limpeza (a barra mostra a divisão). Leitura do Coordenador ${textoMin(idadeTrello)}.`}
-      detalhe={`${numero(kt.a_fazer)} a fazer · ${numero(kt.em_andamento)} em andamento`}>
-      <div class="kpi-barra"><BarraEmpilhada partes={partes} rotuloAria="Tarefas por status" /></div>
-    </Kpi>
-  );
-}
-
-function KpiAlertas() {
-  const { estado, irPara } = usePainel();
-  const kt = obj(estado.kpis) && obj(estado.kpis.trello);
-  if (!kt) return <Kpi rotulo="Alertas" valor="—" info="Sem leitura do Trello." onClick={() => irPara('trello')} />;
-  return (
-    <button type="button" class="cartao kpi clicavel" onClick={() => irPara('trello')}
-      aria-label={`Alertas do quadro: ${numero(kt.alertas_decisao)} pedem decisão, ${numero(kt.alertas_mecanicos)} mecânicos. Abrir a tela Trello.`}>
-      <span class="rot-linha">
-        <span class="rot">Alertas</span>
-        <InfoDica titulo="Alertas do quadro" texto={`Consistência do quadro na última leitura: ${numero(kt.alertas_decisao)} pedem decisão sua (cada uma vira pendência) e ${numero(kt.alertas_mecanicos)} são correções mecânicas, que o Coordenador faz quando você liberar.`} />
-      </span>
-      <div class="kpi-par">
-        <div><span class="valor medio">{numero(kt.alertas_decisao)}</span><span class="minimo mudo">decisão</span></div>
-        <div><span class="valor medio texto-2">{numero(kt.alertas_mecanicos)}</span><span class="minimo mudo">mecânicos</span></div>
-      </div>
     </button>
   );
 }
@@ -213,49 +172,6 @@ function ResultadosSemana() {
             </li>
           ))}
         </ul>
-      </div>
-    </Cartao>
-  );
-}
-
-function ResumoProspeccao() {
-  const { prospeccao, irPara } = usePainel();
-  const d = prospeccao.dados;
-  const info = 'Resumo da prospecção pelo WhatsApp: leads abordados hoje, % que respondeu, qualificados, reuniões marcadas, leads prontos na fila e números de WhatsApp conectados. Abra a tela Prospecção para o detalhe.';
-  const abrir = <button type="button" class="link pequeno ir-link" onClick={() => irPara('prospeccao')}>Abrir <Icone de={ArrowRight} tamanho={13} /></button>;
-  if (!d) {
-    return (
-      <Cartao rotulo="Prospecção" info={info} acoes={abrir}>
-        {prospeccao.erro ? <Vazio icone={MessageCircle}>Sem dados da prospecção agora ({prospeccao.erro.message}).</Vazio> : <Esqueleto altura={200} estilo={{ marginTop: '8px' }} />}
-      </Cartao>
-    );
-  }
-  const op = obj(d.operacao) || {};
-  const k = (obj(d.qualificacao) && obj(d.qualificacao.kpis)) || {};
-  const kp = (obj(d.prospeccao) && obj(d.prospeccao.kpis)) || {};
-  const chips = objs(d.chips);
-  const conectados = chips.filter((c) => c.conectado === true).length;
-  const desligada = !op.qualificador_ativo && !op.captador_ativo;
-  const itens = [
-    ['Leads hoje', numero(k.leads_hoje)],
-    ['Respostas', typeof k.respostas_pct === 'number' ? `${k.respostas_pct}%` : '—'],
-    ['Qualificados', numero(k.qualificados)],
-    ['Reuniões', numero(k.reunioes_marcadas)],
-    ['Fila pronta', numero(kp.fila)],
-    ['WhatsApp', `${numero(conectados)}/${numero(chips.length)}`],
-  ];
-  return (
-    <Cartao rotulo="Prospecção" info={info} acoes={abrir}>
-      <div class="selos prosp-selos">
-        {op.modo_teste && <Selo tom="azul" cheio>Modo teste</Selo>}
-        {desligada ? <Selo>Desligada</Selo> : <>
-          <Selo tom={op.qualificador_ativo ? 'ok' : 'neutro'}>Qualificador {op.qualificador_ativo ? 'ligado' : 'desligado'}</Selo>
-          <Selo tom={op.captador_ativo ? 'ok' : 'neutro'}>Captador {op.captador_ativo ? 'ligado' : 'desligado'}</Selo>
-        </>}
-        {chips.length > conectados && <Selo tom="atencao">{chips.length - conectados} sem conexão</Selo>}
-      </div>
-      <div class="mini-kpis">
-        {itens.map(([r, v]) => <div key={r}><span class="rot">{r}</span><span class="mini-valor">{v}</span></div>)}
       </div>
     </Cartao>
   );

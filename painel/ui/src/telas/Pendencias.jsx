@@ -5,11 +5,11 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { usePainel } from '../dados/contexto.js';
 import { objs, arr, txt, idade, dataHora, tempo, numero, agora } from '../dados/formato.js';
-import { SEVERIDADES, PLURAL_SEV, TIPO_PEND, ORD_SEV, sevDe, urlDoCartao, urlTrello } from '../dados/dominio.js';
+import { SEVERIDADES, PLURAL_SEV, TIPO_PEND, ORD_SEV, sevDe } from '../dados/dominio.js';
 import { responderPendencia } from '../dados/api.js';
 import { Cartao, Kpi, Selo, Segmentado, Vazio, InfoDica } from '../componentes/base.jsx';
-import { Agente, Fluxo, SeloSeveridade, LinkTrello } from '../componentes/dominio.jsx';
-import { Icone, Inbox, ExternalLink, Send, CircleCheck, TriangleAlert, X, LoaderCircle } from '../componentes/Icone.jsx';
+import { Agente, Fluxo, SeloSeveridade } from '../componentes/dominio.jsx';
+import { Icone, Inbox, Send, CircleCheck, TriangleAlert, X, LoaderCircle } from '../componentes/Icone.jsx';
 import '../estilo/pendencias.css';
 
 const COR_SEV = { critica: 'var(--perigo)', alta: 'var(--atencao)', normal: 'var(--azul-texto)', baixa: 'var(--fraco)' };
@@ -198,7 +198,6 @@ export function Pendencias() {
 function DetalhePendencia({ p }) {
   const sev = sevDe(p);
   const status = p.status || 'aberta';
-  const urlCartao = urlTrello(urlDoCartao(p.trello));
   return (
     <div class="pend-conteudo">
       <div class="pend-cab">
@@ -212,11 +211,6 @@ function DetalhePendencia({ p }) {
       </div>
       <h2 class="pend-h">{txt(p.titulo) || '(sem título)'}</h2>
       {p.contexto && <p class="pend-contexto pre">{txt(p.contexto)}</p>}
-      {urlCartao && (
-        <div class="pend-rodape">
-          <LinkTrello url={urlCartao}>Abrir o cartão no Trello <Icone de={ExternalLink} tamanho={13} /></LinkTrello>
-        </div>
-      )}
     </div>
   );
 }

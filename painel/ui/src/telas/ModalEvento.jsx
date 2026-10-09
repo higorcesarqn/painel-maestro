@@ -1,14 +1,14 @@
-// Modal do evento (§11.5): resumo e pedido, demanda do Trello, direção, sequência do fluxo, passos e
+// Modal do evento (§11.5): resumo e pedido, projeto, direção, sequência do fluxo, passos e
 // comandos, alterações, validação, próximo passo e duração. ← (mais recente) e → (mais antigo) seguem a
 // ordem da tabela filtrada do Log; aberto pela Visão geral ou pelos Agentes, seguem a ordem do tempo.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { usePainel } from '../dados/contexto.js';
 import { lerEvento, lerEventos } from '../dados/api.js';
 import { arr, obj, txt, hora, hm, diaSP, semana, dataHoraSeg, cabecalhoDia, fDiaMes, quando, truncar, duracao, numero } from '../dados/formato.js';
-import { nomeTipo, nomeOrigem, infoAgente, urlDoCartao } from '../dados/dominio.js';
+import { nomeTipo, nomeOrigem, infoAgente } from '../dados/dominio.js';
 import { Modal } from '../componentes/Modal.jsx';
 import { Selo, Recolhivel } from '../componentes/base.jsx';
-import { Agente, Projeto, Resultado, StatusTrello, LinkTrello, Fluxo } from '../componentes/dominio.jsx';
+import { Agente, Projeto, Resultado, Fluxo } from '../componentes/dominio.jsx';
 import { Icone, ArrowLeft, ArrowRight, X, Check } from '../componentes/Icone.jsx';
 
 export function ModalEvento() {
@@ -113,7 +113,6 @@ function CorpoEvento({ d, estado, nav }) {
   const { abrirModal, irParaPendencia } = usePainel();
   const ev = d.evento;
   const fluxo = obj(d.fluxo);
-  const tr = obj(ev.trello);
   const ped = obj(d.pedido_inicial);
   const seq = arr(d.sequencia);
   const lista = useRef(null);
@@ -191,14 +190,8 @@ function CorpoEvento({ d, estado, nav }) {
             </Secao>
           </div>
           <div class="modal-col">
-            <Secao titulo="Demanda do Trello">
-              {tr && (tr.titulo || tr.shortLink) ? (
-                <div class="trello-demanda">
-                  <Projeto prefixo={ev.projeto} />
-                  <LinkTrello url={urlDoCartao(tr)}>{txt(tr.titulo || tr.shortLink)}</LinkTrello>
-                  {(tr.status_antes || tr.status_depois) && <span class="trello-status"><StatusTrello status={tr.status_antes || '—'} /><Icone de={ArrowRight} tamanho={13} /><StatusTrello status={tr.status_depois || tr.status_antes || '—'} /></span>}
-                </div>
-              ) : <p class="mudo">{ev.projeto ? <>Sem cartão específico · projeto <Projeto prefixo={ev.projeto} /></> : 'Sem cartão do Trello ligado a este evento.'}</p>}
+            <Secao titulo="Projeto">
+              {ev.projeto ? <Projeto prefixo={ev.projeto} /> : <p class="mudo">Sem projeto ligado a este evento.</p>}
             </Secao>
             <Secao titulo="Validação">{ev.validacao ? <p>{txt(ev.validacao)}</p> : <p class="mudo">Sem validação registrada.</p>}</Secao>
             <Secao titulo="Próximo passo e pendências">

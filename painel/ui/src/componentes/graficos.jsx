@@ -1,7 +1,7 @@
 // Gráficos em SVG desenhados aqui (sem biblioteca): leves, nítidos e na cor da marca.
 // Todos medem o espaço do próprio contêiner (ResizeObserver) e ocupam a largura e a altura disponíveis.
 //   GraficoBarras  barras verticais empilhadas por série (ex.: eventos por dia e por agente)
-//   GraficoLinhas  séries no tempo com mira e dica (ex.: evolução do quadro do Trello)
+//   GraficoLinhas  séries no tempo com mira e dica
 //   Rosca          participação de cada parte num total (ex.: resultados dos eventos)
 //   Sparkline      tendência mínima dentro de um KPI
 //   ListaBarras    ranking horizontal (ex.: consumo por agente)

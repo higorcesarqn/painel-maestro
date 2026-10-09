@@ -41,13 +41,13 @@ function montarBase(nome) {
   escreverJson(path.join(m, 'registro', 'agentes.json'), {
     workspace: { id: 'ws', nome: 'Exemplo', raiz: 'C:/teste' },
     padrao: { modelo: 'claude-opus-5-5[1m]', nivel: 'xhigh' },
-    agentes: [{ slug: 'cerebro', nome: 'Cérebro Principal' }, { slug: 'coordenador-trello', nome: 'Coordenador do Trello' }, { slug: 'futuro', nome: 'Futuro' }],
+    agentes: [{ slug: 'cerebro', nome: 'Cérebro Principal' }, { slug: 'coordenador', nome: 'Coordenador' }, { slug: 'futuro', nome: 'Futuro' }],
   });
   escreverJson(path.join(maestri, 'usage', 'providers', '.status.json'), statusPlano());
   const sessao = (id, dados) => escreverJson(path.join(m, 'estado', 'sessoes', `${id}.json`), Object.assign({ session_id: id, terminal: 't', cwd: 'C:\\teste', iniciado_em: sp('08:00'), visto_em: sp('15:00') }, dados));
   const t1 = path.join(proj('proj-a'), 's1.jsonl');
   sessao('s1', { agente: 'cerebro', transcript_path: t1 });
-  sessao('s2', { agente: 'coordenador-trello', transcript_path: path.join(proj('proj-b'), 's2.jsonl') });
+  sessao('s2', { agente: 'coordenador', transcript_path: path.join(proj('proj-b'), 's2.jsonl') });
   sessao('s3', { agente: null, transcript_path: path.join(proj('proj-a'), 's3.jsonl') });
   sessao('s4', { agente: 'cerebro', transcript_path: path.join(proj('proj-a'), 's4.jsonl') }); // ainda sem arquivo
   sessao('s6', { agente: 'desconhecido:abc12345', transcript_path: path.join(proj('proj-c'), 's6.jsonl') });
@@ -112,7 +112,7 @@ suite.teste('primeira coleta: dedup pela última linha, subagentes, sessões sem
   const c5 = linha(uso, 'janela_5h', 'cerebro');
   assert.deepStrictEqual([c5.entrada, c5.saida, c5.cache_escrita, c5.cache_leitura, c5.mensagens], [16, 151, 1100, 5000, 3]);
   assert.strictEqual(c5.consumo_relativo, 2646);
-  const t5 = linha(uso, 'janela_5h', 'coordenador-trello');
+  const t5 = linha(uso, 'janela_5h', 'coordenador');
   assert.strictEqual(t5.consumo_relativo, 400);
   const d5 = linha(uso, 'janela_5h', 'desconhecido:abc12345');
   assert.strictEqual(d5.consumo_relativo, 20);
@@ -212,10 +212,10 @@ suite.teste('arquivo trocado ou truncado recomeça do zero; transcrição que ap
   fs.unlinkSync(s2);
   escreverJsonl(s2, [linhaAssistente({ id: 'msg_G2', ts: sp('15:45'), e: 1, s: 1 }), linhaAssistente({ id: 'msg_G3', ts: sp('15:46'), e: 1, s: 1 })]);
   let uso = await coletor.coletar(opcoes(b));
-  assert.strictEqual(linha(uso, 'janela_5h', 'coordenador-trello').consumo_relativo, 12);
+  assert.strictEqual(linha(uso, 'janela_5h', 'coordenador').consumo_relativo, 12);
   fs.writeFileSync(s2, `${linhaAssistente({ id: 'msg_G4', ts: sp('15:47'), e: 2 })}\n`); // menor que o offset
   uso = await coletor.coletar(opcoes(b));
-  assert.strictEqual(linha(uso, 'janela_5h', 'coordenador-trello').consumo_relativo, 2);
+  assert.strictEqual(linha(uso, 'janela_5h', 'coordenador').consumo_relativo, 2);
   assert.ok(uso.coleta.transcricoes_recomecadas >= 1);
   escreverJsonl(path.join(b.proj('proj-a'), 's4.jsonl'), [linhaAssistente({ id: 'msg_P', ts: sp('15:48'), e: 4 })]);
   uso = await coletor.coletar(opcoes(b));
@@ -226,23 +226,23 @@ suite.teste('arquivo trocado ou truncado recomeça do zero; transcrição que ap
 suite.teste('dono da sessão muda: atribuição segue o arquivo de sessão; sessão apagada sai do cache', async () => {
   const b = montarBase('dono');
   await coletor.coletar(opcoes(b));
-  escreverJson(path.join(b.m, 'estado', 'sessoes', 's6.json'), { session_id: 's6', agente: 'coordenador-trello', transcript_path: path.join(b.proj('proj-c'), 's6.jsonl') });
+  escreverJson(path.join(b.m, 'estado', 'sessoes', 's6.json'), { session_id: 's6', agente: 'coordenador', transcript_path: path.join(b.proj('proj-c'), 's6.jsonl') });
   let uso = await coletor.coletar(opcoes(b));
   assert.strictEqual(uso.coleta.bytes_lidos, 0);
-  assert.strictEqual(linha(uso, 'janela_5h', 'coordenador-trello').consumo_relativo, 420);
+  assert.strictEqual(linha(uso, 'janela_5h', 'coordenador').consumo_relativo, 420);
   assert.strictEqual(linha(uso, 'janela_5h', 'desconhecido:abc12345'), undefined);
   fs.unlinkSync(path.join(b.m, 'estado', 'sessoes', 's2.json'));
   uso = await coletor.coletar(opcoes(b));
-  assert.strictEqual(linha(uso, 'janela_5h', 'coordenador-trello').consumo_relativo, 20);
+  assert.strictEqual(linha(uso, 'janela_5h', 'coordenador').consumo_relativo, 20);
   assert.ok(!fs.readFileSync(path.join(b.m, 'estado', 'uso-cache.json'), 'utf8').includes('msg_G'));
 });
 
 suite.teste('sessão sem transcript_path: caminho derivado do cwd (CLAUDE_CONFIG_DIR/projects)', async () => {
   const b = montarBase('derivado');
-  escreverJson(path.join(b.m, 'estado', 'sessoes', 's8.json'), { session_id: 's8', agente: 'coordenador-trello', cwd: 'C:\\proj\\x' });
+  escreverJson(path.join(b.m, 'estado', 'sessoes', 's8.json'), { session_id: 's8', agente: 'coordenador', cwd: 'C:\\proj\\x' });
   escreverJsonl(path.join(b.claude, 'projects', 'C--proj-x', 's8.jsonl'), [linhaAssistente({ id: 'msg_L', ts: sp('15:30'), e: 1, s: 1 })]);
   const uso = await coletor.coletar(opcoes(b));
-  assert.strictEqual(linha(uso, 'janela_5h', 'coordenador-trello').consumo_relativo, 406);
+  assert.strictEqual(linha(uso, 'janela_5h', 'coordenador').consumo_relativo, 406);
 });
 
 suite.teste('cache corrompido é recriado sem mudar o resultado', async () => {

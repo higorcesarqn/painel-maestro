@@ -31,8 +31,6 @@
 .pend-recomendacao, .pend-resposta { padding: 13px 17px; border-radius: 0 10px 10px 0; display: flex; flex-direction: column; gap: 6px; max-width: 980px; line-height: 1.55; }
 .pend-recomendacao { border-left: 2px solid var(--azul); background: var(--azul-fundo); }
 .pend-resposta { border-left: 2px solid var(--borda-forte); background: #0c0c0c; color: var(--texto-2); }
-.pend-rodape { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; font-size: 13px; color: var(--mudo); padding-top: 16px; border-top: 1px solid var(--borda); }
-.pend-rodape a { display: inline-flex; align-items: center; gap: 6px; }
 .pend-como { display: inline-flex; align-items: center; gap: 7px; }
 
 /* ---------- Log: as regras moram em estilo/log.css (importado pelo Log.jsx) ---------- */
@@ -53,16 +51,12 @@
 .sequencia li.atual { background: var(--azul-fundo); box-shadow: inset 2px 0 0 var(--azul); cursor: default; }
 .sequencia li.dia-seq { display: block; cursor: default; font-size: 9.5px; letter-spacing: .3em; text-transform: uppercase; color: var(--mudo); padding-top: 10px; }
 .sequencia li.dia-seq:hover { background: none; }
-.trello-demanda { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.trello-status { display: inline-flex; align-items: center; gap: 6px; color: var(--mudo); }
 .lista-simples { padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--texto-2); }
 .lista-simples.mono { font-size: 12px; }
 .brutos-caixa { max-height: 340px; overflow: auto; border: 1px solid var(--borda); border-radius: 10px; margin-top: 4px; }
 table.cmds { font-size: 12px; }
 table.cmds td { padding: 6px 10px; }
 table.cmds th { padding: 8px 10px; }
-
-/* ---------- Trello: em trello.css ---------- */
 
 /* ---------- Agentes: em estilo/agentes.css (importado pela tela) ---------- */
 

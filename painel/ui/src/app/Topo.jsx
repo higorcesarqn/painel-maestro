@@ -56,7 +56,7 @@ export function Topo() {
       {pop === 'cerebro' && (
         <Popover aoFechar={() => setPop(null)} id="pop-cerebro" papel="note" direita={24}>
           <h3>Pedir ao Cérebro… (Fase B)</h3>
-          <p class="texto-2">Desabilitado: exige o Maestri Wire (ver §11.7). Quando o Wire estiver ligado e pareado, este botão vai mandar pedidos prontos ao Cérebro (atualizar o Trello agora, resumo do dia, revisar pendências) e uma mensagem livre. Até lá, fale com o Cérebro direto no canvas do Maestri.</p>
+          <p class="texto-2">Desabilitado: exige o Maestri Wire (ver §11.7). Quando o Wire estiver ligado e pareado, este botão vai mandar pedidos prontos ao Cérebro (resumo do dia, revisar pendências) e uma mensagem livre. Até lá, fale com o Cérebro direto no canvas do Maestri.</p>
         </Popover>
       )}
     </header>
@@ -70,7 +70,6 @@ function PopSaude({ aoFechar }) {
   const hooks = objs(s.hooks);
   const avisos = arr(estado && estado.avisos);
   const linhas = [
-    ['Leitura do Trello', s.trello_idade_min === null || s.trello_idade_min === undefined ? 'nunca lida' : textoMin(s.trello_idade_min)],
     ['Último evento', textoMin(s.ultimo_evento_idade_min)],
     ['Dado de uso do plano', textoMin(s.uso_idade_min)],
     ['Maestri Wire', s.wire ? 'configurado' : 'não configurado (Fase B)'],

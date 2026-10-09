@@ -37,14 +37,12 @@ SUBCOMANDOS
       --fluxo F              padrão: o fluxo da sessão atual (CLAUDE_CODE_SESSION_ID); erro se não houver
       --direcao "..."        obrigatória em decisao, execucao, delegacao e auditoria (caminho e porquê)
       --projeto P            ex.: A, B, C (prefixo do projeto)
-      --trello-shortlink X   --trello-titulo "..."   --trello-url U   --status-antes S   --status-depois S
       --passo "..."   --comando "..."   --alteracao "..."   --pendencia P-NNNN      (repetíveis)
       --validacao "..."   --proximo-passo "..."   --precisa-dono   --duracao SEGUNDOS   --teste
       --json '<objeto>'      evento completo em JSON (opções da linha de comando têm prioridade)
       --json -               o JSON vem pela entrada padrão
       --json-arquivo C       o JSON vem de um arquivo (UTF-8; aceita BOM e UTF-16 do PowerShell 5)
-      Campos do JSON: agente, fluxo_id, origem, tipo, projeto, trello{shortLink,titulo,url,status_antes,
-      status_depois}, resumo, direcao, passos[], comandos[], alteracoes[], resultado, validacao,
+      Campos do JSON: agente, fluxo_id, origem, tipo, projeto, resumo, direcao, passos[], comandos[], alteracoes[], resultado, validacao,
       proximo_passo, precisa_dono, pendencias[], duracao_s, ts (opcional, ISO com fuso), teste.
 
   ultimos [--horas N] [--agente S] [--fluxo F] [--tipo T] [--limite N] [--incluir-testes] [--json]
@@ -74,16 +72,16 @@ CÓDIGOS DE SAÍDA
   0 ok · 2 validação (lista cada problema) · 3 trava esgotada · 1 outros erros
 
 EXEMPLOS
-  ${CMD} novo-fluxo --titulo "Auditoria semanal do Trello"
-  ${CMD} evento --fluxo F-20261008-0002 --origem dono-direto --tipo pedido-recebido --resumo "Pedido do dono: auditar o quadro" --resultado em-andamento
-  ${CMD} evento --origem cerebro --tipo delegacao --resumo "Delegada a auditoria ao Coordenador do Trello" --direcao "Trello é domínio do Coordenador; mandei [PEDIDO] com autonomia só de leitura." --resultado em-andamento
-  ${CMD} evento --origem cerebro --tipo execucao --resumo "RST gerado: 13 abertas, 11 alertas" --direcao "Li o JSON do quadro porque traz espelhos e checklists numa leitura só." --resultado ok --passo "Li o quadro" --passo "Gerei o RST" --duracao 48
+  ${CMD} novo-fluxo --titulo "Revisão semanal do repositório"
+  ${CMD} evento --fluxo F-20261008-0002 --origem dono-direto --tipo pedido-recebido --resumo "Pedido do dono: revisar o repositório" --resultado em-andamento
+  ${CMD} evento --origem cerebro --tipo delegacao --resumo "Delegada a revisão ao Coordenador" --direcao "O repositório é domínio do Coordenador; mandei [PEDIDO] com autonomia só de leitura." --resultado em-andamento
+  ${CMD} evento --origem cerebro --tipo execucao --resumo "Relatório gerado: 13 abertas, 11 alertas" --direcao "Li o histórico inteiro porque traz as mudanças numa leitura só." --resultado ok --passo "Li o histórico" --passo "Gerei o relatório" --duracao 48
   ${CMD} evento --json-arquivo C:/Temp/ev.json                              (PowerShell: o melhor caminho)
   ${CMD} evento --json - < /c/Temp/ev.json                                 (Git Bash)
   MSYS2_ARG_CONV_EXCL='*' ${CMD} evento --resumo "/compact rodado" ...                                    (Git Bash, texto começando por /)
   (No Windows PowerShell 5, o pipe "Get-Content ... | node" troca acentos e emoji por "?": prefira --json-arquivo
    ou rode antes $OutputEncoding = [Text.UTF8Encoding]::new($false).)
-  ${CMD} ultimos --horas 4 --agente coordenador-trello
+  ${CMD} ultimos --horas 4 --agente coordenador
   ${CMD} fluxo F-20261008-0002
   ${CMD} importar-pre-registro
 `;
@@ -123,9 +121,6 @@ function linhasDoEvento(ev, { mostrarFluxo = true } = {}) {
   if (ev.precisa_dono) cab += ' · ⚠ precisa do dono';
   const linhas = [cab, `          ${ev.resumo}`];
   if (ev.direcao) linhas.push(`          direção: ${lib.truncar(String(ev.direcao).replace(/\s+/g, ' '), 160)}`);
-  if (ev.trello && (ev.trello.titulo || ev.trello.shortLink || ev.trello.url)) {
-    linhas.push(`          trello: ${[ev.trello.titulo, ev.trello.url || ev.trello.shortLink].filter(Boolean).join(' · ')}`);
-  }
   if (Array.isArray(ev.pendencias) && ev.pendencias.length) linhas.push(`          pendências: ${ev.pendencias.join(', ')}`);
   if (ev.proximo_passo) linhas.push(`          próximo passo: ${lib.truncar(String(ev.proximo_passo).replace(/\s+/g, ' '), 160)}`);
   return linhas;
@@ -192,13 +187,10 @@ const MAPA_TEXTO = {
   resultado: 'resultado', projeto: 'projeto', validacao: 'validacao', 'proximo-passo': 'proximo_passo',
 };
 const MAPA_LISTA = { passo: 'passos', comando: 'comandos', alteracao: 'alteracoes', pendencia: 'pendencias' };
-const MAPA_TRELLO = {
-  'trello-shortlink': 'shortLink', 'trello-titulo': 'titulo', 'trello-url': 'url', 'status-antes': 'status_antes', 'status-depois': 'status_depois',
-};
 
 function cmdEvento(argv) {
   const { op } = lib.lerArgumentos(argv, {
-    texto: [...Object.keys(MAPA_TEXTO), ...Object.keys(MAPA_TRELLO), 'duracao', 'json', 'json-arquivo'],
+    texto: [...Object.keys(MAPA_TEXTO), 'duracao', 'json', 'json-arquivo'],
     lista: Object.keys(MAPA_LISTA),
     bool: ['precisa-dono', 'teste'],
   });
@@ -209,12 +201,6 @@ function cmdEvento(argv) {
   ev = { ...ev };
   for (const [flag, campo] of Object.entries(MAPA_TEXTO)) if (op[flag] !== undefined) ev[campo] = op[flag];
   for (const [flag, campo] of Object.entries(MAPA_LISTA)) if (op[flag] !== undefined) ev[campo] = op[flag];
-  const temTrello = Object.keys(MAPA_TRELLO).some((f) => op[f] !== undefined);
-  if (temTrello) {
-    const t = ev.trello && typeof ev.trello === 'object' && !Array.isArray(ev.trello) ? { ...ev.trello } : {};
-    for (const [flag, campo] of Object.entries(MAPA_TRELLO)) if (op[flag] !== undefined) t[campo] = op[flag];
-    ev.trello = t;
-  }
   if (op['precisa-dono'] !== undefined) ev.precisa_dono = op['precisa-dono'];
   if (op.teste !== undefined) ev.teste = op.teste;
   if (op.duracao !== undefined) ev.duracao_s = lerDuracao(op.duracao);

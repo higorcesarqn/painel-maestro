@@ -20,7 +20,7 @@ function carregarMock() {
   return carga;
 }
 
-const CAMPOS_TABELA = ['id', 'ts', 'agente', 'projeto', 'trello', 'resumo', 'direcao', 'resultado', 'tipo', 'fluxo_id', 'precisa_dono', 'origem', 'teste'];
+const CAMPOS_TABELA = ['id', 'ts', 'agente', 'projeto', 'resumo', 'direcao', 'resultado', 'tipo', 'fluxo_id', 'precisa_dono', 'origem', 'teste'];
 function camposTabela(e) {
   const r = {};
   for (const k of CAMPOS_TABELA) if (e[k] !== undefined) r[k] = e[k];
@@ -33,7 +33,6 @@ function erro(msg, status) {
 }
 
 export async function mockApi(caminho, metodo, corpo) {
-  if (String(caminho).startsWith('/api/prospeccao/')) return mockProspeccao(caminho, metodo, corpo);
   const { estado, det } = await carregarMock();
   const u = new URL(caminho, location.href);
   const p = u.pathname;
@@ -61,7 +60,7 @@ export async function mockApi(caminho, metodo, corpo) {
       if (desdeT !== null && !(Date.parse(e.ts) >= desdeT)) return false;
       if (fluxo && e.fluxo_id !== fluxo) return false;
       if (termos.length) {
-        const t = normalizar([e.resumo, e.direcao, e.trello && e.trello.titulo, e.fluxo_id].map(txt).join(' '));
+        const t = normalizar([e.resumo, e.direcao, e.fluxo_id].map(txt).join(' '));
         if (!termos.every((x) => t.includes(x))) return false;
       }
       const proj = String(e.projeto || '');
@@ -125,69 +124,4 @@ export async function mockApi(caminho, metodo, corpo) {
     return { fluxo: fl, eventos: lista, comandos_brutos: brutos.filter((b) => b.fluxo_id === id).map((b) => fmtCmd(b, 'fluxo_id')), comandos_truncados: 0, pedido_inicial: pedidoDe(lista, id) };
   }
   throw erro('Rota não existe no modo de teste.', 404);
-}
-
-// ---------- prospecção (?mock=1): testes/mock-prospeccao.json, gerado por testes/gerar-mock-prospeccao.js ----------
-let cargaProspeccao = null;
-function carregarMockProspeccao() {
-  if (!cargaProspeccao) {
-    cargaProspeccao = fetch('testes/mock-prospeccao.json', { cache: 'no-store' })
-      .then((r) => { if (!r.ok) throw new Error(`testes/mock-prospeccao.json: ${r.status}`); return r.json(); })
-      .catch((e) => { cargaProspeccao = null; throw erro(`Modo de teste: não consegui ler testes/mock-prospeccao.json (${e.message}).`, 503); });
-  }
-  return cargaProspeccao;
-}
-const copia = (v) => JSON.parse(JSON.stringify(v));
-
-/** Imita /api/prospeccao/estado, /lead/<id>, /assumir e /devolver. Assumir e devolver mudam só a memória da página. */
-async function mockProspeccao(caminho, metodo, corpo) {
-  const m = await carregarMockProspeccao();
-  const p = new URL(caminho, location.href).pathname;
-  if (p === '/api/prospeccao/estado' && metodo !== 'POST') return copia(m.estado);
-  const ml = /^\/api\/prospeccao\/lead\/(.+)$/.exec(p);
-  if (ml && metodo !== 'POST') {
-    const r = m.leads[decodeURIComponent(ml[1])];
-    if (!r) throw erro('Lead não encontrado.', 404);
-    return copia(r);
-  }
-  if (metodo !== 'POST' || (p !== '/api/prospeccao/assumir' && p !== '/api/prospeccao/devolver')) throw erro('Rota não existe no modo de teste.', 404);
-  const id = obj(corpo) ? corpo.lead_id : null;
-  const r = id ? m.leads[id] : null;
-  if (!r) throw erro(`Lead não encontrado: ${id}`, 404);
-  const l = r.lead;
-  const assumir = p.endsWith('/assumir');
-  const comHumano = !!(obj(l.humano) && l.humano.ativo);
-  if (assumir && comHumano) throw erro('O lead já está com o humano.', 409);
-  if (!assumir && !comHumano) throw erro(`O lead ${id} não está com o humano.`, 409);
-  const quali = m.estado.qualificacao;
-  const kb = quali.kanban;
-  const achar = (etapa) => arr(kb[etapa] && kb[etapa].leads).find((x) => x.id === id) || null;
-  const tirar = (etapa) => { const c = kb[etapa]; if (!c) return; c.leads = c.leads.filter((x) => x.id !== id); c.total = Math.max(0, c.total - 1); };
-  const por = (etapa, cartao) => { if (!kb[etapa]) kb[etapa] = { total: 0, leads: [] }; kb[etapa].leads.unshift(cartao); kb[etapa].total += 1; };
-  const quando = new Date(agora()).toISOString();
-  const de = l.etapa || 'novo';
-  const cartao = achar(de);
-  if (assumir) {
-    l.humano = { ativo: true, motivo: 'O dono assumiu a conversa pelo painel', desde: quando, notificado_em: quando, por: 'painel', etapa_anterior: de };
-    l.etapa = 'passado_humano';
-    l.proximo_followup = null;
-    if (cartao) {
-      tirar(de);
-      Object.assign(cartao, { etapa: 'passado_humano', proximo_followup: null, humano: { ativo: true, por: 'painel', motivo: l.humano.motivo, desde: quando, notificado_em: quando } });
-      por('passado_humano', cartao);
-      quali.para_voce.com_humano.unshift(cartao);
-      quali.para_voce.quentes_sem_reuniao = quali.para_voce.quentes_sem_reuniao.filter((x) => x.id !== id);
-    }
-  } else {
-    const volta = l.humano.etapa_anterior || 'qualificando';
-    l.humano = { ativo: false, motivo: null, desde: null, notificado_em: null, por: null };
-    l.etapa = volta;
-    if (cartao) {
-      tirar('passado_humano');
-      Object.assign(cartao, { etapa: volta, humano: null });
-      por(volta, cartao);
-      quali.para_voce.com_humano = quali.para_voce.com_humano.filter((x) => x.id !== id);
-    }
-  }
-  return { ok: true, acao: assumir ? 'assumir' : 'devolver', lead: cartao ? copia(cartao) : null };
 }

@@ -8,11 +8,11 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { usePainel, novoFiltro } from '../dados/contexto.js';
 import { POR_PAGINA } from '../dados/api.js';
 import { objs, obj, txt, numero, plural, data, hora, diaMes, diaSP, cabecalhoDia } from '../dados/formato.js';
-import { TIPOS, RESULTADOS, RESULTADOS_FALHA, RESULTADOS_DONO, precisaDono, infoAgente, projetosConhecidos, corDoFluxo, urlDoCartao } from '../dados/dominio.js';
+import { TIPOS, RESULTADOS, RESULTADOS_FALHA, RESULTADOS_DONO, precisaDono, infoAgente, projetosConhecidos, corDoFluxo } from '../dados/dominio.js';
 import { parametrosLog, listaFiltro, alternarFiltro } from '../dados/consultas.js';
 import { Cartao, Selo, Ponto, Quadrado, Vazio, Segmentado, InfoDica } from '../componentes/base.jsx';
 import { Selecao, CampoData, Alternador } from '../componentes/campos.jsx';
-import { Agente, Projeto, Resultado, LinkTrello } from '../componentes/dominio.jsx';
+import { Agente, Projeto, Resultado } from '../componentes/dominio.jsx';
 import { Icone, X, Search, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, ScrollText } from '../componentes/Icone.jsx';
 
 const PERIODOS = [
@@ -106,9 +106,9 @@ export function Log() {
   const primeiras = agentes.map((a) => String(a.nome).split(/\s+/)[0]);
   const nomesCurtos = new Set(primeiras).size === primeiras.length;
 
-  // Projetos: os do quadro (ou do manual), mais os que aparecem no log
+  // Projetos: os do registro de exemplo, mais os que aparecem no log
   const selPr = listaFiltro(f.projeto).map((x) => x.toUpperCase());
-  const projetos = new Map(projetosConhecidos(estado));
+  const projetos = new Map(projetosConhecidos());
   const incluirProjeto = (k) => { if (k && !projetos.has(k)) projetos.set(k, { prefixo: k, nome: k, cor: null }); };
   if (cont.projeto) for (const k of Object.keys(cont.projeto)) incluirProjeto(k);
   for (const s of selPr) incluirProjeto(s);
@@ -156,7 +156,7 @@ export function Log() {
   for (const e of eventos) {
     const dia = diaSP(e.ts);
     if (dia !== diaAnterior) {
-      linhas.push(<tr class="dia" key={`dia-${dia}`}><td colSpan={8}>{e.ts ? cabecalhoDia(e.ts) : 'Sem data'}</td></tr>);
+      linhas.push(<tr class="dia" key={`dia-${dia}`}><td colSpan={7}>{e.ts ? cabecalhoDia(e.ts) : 'Sem data'}</td></tr>);
       diaAnterior = dia;
     }
     linhas.push(<LinhaLog key={e.id || e.ts} e={e} abrir={() => e.id && abrirModal(e.id, ids, contexto())} />);
@@ -179,7 +179,7 @@ export function Log() {
         <div class="log-linha">
           <span class={`busca log-busca${q ? ' cheia' : ''}`}>
             <Icone de={Search} tamanho={15} />
-            <input ref={buscaRef} type="search" value={q} placeholder="Buscar no resumo, na direção, no cartão ou no fluxo"
+            <input ref={buscaRef} type="search" value={q} placeholder="Buscar no resumo, na direção ou no fluxo"
               aria-label="Buscar no log (atalho: /)"
               onInput={(e) => digitar(e.currentTarget.value)}
               onKeyDown={(e) => {
@@ -245,15 +245,15 @@ export function Log() {
           <table class="tabela log">
             <colgroup>
               <col style={{ width: '66px' }} /><col style={{ width: '86px' }} /><col style={{ width: '15%' }} /><col style={{ width: '94px' }} />
-              <col style={{ width: '13%' }} /><col style={{ width: '26%' }} /><col /><col style={{ width: '150px' }} />
+              <col style={{ width: '36%' }} /><col /><col style={{ width: '150px' }} />
             </colgroup>
             <thead><tr>
               <th scope="col">Data</th><th scope="col">Hora</th><th scope="col">Agente</th><th scope="col">Projeto</th>
-              <th scope="col">Demanda</th><th scope="col">Ação</th><th scope="col">Direção</th><th scope="col">Resultado</th>
+              <th scope="col">Ação</th><th scope="col">Direção</th><th scope="col">Resultado</th>
             </tr></thead>
             <tbody>
-              {log.erro && !r && <tr><td colSpan={8}><Vazio>Não consegui carregar o log: {log.erro.message}</Vazio></td></tr>}
-              {r && !eventos.length && <tr><td colSpan={8}><Vazio icone={ScrollText} centro>Nenhum evento com esses filtros.</Vazio></td></tr>}
+              {log.erro && !r && <tr><td colSpan={7}><Vazio>Não consegui carregar o log: {log.erro.message}</Vazio></td></tr>}
+              {r && !eventos.length && <tr><td colSpan={7}><Vazio icone={ScrollText} centro>Nenhum evento com esses filtros.</Vazio></td></tr>}
               {linhas}
             </tbody>
           </table>
@@ -336,7 +336,6 @@ function LinhaLog({ e, abrir }) {
   if (RESULTADOS_FALHA.has(e.resultado)) classes.push('falha');
   else if (precisaDono(e)) classes.push('precisa');
   if (e.teste === true) classes.push('teste');
-  const tr = obj(e.trello);
   const nomeAg = infoAgente(estado, e.agente).nome;
   return (
     <tr class={classes.join(' ')} tabindex="0" data-id={e.id || ''} onClick={abrir}
@@ -347,9 +346,6 @@ function LinhaLog({ e, abrir }) {
       <td class="numerico">{hora(e.ts)}</td>
       <td><Agente slug={e.agente} /></td>
       <td><Projeto prefixo={e.projeto} /></td>
-      <td>{tr && (tr.titulo || tr.shortLink)
-        ? <LinkTrello url={urlDoCartao(tr)} titulo={txt(tr.titulo)} aoClicar={(ev) => ev.stopPropagation()}>{txt(tr.titulo || tr.shortLink)}</LinkTrello>
-        : <span class="mudo">—</span>}</td>
       <td class="quebra"><span class="duas-linhas" title={txt(e.resumo)}>{txt(e.resumo) || '—'}{e.teste === true && <> <Selo tom="teste">teste</Selo></>}</span></td>
       <td class="quebra texto-2" title={txt(e.direcao)}>{e.direcao ? <span class="duas-linhas">{txt(e.direcao)}</span> : <span class="mudo">—</span>}</td>
       <td><Resultado valor={e.resultado} />{e.precisa_dono === true && !RESULTADOS_DONO.has(e.resultado) && <> <Selo tom="azul">você</Selo></>}</td>

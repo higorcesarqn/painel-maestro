@@ -12,17 +12,14 @@ export const usePainel = () => useContext(PainelContexto);
 
 export const GRUPOS = [
   { id: 'workspace', nome: 'Workspace' },
-  { id: 'operacoes', nome: 'Operações' },
 ];
 
 export const ABAS = [
   { id: 'visao', nome: 'Visão geral', titulo: 'Visão geral', grupo: 'workspace' },
   { id: 'pendencias', nome: 'Pendências', titulo: 'Pendências do dono', grupo: 'workspace' },
   { id: 'log', nome: 'Log', titulo: 'Log de eventos', grupo: 'workspace' },
-  { id: 'trello', nome: 'Trello', titulo: 'Trello', grupo: 'workspace' },
   { id: 'agentes', nome: 'Agentes', titulo: 'Agentes', grupo: 'workspace' },
   { id: 'uso', nome: 'Uso', titulo: 'Uso do Claude', grupo: 'workspace' },
-  { id: 'prospeccao', nome: 'Prospecção', titulo: 'Prospecção', grupo: 'operacoes' },
 ];
 
 export function novoFiltro() {

@@ -207,7 +207,7 @@ function LogBruto({ ags, hooks, extras }) {
   );
 }
 
-/** "portal:trello.com" → selo "portal · trello.com"; slug de agente vira o nome com a cor dele. */
+/** "portal:painel" → selo "portal · painel"; slug de agente vira o nome com a cor dele. */
 function Conexao({ c }) {
   const { estado } = usePainel();
   const s = txt(c);

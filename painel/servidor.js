@@ -11,21 +11,16 @@
 // Parar:  Ctrl+C no terminal "Servidor do Painel", ou taskkill /PID <pid de estado/painel.pid> /F
 //
 // Rotas: GET /, GET /api/estado, GET /api/eventos, GET /api/evento/<id>, GET /api/fluxo/<id>,
-//        POST /api/recalcular, POST /api/cerebro (Fase B: 501). Prospecção (api-prospeccao.js):
-//        GET /prospeccao (302 para /#prospeccao: a Prospecção é uma tela do app desde 09/10/2026),
-//        GET /prospeccao/antiga (a página antiga, mantida por compatibilidade), GET /api/prospeccao/estado, GET /api/prospeccao/lead/<id>,
-//        POST /api/prospeccao/assumir e /api/prospeccao/devolver {lead_id}. Pendências (api-pendencias.js):
+//        POST /api/recalcular, POST /api/cerebro (Fase B: 501). Pendências (api-pendencias.js):
 //        POST /api/pendencias/<P-NNNN>/responder {opcao, texto} (grava e avisa o Cérebro). Detalhes no README.md.
 // Segurança: escuta só em 127.0.0.1; Host precisa ser 127.0.0.1:<porta> ou localhost:<porta>
 //   (senão 403); POST só com o cabeçalho X-Painel: 1 (senão 403); nenhum cabeçalho CORS; só
-//   "/", "/prospeccao", "/prospeccao/antiga" e "/api/*" existem (o resto é 404); JSON sempre com Cache-Control: no-store.
+//   "/" e "/api/*" existem (o resto é 404); JSON sempre com Cache-Control: no-store.
 //
 // Variáveis: PAINEL_PORTA (padrão 4777; --porta tem prioridade), MAESTRO_DIR (padrão: a pasta
 //   acima de painel/, a raiz do _maestro), MAESTRI_DATA_DIR e CLAUDE_CONFIG_DIR (repassadas ao coletor),
-//   PAINEL_TRELLO_INTERVALO_MIN (60) e PAINEL_TRELLO_JANELA (padrão "0-24", a idade real, como
-//   pede o contrato; "8-22" é opcional: só conta o horário das leituras), PAINEL_COLETOR=0 (não
-//   roda o coletor sozinho) e, só para testes, PAINEL_INDEX (outro index.html), PAINEL_PROSPECCAO
-//   (outro prospeccao.html) e PAINEL_AGORA (relógio fixo; MAESTRO_AGORA também vale).
+//   PAINEL_COLETOR=0 (não roda o coletor sozinho) e, só para testes, PAINEL_INDEX (outro index.html)
+//   e PAINEL_AGORA (relógio fixo; MAESTRO_AGORA também vale).
 //   Aviso ao Cérebro (resposta de pendência): PAINEL_AVISAR_CEREBRO=0 desliga e =1 liga; sem ela, liga só
 //   dentro de um terminal do Maestri (MAESTRI_TERMINAL_ID) e com relógio de verdade. PAINEL_MAESTRI_CLI
 //   troca o executável (testes; padrão MAESTRI_CLI ou "maestri").
@@ -37,9 +32,8 @@ const path = require('path');
 const zlib = require('zlib');
 
 const coletor = require(path.join(__dirname, '..', 'bin', 'coletar_uso.js'));
-const prospeccao = require(path.join(__dirname, 'api-prospeccao.js'));
 const pendenciasApi = require(path.join(__dirname, 'api-pendencias.js'));
-const { comoData, isoSP, diaSP, instanteSP, horaCurta, lerJson, lerTexto, comNovasTentativas, gravarAtomico } = coletor.util;
+const { comoData, isoSP, diaSP, horaCurta, lerJson, lerTexto, comNovasTentativas, gravarAtomico } = coletor.util;
 
 const MIN_MS = 60 * 1000;
 const HORA_MS = 60 * MIN_MS;
@@ -47,7 +41,6 @@ const DIA_MS = 24 * HORA_MS;
 const PORTA_PADRAO = 4777;
 const COLETOR_INTERVALO_MS = 5 * MIN_MS;
 const LIMITE_EVENTOS_ESTADO = 200;
-const LIMITE_SERIE = 200;
 const LIMITE_FECHADAS = 20;
 const LIMITE_COMANDOS = 1500;
 const LIMITE_DIAS_FLUXO = 62;                // o 1º dia (e a véspera) sempre entram; o resto são os mais recentes
@@ -59,14 +52,12 @@ const BRUTO_ATRASADO_MS = 24 * HORA_MS;
 const RESULTADOS_DONO = new Set(['falhou', 'bloqueado', 'aguardando-dono']);
 const RESULTADOS_ABERTOS = new Set(['em-andamento', 'aguardando-dono', 'bloqueado', 'parcial']);
 const ORDEM_SEVERIDADE = new Map([['critica', 0], ['alta', 1], ['normal', 2], ['baixa', 3]]);
-const CAMPOS_TABELA = ['id', 'ts', 'agente', 'projeto', 'trello', 'resumo', 'direcao', 'resultado', 'tipo', 'fluxo_id', 'precisa_dono'];
+const CAMPOS_TABELA = ['id', 'ts', 'agente', 'projeto', 'resumo', 'direcao', 'resultado', 'tipo', 'fluxo_id', 'precisa_dono'];
 const RE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/;
 const RE_DIA = /^\d{4}-\d{2}-\d{2}$/;
 // O index.html é um arquivo único (CSS e JS embutidos); nada externo é carregado.
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-// A /prospeccao/antiga (página antiga, fora do app) é a única com algo externo: a fonte Manrope do Google Fonts (02 §A7).
-const CSP_PROSPECCAO = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-const LIMITE_CORPO = 16 * 1024; // corpo aceito nos POST que leem JSON (assumir/devolver)
+const LIMITE_CORPO = 16 * 1024; // corpo aceito nos POST que leem JSON (responder pendência)
 const JSON_TIPO = 'application/json; charset=utf-8';
 const HTML_TIPO = 'text/html; charset=utf-8';
 
@@ -79,16 +70,6 @@ class ErroPedido extends Error {
 }
 
 // ---------- configuração ----------
-
-/** Janela diária das leituras do Trello ("8-22") em minutos; null = o dia inteiro. */
-function lerJanela(texto) {
-  const m = /^\s*(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?\s*$/.exec(String(texto));
-  if (!m) throw new ErroUso(`PAINEL_TRELLO_JANELA inválida: "${texto}" (use, por exemplo, 8-22).`);
-  const ini = Number(m[1]) * 60 + Number(m[2] || 0);
-  const fim = Number(m[3]) * 60 + Number(m[4] || 0);
-  if (ini >= fim || fim > 24 * 60) throw new ErroUso(`PAINEL_TRELLO_JANELA inválida: "${texto}" (início antes do fim, até 24).`);
-  return ini === 0 && fim === 24 * 60 ? null : { ini, fim };
-}
 
 function lerConfig(argv = [], env = process.env) {
   let porta = env.PAINEL_PORTA;
@@ -104,15 +85,11 @@ function lerConfig(argv = [], env = process.env) {
   const textoAgora = env.PAINEL_AGORA || env.MAESTRO_AGORA || '';
   const agoraFixa = textoAgora ? comoData(textoAgora) : null;
   if (textoAgora && !agoraFixa) throw new ErroUso(`Relógio fixo inválido: "${textoAgora}" (use ISO, ex.: 2026-10-08T15:50:00-03:00).`);
-  const intervalo = env.PAINEL_TRELLO_INTERVALO_MIN ? Number(env.PAINEL_TRELLO_INTERVALO_MIN) : 60;
-  if (!(intervalo > 0)) throw new ErroUso(`PAINEL_TRELLO_INTERVALO_MIN inválido: "${env.PAINEL_TRELLO_INTERVALO_MIN}".`);
   return {
     porta: p,
     maestroDir: path.resolve(env.MAESTRO_DIR || path.join(__dirname, '..')),
     indexPath: path.resolve(env.PAINEL_INDEX || path.join(__dirname, 'index.html')),
-    prospeccaoPath: path.resolve(env.PAINEL_PROSPECCAO || path.join(__dirname, 'prospeccao.html')),
     agoraFixa,
-    trello: { intervaloMin: intervalo, janela: lerJanela(env.PAINEL_TRELLO_JANELA || '0-24') },
     coletorAtivo: env.PAINEL_COLETOR !== '0',
     avisoCerebro: lerAvisoCerebro(env, agoraFixa),
     env,
@@ -137,11 +114,6 @@ function arr(v) {
 
 function obj(v) {
   return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
-}
-
-function numero(v) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
 }
 
 function idadeMin(valor, t) {
@@ -201,26 +173,6 @@ function truncar(texto, max) {
 
 function relativo(dir, caminho) {
   return path.relative(dir, caminho).replace(/\\/g, '/');
-}
-
-/** Minutos de [desde, ate] dentro da janela diária (horário de São Paulo); sem janela, todos. */
-function minutosUteis(desde, ate, janela) {
-  if (!(ate > desde)) return 0;
-  if (!janela || ate - desde > 60 * DIA_MS) return (ate - desde) / MIN_MS;
-  let total = 0;
-  const ultimo = diaSP(ate);
-  for (let dia = diaSP(desde), i = 0; i < 70; dia = somarDias(dia, 1), i++) {
-    const [a, m, d] = dia.split('-').map(Number);
-    const ini = instanteSP(a, m, d, Math.floor(janela.ini / 60), janela.ini % 60);
-    const fim = janela.fim >= 24 * 60
-      ? instanteSP(...somarDias(dia, 1).split('-').map(Number), 0, 0)
-      : instanteSP(a, m, d, Math.floor(janela.fim / 60), janela.fim % 60);
-    const s = Math.max(ini, desde);
-    const e = Math.min(fim, ate);
-    if (e > s) total += e - s;
-    if (dia === ultimo) break;
-  }
-  return total / MIN_MS;
 }
 
 // ---------- leitura incremental de JSONL (tolerante: linha quebrada, final incompleto, EPERM) ----------
@@ -650,8 +602,7 @@ function prepararEvento(ev, seq) {
 
 function textoBusca(ev) {
   if (ev._busca === undefined) {
-    const tr = obj(ev.trello);
-    const partes = [ev.resumo, ev.direcao, tr && tr.titulo, ev.fluxo_id].filter((x) => typeof x === 'string');
+    const partes = [ev.resumo, ev.direcao, ev.fluxo_id].filter((x) => typeof x === 'string');
     Object.defineProperty(ev, '_busca', { value: normalizarBusca(partes.join('\n')) });
   }
   return ev._busca;
@@ -668,16 +619,12 @@ class Dados {
       bruto: path.join(maestroDir, 'logs', 'bruto'),
       pendencias: path.join(maestroDir, 'estado', 'pendencias.json'),
       contador: path.join(maestroDir, 'estado', 'contador-fluxos.json'),
-      trelloResumo: path.join(maestroDir, 'estado', 'trello', 'resumo.json'),
-      trelloSerie: path.join(maestroDir, 'estado', 'trello', 'serie.jsonl'),
-      trelloRst: path.join(maestroDir, 'estado', 'trello', 'rst.md'),
       uso: path.join(maestroDir, 'estado', 'uso.json'),
       pid: path.join(maestroDir, 'estado', 'painel.pid'),
     };
     this.leitorEventos = new LeitorJsonl({ aoLer: prepararEvento });
     // Log bruto: índice compacto por arquivo (as linhas são relidas do disco só quando escolhidas).
     this.indiceBruto = new IndiceBruto({ maxLinhas: BRUTO_MAX_LINHAS_INDICE });
-    this.leitorSerie = new LeitorJsonl();
     this.cacheArquivos = new Map();
     this.cacheListas = new Map();
     this.cacheCaudas = new Map();
@@ -865,12 +812,10 @@ class Dados {
 // ---------- saúde ----------
 
 /**
- * nivel: verde | amarelo | vermelho. Regras: leitura do Trello acima de 2× o intervalo → amarelo,
- * acima de 4× → vermelho (idade real; só com PAINEL_TRELLO_JANELA definida conta apenas o horário
- * das leituras); agente ativo
- * sem log bruto há mais de 24 h (ou nunca) → amarelo; arquivos de estado ilegíveis → amarelo.
+ * nivel: verde | amarelo | vermelho. Regras: agente ativo sem log bruto há mais de 24 h (ou nunca)
+ * → amarelo; arquivos de estado ilegíveis → amarelo.
  */
-function calcularSaude({ agora, trello, hooks, cfgTrello, problemas = [] }) {
+function calcularSaude({ hooks, problemas = [] }) {
   let nivel = 0;
   const motivos = [];
   const subir = (n, texto) => {
@@ -878,26 +823,12 @@ function calcularSaude({ agora, trello, hooks, cfgTrello, problemas = [] }) {
     motivos.push(texto);
   };
   for (const p of problemas) subir(1, p);
-  let trelloIdade = null;
-  if (!trello.existe) subir(1, 'Trello ainda não foi lido (sem estado/trello/resumo.json)');
-  else if (trello.erro) subir(1, `Resumo do Trello ilegível: ${trello.erro}`);
-  else if (trello.coletadoEm === null) subir(1, 'Resumo do Trello sem a hora da leitura (coletado_em)');
-  else {
-    trelloIdade = Math.max(0, Math.round((agora - trello.coletadoEm) / MIN_MS));
-    const util = minutosUteis(trello.coletadoEm, agora, cfgTrello.janela);
-    const intervalo = cfgTrello.intervaloMin;
-    // Com PAINEL_TRELLO_JANELA (opcional), o motivo diz quanto da idade caiu no horário das leituras.
-    const noHorario = cfgTrello.janela && Math.round(util) < trelloIdade ? `, ${duracaoTexto(util)} no horário das leituras` : '';
-    const texto = `Trello lido há ${duracaoTexto(trelloIdade)}${noHorario} (rotina a cada ${duracaoTexto(intervalo)})`;
-    if (util > 4 * intervalo) subir(2, texto);
-    else if (util > 2 * intervalo) subir(1, texto);
-  }
   for (const h of hooks) {
     if (!h.ativo) continue;
     if (!h.ultimo_bruto) subir(1, `${h.nome}: nenhum log bruto ainda (hooks instalados?)`);
     else if (h.idade_min !== null && h.idade_min * MIN_MS > BRUTO_ATRASADO_MS) subir(1, `${h.nome} sem log bruto há ${duracaoTexto(h.idade_min)}`);
   }
-  return { nivel: ['verde', 'amarelo', 'vermelho'][nivel], motivos, trello_idade_min: trelloIdade };
+  return { nivel: ['verde', 'amarelo', 'vermelho'][nivel], motivos };
 }
 
 // ---------- montagem das respostas ----------
@@ -905,7 +836,6 @@ function calcularSaude({ agora, trello, hooks, cfgTrello, problemas = [] }) {
 function camposTabela(ev) {
   const r = {};
   for (const k of CAMPOS_TABELA) r[k] = ev[k] === undefined ? null : ev[k];
-  r.trello = obj(ev.trello);
   r.precisa_dono = ev.precisa_dono === true;
   r.origem = ev.origem === undefined ? null : ev.origem;
   if (ev.teste === true) r.teste = true;
@@ -928,19 +858,6 @@ function planoAgora(plano, t) {
     p.motivo = p.motivo || [p.janela_5h_motivo, p.semanal_motivo].filter(Boolean).join(' ') || 'Sem percentual do plano.';
   }
   return p;
-}
-
-/** Cópia do resumo.json sem itens que não são objetos nas listas que o painel percorre. */
-function limparTrello(tr) {
-  if (!tr) return null;
-  const objs = (v) => (Array.isArray(v) ? v.filter((x) => obj(x)) : v);
-  const r = Object.assign({}, tr);
-  if (Array.isArray(tr.projetos)) {
-    r.projetos = objs(tr.projetos).map((p) => (Array.isArray(p.cartoes) ? Object.assign({}, p, { cartoes: objs(p.cartoes) }) : p));
-  }
-  if (Array.isArray(tr.nao_classificados)) r.nao_classificados = objs(tr.nao_classificados);
-  if (obj(tr.auditoria)) r.auditoria = Object.assign({}, tr.auditoria, { mecanicos: objs(tr.auditoria.mecanicos), decisoes: objs(tr.auditoria.decisoes) });
-  return r;
 }
 
 /** Cópia do uso.json sem itens que não são objetos em por_agente.<período>. */
@@ -1104,10 +1021,9 @@ async function montarEstado(ctx) {
   const avisos = [];
   const problemas = [];
 
-  const [reg, evs, pend, cont, resumo, rst, usoArq, serie] = await Promise.all([
+  const [reg, evs, pend, cont, usoArq] = await Promise.all([
     dados.json(dados.p.agentes), dados.eventos('recentes'), dados.json(dados.p.pendencias),
-    dados.json(dados.p.contador), dados.json(dados.p.trelloResumo), dados.texto(dados.p.trelloRst),
-    dados.json(dados.p.uso), dados.leitorSerie.ler(dados.p.trelloSerie),
+    dados.json(dados.p.contador), dados.json(dados.p.uso),
   ]);
 
   // Registro
@@ -1205,33 +1121,14 @@ async function montarEstado(ctx) {
     kPend[nomeSev(p)]++;
   }
 
-  // Trello
-  const tr = limparTrello(obj(resumo.dados));
-  const erroResumo = resumo.existe && !tr ? resumo.erro || 'formato inesperado' : null;
-  const totais = tr ? obj(tr.totais) || {} : {};
-  const auditoria = tr ? obj(tr.auditoria) || {} : {};
-  const kTrello = tr
-    ? {
-      abertas: numero(totais.abertas), a_fazer: numero(totais.a_fazer), em_andamento: numero(totais.em_andamento),
-      concluido: numero(totais.concluido), alertas_mecanicos: arr(auditoria.mecanicos).length,
-      alertas_decisao: arr(auditoria.decisoes).length, coletado_em: tr.coletado_em || null,
-    }
-    : null;
-  if (serie.invalidas) avisos.push(`estado/trello/serie.jsonl: ${serie.invalidas} linha(s) ilegível(is) ignorada(s)`);
   if (cont.existe && cont.erro) avisos.push(`estado/contador-fluxos.json ilegível (${cont.erro})`);
 
   // Saúde
-  const coletadoTrello = tr ? comoData(tr.coletado_em) : null;
-  const saudeBase = calcularSaude({
-    agora: t,
-    trello: { existe: resumo.existe, erro: erroResumo, coletadoEm: coletadoTrello ? coletadoTrello.getTime() : null },
-    hooks, cfgTrello: cfg.trello, problemas,
-  });
+  const saudeBase = calcularSaude({ hooks, problemas });
   const ultimoEvento = eventos[0] || null;
   const saude = {
     nivel: saudeBase.nivel,
     motivos: saudeBase.motivos,
-    trello_idade_min: saudeBase.trello_idade_min,
     ultimo_evento_idade_min: ultimoEvento ? idadeMin(ultimoEvento.ts, t) : null,
     uso_idade_min: kUso.idade_min,
     hooks,
@@ -1242,12 +1139,9 @@ async function montarEstado(ctx) {
     gerado_em: isoSP(agora),
     workspace,
     saude,
-    kpis: { pendencias: kPend, trello: kTrello, uso: kUso },
+    kpis: { pendencias: kPend, uso: kUso },
     agentes,
     pendencias,
-    trello: tr,
-    trello_rst: rst.existe && typeof rst.texto === 'string' ? rst.texto : null,
-    serie_trello: serie.existe ? serie.linhas.slice(-LIMITE_SERIE) : [],
     uso: usoResposta,
     eventos: eventos.slice(0, LIMITE_EVENTOS_ESTADO).map(camposTabela),
     coletor: { intervalo_min: COLETOR_INTERVALO_MS / MIN_MS, ativo: cfg.coletorAtivo, ultima: ctx.ultimaColeta, em_andamento: !!ctx.coletaAtual },
@@ -1707,11 +1601,6 @@ const ROTAS_FIXAS = {
   '/api/eventos': { nome: 'eventos', metodos: ['GET', 'HEAD'] },
   '/api/recalcular': { nome: 'recalcular', metodos: ['POST'] },
   '/api/cerebro': { nome: 'cerebro', metodos: ['POST'] },
-  '/prospeccao': { nome: 'prospeccao', metodos: ['GET', 'HEAD'] },
-  '/prospeccao/antiga': { nome: 'prospeccao-antiga', metodos: ['GET', 'HEAD'] },
-  '/api/prospeccao/estado': { nome: 'prospeccao-estado', metodos: ['GET', 'HEAD'] },
-  '/api/prospeccao/assumir': { nome: 'prospeccao-assumir', metodos: ['POST'] },
-  '/api/prospeccao/devolver': { nome: 'prospeccao-devolver', metodos: ['POST'] },
 };
 
 function acharRota(caminho) {
@@ -1720,16 +1609,6 @@ function acharRota(caminho) {
   if (mp) {
     const idPend = pendenciasApi.normalizarId(mp[1]);
     return idPend ? { nome: 'pendencia-responder', metodos: ['POST'], id: idPend } : null;
-  }
-  const ml = /^\/api\/prospeccao\/lead\/([^/]+)$/.exec(caminho);
-  if (ml) {
-    let idLead;
-    try {
-      idLead = decodeURIComponent(ml[1]);
-    } catch (_) {
-      return null;
-    }
-    return prospeccao.idValido(idLead) ? { nome: 'prospeccao-lead', metodos: ['GET', 'HEAD'], id: idLead } : null;
   }
   const m = /^\/api\/(evento|fluxo)\/([^/]+)$/.exec(caminho);
   if (!m) return null;
@@ -1817,33 +1696,6 @@ async function rotear(ctx, req, res) {
       ctx.log(`Pendência ${rota.id} respondida pelo painel; aviso ao Cérebro: ${r.aviso_cerebro.enviado ? `enviado (${r.aviso_cerebro.para})` : `não enviado (${r.aviso_cerebro.motivo})`}`);
       return responderJson(req, res, 200, r);
     }
-    case 'prospeccao': {
-      // A Prospecção virou tela do app (menu Operações): o portal "Prospecção · Painel" cai nela.
-      const html = '<!doctype html><meta charset="utf-8"><title>Prospecção</title><p><a href="/#prospeccao">A Prospecção agora é uma tela do painel.</a></p>';
-      return responder(req, res, 302, html, HTML_TIPO, { Location: '/#prospeccao', 'Content-Security-Policy': CSP });
-    }
-    case 'prospeccao-antiga': {
-      const r = await ctx.dados.texto(ctx.cfg.prospeccaoPath);
-      if (!r.existe || typeof r.texto !== 'string') {
-        const html = `<!doctype html><meta charset="utf-8"><title>Prospecção</title><p>O arquivo do dashboard não foi encontrado em ${escaparHtml(ctx.cfg.prospeccaoPath.replace(/\\/g, '/'))}.</p>`;
-        return responder(req, res, 503, html, HTML_TIPO, { 'Content-Security-Policy': CSP_PROSPECCAO });
-      }
-      return responder(req, res, 200, r.texto, HTML_TIPO, { 'Content-Security-Policy': CSP_PROSPECCAO });
-    }
-    case 'prospeccao-estado':
-      return responderJson(req, res, 200, prospeccao.montarEstado(ctx.cfg, ctx.agora()));
-    case 'prospeccao-lead': {
-      const r = prospeccao.detalharLead(ctx.cfg, ctx.agora(), rota.id);
-      if (!r) return responderJson(req, res, 404, { erro: `Lead não encontrado: ${rota.id}` });
-      return responderJson(req, res, 200, r);
-    }
-    case 'prospeccao-assumir':
-    case 'prospeccao-devolver': {
-      const buf = await corpo;
-      if (buf === null) return responderJson(req, res, 413, { erro: `Corpo grande demais ou incompleto (até ${LIMITE_CORPO / 1024} KB).` });
-      const acao = rota.nome === 'prospeccao-assumir' ? 'assumir' : 'devolver';
-      return responderJson(req, res, 200, await prospeccao.alterarLead(ctx.cfg, ctx.agora(), acao, buf));
-    }
     default:
       return responderJson(req, res, 404, { erro: 'Rota não encontrada.' });
   }
@@ -1852,7 +1704,7 @@ async function rotear(ctx, req, res) {
 function criarManipulador(ctx) {
   return (req, res) => {
     rotear(ctx, req, res).catch((e) => {
-      const status = e instanceof ErroPedido || e instanceof prospeccao.ErroProspeccao || e instanceof pendenciasApi.ErroPendencia ? e.status : 500;
+      const status = e instanceof ErroPedido || e instanceof pendenciasApi.ErroPendencia ? e.status : 500;
       if (status === 500) ctx.erro(`Erro em ${req.method} ${String(req.url).slice(0, 200)}: ${e && e.stack ? e.stack : e}`);
       if (res.headersSent) {
         res.destroy();
@@ -1923,13 +1775,13 @@ const AJUDA = `Uso: node servidor.js [--porta 4777]
   Sobe o painel do workspace em http://127.0.0.1:<porta> (só nesta máquina).
   Parar: Ctrl+C neste terminal, ou taskkill /PID <pid de estado/painel.pid> /F
 Variáveis: PAINEL_PORTA, MAESTRO_DIR, MAESTRI_DATA_DIR, CLAUDE_CONFIG_DIR,
-  PAINEL_TRELLO_INTERVALO_MIN (60), PAINEL_TRELLO_JANELA (0-24), PAINEL_COLETOR=0 (sem coletor automático).
+  PAINEL_COLETOR=0 (sem coletor automático).
 `;
 
 module.exports = {
-  iniciar, lerConfig, calcularSaude, minutosUteis, duracaoTexto, montarEstado, listarEventos,
+  iniciar, lerConfig, calcularSaude, duracaoTexto, montarEstado, listarEventos,
   detalharEvento, detalharFluxo, acharRota, pastaDoAgente, origemDoPrompt, diasDoFluxo, LeitorJsonl, Dados,
-  IndiceBruto, janelaDoPedido, pedidoInicial, limparTrello, limparUso, CSP, CSP_PROSPECCAO,
+  IndiceBruto, janelaDoPedido, pedidoInicial, limparUso, CSP,
 };
 
 if (require.main === module) {
