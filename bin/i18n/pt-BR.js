@@ -304,7 +304,7 @@ CÓDIGOS DE SAÍDA
     jsonEmpty: 'o JSON da entrada padrão está vazio.',
     jsonInvalid: 'o JSON da entrada padrão é inválido: {detail}',
     jsonNotObject: 'o JSON da entrada padrão precisa ser um objeto ({...}).',
-    jsonFieldType: 'o campo "{field}" do JSON precisa ser {expected}.',
+    jsonFieldType: (p) => `o campo "${p.field}" do JSON precisa ser ${{ text: 'texto', number: 'número', list: 'uma lista', text_list: 'uma lista de textos' }[p.expected] || p.expected}.`,
     missingNumber: 'falta o número do item (ex.: flow item start 12 --title "...").',
     invalidNumber: 'número de item inválido: "{value}" (use um inteiro positivo, como no tracker: 12 ou 3100).',
     missingTitle: 'falta o título do item (--title "..." ou "title" no JSON).',

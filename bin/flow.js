@@ -114,14 +114,14 @@ function readJson(opts) {
   }
   if (!o || typeof o !== 'object' || Array.isArray(o)) throw new InvalidData('errors.jsonNotObject');
   for (const field of JSON_TEXT) {
-    if (o[field] !== undefined && o[field] !== null && typeof o[field] !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'texto' });
+    if (o[field] !== undefined && o[field] !== null && typeof o[field] !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'text' });
   }
   for (const field of JSON_NUMBER) {
     if (o[field] !== undefined && o[field] !== null && typeof o[field] !== 'number' && typeof o[field] !== 'string') {
-      throw new InvalidData('errors.jsonFieldType', { field, expected: 'número' });
+      throw new InvalidData('errors.jsonFieldType', { field, expected: 'number' });
     }
   }
-  if (o.tasks !== undefined && o.tasks !== null && !Array.isArray(o.tasks)) throw new InvalidData('errors.jsonFieldType', { field: 'tasks', expected: 'uma lista' });
+  if (o.tasks !== undefined && o.tasks !== null && !Array.isArray(o.tasks)) throw new InvalidData('errors.jsonFieldType', { field: 'tasks', expected: 'list' });
   return o;
 }
 
@@ -197,7 +197,7 @@ function taskGraph(opts, json) {
     const title = typeof r.title === 'string' || typeof r.title === 'number' ? String(r.title).trim() : '';
     if (!title) throw new InvalidData('errors.missingTaskTitle', { task: number });
     if (title.length > MAX_TITLE) throw new InvalidData('errors.titleTooLong', { length: title.length, max: MAX_TITLE });
-    if (r.blocked_by !== undefined && r.blocked_by !== null && !Array.isArray(r.blocked_by)) throw new InvalidData('errors.jsonFieldType', { field: 'blocked_by', expected: 'uma lista' });
+    if (r.blocked_by !== undefined && r.blocked_by !== null && !Array.isArray(r.blocked_by)) throw new InvalidData('errors.jsonFieldType', { field: 'blocked_by', expected: 'list' });
     const blockedBy = [...new Set((r.blocked_by || []).map(taskNumber))];
     return { number, title, blocked_by: blockedBy, out: r.out === true || out.includes(number) };
   });
@@ -342,14 +342,14 @@ Object.assign(OPTIONS, {
 /** A text field of the JSON (undefined when absent). */
 function jsonText(json, field) {
   const v = json[field];
-  if (v !== undefined && v !== null && typeof v !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'texto' });
+  if (v !== undefined && v !== null && typeof v !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'text' });
   return v === null ? undefined : v;
 }
 
 /** A number field of the JSON (number or text; undefined when absent). */
 function jsonNumber(json, field) {
   const v = json[field];
-  if (v !== undefined && v !== null && typeof v !== 'number' && typeof v !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'número' });
+  if (v !== undefined && v !== null && typeof v !== 'number' && typeof v !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'number' });
   return v === null ? undefined : v;
 }
 
@@ -489,7 +489,7 @@ Object.assign(OPTIONS, {
 /** A free text of a report or finding, kept exactly as written; null when absent or blank. */
 function freeText(value, field) {
   if (value === undefined || value === null) return null;
-  if (typeof value !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'texto' });
+  if (typeof value !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'text' });
   if (value.length > MAX_REPORT_TEXT) throw new InvalidData('review.errors.textTooLong', { field, length: value.length, max: MAX_REPORT_TEXT });
   return value.trim() ? value : null;
 }
@@ -497,7 +497,7 @@ function freeText(value, field) {
 /** A list of texts of the JSON (decisions, shared_files): blank entries are dropped. */
 function textList(value, field) {
   if (value === undefined || value === null) return [];
-  if (!Array.isArray(value) || value.some((x) => typeof x !== 'string')) throw new InvalidData('errors.jsonFieldType', { field, expected: 'uma lista de textos' });
+  if (!Array.isArray(value) || value.some((x) => typeof x !== 'string')) throw new InvalidData('errors.jsonFieldType', { field, expected: 'text_list' });
   if (value.length > MAX_REPORT_LIST) throw new InvalidData('review.errors.listTooLong', { field, max: MAX_REPORT_LIST });
   return value.map((x, i) => freeText(x, `${field}[${i}]`)).filter((x) => x !== null);
 }
@@ -818,12 +818,12 @@ function pendingId(value) {
 function pendingJson(opts) {
   const json = readJson(opts);
   for (const field of PENDING_TEXT) {
-    if (json[field] !== undefined && json[field] !== null && typeof json[field] !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'texto' });
+    if (json[field] !== undefined && json[field] !== null && typeof json[field] !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'text' });
   }
   if (json.options !== undefined && json.options !== null && !(Array.isArray(json.options) && json.options.every((o) => typeof o === 'string'))) {
-    throw new InvalidData('errors.jsonFieldType', { field: 'options', expected: 'uma lista de textos' });
+    throw new InvalidData('errors.jsonFieldType', { field: 'options', expected: 'text_list' });
   }
-  if (json.id !== undefined && json.id !== null && typeof json.id !== 'number' && typeof json.id !== 'string') throw new InvalidData('errors.jsonFieldType', { field: 'id', expected: 'número' });
+  if (json.id !== undefined && json.id !== null && typeof json.id !== 'number' && typeof json.id !== 'string') throw new InvalidData('errors.jsonFieldType', { field: 'id', expected: 'number' });
   return json;
 }
 
