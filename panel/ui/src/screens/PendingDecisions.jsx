@@ -68,7 +68,7 @@ export function PendingDecisions() {
   const bySeverity = obj(counts.severity) || {};
   const current = list.find((p) => p.id === chosen) || list[0] || null;
 
-  // Coming from a link to a pending decision: shows it when it is in the list (the old model's P-NNNN never is).
+  // Coming from a link to a pending decision (the Overview): shows it when it is in the list.
   useEffect(() => {
     if (!pendingTarget) return;
     const hit = list.find((p) => ref(p) === pendingTarget.id || String(p.id) === String(pendingTarget.id));

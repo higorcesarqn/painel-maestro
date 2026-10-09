@@ -31,10 +31,12 @@ const isLink = (p) => { try { return fs.lstatSync(p).isSymbolicLink(); } catch {
 const exists = (p) => { try { fs.lstatSync(p); return true; } catch { return false; } };
 const same = (a, b) => fs.realpathSync(a).toLowerCase() === fs.realpathSync(b).toLowerCase();
 
-suite.test('the manifest declares /especificar and none of the old Cérebro skills', () => {
+suite.test('the manifest declares /especificar; every declared source exists and the repository has no other skills', () => {
   const sources = MANIFEST.links.map((l) => l.source);
   assert.ok(sources.includes('skills/especificar'), sources.join(', '));
-  assert.ok(sources.every((s) => !/^skills\/(cerebro|compartilhadas)(\/|$)/.test(s)), sources.join(', '));
+  for (const s of sources) assert.ok(fs.existsSync(path.join(REPO, s)), `${s} is declared but missing`);
+  const folders = fs.readdirSync(path.join(REPO, 'skills'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => `skills/${d.name}`);
+  assert.deepStrictEqual(folders.filter((f) => f !== 'skills/docs' && !sources.includes(f)), [], 'a skill folder outside the manifest');
 });
 
 suite.test('the manifest declares the subagent skills and the folder of the document they follow (#17)', () => {
@@ -60,8 +62,6 @@ suite.test('install links every declared skill into an empty Claude folder', () 
   }
   assert.ok(fs.readFileSync(path.join(r.claude, 'skills', 'especificar', 'SKILL.md'), 'utf8').includes('name: especificar'));
   assert.ok(fs.existsSync(path.join(r.claude, 'docs', 'orquestracao-subagentes', 'README.md')), 'the document is reachable where the skills point');
-  assert.ok(!exists(path.join(r.claude, 'skills', 'cerebro')));
-  assert.ok(!exists(path.join(r.claude, 'skills', 'compartilhadas')));
 });
 
 suite.test('the Maestri skills and their orchestration folder are declared, the folder where the skills look for it', () => {

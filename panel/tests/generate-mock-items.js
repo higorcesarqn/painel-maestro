@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 'use strict';
-// Writes tests/mock-items.json, the new model's part of the test mode (?mock=1): the answers of GET /api/items,
+// Writes tests/mock-items.json, the whole test mode (?mock=1, npm run demo): the answers of GET /api/items,
 // GET /api/items/<project>/<number>, GET /api/companies, GET /api/projects and (unfiltered) GET /api/pending-decisions
 // for fictitious companies, projects and events. The answers come out of the server's own code (panel/api-items.js,
 // api-projects.js, api-pending-decisions.js and the projection in bin/flow-projection.js) over an in-memory store,
 // so the mock never drifts from the API shape. Run: node panel/tests/generate-mock-items.js
 // Usage and agents per item (#13): fictitious sessions linked to the items' maestros and the tasks' workers go into a
-// temporary bruto.db with their transcripts; the real collector (bin/collect-usage.js) reads them with the plan of
-// tests/mock-state.json, and the real API (panel/api-usage.js) writes the answers of GET /api/usage and /api/agents.
-// Overview and health (#14): GET /api/overview per company (panel/api-overview.js) and the health of /api/state
-// (panel/health.js) over the same store.
+// temporary bruto.db with their transcripts; the real collector (bin/collect-usage.js) reads them with the fictitious
+// plan below, and the real API (panel/api-usage.js) writes the answers of GET /api/usage and /api/agents.
+// Overview and the shell (#14): GET /api/overview per company (panel/api-overview.js) and GET /api/state (the server's
+// own stateAnswer(): health, menu counter and plan) over the same store.
+// The same companies, projects and events are exported for build-mock-root.js, which writes them into a real
+// maestro.db to look at the page with the real server.
 
 const fs = require('fs');
 const os = require('os');
@@ -19,7 +21,7 @@ const { listPendingDecisions } = require('../api-pending-decisions.js');
 const { listCompanies, listProjects } = require('../api-projects.js');
 const { usageAnswer, listAgents } = require('../api-usage.js');
 const { overview: overviewOf } = require('../api-overview.js');
-const { evaluateHealth } = require('../health.js');
+const { stateAnswer } = require('../server.js');
 const { STAGES } = require('../../bin/flow-store.js');
 const { openRawStore } = require('../../bin/raw-store.js');
 const { collect } = require('../../bin/collect-usage.js');
@@ -27,6 +29,11 @@ const { collect } = require('../../bin/collect-usage.js');
 const OUT = path.join(__dirname, 'mock-items.json');
 const GENERATED_AT = '2026-10-09T10:24:30-03:00';
 const NO_HML = STAGES.filter((s) => s !== 'hml_validation');
+// The Claude plan the Maestri reports at the mock's moment (read 3 minutes before it).
+const PLAN = {
+  file: '~/.maestri/usage/providers/.status.json', window_5h_pct: 37, reset_5h: '2026-10-09T13:00:00-03:00',
+  weekly_pct: 22, weekly_reset: '2026-10-13T09:00:00-03:00', updated_at: '2026-10-09T10:21:30-03:00',
+};
 
 const companies = {
   contoso: 'Contoso',
@@ -325,7 +332,7 @@ function assistant(id, at, [i, o, cw, cr]) {
 
 /** The /api/usage and /api/agents answers of the mock: the real collector over a temporary bruto.db and transcripts. */
 async function usageAndAgents(source) {
-  const plan = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-state.json'), 'utf8')).usage.plan;
+  const plan = PLAN;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mock-usage-'));
   const raw = openRawStore({ dir });
   try {
@@ -344,19 +351,19 @@ async function usageAndAgents(source) {
         { transcript_path: transcript, cwd: 'C:/mock' });
     }
     const data = await collect({ maestroDir: dir, maestriDataDir: path.join(dir, 'maestri'), claudeDir: path.join(dir, 'claude'), env: {}, now: GENERATED_AT, write: false });
-    data.plan.file = plan.source.file;
+    data.plan.file = plan.file;
     data.collection.duration_ms = 42;
     const file = { exists: true, data, error: null };
     const collector = { interval_min: 5, active: true, last: { at: GENERATED_AT, trigger: 'periodic', ok: true, duration_ms: 42, error: null }, running: false };
     const none = new URLSearchParams();
-    return { usage: usageAnswer(source, file, none, { collector }), agents: listAgents(source, { store: () => raw }, file, none) };
+    return { file, collector, usage: usageAnswer(source, file, none, { collector }), agents: listAgents(source, { store: () => raw }, file, none) };
   } finally {
     raw.close();
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }
 
-(async () => {
+async function main() {
   const { items } = listItems(source);
   const details = {};
   for (const it of items) details[it.key] = itemDetail(source, it.project.id, it.number).item;
@@ -364,16 +371,16 @@ async function usageAndAgents(source) {
   // Companies and projects (#6): the answers of GET /api/companies and GET /api/projects (the page filters them by company).
   const { companies: companyList } = listCompanies(source);
   const { projects: projectList } = listProjects(source, new URLSearchParams());
-  // Overview (#14): the answer of GET /api/overview for every company of the selector ('' = all) and the health of the
-  // new model (GET /api/state → health), with the server's default stale limit.
+  // Overview (#14): the answer of GET /api/overview for every company of the selector ('' = all), with the server's
+  // default stale limit; and GET /api/state (health, menu counter and plan) by the server's own function.
   const nowMs = Date.parse(GENERATED_AT);
   const overview = {};
   for (const id of ['', ...companyList.map((c) => c.id)]) {
     overview[id] = overviewOf(source, new URLSearchParams(id ? { company: id } : {}), { nowMs, staleHours: 48 });
   }
-  const health = evaluateHealth({ items: source, raw, nowMs });
-  const { usage, agents } = await usageAndAgents(source);
-  fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, companies: companyList, projects: projectList, items, details, pending_decisions: pending, overview, health, usage, agents }, null, 2)}
+  const { file, collector, usage, agents } = await usageAndAgents(source);
+  const state = stateAnswer({ items: source, raw, usageFile: file, nowMs, collector });
+  fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, state, companies: companyList, projects: projectList, items, details, pending_decisions: pending, overview, usage, agents }, null, 2)}
 `);
   const taskStates = new Set(Object.values(details).flatMap((d) => d.tasks.map((x) => x.state)));
   const pd = pending.pending_decisions;
@@ -381,7 +388,13 @@ async function usageAndAgents(source) {
     + `${pd.length} pendências de ${new Set(pd.map((p) => p.kind)).size} tipos (${Object.entries(pending.counts.status).map(([s, n]) => `${n} ${s}`).join(', ')})`);
   const all = Object.values(details);
   console.log(`  ${all.reduce((n, d) => n + d.reports.length, 0)} relatórios e ${all.reduce((n, d) => n + d.findings.length, 0)} achados; ${agents.agents.length} agentes ativos; uso de ${usage.by_item['7d'].length} itens`);
-})().catch((e) => {
-  console.error(e);
-  process.exitCode = 1;
-});
+}
+
+module.exports = { GENERATED_AT, companies, projects, events };
+
+if (require.main === module) {
+  main().catch((e) => {
+    console.error(e);
+    process.exitCode = 1;
+  });
+}

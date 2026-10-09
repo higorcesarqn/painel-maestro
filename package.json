@@ -1,12 +1,12 @@
 {
   "name": "painel-maestro",
   "version": "1.0.0",
-  "description": "Painel web local para acompanhar um workspace multiagente (Maestri + Claude Code): eventos, fluxos, pendências do dono e uso do plano.",
+  "description": "Painel web local do fluxo dos itens (Issues do GitHub e PBIs do Azure DevOps) implementados com agentes Claude Code e Maestri, por empresa e projeto: etapas, tasks, relatórios, pendências do dono, log e uso do plano.",
   "license": "MIT",
   "private": true,
   "type": "commonjs",
   "engines": {
-    "node": ">=18"
+    "node": ">=22.13"
   },
   "scripts": {
     "start": "node panel/server.js",

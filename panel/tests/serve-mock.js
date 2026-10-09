@@ -1,14 +1,12 @@
 #!/usr/bin/env node
 'use strict';
 /*
- * serve-mock.js: serves index.html in test mode (?mock=1), without the real server and without data.
+ * serve-mock.js: serves index.html in test mode (?mock=1), without the real server and without data (npm run demo).
  *
  * The browser does not let a page opened through file:// read files next to it, so this minimal server
- * delivers only four paths:
+ * delivers only two paths:
  *   /                          → panel/index.html
- *   /tests/mock-state.json     → fictitious answer of /api/state
- *   /tests/mock-details.json   → full events, raw commands and flows (imitate /api/event and /api/flow)
- *   /tests/mock-items.json     → the new model's items (imitate /api/items and /api/items/<project>/<number>)
+ *   /tests/mock-items.json     → the fictitious answers of every route the page calls (generate-mock-items.js)
  * Any other path is 404. Listens only on 127.0.0.1, on the test ports 4790 to 4799 (never 4777).
  *
  * Usage: node tests/serve-mock.js [port]      (default 4795; or the MOCK_PORT variable)
@@ -27,8 +25,6 @@ if (!Number.isInteger(port) || port < 4790 || port > 4799) {
 
 const FILES = {
   '/': [path.join(__dirname, '..', 'index.html'), 'text/html; charset=utf-8'],
-  '/tests/mock-state.json': [path.join(__dirname, 'mock-state.json'), 'application/json; charset=utf-8'],
-  '/tests/mock-details.json': [path.join(__dirname, 'mock-details.json'), 'application/json; charset=utf-8'],
   '/tests/mock-items.json': [path.join(__dirname, 'mock-items.json'), 'application/json; charset=utf-8'],
 };
 const HOSTS = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);

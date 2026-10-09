@@ -1,4 +1,5 @@
-// Panel context: state read from the server, navigation between screens, Log filters and the event modal.
+// Panel context: state read from the server (GET /api/state), navigation between screens, the company selector and
+// the Log filters.
 //
 // Menu rule: the panel is a single app. A new screen = an item in SCREENS (id and group; its menu name and title
 // come from the dictionary, nav.<id> and screens.<id>) + its component in SCREEN_COMPONENTS (app/App.jsx) + its
@@ -27,7 +28,7 @@ export const SCREENS = [
 // Addresses of before the screens were in English (#visao, #pendencias...): still open the right screen.
 export const OLD_SCREEN_IDS = { visao: 'overview', pendencias: 'pending', agentes: 'agents', uso: 'usage' };
 
-/** Filters of the Log (new model): period, project, item (<project>/<number>) and event type. The company is the
+/** Filters of the Log: period, project, item (<project>/<number>) and event type. The company is the
  * selector at the top of the panel (companyFilter, #6), joined to these filters when the Log is read. */
 export function newFilter() {
   return { period: 'all', since: '', until: '', project: '', item: '', type: '' };

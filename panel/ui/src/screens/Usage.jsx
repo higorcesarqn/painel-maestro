@@ -79,7 +79,7 @@ export function Usage() {
             <dt>{t('usage.collector')}</dt><dd>{collector}</dd>
             {last && <><dt>{t('usage.lastRun')}</dt><dd>{t('usage.lastRunText', {
               time: time(last.at),
-              result: last.ok ? t('eventModal.ok') : t('usage.failed', { error: txt(last.error) }),
+              result: last.ok ? t('usage.ok') : t('usage.failed', { error: txt(last.error) }),
               duration: typeof last.duration_ms === 'number' ? t('usage.durationMs', { ms: number(last.duration_ms) }) : '',
             })}</dd></>}
             {collection && <><dt>{t('usage.sessions')}</dt><dd>{t('usage.sessionsText', {

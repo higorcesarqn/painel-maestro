@@ -33,10 +33,9 @@ function durationText(min) {
 }
 
 const windowName = (w) => (w === '5h' ? 'de 5 h' : 'semanal');
-// Name the person knows for each /api/events parameter (the Log used to call them so).
+// Name the person knows for each query parameter of the API (the Log, the items, usage and agents).
 const PARAM_NAMES = {
-  since: 'desde', until: 'ate', hours: 'horas', agent: 'agente', project: 'projeto', type: 'tipo', result: 'resultado',
-  q: 'q', owner_only: 'so_dono', include_tests: 'incluir_testes', flow: 'fluxo', page: 'pagina', per_page: 'por_pagina', active: 'ativos',
+  since: 'desde', until: 'ate', hours: 'horas', project: 'projeto', type: 'tipo', page: 'pagina', per_page: 'por_pagina', active: 'ativos',
   company: 'empresa', item: 'item', task: 'task', session: 'sessao', limit: 'limite',
 };
 const PARAM_HINTS = { date: 'use AAAA-MM-DD', flag: 'use 1 ou 0', positive_integer: 'use um inteiro a partir de 1', id: 'use letras minúsculas, números e hífen', item_key: 'use <projeto>/<número>' };
@@ -51,10 +50,8 @@ export default {
     recalculating: 'Recalculando…',
     never: 'nunca',
     unavailable: 'indisponível',
-    noSummary: '(sem resumo)',
     noEvents: 'Nenhum evento registrado ainda.',
     noDate: 'Sem data',
-    test: 'teste',
     closeEsc: 'Fechar (Esc)',
   },
 
@@ -71,13 +68,12 @@ export default {
 
   app: {
     documentTitle: '{screen} · {panel}',
-    panelOf: 'Painel {name}',
-    panelDefault: 'Painel do workspace',
+    panel: 'Painel maestro',
     collectorFailed: 'Coletor falhou: {error}',
     recalculated: 'Uso recalculado às {time}',
     recalculatedMock: 'Uso recalculado às {time} (modo de teste)',
     recalculateFailed: 'Não consegui recalcular: {message}',
-    mockBanner: 'Modo de teste (?mock=1): dados fictícios de tests/mock-state.json, mock-details.json e mock-items.json. Nada aqui vem do servidor.',
+    mockBanner: 'Modo de teste (?mock=1): dados fictícios de tests/mock-items.json. Nada aqui vem do servidor.',
     connectionError: 'Não consegui ler o painel ({message}). Tento de novo a cada 20 s.',
     connectionErrorWithData: 'Não consegui ler o painel ({message}). Tento de novo a cada 20 s. O que está na tela é a última leitura boa.',
   },
@@ -87,7 +83,7 @@ export default {
   },
 
   mock: {
-    loadFailed: 'Modo de teste: não consegui ler tests/mock-state.json ({detail}). Sirva a pasta com "node tests/serve-mock.js" e abra a página com ?mock=1.',
+    loadFailed: 'Modo de teste: não consegui ler tests/mock-items.json ({detail}). Sirva a pasta com "npm run demo" e abra a página com ?mock=1.',
   },
 
   groups: { workspace: 'Workspace' },
@@ -99,7 +95,7 @@ export default {
   sidebar: {
     brand: 'painel',
     brandSuffix: 'maestro',
-    workspace: 'Workspace {name}',
+    tagline: 'Fluxo dos itens',
     screens: 'Telas do painel',
     pendingCounter: '{count} pendência(s) aberta(s)',
     localPanel: 'Painel local',
@@ -112,12 +108,7 @@ export default {
     noAnswerSince: 'Sem resposta desde {since} · dados de {data}',
     updatedAt: 'Atualizado às {time}',
     panel: 'Painel',
-    panelOf: 'Painel · {name}',
     recalculateTitle: 'Roda o coletor de uso agora e atualiza o painel (grátis, sem agente)',
-    brainButton: 'Pedir ao Cérebro…',
-    brainTitle: 'Fase B: exige o Maestri Wire (ver §11.7). Por enquanto, fale com o Cérebro direto no canvas.',
-    brainPopoverTitle: 'Pedir ao Cérebro… (Fase B)',
-    brainPopoverText: 'Desabilitado: exige o Maestri Wire (ver §11.7). Quando o Wire estiver ligado e pareado, este botão vai mandar pedidos prontos ao Cérebro (resumo do dia, revisar pendências) e uma mensagem livre. Até lá, fale com o Cérebro direto no canvas do Maestri.',
   },
 
   health: {
@@ -131,9 +122,6 @@ export default {
     lastRaw: 'Último registro do hook',
     when: '{date} ({age})',
     planData: 'Dado de uso do plano',
-    wire: 'Maestri Wire',
-    wireOn: 'configurado',
-    wireOff: 'não configurado (Fase B)',
     readWarnings: 'Avisos de leitura ({count})',
   },
 
@@ -335,37 +323,7 @@ export default {
     },
   },
 
-  flow: {
-    none: 'sem fluxo',
-    filterLog: 'Filtrar o Log por este fluxo',
-  },
-
-  // Values stored by the old model (event types, results, severities, origins).
-  eventTypes: {
-    'pedido-recebido': 'Pedido recebido', delegacao: 'Delegação', 'resposta-recebida': 'Resposta recebida', aviso: 'Aviso',
-    consulta: 'Consulta', execucao: 'Execução', auditoria: 'Auditoria', relatorio: 'Relatório', decisao: 'Decisão',
-    'pendencia-aberta': 'Pendência aberta', 'pendencia-resolvida': 'Pendência resolvida', bloqueio: 'Bloqueio', erro: 'Erro',
-    manutencao: 'Manutenção', bootstrap: 'Bootstrap',
-  },
-  results: {
-    ok: 'ok', parcial: 'parcial', falhou: 'falhou', bloqueado: 'bloqueado', 'aguardando-dono': 'aguardando o dono', 'em-andamento': 'em andamento',
-  },
-  severity: {
-    name: { critica: 'crítica', alta: 'alta', normal: 'normal', baixa: 'baixa' },
-    plural: { critica: 'críticas', alta: 'altas', normal: 'normais', baixa: 'baixas' },
-    count: '{count} {name}',
-  },
-  pendingType: { aprovacao: 'aprovação', decisao: 'decisão', 'informacao-faltando': 'informação faltando', revisao: 'revisão' },
-  origins: {
-    unknown: 'origem não informada',
-    ownerDirect: 'Dono (direto)',
-    brain: 'Cérebro Principal',
-    routine: 'Rotina agendada',
-    system: 'Sistema',
-    agent: 'Agente {name}',
-  },
-
-  // Overview of the new model (#14): GET /api/overview.
+  // Overview (#14): GET /api/overview.
   overview: {
     readFailed: 'Não consegui ler a visão geral ({message}). Tento de novo a cada 20 s.',
     activeItems: 'Itens ativos',
@@ -432,6 +390,7 @@ export default {
     },
     severities: { critical: 'crítica', high: 'alta', normal: 'normal', low: 'baixa' },
     severityPlural: { critical: 'Críticas', high: 'Altas', normal: 'Normais', low: 'Baixas' },
+    severityCount: '{count} {name}',
     severityAbout: {
       critical: 'Travam o trabalho de algum agente agora.',
       high: 'Importantes para o andamento; responda primeiro.',
@@ -574,61 +533,6 @@ export default {
     failure: 'falha',
   },
 
-  eventModal: {
-    loading: 'Carregando o evento…',
-    gone: 'O evento {id} não existe mais.',
-    openFailed: 'Não consegui abrir o evento: {message}',
-    newerAria: 'Evento mais recente (seta para a esquerda)',
-    newerTitle: 'Evento mais recente (←)',
-    olderAria: 'Evento mais antigo (seta para a direita)',
-    olderTitle: 'Evento mais antigo (→)',
-    when: '{weekday}, {dateTime}',
-    filterTable: 'Filtrar a tabela por este fluxo',
-    summaryAndRequest: 'Resumo e o que foi pedido',
-    eventOrigin: 'Origem deste evento: {origin}',
-    whoAsked: 'Quem pediu: {origin}',
-    inferred: ' (deduzido do prompt)',
-    receivedBy: ' · recebido por {name}',
-    requestNotFound: 'O texto do pedido que abriu o fluxo não foi encontrado.',
-    direction: 'Direção tomada',
-    noDirection: 'Sem direção registrada.',
-    sequence: 'Sequência do fluxo',
-    sequenceCount: { one: 'Sequência do fluxo ({count} evento)', other: 'Sequência do fluxo ({count} eventos)' },
-    noSequence: 'Sem outros eventos neste fluxo.',
-    project: 'Projeto',
-    noProject: 'Sem projeto ligado a este evento.',
-    validation: 'Validação',
-    noValidation: 'Sem validação registrada.',
-    nextStep: 'Próximo passo e pendências',
-    noNextStep: 'Sem próximo passo registrado.',
-    pendingList: 'Pendências: ',
-    needsOwner: 'Precisa do dono',
-    changes: 'Alterações',
-    noChanges: 'Nenhuma alteração registrada.',
-    duration: 'Duração',
-    noDuration: 'não informada',
-    stepsAndCommands: 'Passos e comandos',
-    steps: 'Passos ({count})',
-    noSteps: 'Nenhum passo registrado.',
-    citedCommands: 'Comandos citados pelo agente ({count})',
-    rawCommands: 'Comandos brutos correlacionados ({count})',
-    rawCommandsOf: 'Comandos brutos correlacionados ({count} de {total})',
-    window: 'Entradas sem fluxo_id: janela de {start} a {end}.',
-    windowWithSession: 'Entradas sem fluxo_id: janela de {start} a {end} na sessão {session}.',
-    noRaw: 'Nenhum comando bruto correlacionado (hooks sem registro para este fluxo ou janela).',
-    omitted: '{count} comando(s) mais distante(s) ficaram de fora; use "registrar fluxo {flow}" para ver todos.',
-    partialRead: 'Leitura parcial do log bruto: {warning}',
-    rawCol: { time: 'Hora', agent: 'Agente', tool: 'Ferramenta', command: 'Comando', status: 'Status', link: 'Ligação' },
-    prompt: 'prompt',
-    promptText: 'prompt: {prompt}',
-    ok: 'ok',
-    failure: 'falha',
-    linkWindow: 'janela',
-    linkWindowTitle: 'Sem fluxo_id: ligado pela janela de tempo do mesmo agente (§10.4)',
-    linkFlow: 'fluxo',
-    linkFlowTitle: 'Mesmo fluxo_id',
-  },
-
   // Agents (#13): the active maestros and workers, derived from the items (GET /api/agents).
   agents: {
     title: 'Agentes ativos',
@@ -650,8 +554,6 @@ export default {
     taskRef: '#{number}',
     floor: '· floor {floor}',
     progress: '· {done}/{total}',
-    unknown: 'desconhecido ({id})',
-    // Overview of the old model (registro/agentes.json), until it moves to the new model.
   },
 
   usage: {
@@ -690,6 +592,7 @@ export default {
     noInfo: 'sem informação',
     lastRun: 'Última rodada',
     lastRunText: '{time} · {result}{duration}',
+    ok: 'ok',
     failed: 'falhou: {error}',
     durationMs: ' · {ms} ms',
     sessions: 'Sessões',
@@ -737,11 +640,8 @@ export default {
     empty_file: 'arquivo vazio',
     invalid_json: 'JSON inválido ({detail})',
     unexpected_format: 'formato inesperado',
-    missing_list: 'sem a lista "{list}"',
     collector_not_run: 'O coletor de uso ainda não rodou (sem state/usage.json).',
     usage_unreadable: (c, h) => `${c.file} ilegível (${h.display(c.error)}).`,
-    event_lines_ignored: '{file}: {count} linha(s) ilegível(is) ou sem id válido ignorada(s)',
-    event_file_incomplete: '{file}: leitura incompleta ({error}); tento de novo na próxima atualização',
     // plan and usage collector
     maestri_claude_provider: (c) => (c.file ? `provedor Claude do Maestri (${c.file})` : 'provedor Claude do Maestri'),
     usage_note: 'o % por item e por agente é estimado; o % do plano vem do Maestri/Claude',
@@ -769,9 +669,6 @@ export default {
     invalid_transcript_lines: '{count} linha(s) de transcrição ilegível(is) ignorada(s).',
     transcript_unreadable: 'Não consegui ler {file}: {error}',
     transcript_read_interrupted: 'Leitura interrompida em {file}: {error}',
-    // raw commands of the modal
-    long_flow_days_cut: 'fluxo com {days} dias: o log bruto de {cut} dia(s) do meio ficou de fora',
-    raw_files_pending: '{count} arquivo(s) do log bruto ainda não foram lidos (teto de leitura por consulta); abra de novo em instantes para completar',
     // request errors
     // The address is built on the spot: the build check refuses any literal URL in the page.
     host_not_allowed: (c) => `Host não permitido. Abra o painel em ${['http', `//127.0.0.1:${c.port}`].join(':')}.`,
@@ -780,9 +677,7 @@ export default {
     route_not_found: 'Rota não encontrada.',
     method_not_allowed: (c) => `Método ${c.method} não aceito aqui (use ${(c.allowed || []).join(' ou ')}).`,
     event_not_found: 'Evento não encontrado: {id}',
-    flow_not_found: 'Fluxo não encontrado: {id}',
     item_not_found: 'Item não encontrado: {project}/{number}. Ele é criado pelo comando flow item start.',
-    not_implemented: 'Fase B: exige o Maestri Wire (ver §11.7)',
     body_too_large: 'Corpo grande demais ou incompleto (até {limit_kb} KB).',
     internal_error: 'Erro interno do painel (detalhes no terminal do servidor).',
     invalid_param: (c) => `Parâmetro "${PARAM_NAMES[c.param] || c.param}" inválido: "${c.value}" (${PARAM_HINTS[c.expected] || PARAM_HINTS.positive_integer}).`,

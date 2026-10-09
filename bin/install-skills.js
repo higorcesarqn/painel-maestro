@@ -7,8 +7,8 @@
 //   node bin/install-skills.js --undo [--claude-dir <dir>]    removes those links and restores the backups
 //
 // skills/links.json declares what is installed: {"links": [{"source": "skills/x", "target": "skills/x"}]}, the
-// source relative to the repository and the target relative to the Claude folder. Only those entries are touched
-// (the old skills/cerebro and skills/compartilhadas are not declared). Each link is a directory junction on
+// source relative to the repository and the target relative to the Claude folder. Only those entries are touched.
+// Each link is a directory junction on
 // Windows (no admin needed) and a directory symlink elsewhere. Whatever already exists at a target and is not
 // our link is moved to <claude>/backups/painel-maestro/<target> first; --undo puts it back.
 // The Claude folder is --claude-dir, then CLAUDE_CONFIG_DIR, then ~/.claude. Every change is planned before
