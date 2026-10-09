@@ -18,6 +18,48 @@ module.exports = {
   companies: {
     unassigned: 'Sem empresa',
   },
+  // bin/install-skills.js (#15)
+  installSkills: {
+    done: {
+      claudeDir: 'Pasta do Claude: {dir}',
+      linked: '{target}: ligado a {source}.',
+      alreadyLinked: '{target}: já estava ligado a este repositório.',
+      backedUp: '{target}: o que existia foi guardado em {backup}.',
+      unlinked: '{target}: link removido.',
+      restored: '{target}: backup restaurado.',
+      notOurs: '{target}: não é um link deste repositório; ficou como está.',
+      nothingToUndo: '{target}: nada para desfazer.',
+    },
+    errors: {
+      unknownArgument: 'argumento desconhecido: "{value}" (veja node bin/install-skills.js --help).',
+      missingValue: 'falta o valor de --{option}.',
+      manifestUnreadable: 'não consegui ler {file}: {detail}',
+      manifestShape: '{file} precisa ser um objeto com a lista "links".',
+      manifestEntry: 'entrada inválida em skills/links.json: {entry} (use "source" e "target" relativos, sem "..").',
+      manifestRepeated: 'o destino {target} aparece mais de uma vez em skills/links.json.',
+      sourceMissing: 'a pasta {source} declarada em skills/links.json não existe no repositório.',
+      backupTaken: '{target} existe e não é um link deste repositório, mas o backup {backup} já está ocupado. Mova um dos dois e rode de novo.',
+      targetReplaced: '{target} não é mais um link deste repositório e há um backup em {backup}. Resolva à mão qual dos dois fica e rode de novo.',
+      conflicts: (p) => `nada foi alterado:\n${p.list.map((l) => `  - ${l}`).join('\n')}`,
+    },
+    help: (p) => `install-skills · liga as skills do dono deste repositório à pasta do Claude (~/.claude)
+
+USO
+  node bin/install-skills.js [--claude-dir <pasta>]           instala (liga cada entrada de skills/links.json)
+  node bin/install-skills.js --undo [--claude-dir <pasta>]    desfaz (remove os links e restaura os backups)
+
+O que é instalado: ${p.manifest} ({"links": [{"source": "skills/x", "target": "skills/x"}]}).
+Cada link é uma junction de diretório no Windows (não exige administrador). O que já existir no destino e
+não for um link deste repositório vai para <pasta do Claude>/backups/painel-maestro/<destino>; --undo devolve.
+Rodar de novo é seguro: o que já está ligado fica como está. Um conflito para tudo antes de mudar qualquer coisa.
+
+PASTA DO CLAUDE
+  --claude-dir, senão CLAUDE_CONFIG_DIR, senão ~/.claude
+
+CÓDIGOS DE SAÍDA
+  0 ok · 2 dados inválidos ou conflito (nada alterado) · 1 outros erros
+`,
+  },
   done: {
     itemStarted: (p) => `Item ${p.key} (${p.ref}) iniciado em ${STAGES[p.stage] || p.stage}.`,
     stageChanged: (p) => `Item ${p.key} (${p.ref}) agora em ${STAGES[p.stage] || p.stage}.`,
