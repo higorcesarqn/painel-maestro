@@ -155,6 +155,8 @@ suite.test('the address picks the screen: a malformed address (bad percent-encod
 
 suite.test('the Items filters offer the server\'s stages and trackers (the page keeps its own copy of the lists)', async () => {
   const { STAGES, TRACKERS } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'domain.js')).href);
+  // Parity between the page's copy and the server's lists (a contract constant, not a database read): same exception
+  // as trackerHref × trackerUrl below.
   const store = require('../../bin/flow-store.js');
   assert.deepStrictEqual(STAGES, store.STAGES);
   assert.deepStrictEqual(TRACKERS, store.TRACKERS);
@@ -168,7 +170,9 @@ suite.test('links of the item page only go to the trackers (github.com, dev.azur
   for (const bad of ['http://github.com/acme/widgets/pull/34', 'https://github.com.evil.example/pull/1', 'https://evil.example/github.com',
     'javascript:alert(1)', 'https://user:pw@github.com/x', 'https://github.com:8443/x', 'https://gist.github.com/x', '//github.com/x',
     'data:text/html,x', '', null, 42]) assert.strictEqual(trackerHref(bad), null, String(bad));
-  // The page's rule is the same as the server's (the projection only keeps tracker links).
+  // The page's rule is the same as the server's (the projection only keeps tracker links). Exception to "no test calls
+  // internal functions" (panel/README.md): this is a parity between the page's copy (ESM, the build cannot import the
+  // CommonJS of bin/) and the server's rule, and the API never answers a link the rule refused, so it cannot show it.
   const { trackerUrl } = require('../../bin/flow-projection.js');
   for (const u of ['https://github.com/a/b/pull/1', 'https://x.visualstudio.com/p', 'https://evil.example/', 'http://dev.azure.com/x']) {
     assert.strictEqual(trackerHref(u), trackerUrl(u), u);

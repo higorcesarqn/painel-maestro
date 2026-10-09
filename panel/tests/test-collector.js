@@ -1,6 +1,8 @@
 'use strict';
-// Tests for bin/collect-usage.js with fake transcripts (fake root under tests/tmp/). The sessions are the rows the hook
-// writes in bruto.db (bin/raw-store.js), each linked to the item's maestro, a task's worker or only the project (#13).
+// Tests for bin/collect-usage.js with fake transcripts (fake root under tests/tmp/). The sessions are written the way
+// they are in real use: the flow CLI registers the project (item 12, task 31 dispatched) and the hook runs as a process,
+// fed by stdin, in a worktree on the branch of the link (the item's maestro, a task's worker or only the project, #13).
+// The collector is called through collect(), the function the panel server runs.
 
 const fs = require('fs');
 const path = require('path');
@@ -11,7 +13,8 @@ const {
 
 const SCRIPT = path.join(REPO, 'bin', 'collect-usage.js');
 const collector = require(SCRIPT);
-const { openRawStore } = require(path.join(REPO, 'bin', 'raw-store.js'));
+const HOOK = path.join(REPO, 'bin', 'hook-log.js');
+const FLOW = path.join(REPO, 'bin', 'flow.js');
 
 const NOW = new Date('2026-10-08T15:50:00-03:00');
 const sp = (hhmm, day = '2026-10-08') => `${day}T${hhmm}:00-03:00`;
@@ -36,17 +39,48 @@ function planStatus({ pct5 = 40, reset5 = '2026-10-08T20:50:00Z', pct7 = 20, res
   return { providers: [p, { id: 'codex', state: 'executableNotFound', meters: [] }], updatedAt: at };
 }
 
-/** A session as the hook records it in bruto.db: its link ({item, task}) and its transcript or cwd. */
-function session(m, id, { item = null, task = null } = {}, { transcript_path = null, cwd = 'C:\\teste' } = {}) {
-  const raw = openRawStore({ dir: m });
-  try {
-    raw.record({
-      at: sp('15:00'), t: Date.parse(sp('15:00')), session_id: id, project_id: 'widgets', item_number: item, task_number: task,
-      branch: null, hook_event: 'SessionStart', cwd,
-    }, { transcript_path, cwd });
-  } finally {
-    raw.close();
+function git(cwd, ...args) {
+  const r = spawnSync('git', ['-c', 'user.name=Teste', '-c', 'user.email=teste@example.com', ...args], { cwd, encoding: 'utf8', windowsHide: true });
+  if (r.status !== 0) throw new Error(`git ${args.join(' ')}: ${r.stderr}`);
+  return r.stdout.trim();
+}
+
+function env(b) {
+  return Object.assign({}, process.env, {
+    MAESTRO_DIR: b.m, MAESTRO_NOW: sp('15:00'), NODE_OPTIONS: '', MAESTRI_TERMINAL_ID: '', GIT_CEILING_DIRECTORIES: b.root,
+  });
+}
+
+/** The project "widgets" (github.com/acme/widgets) with item 12 and its task 31 dispatched, registered by the flow CLI. */
+function registerProject(b) {
+  b.repo = path.join(b.root, 'repo');
+  fs.mkdirSync(b.repo, { recursive: true });
+  git(b.repo, 'init', '-q', '-b', 'main');
+  git(b.repo, 'remote', 'add', 'origin', 'https://github.com/acme/widgets.git');
+  git(b.repo, 'commit', '-q', '--allow-empty', '-m', 'inicio');
+  for (const args of [['item', 'start', '12', '--title', 'Exportar'], ['task', 'graph', '12', '--task', '31|PDF'], ['task', 'dispatch', '12', '31', '--worker', 'Ária']]) {
+    const x = spawnSync(process.execPath, [FLOW, ...args], { cwd: b.repo, env: env(b), encoding: 'utf8', windowsHide: true, timeout: 30000 });
+    assert.strictEqual(x.status, 0, `flow ${args.join(' ')}: ${x.stderr}`);
   }
+}
+
+/** The folder of a link: a worktree on task/<task> (the worker), on feature/issue-<item> (the maestro), else the repository. */
+function folderOf(b, { item = null, task = null }) {
+  const branch = task !== null ? `task/${task}` : item !== null ? `feature/issue-${item}` : null;
+  if (!branch) return b.repo;
+  const wt = path.join(b.root, branch.replace(/\//g, '-'));
+  if (!fs.existsSync(wt)) git(b.repo, 'worktree', 'add', '-q', '-b', branch, wt);
+  return wt;
+}
+
+/** A Claude Code session in the folder of its link: the hook gets its SessionStart on stdin. Returns the folder. */
+function session(b, id, link = {}, { transcript_path = null } = {}) {
+  const cwd = folderOf(b, link);
+  const input = { session_id: id, cwd, hook_event_name: 'SessionStart', source: 'startup' };
+  if (transcript_path) input.transcript_path = transcript_path;
+  const x = spawnSync(process.execPath, [HOOK], { cwd: b.root, input: JSON.stringify(input), env: env(b), encoding: 'utf8', windowsHide: true, timeout: 10000 });
+  assert.strictEqual(x.status, 0, `hook exit ${x.status}`);
+  return cwd;
 }
 
 /** Fake root with 4 linked sessions, transcripts (one of them without a session) and subagents. */
@@ -58,11 +92,13 @@ function buildBase(name) {
   const maestri = path.join(root, 'maestri');
   const proj = (p) => path.join(claude, 'projects', p);
   writeJson(path.join(maestri, 'usage', 'providers', '.status.json'), planStatus());
+  const b = { root, m };
+  registerProject(b);
   const t1 = path.join(proj('proj-a'), 's1.jsonl');
-  session(m, 's1', { item: 12 }, { transcript_path: t1 });
-  session(m, 's2', { item: 12, task: 31 }, { transcript_path: path.join(proj('proj-b'), 's2.jsonl') });
-  session(m, 's4', { item: 12 }, { transcript_path: path.join(proj('proj-a'), 's4.jsonl') }); // no file yet
-  session(m, 's6', {}, { transcript_path: path.join(proj('proj-c'), 's6.jsonl') });
+  session(b, 's1', { item: 12 }, { transcript_path: t1 });
+  session(b, 's2', { item: 12, task: 31 }, { transcript_path: path.join(proj('proj-b'), 's2.jsonl') });
+  session(b, 's4', { item: 12 }, { transcript_path: path.join(proj('proj-a'), 's4.jsonl') }); // no file yet
+  session(b, 's6', {}, { transcript_path: path.join(proj('proj-c'), 's6.jsonl') });
   // s3.jsonl has no session: the hook never linked it (outside a registered project), so it never counts.
 
   writeJsonl(t1, [
@@ -86,7 +122,7 @@ function buildBase(name) {
   writeJsonl(path.join(proj('proj-b'), 's2.jsonl'), [assistantLine({ id: 'msg_G', ts: sp('14:00'), i: 100, o: 20, cr: 2000 })]);
   writeJsonl(path.join(proj('proj-a'), 's3.jsonl'), [assistantLine({ id: 'msg_H', ts: sp('15:00'), i: 500000 })]);
   writeJsonl(path.join(proj('proj-c'), 's6.jsonl'), [assistantLine({ id: 'msg_K', ts: sp('15:30'), i: 10, o: 2 })]);
-  return { root, m, claude, maestri, t1, proj };
+  return { root, m, repo: b.repo, claude, maestri, t1, proj };
 }
 
 function options(b, extra = {}) {
@@ -243,7 +279,7 @@ suite.test('replaced or truncated file starts over; a transcript that appears la
 suite.test('the hook relinks a session: the attribution follows it without reading the transcript again', async () => {
   const b = buildBase('owner');
   await collector.collect(options(b));
-  session(b.m, 's6', { item: 12, task: 31 }, { transcript_path: path.join(b.proj('proj-c'), 's6.jsonl') });
+  session(b, 's6', { item: 12, task: 31 }, { transcript_path: path.join(b.proj('proj-c'), 's6.jsonl') });
   const usage = await collector.collect(options(b));
   assert.strictEqual(usage.collection.bytes_read, 0);
   assert.strictEqual(line(usage, 'window_5h', T).relative_consumption, 420);
@@ -253,8 +289,9 @@ suite.test('the hook relinks a session: the attribution follows it without readi
 
 suite.test('session without transcript_path: path derived from the cwd (CLAUDE_CONFIG_DIR/projects)', async () => {
   const b = buildBase('derived');
-  session(b.m, 's8', { item: 12, task: 31 }, { cwd: 'C:\\proj\\x' });
-  writeJsonl(path.join(b.claude, 'projects', 'C--proj-x', 's8.jsonl'), [assistantLine({ id: 'msg_L', ts: sp('15:30'), i: 1, o: 1 })]);
+  const cwd = session(b, 's8', { item: 12, task: 31 });
+  // Claude Code keeps a session's transcript in projects/<the cwd with every other character as "-">.
+  writeJsonl(path.join(b.claude, 'projects', cwd.replace(/[^A-Za-z0-9]/g, '-'), 's8.jsonl'), [assistantLine({ id: 'msg_L', ts: sp('15:30'), i: 1, o: 1 })]);
   const usage = await collector.collect(options(b));
   assert.strictEqual(line(usage, 'window_5h', T).relative_consumption, 406);
 });
@@ -321,7 +358,7 @@ suite.test('5 h window that already reset: null % with a reason; a failed read b
 suite.test('big transcript: first read in blocks, second reads nothing again', async () => {
   const b = buildBase('big');
   const t7 = path.join(b.proj('proj-g'), 's7.jsonl');
-  session(b.m, 's7', { item: 40 }, { transcript_path: t7 });
+  session(b, 's7', { item: 40 }, { transcript_path: t7 });
   const big = 'x'.repeat(2000);
   const parts = [];
   for (let i = 0; i < 6000; i++) {

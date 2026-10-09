@@ -153,22 +153,15 @@ suite.test('the collector splits the tokens by item and by agent (the item\'s ma
   });
 });
 
-/** A second repository of a project already registered in the company (as the panel registers it). */
+/** A repository of a project registered in a company with the flow CLI (flow company add / flow project add). */
 function companyRepo(r, { company, companyName, project, name, remote }) {
   const repo = path.join(r.root, project);
   fs.mkdirSync(repo, { recursive: true });
   git(repo, 'init', '-q', '-b', 'main');
   git(repo, 'remote', 'add', 'origin', remote);
   git(repo, 'commit', '-q', '--allow-empty', '-m', 'inicio');
-  const { openStore } = require(path.join(REPO, 'bin', 'flow-store.js'));
-  const { normalizeRemote } = require(path.join(REPO, 'bin', 'flow-repo.js'));
-  const store = openStore({ dir: r.data });
-  try {
-    store.ensureCompany(company, companyName, sp('08:00:00'));
-    store.addProject({ id: project, name, companyId: company, tracker: 'github', remote: normalizeRemote(remote), at: sp('08:00:00') });
-  } finally {
-    store.close();
-  }
+  flow(r, ['company', 'add', company, '--name', companyName], { cwd: repo, now: sp('08:00:00') });
+  flow(r, ['project', 'add', project, '--name', name, '--company', company], { cwd: repo, now: sp('08:00:00') });
   return repo;
 }
 
