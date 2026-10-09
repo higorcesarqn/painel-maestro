@@ -45,6 +45,7 @@ function summary(project, state) {
     stage_since: state.stage_since,
     started_at: state.started_at,
     updated_at: state.updated_at,
+    active: state.active,
   };
 }
 
@@ -52,8 +53,8 @@ function timelineEntry(e) {
   return { id: e.id, at: e.at, type: e.type, task_number: e.task_number, agent: e.agent, source: e.source, payload: e.payload };
 }
 
-/** { items }: every item, most recently updated first. */
-function listItems(source) {
+/** { items }: every item (or only the active / done ones: active = true | false), most recently updated first. */
+function listItems(source, { active = null } = {}) {
   const store = source.store();
   if (!store) return { items: [] };
   const projects = new Map(store.projects().map((p) => [p.id, p]));
@@ -67,7 +68,7 @@ function listItems(source) {
   for (const events of byItem.values()) {
     const project = projects.get(events[0].project_id);
     const state = project && projectItem(events, project);
-    if (state) items.push(summary(project, state));
+    if (state && (active === null || state.active === active)) items.push(summary(project, state));
   }
   items.sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at) || a.key.localeCompare(b.key));
   return { items };
@@ -82,7 +83,25 @@ function itemDetail(source, projectId, number) {
   const events = store.itemEvents(projectId, number);
   const state = projectItem(events, project);
   if (!state) return null;
-  return { item: { ...summary(project, state), stages: state.stages, timeline: events.map(timelineEntry) } };
+  return { item: { ...summary(project, state), stages: state.stages, ...deliveryDetail(state), timeline: events.map(timelineEntry) } };
+}
+
+// ---------- delivery (#9): PR, final adjustment, HML and conclusion ----------
+// The list carries `active` (false once the item is Done) and accepts ?active=1 (active only) or ?active=0
+// (done only); without it, every item. The item page also carries the PR, the final adjustment, the HML result and
+// the conclusion moment. Links come already filtered by the projection to the trackers' domains.
+
+/** Filter of GET /api/items: null (every item), true or false; undefined when the value is invalid. */
+function activeFilter(query) {
+  const v = query && typeof query.get === 'function' ? query.get('active') : null;
+  if (v === null || v === '') return null;
+  if (v === '1' || v === 'true') return true;
+  if (v === '0' || v === 'false') return false;
+  return undefined;
+}
+
+function deliveryDetail(state) {
+  return { completed_at: state.completed_at, pr: state.pr, final_adjustment: state.final_adjustment, hml: state.hml };
 }
 
 /** Route of an item page: { project, number } or null when the address is not one. */
@@ -97,4 +116,4 @@ function parseItemPath(projectText, numberText) {
   return { project, number: Number(numberText) };
 }
 
-module.exports = { createItemsSource, listItems, itemDetail, parseItemPath };
+module.exports = { createItemsSource, listItems, itemDetail, parseItemPath, activeFilter };

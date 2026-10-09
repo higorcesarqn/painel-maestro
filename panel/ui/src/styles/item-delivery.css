@@ -1,0 +1,22 @@
+/* End of an item's flow (#9): PR, final adjustment, HML validation and conclusion, between the head and the grid. */
+.screen.screen-item { grid-template-rows: auto auto minmax(0, 1fr); }
+.card.delivery-card { min-height: auto; }
+.delivery-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.delivery-block { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding-right: 12px; border-right: 1px solid var(--border); }
+.delivery-block:last-child { border-right: 0; }
+.delivery-stack { display: flex; flex-direction: column; gap: 8px; }
+.delivery-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.delivery-line.mono span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.delivery-link { display: inline-flex; align-items: center; gap: 4px; }
+.delivery-summary { max-height: 6em; overflow: auto; color: var(--text); }
+.hml-counts { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.hml-counts div { display: flex; align-items: baseline; gap: 6px; }
+.hml-counts dd { margin: 0; font-size: 16px; font-weight: 300; font-variant-numeric: tabular-nums; }
+.hml-counts .ok dd { color: var(--ok); }
+.hml-counts .danger dd { color: var(--danger); }
+.hml-counts .warning dd { color: var(--warning); }
+
+@media (max-width: 1100px) {
+  .delivery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .delivery-block:nth-child(2n) { border-right: 0; }
+}

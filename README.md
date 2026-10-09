@@ -69,6 +69,23 @@ node /caminho/para/painel-maestro/bin/flow.js item start --json - < item.json   
 node /caminho/para/painel-maestro/bin/flow.js --help
 ```
 
+PR, ajuste final, Validação HML e conclusão (#9):
+
+```
+node .../bin/flow.js pr 12 draft --url https://github.com/org/repo/pull/34 --branch feature/issue-12   # PR criado em rascunho (leva a Implementação, se o item estiver antes)
+node .../bin/flow.js final-adjustment 12 open                                                       # → Ajuste final
+node .../bin/flow.js final-adjustment 12 result --outcome passed --summary "Testes e build ok"       # resultado (passed|failed); a etapa não muda
+node .../bin/flow.js pr 12 ready                                                                    # saiu do rascunho → PR pronto
+node .../bin/flow.js pr 12 merged                                                                   # o maestro fez o merge → Merge
+node .../bin/flow.js hml 3100 --passed 7 --failed 1 --blocked 0 --card https://dev.azure.com/org/proj/_workitems/edit/3100 --role owner   # → Validação HML
+node .../bin/flow.js item done 12                                                                   # → Concluído: sai da lista de ativos, continua consultável
+```
+
+- **PR:** a URL é obrigatória no primeiro registro; depois, URL, número e branch integradora ficam dos registros anteriores. O número sai da URL (`/pull/34`, `/pullrequest/812`) quando `--pr` não vem.
+- **Links** (`--url`, `--card`): só `https` de `github.com`, `dev.azure.com` ou `*.visualstudio.com`; outro endereço é recusado (código 2), e a página só mostra links desses domínios.
+- **Etapas do projeto:** um evento cuja etapa o projeto não usa é recusado (por exemplo, `hml` num projeto sem Validação HML, que vai de Merge direto a Concluído).
+- **JSON:** os mesmos campos (`state`, `url`, `pr`, `branch`; `action`, `outcome`, `summary`; `passed`, `failed`, `blocked`, `card`, `summary`) vêm por `--json -`.
+
 - **Projeto:** sai do `git remote origin` da pasta atual (também dentro do worktree de um floor; as formas SSH e HTTPS do mesmo repositório dão o mesmo projeto). Um repositório sem cadastro é cadastrado sozinho na empresa **"Sem empresa"** (id e nome tirados do nome do repositório; GitHub ou Azure DevOps pelo endereço) e o comando segue. A chave de um item é `projeto/número` (`cidax/3100`); o número aparece como no tracker: `PBI 3100` no Azure DevOps, `#12` no GitHub.
 - **Etapas** (ids em inglês, nomes em português): `specification` Especificação, `implementation` Implementação, `final_adjustment` Ajuste final, `pr_ready` PR pronto, `merge` Merge, `hml_validation` Validação HML, `done` Concluído. Etapa fora da lista do projeto é recusada.
 - **Campos:** por argumento ou por JSON na entrada padrão (`--json -`, melhor para acentos, aspas e várias linhas); o argumento vale mais que o JSON. `--role maestro|worker|owner` (padrão `maestro`) e `--agent "<codinome>"` dizem quem gravou.
@@ -206,7 +223,7 @@ Todos usam só a biblioteca padrão do Node e respeitam `MAESTRO_DIR` (o `flow.j
 
 | Script | Para que serve |
 |---|---|
-| `flow.js` | **modelo novo**: `item start` e `stage` gravam os eventos de um item no `maestro.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)) |
+| `flow.js` | **modelo novo**: `item start`, `stage`, `pr`, `final-adjustment`, `hml` e `item done` gravam os eventos de um item no `maestro.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)) |
 | `flow-store.js`, `flow-projection.js`, `flow-repo.js`, `i18n/` | banco do modelo novo (`node:sqlite`, WAL, migrações), projeção pura do estado do item, projeto pelo `git remote origin` e o dicionário pt-BR do CLI |
 | `registrar.js` | log semântico: `novo-fluxo`, `evento`, `ultimos`, `fluxo` |
 | `pendencia.js` | fila de pendências do dono: `abrir`, `listar`, `mostrar`, `responder`, `resolver`, `cancelar` |
@@ -249,7 +266,7 @@ npm test                                   # node panel/tests/run-all.js
 node panel/tests/run-all.js server       # só os arquivos com "server" no nome
 ```
 
-Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das pendências usa uma CLI do Maestri falsa, que só grava os argumentos. São 9 arquivos: coletor de uso, modelo novo (`test-flow.js`), hook do log bruto, dicionário, desempenho (50 mil eventos e log bruto grande), página compilada, filtro de horário, pendências e servidor. Eles conferem códigos, não frases. O `test-flow.js` segue uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
+Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das pendências usa uma CLI do Maestri falsa, que só grava os argumentos. São 10 arquivos: coletor de uso, modelo novo (`test-flow.js` e `test-flow-delivery.js`, PR, ajuste final, HML e conclusão), hook do log bruto, dicionário, desempenho (50 mil eventos e log bruto grande), página compilada, filtro de horário, pendências e servidor. Eles conferem códigos, não frases. O `test-flow.js` segue uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
 
 Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, para os itens, `node panel/tests/generate-mock-items.js` (usa a mesma projeção do servidor).
 

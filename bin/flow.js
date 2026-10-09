@@ -121,6 +121,152 @@ function resolveProject(store, origin, at) {
   return { project, registered: true, remote: d.remote };
 }
 
+// ---------- delivery (#9): integration branch and PR, final adjustment, HML validation and conclusion ----------
+//
+//   flow pr <number> draft|ready|merged [--url URL] [--pr N] [--branch NAME]          → event pr-changed
+//   flow final-adjustment <number> open                                               → final-adjustment-opened
+//   flow final-adjustment <number> result --outcome passed|failed [--summary "..."]   → final-adjustment-finished
+//   flow hml <number> --passed N --failed N --blocked N [--card URL] [--summary "..."] → hml-recorded
+//   flow item done <number>                                                           → item-done
+// The stage each event moves the item to is computed by the projection (bin/flow-projection.js); here the command
+// only refuses what the project does not use and links outside the trackers' domains.
+
+const projection = require('./flow-projection');
+
+const MAX_SUMMARY = 4000;
+const MAX_BRANCH = 200;
+const PR_STAGE = { ready: 'pr_ready', merged: 'merge' };
+const DELIVERY_COMMANDS = ['pr', 'final-adjustment', 'hml'];
+
+Object.assign(OPTIONS, {
+  pr: ['url', 'pr', 'branch', 'role', 'agent', 'json'],
+  'final-adjustment': ['outcome', 'summary', 'role', 'agent', 'json'],
+  hml: ['passed', 'failed', 'blocked', 'card', 'summary', 'role', 'agent', 'json'],
+  'item-done': ['role', 'agent', 'json'],
+});
+
+/** A text field of the JSON (undefined when absent). */
+function jsonText(json, field) {
+  const v = json[field];
+  if (v !== undefined && v !== null && typeof v !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'texto' });
+  return v === null ? undefined : v;
+}
+
+/** A number field of the JSON (number or text; undefined when absent). */
+function jsonNumber(json, field) {
+  const v = json[field];
+  if (v !== undefined && v !== null && typeof v !== 'number' && typeof v !== 'string') throw new InvalidData('errors.jsonFieldType', { field, expected: 'número' });
+  return v === null ? undefined : v;
+}
+
+/** A link of a tracker (github.com, dev.azure.com, *.visualstudio.com), or null when not given. */
+function trackerLink(value, option) {
+  if (value === undefined || String(value).trim() === '') return null;
+  const url = projection.trackerUrl(String(value));
+  if (!url) throw new InvalidData('delivery.errors.linkNotTracker', { option, value });
+  return url;
+}
+
+function summaryText(value) {
+  if (value === undefined) return null;
+  const s = String(value).replace(/\r\n?/g, '\n').trim();
+  if (s.length > MAX_SUMMARY) throw new InvalidData('delivery.errors.summaryTooLong', { length: s.length, max: MAX_SUMMARY });
+  return s || null;
+}
+
+function scenarioCount(value, option) {
+  if (value === undefined) return 0;
+  const s = String(value).trim();
+  if (!/^\d{1,6}$/.test(s)) throw new InvalidData('delivery.errors.invalidCount', { option, value });
+  return Number(s);
+}
+
+/** Validated fields of a delivery command (pr, final-adjustment, hml, item done). */
+function parseDelivery(command, args) {
+  if (command === 'pr') {
+    const { opts, pos, json } = prepare(args, 'pr', 2);
+    const number = itemNumber(pick(pos[0], jsonNumber(json, 'number')));
+    const state = String(pick(pos[1], jsonText(json, 'state'), '')).trim().toLowerCase();
+    if (!state) throw new InvalidData('delivery.errors.missingPrState');
+    if (!projection.PR_STATES.includes(state)) throw new InvalidData('delivery.errors.invalidPrState', { value: state });
+    const url = trackerLink(pick(opts.url, jsonText(json, 'url')), '--url');
+    const prValue = pick(opts.pr, jsonNumber(json, 'pr'));
+    if (prValue !== undefined && !/^[1-9]\d{0,8}$/.test(String(prValue).trim())) throw new InvalidData('delivery.errors.invalidPrNumber', { value: prValue });
+    const branch = pick(opts.branch, jsonText(json, 'branch'));
+    if (branch !== undefined && (String(branch).length > MAX_BRANCH || /\s/.test(String(branch).trim()))) throw new InvalidData('delivery.errors.invalidBranch', { max: MAX_BRANCH });
+    return {
+      kind: 'pr', number, state, url, prNumber: prValue === undefined ? null : Number(String(prValue).trim()),
+      branch: branch === undefined || !String(branch).trim() ? null : String(branch).trim(), ...agentFields(opts, json),
+    };
+  }
+  if (command === 'final-adjustment') {
+    const { opts, pos, json } = prepare(args, 'final-adjustment', 2);
+    const number = itemNumber(pick(pos[0], jsonNumber(json, 'number')));
+    const action = String(pick(pos[1], jsonText(json, 'action'), '')).trim().toLowerCase();
+    if (action !== 'open' && action !== 'result') throw new InvalidData('delivery.errors.invalidAdjustmentAction', { value: action });
+    const outcomeValue = pick(opts.outcome, jsonText(json, 'outcome'));
+    const summary = summaryText(pick(opts.summary, jsonText(json, 'summary')));
+    if (action === 'open') {
+      if (outcomeValue !== undefined || summary !== null) throw new InvalidData('delivery.errors.openTakesNoResult');
+      return { kind: 'adjustment-open', number, ...agentFields(opts, json) };
+    }
+    const outcome = String(pick(outcomeValue, '')).trim().toLowerCase();
+    if (!projection.FINAL_ADJUSTMENT_OUTCOMES.includes(outcome)) throw new InvalidData('delivery.errors.invalidOutcome', { value: outcome });
+    return { kind: 'adjustment-result', number, outcome, summary, ...agentFields(opts, json) };
+  }
+  if (command === 'hml') {
+    const { opts, pos, json } = prepare(args, 'hml', 1);
+    const number = itemNumber(pick(pos[0], jsonNumber(json, 'number')));
+    const passed = scenarioCount(pick(opts.passed, jsonNumber(json, 'passed')), '--passed');
+    const failed = scenarioCount(pick(opts.failed, jsonNumber(json, 'failed')), '--failed');
+    const blocked = scenarioCount(pick(opts.blocked, jsonNumber(json, 'blocked')), '--blocked');
+    if (passed + failed + blocked === 0) throw new InvalidData('delivery.errors.noScenarios');
+    const card = trackerLink(pick(opts.card, jsonText(json, 'card')), '--card');
+    return { kind: 'hml', number, passed, failed, blocked, card, summary: summaryText(pick(opts.summary, jsonText(json, 'summary'))), ...agentFields(opts, json) };
+  }
+  // item done
+  const { opts, pos, json } = prepare(args, 'item-done', 1);
+  return { kind: 'item-done', number: itemNumber(pick(pos[0], jsonNumber(json, 'number'))), ...agentFields(opts, json) };
+}
+
+/** Writes the delivery event of cmd (inside the transaction); returns the line to print. */
+function recordDelivery(store, cmd, { project, events, base, key, ref }) {
+  const before = projection.projectItem(events, project);
+  if (!before) throw new InvalidData('errors.itemNotStarted', { key, ref, number: cmd.number });
+  const needs = (stage) => {
+    if (!project.stages.includes(stage)) throw new InvalidData('errors.stageNotInProject', { project: project.id, stage, allowed: project.stages });
+  };
+  const append = (type, payload) => store.appendEvent({ ...base, type, payload });
+  const T = projection.EVENT_TYPES;
+  if (cmd.kind === 'pr') {
+    if (PR_STAGE[cmd.state]) needs(PR_STAGE[cmd.state]);
+    if (!cmd.url && !(before.pr && before.pr.url)) throw new InvalidData('delivery.errors.missingPrUrl', { number: cmd.number, state: cmd.state });
+    const payload = { state: cmd.state };
+    if (cmd.url) payload.url = cmd.url;
+    if (cmd.prNumber) payload.pr_number = cmd.prNumber;
+    if (cmd.branch) payload.branch = cmd.branch;
+    append(T.prChanged, payload);
+  } else if (cmd.kind === 'adjustment-open') {
+    needs('final_adjustment');
+    append(T.finalAdjustmentOpened, {});
+  } else if (cmd.kind === 'adjustment-result') {
+    if (!before.final_adjustment || before.final_adjustment.status !== 'open') throw new InvalidData('delivery.errors.adjustmentNotOpen', { key, ref, number: cmd.number });
+    append(T.finalAdjustmentFinished, cmd.summary ? { outcome: cmd.outcome, summary: cmd.summary } : { outcome: cmd.outcome });
+  } else if (cmd.kind === 'hml') {
+    needs('hml_validation');
+    const payload = { passed: cmd.passed, failed: cmd.failed, blocked: cmd.blocked };
+    if (cmd.card) payload.card_url = cmd.card;
+    if (cmd.summary) payload.summary = cmd.summary;
+    append(T.hmlRecorded, payload);
+  } else {
+    needs('done');
+    if (before.stage === 'done') throw new InvalidData('delivery.errors.alreadyDone', { key, ref });
+    append(T.itemDone, {});
+  }
+  const after = projection.projectItem(store.itemEvents(project.id, cmd.number), project);
+  return t(`delivery.done.${cmd.kind}`, { key, ref, stage: after.stage, state: cmd.state, outcome: cmd.outcome, passed: cmd.passed, failed: cmd.failed, blocked: cmd.blocked });
+}
+
 // ---------- commands ----------
 
 function prepare(argv, kind, maxPositional) {
@@ -134,6 +280,7 @@ function parseCommand(argv) {
   const [command, ...rest] = argv;
   if (command === 'item') {
     const [sub, ...args] = rest;
+    if (sub === 'done') return parseDelivery('item-done', args);
     if (sub !== 'start') throw new InvalidData(sub === undefined ? 'errors.missingCommand' : 'errors.unknownCommand', { command: `item ${sub || ''}`.trim() });
     const { opts, pos, json } = prepare(args, 'item', 1);
     const number = itemNumber(pick(pos[0], json.number));
@@ -148,6 +295,7 @@ function parseCommand(argv) {
     const number = itemNumber(pick(pos[0], json.number));
     return { kind: 'stage', number, stage: stageId(pick(pos[1], json.stage)), ...agentFields(opts, json) };
   }
+  if (DELIVERY_COMMANDS.includes(command)) return parseDelivery(command, rest);
   if (command === undefined) throw new InvalidData('errors.missingCommand');
   throw new InvalidData('errors.unknownCommand', { command });
 }
@@ -178,6 +326,8 @@ function run(argv, cwd) {
         if (started) throw new InvalidData('errors.itemAlreadyStarted', { key, ref, at: started.at, number: cmd.number });
         store.appendEvent({ ...base, type: EVENT_TYPES.itemStarted, payload: { title: cmd.title, stage } });
         lines.push(t('done.itemStarted', { key, ref, stage }));
+      } else if (cmd.kind !== 'stage') {
+        lines.push(recordDelivery(store, cmd, { project, events, base, key, ref }));
       } else {
         if (!started) throw new InvalidData('errors.itemNotStarted', { key, ref, number: cmd.number });
         store.appendEvent({ ...base, type: EVENT_TYPES.stageChanged, payload: { stage } });

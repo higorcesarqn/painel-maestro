@@ -13,6 +13,8 @@ const STAGES = {
   done: 'Concluído',
 };
 
+const PR_STATES = { draft: 'em rascunho', ready: 'pronto', merged: 'mergeado' };
+
 module.exports = {
   stages: STAGES,
   companies: {
@@ -51,6 +53,32 @@ module.exports = {
     itemNotStarted: (p) => `o item ${p.key} (${p.ref}) ainda não foi iniciado. Comece com: flow item start ${p.number} --title "...".`,
     unexpected: 'falha inesperada: {detail}',
   },
+  // PR, final adjustment, HML and conclusion (#9).
+  delivery: {
+    done: {
+      pr: (p) => `Item ${p.key} (${p.ref}): PR ${PR_STATES[p.state] || p.state} registrado. Etapa: ${STAGES[p.stage] || p.stage}.`,
+      'adjustment-open': (p) => `Item ${p.key} (${p.ref}): ajuste final aberto. Etapa: ${STAGES[p.stage] || p.stage}.`,
+      'adjustment-result': (p) => `Item ${p.key} (${p.ref}): ajuste final ${p.outcome === 'passed' ? 'aprovado' : 'reprovado'}. Etapa: ${STAGES[p.stage] || p.stage}.`,
+      hml: (p) => `Item ${p.key} (${p.ref}): Validação HML registrada (${p.passed} aprovado(s), ${p.failed} reprovado(s), ${p.blocked} bloqueado(s)). Etapa: ${STAGES[p.stage] || p.stage}.`,
+      'item-done': (p) => `Item ${p.key} (${p.ref}) concluído. Ele sai da lista de ativos e continua consultável no painel.`,
+    },
+    errors: {
+      missingPrState: 'falta o estado do PR (ex.: flow pr 12 draft --url https://github.com/org/repo/pull/34).',
+      invalidPrState: 'estado de PR inválido: "{value}" (use draft, ready ou merged).',
+      invalidPrNumber: 'número de PR inválido: "{value}" (use um inteiro positivo).',
+      invalidBranch: 'nome de branch inválido: use até {max} caracteres, sem espaços.',
+      missingPrUrl: 'falta a URL do PR (--url): o item ainda não tem PR registrado. Ex.: flow pr {number} {state} --url https://github.com/org/repo/pull/34',
+      linkNotTracker: 'o link de {option} precisa ser https de um tracker (github.com, dev.azure.com ou *.visualstudio.com): "{value}".',
+      invalidAdjustmentAction: 'ação de ajuste final inválida: "{value}" (use open ou result).',
+      openTakesNoResult: '"final-adjustment open" não leva --outcome nem --summary; o resultado vem depois com "final-adjustment <número> result".',
+      invalidOutcome: 'resultado do ajuste final inválido: "{value}" (use --outcome passed ou failed).',
+      adjustmentNotOpen: (p) => `o item ${p.key} (${p.ref}) não tem ajuste final aberto. Abra antes com: flow final-adjustment ${p.number} open.`,
+      summaryTooLong: 'o resumo tem {length} caracteres; o máximo é {max}.',
+      invalidCount: 'quantidade inválida em {option}: "{value}" (use um inteiro a partir de 0).',
+      noScenarios: 'informe quantos cenários foram aprovados, reprovados e bloqueados (--passed, --failed, --blocked); pelo menos um maior que 0.',
+      alreadyDone: 'o item {key} ({ref}) já está concluído.',
+    },
+  },
   help: (p) => `flow · registra o fluxo dos itens no painel (eventos em ${p.db})
 
 O projeto é reconhecido pelo "git remote origin" da pasta atual (vale dentro do worktree de um floor).
@@ -62,6 +90,20 @@ USO
       em geral specification). As etapas anteriores contam como concluídas.
   node bin/flow.js stage <número> <etapa> [opções do agente]
       Muda a etapa do item.
+  node bin/flow.js pr <número> draft|ready|merged [--url <URL do PR>] [--pr <n>] [--branch <branch integradora>]
+      Registra o PR do item: draft (criado em rascunho; leva o item a Implementação, se ele estiver antes),
+      ready (saiu do rascunho → PR pronto) ou merged (mergeado pelo próprio maestro → Merge). A URL é
+      obrigatória no primeiro registro; o número sai da URL quando --pr não vem.
+  node bin/flow.js final-adjustment <número> open [opções do agente]
+      Abre o ajuste final (→ Ajuste final).
+  node bin/flow.js final-adjustment <número> result --outcome passed|failed [--summary "..."]
+      Registra o resultado do ajuste final (a etapa não muda).
+  node bin/flow.js hml <número> --passed <n> --failed <n> --blocked <n> [--card <URL do card>] [--summary "..."]
+      Registra o resultado da Validação HML (→ Validação HML). Use --role owner quando for o dono.
+  node bin/flow.js item done <número>
+      Conclui o item (→ Concluído): ele sai da lista de ativos e continua consultável.
+  Links (--url, --card) só de trackers: https em github.com, dev.azure.com ou *.visualstudio.com.
+  Um evento cuja etapa o projeto não usa é recusado (ex.: hml num projeto sem Validação HML).
 
 OPÇÕES DO AGENTE
   --role maestro|worker|owner     quem grava (padrão: maestro)
@@ -69,7 +111,8 @@ OPÇÕES DO AGENTE
 
 JSON PELA ENTRADA PADRÃO (texto com acentos, aspas e várias linhas chega intacto em qualquer shell)
   --json -     os campos vêm num objeto JSON pela entrada padrão; os argumentos valem mais que o JSON
-  Campos: number, title, stage, role, agent.
+  Campos: number, title, stage, role, agent; state, url, pr, branch (pr); action, outcome, summary
+  (final-adjustment); passed, failed, blocked, card, summary (hml).
   ex.: node bin/flow.js item start --json - < item.json
 
 ETAPAS

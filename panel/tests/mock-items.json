@@ -19,7 +19,8 @@
       "stage": "specification",
       "stage_since": "2026-10-09T10:05:00-03:00",
       "started_at": "2026-10-09T10:05:00-03:00",
-      "updated_at": "2026-10-09T10:05:00-03:00"
+      "updated_at": "2026-10-09T10:05:00-03:00",
+      "active": true
     },
     {
       "key": "storefront/48",
@@ -39,7 +40,8 @@
       "stage": "final_adjustment",
       "stage_since": "2026-10-09T09:40:00-03:00",
       "started_at": "2026-10-02T10:00:00-03:00",
-      "updated_at": "2026-10-09T09:40:00-03:00"
+      "updated_at": "2026-10-09T09:40:00-03:00",
+      "active": true
     },
     {
       "key": "billing-api/2901",
@@ -59,7 +61,8 @@
       "stage": "specification",
       "stage_since": "2026-10-09T08:50:00-03:00",
       "started_at": "2026-10-09T08:50:00-03:00",
-      "updated_at": "2026-10-09T08:50:00-03:00"
+      "updated_at": "2026-10-09T08:50:00-03:00",
+      "active": true
     },
     {
       "key": "painel-maestro/5",
@@ -79,7 +82,8 @@
       "stage": "implementation",
       "stage_since": "2026-10-09T07:30:00-03:00",
       "started_at": "2026-10-09T07:30:00-03:00",
-      "updated_at": "2026-10-09T07:30:00-03:00"
+      "updated_at": "2026-10-09T07:30:00-03:00",
+      "active": true
     },
     {
       "key": "storefront/52",
@@ -99,7 +103,8 @@
       "stage": "merge",
       "stage_since": "2026-10-08T20:05:00-03:00",
       "started_at": "2026-10-04T11:00:00-03:00",
-      "updated_at": "2026-10-08T20:05:00-03:00"
+      "updated_at": "2026-10-08T20:05:00-03:00",
+      "active": true
     },
     {
       "key": "billing-api/2875",
@@ -119,7 +124,8 @@
       "stage": "pr_ready",
       "stage_since": "2026-10-08T18:10:00-03:00",
       "started_at": "2026-10-03T08:30:00-03:00",
-      "updated_at": "2026-10-08T18:10:00-03:00"
+      "updated_at": "2026-10-08T18:10:00-03:00",
+      "active": true
     },
     {
       "key": "portal/3112",
@@ -139,7 +145,8 @@
       "stage": "implementation",
       "stage_since": "2026-10-08T10:20:00-03:00",
       "started_at": "2026-10-07T14:00:00-03:00",
-      "updated_at": "2026-10-08T10:20:00-03:00"
+      "updated_at": "2026-10-08T10:25:00-03:00",
+      "active": true
     },
     {
       "key": "portal/3100",
@@ -159,7 +166,8 @@
       "stage": "hml_validation",
       "stage_since": "2026-10-08T09:05:00-03:00",
       "started_at": "2026-10-01T09:10:00-03:00",
-      "updated_at": "2026-10-08T09:05:00-03:00"
+      "updated_at": "2026-10-08T09:05:00-03:00",
+      "active": true
     },
     {
       "key": "painel-maestro/2",
@@ -179,7 +187,29 @@
       "stage": "done",
       "stage_since": "2026-10-07T08:12:00-03:00",
       "started_at": "2026-10-06T09:00:00-03:00",
-      "updated_at": "2026-10-07T08:12:00-03:00"
+      "updated_at": "2026-10-07T08:12:00-03:00",
+      "active": false
+    },
+    {
+      "key": "portal/3088",
+      "project": {
+        "id": "portal",
+        "name": "Portal Contoso",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 3088,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 3088",
+      "title": "Segunda via de boleto pelo portal",
+      "stage": "done",
+      "stage_since": "2026-10-03T16:00:00-03:00",
+      "started_at": "2026-09-28T09:00:00-03:00",
+      "updated_at": "2026-10-03T16:00:00-03:00",
+      "active": false
     }
   ],
   "details": {
@@ -202,6 +232,7 @@
       "stage_since": "2026-10-09T10:05:00-03:00",
       "started_at": "2026-10-09T10:05:00-03:00",
       "updated_at": "2026-10-09T10:05:00-03:00",
+      "active": true,
       "stages": [
         {
           "id": "specification",
@@ -239,9 +270,13 @@
           "entered_at": null
         }
       ],
+      "completed_at": null,
+      "pr": null,
+      "final_adjustment": null,
+      "hml": null,
       "timeline": [
         {
-          "id": 24,
+          "id": 40,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -276,6 +311,7 @@
       "stage_since": "2026-10-09T09:40:00-03:00",
       "started_at": "2026-10-02T10:00:00-03:00",
       "updated_at": "2026-10-09T09:40:00-03:00",
+      "active": true,
       "stages": [
         {
           "id": "specification",
@@ -308,9 +344,26 @@
           "entered_at": null
         }
       ],
+      "completed_at": null,
+      "pr": {
+        "state": "draft",
+        "url": "https://github.com/fabrikam/storefront/pull/61",
+        "number": 61,
+        "branch": "feature/issue-48",
+        "opened_at": "2026-10-02T16:05:00-03:00",
+        "ready_at": null,
+        "merged_at": null
+      },
+      "final_adjustment": {
+        "status": "open",
+        "opened_at": "2026-10-09T09:40:00-03:00",
+        "finished_at": null,
+        "summary": null
+      },
+      "hml": null,
       "timeline": [
         {
-          "id": 3,
+          "id": 9,
           "at": "2026-10-02T10:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -325,7 +378,7 @@
           }
         },
         {
-          "id": 4,
+          "id": 11,
           "at": "2026-10-02T16:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -339,9 +392,9 @@
           }
         },
         {
-          "id": 23,
-          "at": "2026-10-09T09:40:00-03:00",
-          "type": "stage-changed",
+          "id": 12,
+          "at": "2026-10-02T16:05:00-03:00",
+          "type": "pr-changed",
           "task_number": null,
           "agent": {
             "role": "maestro",
@@ -349,8 +402,22 @@
           },
           "source": "cli",
           "payload": {
-            "stage": "final_adjustment"
+            "state": "draft",
+            "url": "https://github.com/fabrikam/storefront/pull/61",
+            "branch": "feature/issue-48"
           }
+        },
+        {
+          "id": 39,
+          "at": "2026-10-09T09:40:00-03:00",
+          "type": "final-adjustment-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {}
         }
       ]
     },
@@ -373,6 +440,7 @@
       "stage_since": "2026-10-09T08:50:00-03:00",
       "started_at": "2026-10-09T08:50:00-03:00",
       "updated_at": "2026-10-09T08:50:00-03:00",
+      "active": true,
       "stages": [
         {
           "id": "specification",
@@ -410,9 +478,13 @@
           "entered_at": null
         }
       ],
+      "completed_at": null,
+      "pr": null,
+      "final_adjustment": null,
+      "hml": null,
       "timeline": [
         {
-          "id": 22,
+          "id": 38,
           "at": "2026-10-09T08:50:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -447,6 +519,7 @@
       "stage_since": "2026-10-09T07:30:00-03:00",
       "started_at": "2026-10-09T07:30:00-03:00",
       "updated_at": "2026-10-09T07:30:00-03:00",
+      "active": true,
       "stages": [
         {
           "id": "specification",
@@ -479,9 +552,13 @@
           "entered_at": null
         }
       ],
+      "completed_at": null,
+      "pr": null,
+      "final_adjustment": null,
+      "hml": null,
       "timeline": [
         {
-          "id": 21,
+          "id": 37,
           "at": "2026-10-09T07:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -516,6 +593,7 @@
       "stage_since": "2026-10-08T20:05:00-03:00",
       "started_at": "2026-10-04T11:00:00-03:00",
       "updated_at": "2026-10-08T20:05:00-03:00",
+      "active": true,
       "stages": [
         {
           "id": "specification",
@@ -548,9 +626,21 @@
           "entered_at": null
         }
       ],
+      "completed_at": null,
+      "pr": {
+        "state": "merged",
+        "url": "https://github.com/fabrikam/storefront/pull/63",
+        "number": 63,
+        "branch": "feature/issue-52",
+        "opened_at": "2026-10-06T13:20:00-03:00",
+        "ready_at": "2026-10-06T13:20:00-03:00",
+        "merged_at": "2026-10-08T20:05:00-03:00"
+      },
+      "final_adjustment": null,
+      "hml": null,
       "timeline": [
         {
-          "id": 6,
+          "id": 17,
           "at": "2026-10-04T11:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -565,9 +655,9 @@
           }
         },
         {
-          "id": 10,
+          "id": 22,
           "at": "2026-10-06T13:20:00-03:00",
-          "type": "stage-changed",
+          "type": "pr-changed",
           "task_number": null,
           "agent": {
             "role": "maestro",
@@ -575,13 +665,15 @@
           },
           "source": "cli",
           "payload": {
-            "stage": "pr_ready"
+            "state": "ready",
+            "url": "https://github.com/fabrikam/storefront/pull/63",
+            "branch": "feature/issue-52"
           }
         },
         {
-          "id": 20,
+          "id": 36,
           "at": "2026-10-08T20:05:00-03:00",
-          "type": "stage-changed",
+          "type": "pr-changed",
           "task_number": null,
           "agent": {
             "role": "maestro",
@@ -589,7 +681,7 @@
           },
           "source": "cli",
           "payload": {
-            "stage": "merge"
+            "state": "merged"
           }
         }
       ]
@@ -613,6 +705,7 @@
       "stage_since": "2026-10-08T18:10:00-03:00",
       "started_at": "2026-10-03T08:30:00-03:00",
       "updated_at": "2026-10-08T18:10:00-03:00",
+      "active": true,
       "stages": [
         {
           "id": "specification",
@@ -650,9 +743,26 @@
           "entered_at": null
         }
       ],
+      "completed_at": null,
+      "pr": {
+        "state": "ready",
+        "url": "https://contoso.visualstudio.com/Billing/_git/billing-api/pullrequest/415",
+        "number": 415,
+        "branch": "feature/pbi-2875",
+        "opened_at": "2026-10-03T08:40:00-03:00",
+        "ready_at": "2026-10-08T18:10:00-03:00",
+        "merged_at": null
+      },
+      "final_adjustment": {
+        "status": "passed",
+        "opened_at": "2026-10-08T15:00:00-03:00",
+        "finished_at": "2026-10-08T17:50:00-03:00",
+        "summary": null
+      },
+      "hml": null,
       "timeline": [
         {
-          "id": 5,
+          "id": 13,
           "at": "2026-10-03T08:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -667,9 +777,9 @@
           }
         },
         {
-          "id": 15,
-          "at": "2026-10-07T16:45:00-03:00",
-          "type": "stage-changed",
+          "id": 14,
+          "at": "2026-10-03T08:40:00-03:00",
+          "type": "pr-changed",
           "task_number": null,
           "agent": {
             "role": "maestro",
@@ -677,13 +787,68 @@
           },
           "source": "cli",
           "payload": {
-            "stage": "final_adjustment"
+            "state": "draft",
+            "url": "https://contoso.visualstudio.com/Billing/_git/billing-api/pullrequest/415",
+            "branch": "feature/pbi-2875"
           }
         },
         {
-          "id": 19,
+          "id": 27,
+          "at": "2026-10-07T16:45:00-03:00",
+          "type": "final-adjustment-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {}
+        },
+        {
+          "id": 32,
+          "at": "2026-10-08T11:30:00-03:00",
+          "type": "final-adjustment-finished",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "outcome": "failed",
+            "summary": "Teste de concorrência falhou; virou uma task nova."
+          }
+        },
+        {
+          "id": 33,
+          "at": "2026-10-08T15:00:00-03:00",
+          "type": "final-adjustment-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {}
+        },
+        {
+          "id": 34,
+          "at": "2026-10-08T17:50:00-03:00",
+          "type": "final-adjustment-finished",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "outcome": "passed"
+          }
+        },
+        {
+          "id": 35,
           "at": "2026-10-08T18:10:00-03:00",
-          "type": "stage-changed",
+          "type": "pr-changed",
           "task_number": null,
           "agent": {
             "role": "maestro",
@@ -691,7 +856,7 @@
           },
           "source": "cli",
           "payload": {
-            "stage": "pr_ready"
+            "state": "ready"
           }
         }
       ]
@@ -714,7 +879,8 @@
       "stage": "implementation",
       "stage_since": "2026-10-08T10:20:00-03:00",
       "started_at": "2026-10-07T14:00:00-03:00",
-      "updated_at": "2026-10-08T10:20:00-03:00",
+      "updated_at": "2026-10-08T10:25:00-03:00",
+      "active": true,
       "stages": [
         {
           "id": "specification",
@@ -752,9 +918,21 @@
           "entered_at": null
         }
       ],
+      "completed_at": null,
+      "pr": {
+        "state": "draft",
+        "url": "https://dev.azure.com/contoso/Portal/_git/portal-web/pullrequest/830",
+        "number": 830,
+        "branch": "feature/pbi-3112",
+        "opened_at": "2026-10-08T10:25:00-03:00",
+        "ready_at": null,
+        "merged_at": null
+      },
+      "final_adjustment": null,
+      "hml": null,
       "timeline": [
         {
-          "id": 14,
+          "id": 26,
           "at": "2026-10-07T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -769,7 +947,7 @@
           }
         },
         {
-          "id": 18,
+          "id": 30,
           "at": "2026-10-08T10:20:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -780,6 +958,22 @@
           "source": "cli",
           "payload": {
             "stage": "implementation"
+          }
+        },
+        {
+          "id": 31,
+          "at": "2026-10-08T10:25:00-03:00",
+          "type": "pr-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "draft",
+            "url": "https://dev.azure.com/contoso/Portal/_git/portal-web/pullrequest/830",
+            "branch": "feature/pbi-3112"
           }
         }
       ]
@@ -803,6 +997,7 @@
       "stage_since": "2026-10-08T09:05:00-03:00",
       "started_at": "2026-10-01T09:10:00-03:00",
       "updated_at": "2026-10-08T09:05:00-03:00",
+      "active": true,
       "stages": [
         {
           "id": "specification",
@@ -840,9 +1035,34 @@
           "entered_at": null
         }
       ],
+      "completed_at": null,
+      "pr": {
+        "state": "merged",
+        "url": "https://dev.azure.com/contoso/Portal/_git/portal-web/pullrequest/812",
+        "number": 812,
+        "branch": "feature/pbi-3100",
+        "opened_at": "2026-10-01T15:45:00-03:00",
+        "ready_at": "2026-10-06T10:15:00-03:00",
+        "merged_at": "2026-10-07T17:30:00-03:00"
+      },
+      "final_adjustment": {
+        "status": "passed",
+        "opened_at": "2026-10-05T11:02:00-03:00",
+        "finished_at": "2026-10-05T16:20:00-03:00",
+        "summary": "Testes e build ok; 2 ajustes de nomenclatura pedidos na revisão."
+      },
+      "hml": {
+        "outcome": "failed",
+        "passed": 5,
+        "failed": 1,
+        "blocked": 1,
+        "card_url": "https://dev.azure.com/contoso/Portal/_workitems/edit/3100",
+        "summary": "Cenário 4 reprovado: o extrato de outubro veio sem a tarifa.\nCenário 6 bloqueado: sem massa de boletos vencidos em HML.",
+        "recorded_at": "2026-10-08T09:05:00-03:00"
+      },
       "timeline": [
         {
-          "id": 1,
+          "id": 6,
           "at": "2026-10-01T09:10:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -857,7 +1077,7 @@
           }
         },
         {
-          "id": 2,
+          "id": 7,
           "at": "2026-10-01T15:40:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -871,9 +1091,37 @@
           }
         },
         {
-          "id": 7,
+          "id": 8,
+          "at": "2026-10-01T15:45:00-03:00",
+          "type": "pr-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "draft",
+            "url": "https://dev.azure.com/contoso/Portal/_git/portal-web/pullrequest/812",
+            "branch": "feature/pbi-3100"
+          }
+        },
+        {
+          "id": 18,
           "at": "2026-10-05T11:02:00-03:00",
-          "type": "stage-changed",
+          "type": "final-adjustment-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {}
+        },
+        {
+          "id": 19,
+          "at": "2026-10-05T16:20:00-03:00",
+          "type": "final-adjustment-finished",
           "task_number": null,
           "agent": {
             "role": "maestro",
@@ -881,13 +1129,14 @@
           },
           "source": "cli",
           "payload": {
-            "stage": "final_adjustment"
+            "outcome": "passed",
+            "summary": "Testes e build ok; 2 ajustes de nomenclatura pedidos na revisão."
           }
         },
         {
-          "id": 9,
+          "id": 21,
           "at": "2026-10-06T10:15:00-03:00",
-          "type": "stage-changed",
+          "type": "pr-changed",
           "task_number": null,
           "agent": {
             "role": "maestro",
@@ -895,13 +1144,13 @@
           },
           "source": "cli",
           "payload": {
-            "stage": "pr_ready"
+            "state": "ready"
           }
         },
         {
-          "id": 16,
+          "id": 28,
           "at": "2026-10-07T17:30:00-03:00",
-          "type": "stage-changed",
+          "type": "pr-changed",
           "task_number": null,
           "agent": {
             "role": "maestro",
@@ -909,21 +1158,25 @@
           },
           "source": "cli",
           "payload": {
-            "stage": "merge"
+            "state": "merged"
           }
         },
         {
-          "id": 17,
+          "id": 29,
           "at": "2026-10-08T09:05:00-03:00",
-          "type": "stage-changed",
+          "type": "hml-recorded",
           "task_number": null,
           "agent": {
-            "role": "maestro",
-            "name": "Ária"
+            "role": "owner",
+            "name": null
           },
           "source": "cli",
           "payload": {
-            "stage": "hml_validation"
+            "passed": 5,
+            "failed": 1,
+            "blocked": 1,
+            "card_url": "https://dev.azure.com/contoso/Portal/_workitems/edit/3100",
+            "summary": "Cenário 4 reprovado: o extrato de outubro veio sem a tarifa.\nCenário 6 bloqueado: sem massa de boletos vencidos em HML."
           }
         }
       ]
@@ -947,6 +1200,7 @@
       "stage_since": "2026-10-07T08:12:00-03:00",
       "started_at": "2026-10-06T09:00:00-03:00",
       "updated_at": "2026-10-07T08:12:00-03:00",
+      "active": false,
       "stages": [
         {
           "id": "specification",
@@ -979,9 +1233,21 @@
           "entered_at": "2026-10-07T08:12:00-03:00"
         }
       ],
+      "completed_at": "2026-10-07T08:12:00-03:00",
+      "pr": {
+        "state": "merged",
+        "url": "https://github.com/higorcesarqn/painel-maestro/pull/14",
+        "number": 14,
+        "branch": "feature/issue-2",
+        "opened_at": "2026-10-06T18:30:00-03:00",
+        "ready_at": "2026-10-06T18:30:00-03:00",
+        "merged_at": "2026-10-07T08:10:00-03:00"
+      },
+      "final_adjustment": null,
+      "hml": null,
       "timeline": [
         {
-          "id": 8,
+          "id": 20,
           "at": "2026-10-06T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -996,9 +1262,9 @@
           }
         },
         {
-          "id": 11,
+          "id": 23,
           "at": "2026-10-06T18:30:00-03:00",
-          "type": "stage-changed",
+          "type": "pr-changed",
           "task_number": null,
           "agent": {
             "role": "maestro",
@@ -1006,13 +1272,15 @@
           },
           "source": "cli",
           "payload": {
-            "stage": "pr_ready"
+            "state": "ready",
+            "url": "https://github.com/higorcesarqn/painel-maestro/pull/14",
+            "branch": "feature/issue-2"
           }
         },
         {
-          "id": 12,
+          "id": 24,
           "at": "2026-10-07T08:10:00-03:00",
-          "type": "stage-changed",
+          "type": "pr-changed",
           "task_number": null,
           "agent": {
             "role": "maestro",
@@ -1020,13 +1288,125 @@
           },
           "source": "cli",
           "payload": {
-            "stage": "merge"
+            "state": "merged"
           }
         },
         {
-          "id": 13,
+          "id": 25,
           "at": "2026-10-07T08:12:00-03:00",
-          "type": "stage-changed",
+          "type": "item-done",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {}
+        }
+      ]
+    },
+    "portal/3088": {
+      "key": "portal/3088",
+      "project": {
+        "id": "portal",
+        "name": "Portal Contoso",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 3088,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 3088",
+      "title": "Segunda via de boleto pelo portal",
+      "stage": "done",
+      "stage_since": "2026-10-03T16:00:00-03:00",
+      "started_at": "2026-09-28T09:00:00-03:00",
+      "updated_at": "2026-10-03T16:00:00-03:00",
+      "active": false,
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "implementation",
+          "status": "done",
+          "entered_at": "2026-09-28T09:00:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "done",
+          "entered_at": "2026-09-30T14:00:00-03:00"
+        },
+        {
+          "id": "pr_ready",
+          "status": "done",
+          "entered_at": "2026-10-01T08:30:00-03:00"
+        },
+        {
+          "id": "merge",
+          "status": "done",
+          "entered_at": "2026-10-02T11:00:00-03:00"
+        },
+        {
+          "id": "hml_validation",
+          "status": "done",
+          "entered_at": "2026-10-03T15:40:00-03:00"
+        },
+        {
+          "id": "done",
+          "status": "current",
+          "entered_at": "2026-10-03T16:00:00-03:00"
+        }
+      ],
+      "completed_at": "2026-10-03T16:00:00-03:00",
+      "pr": {
+        "state": "merged",
+        "url": "https://dev.azure.com/contoso/Portal/_git/portal-web/pullrequest/790",
+        "number": 790,
+        "branch": "feature/pbi-3088",
+        "opened_at": "2026-09-28T09:05:00-03:00",
+        "ready_at": "2026-10-01T08:30:00-03:00",
+        "merged_at": "2026-10-02T11:00:00-03:00"
+      },
+      "final_adjustment": {
+        "status": "passed",
+        "opened_at": "2026-09-30T14:00:00-03:00",
+        "finished_at": "2026-09-30T17:10:00-03:00",
+        "summary": null
+      },
+      "hml": {
+        "outcome": "approved",
+        "passed": 8,
+        "failed": 0,
+        "blocked": 0,
+        "card_url": "https://dev.azure.com/contoso/Portal/_workitems/edit/3088",
+        "summary": null,
+        "recorded_at": "2026-10-03T15:40:00-03:00"
+      },
+      "timeline": [
+        {
+          "id": 1,
+          "at": "2026-09-28T09:00:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Segunda via de boleto pelo portal",
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 2,
+          "at": "2026-09-28T09:05:00-03:00",
+          "type": "pr-changed",
           "task_number": null,
           "agent": {
             "role": "maestro",
@@ -1034,8 +1414,93 @@
           },
           "source": "cli",
           "payload": {
-            "stage": "done"
+            "state": "draft",
+            "url": "https://dev.azure.com/contoso/Portal/_git/portal-web/pullrequest/790",
+            "branch": "feature/pbi-3088"
           }
+        },
+        {
+          "id": 3,
+          "at": "2026-09-30T14:00:00-03:00",
+          "type": "final-adjustment-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {}
+        },
+        {
+          "id": 4,
+          "at": "2026-09-30T17:10:00-03:00",
+          "type": "final-adjustment-finished",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "outcome": "passed"
+          }
+        },
+        {
+          "id": 5,
+          "at": "2026-10-01T08:30:00-03:00",
+          "type": "pr-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "ready"
+          }
+        },
+        {
+          "id": 10,
+          "at": "2026-10-02T11:00:00-03:00",
+          "type": "pr-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "merged"
+          }
+        },
+        {
+          "id": 15,
+          "at": "2026-10-03T15:40:00-03:00",
+          "type": "hml-recorded",
+          "task_number": null,
+          "agent": {
+            "role": "owner",
+            "name": null
+          },
+          "source": "cli",
+          "payload": {
+            "passed": 8,
+            "failed": 0,
+            "blocked": 0,
+            "card_url": "https://dev.azure.com/contoso/Portal/_workitems/edit/3088"
+          }
+        },
+        {
+          "id": 16,
+          "at": "2026-10-03T16:00:00-03:00",
+          "type": "item-done",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {}
         }
       ]
     }
