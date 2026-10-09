@@ -171,7 +171,10 @@ Com `MAESTRO_DIR` definido, o modelo antigo e o novo usam a mesma pasta; sem ele
 
 ### Instalar as skills do dono (`PAINEL_MAESTRO` e `install-skills.js`)
 
-As skills que gravam o fluxo no painel vivem em `skills/` deste repositório e são ligadas à pasta do Claude. Hoje é a `/especificar` (`skills/especificar/`): ela roda `grill-with-docs` → `to-spec` → `to-tickets` e grava o item em **Especificação** logo depois que o `to-spec` publica a issue ou o PBI, e em **Implementação** quando o `to-tickets` termina. Funciona com GitHub e Azure DevOps (o tracker vem do `docs/agents/issue-tracker.md` do repositório onde ela roda).
+As skills que gravam o fluxo no painel vivem em `skills/` deste repositório e são ligadas à pasta do Claude. Funcionam com GitHub e Azure DevOps (o tracker vem do `docs/agents/` do repositório onde rodam).
+
+- **`/especificar`** (`skills/especificar/`): roda `grill-with-docs` → `to-spec` → `to-tickets` e grava o item em **Especificação** logo depois que o `to-spec` publica a issue ou o PBI, e em **Implementação** quando o `to-tickets` termina.
+- **`/implementar-issue`** e **`/implementar-pbi`** (`skills/implementar-issue/`, `skills/implementar-pbi/`): implementam o item num PR só, com um subagente em worktree por task, sem Maestri. Cada uma é o adaptador do seu tracker (`gh`; `az boards`/`az repos`) para o fluxo comum em `skills/docs/orquestracao-subagentes/README.md`, instalado em `~/.claude/docs/orquestracao-subagentes/README.md`. O maestro (a sessão que roda a skill) grava o item e o grafo, o PR em rascunho, cada despacho (trabalhador **subagente**), o status das tasks, as pendências, a integração com os SHAs, os achados da revisão, o ajuste final, o PR pronto e, quando acontecem na sessão, o merge, a HML e a conclusão; cada subagente grava o próprio relatório (`flow report`) antes de responder.
 
 1. **`PAINEL_MAESTRO`**: as skills chamam o CLI por caminho absoluto, `node "$PAINEL_MAESTRO/bin/flow.js" ...`, de dentro do repositório do projeto. Defina a variável de usuário com a pasta **do código** (este repositório, não a dos dados) e reabra o terminal e o Claude Code:
 
@@ -189,13 +192,14 @@ As skills que gravam o fluxo no painel vivem em `skills/` deste repositório e s
    node bin/install-skills.js --help
    ```
 
-   - **O que é ligado:** só o que `skills/links.json` declara (`{"links": [{"source": "skills/especificar", "target": "skills/especificar"}]}`, a origem relativa a este repositório e o destino relativo à pasta do Claude). As skills antigas de `skills/cerebro/` e `skills/compartilhadas/` não são declaradas e não são instaladas.
+   - **O que é ligado:** só o que `skills/links.json` declara (`{"links": [{"source": "skills/especificar", "target": "skills/especificar"}, ...]}`, a origem relativa a este repositório e o destino relativo à pasta do Claude). Hoje: `skills/especificar`, `skills/implementar-issue`, `skills/implementar-pbi` e a pasta do documento, `skills/docs/orquestracao-subagentes` → `docs/orquestracao-subagentes` (o instalador só liga pastas; por isso o documento é um `README.md` numa pasta). As skills antigas de `skills/cerebro/` e `skills/compartilhadas/` não são declaradas e não são instaladas.
+   - **Arquivo solto antigo:** a versão anterior do documento era o arquivo `~/.claude/docs/orquestracao-subagentes.md`. A instalação não mexe nele (o link é a pasta `~/.claude/docs/orquestracao-subagentes/`, ao lado), e as skills instaladas não o leem mais. Depois de conferir que nada seu aponta para ele, apague-o.
    - **Como:** cada destino vira uma *junction* de diretório no Windows (não exige administrador; funciona com o repositório e o `~/.claude` em discos diferentes) e um symlink de diretório nos outros sistemas. Editar a skill no repositório já vale no Claude Code.
    - **Backup:** o que já existir no destino e não for um link deste repositório vai para `~/.claude/backups/painel-maestro/<destino>` (fora de `skills/`, para o Claude Code não carregar duas skills com o mesmo nome). O `--undo` remove só os links deste repositório (nunca o conteúdo deles) e devolve os backups.
    - **Conflitos:** a instalação planeja tudo antes de mexer em qualquer coisa. Se um backup já ocupar o lugar, ou se no `--undo` o destino não for mais um link deste repositório e houver backup, o comando sai com **código 2** e nada é alterado; a mensagem diz o que mover.
    - **Pasta do Claude:** `--claude-dir <pasta>`, senão `CLAUDE_CONFIG_DIR`, senão `~/.claude`. Os testes usam sempre uma pasta temporária.
 
-3. **Conferir:** abra o painel (`npm start`), rode `/especificar` num repositório de teste e acompanhe o item em `http://127.0.0.1:4777/#items/<projeto>/<número>`: ele aparece em Especificação depois da spec e passa para Implementação depois dos tickets.
+3. **Conferir:** abra o painel (`npm start`), rode `/especificar` num repositório de teste e acompanhe o item em `http://127.0.0.1:4777/#items/<projeto>/<número>`: ele aparece em Especificação depois da spec e passa para Implementação depois dos tickets. Depois rode `/implementar-issue <número>` (ou `/implementar-pbi <id>`) no mesmo item: o grafo aparece com as tasks executadas por **subagente**, cada uma com branch, relatório e SHA da integração, seguido do PR em rascunho, dos achados, do ajuste final e do PR pronto.
 
 ### Onde ficam os dados (modelo antigo)
 
@@ -414,6 +418,9 @@ painel-maestro/
 ├── skills/
 │   ├── links.json            skills do dono que o install-skills.js liga ao ~/.claude
 │   ├── especificar/          /especificar: grill → spec → tickets, gravando as etapas no painel
+│   ├── implementar-issue/    /implementar-issue: adaptador GitHub do fluxo com subagentes
+│   ├── implementar-pbi/      /implementar-pbi: adaptador Azure DevOps do fluxo com subagentes
+│   ├── docs/orquestracao-subagentes/   o fluxo com subagentes (ligado em ~/.claude/docs/)
 │   ├── cerebro/              orquestracao, pendencias, painel, onboarding-agente
 │   └── compartilhadas/       protocolo-delegacao, registro-eventos
 ├── conhecimento/protocolos/  delegação, pendências, registro, autonomia
@@ -446,7 +453,7 @@ Além do painel, o repositório traz o método que os agentes seguem, em texto. 
 - **`conhecimento/protocolos/`**: as regras por trás das skills, em quatro arquivos: delegação, pendências, registro e autonomia (o que cada agente faz sozinho, o que propõe e o que é sempre do dono).
 - **`exemplos/`**: `CLAUDE.md`, a regra comum de todos os agentes do workspace, e `responsabilidade-cerebro.md`, o papel do agente principal.
 
-As skills seguem o formato de skill do Claude Code (pasta com `SKILL.md` e cabeçalho `name`/`description`). Para usá-las, copie ou ligue as pastas em `.claude/skills/` do workspace. As skills do dono do modelo novo (`skills/especificar/` e as que vierem) são outra coisa: estão declaradas em `skills/links.json` e são ligadas pelo `bin/install-skills.js` (veja [Instalar as skills](#instalar-as-skills-do-dono-painel_maestro-e-install-skillsjs)).
+As skills seguem o formato de skill do Claude Code (pasta com `SKILL.md` e cabeçalho `name`/`description`). Para usá-las, copie ou ligue as pastas em `.claude/skills/` do workspace. As skills do dono do modelo novo (`skills/especificar/`, `skills/implementar-issue/`, `skills/implementar-pbi/` e as que vierem) são outra coisa: estão declaradas em `skills/links.json` e são ligadas pelo `bin/install-skills.js` (veja [Instalar as skills](#instalar-as-skills-do-dono-painel_maestro-e-install-skillsjs)).
 
 ## Licença
 
