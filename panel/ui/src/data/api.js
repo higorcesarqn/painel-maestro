@@ -44,6 +44,8 @@ export const readEvent = (id) => api(`/api/event/${encodeURIComponent(id)}`);
 // New model (maestro.db): items with their state computed from the events.
 export const readItems = () => api('/api/items');
 export const readItem = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`);
+// "Mark as merged" (#11): records the PR merge by hand when the merge check cannot read it. Returns { item }.
+export const markItemMerged = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}/merged`, { method: 'POST' });
 
 // Option letter at the start of an option of the old model ("A: ...", or the Portuguese word for "option" + "B) ...");
 // the word is data written by the agents, in Portuguese.

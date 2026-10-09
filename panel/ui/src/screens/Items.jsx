@@ -37,7 +37,7 @@ function usePolling(fn, deps) {
     const timer = setInterval(load, REFRESH_MS);
     return () => clearInterval(timer);
   }, [load]);
-  return read;
+  return { ...read, reload: load };
 }
 
 export function Items() {
@@ -97,7 +97,7 @@ function StageBadge({ stage }) {
 
 function ItemPage({ project, number: itemNumber }) {
   const { goTo } = usePanel();
-  const { answer, error } = usePolling(() => readItem(project, itemNumber), [project, itemNumber]);
+  const { answer, error, reload } = usePolling(() => readItem(project, itemNumber), [project, itemNumber]);
   const item = answer && obj(answer.item);
   const back = (
     <button type="button" class="button" onClick={() => goTo('items')}><Icon of={ArrowLeft} size={15} />{t('items.back')}</button>
@@ -130,7 +130,7 @@ function ItemPage({ project, number: itemNumber }) {
           </div>
         </div>
       </Card>
-      <ItemDelivery item={item} />
+      <ItemDelivery item={item} onChange={reload} />
       <ItemTasks item={item} />
       <div class="item-grid">
         <Card label={t('items.flowTitle')} info={t('items.flowInfo')}>

@@ -243,6 +243,8 @@ Sobre o uso do Claude:
 
 Quando o dono responde uma pendência pelo painel, o servidor pode avisar o Cérebro no terminal dele pela CLI do Maestri (`maestri ask`). Isso liga sozinho só quando o servidor roda dentro de um terminal do Maestri; `PANEL_NOTIFY_BRAIN=0` desliga e `1` força.
 
+**Verificador de merge (#11).** Para os itens com PR pronto e ainda não mergeado, o servidor consulta o PR na subida e a cada 10 min (`PANEL_MERGE_CHECK_SECONDS`), só leitura: GitHub pelo `gh pr view`, Azure DevOps pela REST com o token do `az account get-access-token`. Merge confirmado vira evento (origem "painel") e leva o item para Merge; uma falha aparece na página do item e no selo de saúde, e o botão **Marcar como mergeado** resolve à mão. `PANEL_MERGE_CHECK=0` desliga (e `=1` liga mesmo com `PANEL_COLLECTOR=0`); `PANEL_GH_CLI`, `PANEL_AZ_CLI` e `PANEL_AZURE_DEVOPS_URL` trocam os executáveis e a base da REST. Detalhes em `panel/README.md`.
+
 ### Variáveis de ambiente (nomes novos)
 
 As variáveis passaram para o inglês (#3). Quem tinha as antigas no ambiente precisa trocar:
@@ -338,6 +340,7 @@ painel-maestro/
 ├── panel/
 │   ├── server.js             servidor HTTP e API (em inglês, devolve códigos)
 │   ├── api-items.js          itens do modelo novo (/api/items)
+│   ├── merge-check.js        verificador de merge do PR (gh / REST do Azure DevOps) e "marcar como mergeado"
 │   ├── legacy-records.js     nomes em inglês para os registros do modelo antigo
 │   ├── api-pendencias.js     resposta de pendência pelo painel
 │   ├── index.html            a página compilada (não edite à mão)

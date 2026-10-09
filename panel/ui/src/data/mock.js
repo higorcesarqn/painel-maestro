@@ -43,7 +43,9 @@ function loadMockItems() {
 }
 
 /** /api/items and /api/items/<project>/<number> from tests/mock-items.json; null for any other path. */
-async function mockItems(p) {
+async function mockItems(p, method) {
+  const merged = /^\/api\/items\/([^/]+)\/([^/]+)\/merged$/.exec(p);
+  if (merged && method === 'POST') return mockMarkMerged(decodeURIComponent(merged[1]), Number(merged[2]));
   if (p === '/api/items') {
     const m = await loadMockItems();
     return { items: arr(m.items) };
@@ -55,6 +57,31 @@ async function mockItems(p) {
   const number = Number(x[2]);
   const item = obj(m.details) && m.details[`${project}/${number}`];
   if (!item) throw error('item_not_found', 404, { project, number });
+  return { item };
+}
+
+/** "Mark as merged" (#11) in the mock: changes the item in memory only (like the server: only a ready PR). */
+async function mockMarkMerged(project, number) {
+  const m = await loadMockItems();
+  const key = `${project}/${number}`;
+  const item = obj(m.details) && m.details[key];
+  if (!item) throw error('item_not_found', 404, { project, number });
+  const pr = obj(item.pr);
+  if (!pr || pr.state !== 'ready') throw error('pr_not_ready', 409, { project, number, state: pr ? pr.state : null });
+  const at = new Date().toISOString();
+  pr.state = 'merged';
+  pr.merged_at = at;
+  item.merge_check = null;
+  if (arr(item.stages).some((s) => s.id === 'merge')) {
+    item.stage = 'merge';
+    item.stage_since = at;
+    const current = item.stages.findIndex((s) => s.id === 'merge');
+    item.stages = item.stages.map((s, i) => ({ ...s, status: i < current ? 'done' : i === current ? 'current' : 'pending', entered_at: i === current ? at : i < current ? s.entered_at : null }));
+  }
+  item.timeline = [...arr(item.timeline), { id: Date.now(), at, type: 'pr-changed', task_number: null, agent: { role: 'owner', name: null }, source: 'panel', payload: { state: 'merged' } }];
+  const listed = arr(m.items).find((it) => it.key === key);
+  if (listed) Object.assign(listed, { stage: item.stage, stage_since: item.stage_since, updated_at: at });
+  item.updated_at = at;
   return { item };
 }
 
@@ -73,7 +100,7 @@ function error(code, status, params = {}) {
 export async function mockApi(urlPath, method) {
   const u = new URL(urlPath, location.href);
   const p = u.pathname;
-  const items = await mockItems(p);
+  const items = await mockItems(p, method);
   if (items) return items;
   const { state, det } = await loadMock();
   const sp = u.searchParams;

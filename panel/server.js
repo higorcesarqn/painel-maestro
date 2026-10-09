@@ -14,6 +14,7 @@
 //         POST /api/recalculate, POST /api/brain (future phase: 501). Pending decisions (api-pendencias.js):
 //         POST /api/pending-decisions/<P-NNNN>/answer {option, text}. Details in README.md.
 //         New model (api-items.js, maestro.db): GET /api/items[?active=1|0], GET /api/items/<project>/<number>.
+//         Merge check (merge-check.js, #11): POST /api/items/<project>/<number>/merged ("mark as merged").
 // The API never returns sentences: reasons, warnings and errors are codes with parameters
 // ({code, ...params}) and the page translates them (ADR 0004). Old-model records (events and pending
 // decisions written by bin/registrar.js and bin/pendencia.js) go out with English field names
@@ -30,6 +31,8 @@
 //   Brain notice (pending decision answer): PANEL_NOTIFY_BRAIN=0 turns it off and =1 on; without it,
 //   on only inside a Maestri terminal (MAESTRI_TERMINAL_ID) and with a real clock. PANEL_MAESTRI_CLI
 //   replaces the executable (tests; default MAESTRI_CLI or "maestri").
+//   Merge check (merge-check.js): PANEL_MERGE_CHECK=0|1, PANEL_MERGE_CHECK_SECONDS, PANEL_GH_CLI, PANEL_AZ_CLI,
+//   PANEL_AZURE_DEVOPS_URL.
 
 const http = require('http');
 const fs = require('fs');
@@ -40,6 +43,7 @@ const zlib = require('zlib');
 const collector = require(path.join(__dirname, '..', 'bin', 'collect-usage.js'));
 const pendingApi = require(path.join(__dirname, 'api-pendencias.js'));
 const itemsApi = require(path.join(__dirname, 'api-items.js'));
+const mergeCheck = require(path.join(__dirname, 'merge-check.js'));
 const { eventToApi, pendingDecisionToApi } = require(path.join(__dirname, 'legacy-records.js'));
 const { asDate, isoSP, spDay, readJson, readText, withRetries, writeAtomic } = collector.util;
 
@@ -101,7 +105,14 @@ function parseConfig(argv = [], env = process.env) {
   const nowText = env.PANEL_NOW || env.MAESTRO_NOW || '';
   const fixedNow = nowText ? asDate(nowText) : null;
   if (nowText && !fixedNow) throw new UsageError(`Relógio fixo inválido: "${nowText}" (use ISO, ex.: 2026-10-08T15:50:00-03:00).`);
+  let mergeCheckConfig;
+  try {
+    mergeCheckConfig = mergeCheck.parseConfig(env, { collectorActive: env.PANEL_COLLECTOR !== '0', fixedNow });
+  } catch (e) {
+    throw new UsageError(e.message);
+  }
   return {
+    mergeCheck: mergeCheckConfig,
     port: p,
     maestroDir: path.resolve(env.MAESTRO_DIR || path.join(__dirname, '..')),
     indexPath: path.resolve(env.PANEL_INDEX || path.join(__dirname, 'index.html')),
@@ -984,6 +995,7 @@ function createContext(cfg) {
     ctx.allowedOrigins = new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
   };
   ctx.setPort(cfg.port);
+  ctx.mergeCheck = mergeCheck.createMergeCheck({ config: cfg.mergeCheck, env: cfg.env, items: ctx.items, now: ctx.now, log: ctx.log, logError: ctx.logError });
   /** Runs the usage collector; calls during a collection wait for the same collection. */
   ctx.runCollector = (trigger) => {
     if (ctx.currentRun) return ctx.currentRun;
@@ -1133,6 +1145,7 @@ async function buildState(ctx) {
   if (counter.exists && counter.error) warnings.push({ code: 'file_unreadable', file: LEGACY.flowCounter, error: counter.error });
 
   // Health
+  problems.push(...ctx.mergeCheck.healthReasons());
   const base = computeHealth({ hooks, problems });
   const lastEvent = events[0] || null;
   const health = {
@@ -1624,6 +1637,11 @@ function findRoute(urlPath) {
     const it = itemsApi.parseItemPath(mi[1], mi[2]);
     return it ? { name: 'item', methods: ['GET', 'HEAD'], project: it.project, number: it.number } : null;
   }
+  const mm = /^\/api\/items\/([^/]+)\/([^/]+)\/merged$/.exec(urlPath);
+  if (mm) {
+    const it = itemsApi.parseItemPath(mm[1], mm[2]);
+    return it ? { name: 'item-merged', methods: ['POST'], project: it.project, number: it.number } : null;
+  }
   const mp = /^\/api\/pending-decisions\/([^/]+)\/answer$/.exec(urlPath);
   if (mp) {
     const pid = pendingApi.normalizeId(mp[1]);
@@ -1705,7 +1723,12 @@ async function route(ctx, req, res) {
     case 'item': {
       const x = itemsApi.itemDetail(ctx.items, r.project, r.number);
       if (!x) return respondError(req, res, 404, { code: 'item_not_found', project: r.project, number: r.number });
-      return respondJson(req, res, 200, x);
+      return respondJson(req, res, 200, withMergeCheck(ctx, x));
+    }
+    case 'item-merged': {
+      const marked = ctx.mergeCheck.markMerged(r.project, r.number);
+      if (marked.error) return respondError(req, res, marked.status, marked.error);
+      return respondJson(req, res, 200, withMergeCheck(ctx, itemsApi.itemDetail(ctx.items, r.project, r.number)));
     }
     case 'recalculate': {
       const run = await ctx.runCollector('recalculate');
@@ -1726,6 +1749,12 @@ async function route(ctx, req, res) {
     default:
       return respondError(req, res, 404, { code: 'route_not_found' });
   }
+}
+
+/** The item page with the state of its merge check (merge_check: null when the item does not wait for a merge). */
+function withMergeCheck(ctx, detail) {
+  const it = detail.item;
+  return { item: { ...it, merge_check: ctx.mergeCheck.itemStatus(it.key, it) } };
 }
 
 function createHandler(ctx) {
@@ -1784,12 +1813,14 @@ async function start(options = {}) {
     ctx.runCollector('startup');
     timer = setInterval(() => ctx.runCollector('periodic'), COLLECTOR_INTERVAL_MS);
   }
+  ctx.mergeCheck.start();
   let stopped = false;
   async function stop() {
     if (stopped) return;
     stopped = true;
     if (timer) clearInterval(timer);
     removePidSync(pidFile);
+    await ctx.mergeCheck.stop();
     ctx.items.close();
     await new Promise((resolve) => {
       server.close(() => resolve());
@@ -1805,6 +1836,8 @@ const HELP = `Uso: node server.js [--port 4777]
   Parar: Ctrl+C neste terminal, ou taskkill /PID <pid de state/panel.pid> /F
 Variáveis: PANEL_PORT, MAESTRO_DIR, MAESTRI_DATA_DIR, CLAUDE_CONFIG_DIR,
   PANEL_COLLECTOR=0 (sem coletor automático).
+  Verificador de merge: PANEL_MERGE_CHECK=0 (desliga) ou 1 (liga), PANEL_MERGE_CHECK_SECONDS
+  (intervalo, padrão 600), PANEL_GH_CLI, PANEL_AZ_CLI, PANEL_AZURE_DEVOPS_URL.
 `;
 
 module.exports = {
