@@ -13,7 +13,7 @@
       "name": "Fabrikam",
       "unassigned": false,
       "project_count": 2,
-      "item_count": 3
+      "item_count": 4
     },
     {
       "id": "personal",
@@ -212,7 +212,7 @@
       "done_state": null,
       "maestri_workspace": "Fabrikam",
       "created_at": "2026-10-01T09:00:00-03:00",
-      "item_count": 2
+      "item_count": 3
     },
     {
       "id": "painel-maestro",
@@ -513,6 +513,27 @@
       "started_at": "2026-09-28T09:00:00-03:00",
       "updated_at": "2026-10-03T16:00:00-03:00",
       "active": false
+    },
+    {
+      "key": "storefront/55",
+      "project": {
+        "id": "storefront",
+        "name": "Loja",
+        "tracker": "github",
+        "company": {
+          "id": "fabrikam",
+          "name": "Fabrikam"
+        }
+      },
+      "number": 55,
+      "tracker": "github",
+      "tracker_ref": "#55",
+      "title": "Busca por código de barras",
+      "stage": "specification",
+      "stage_since": "2026-10-02T14:00:00-03:00",
+      "started_at": "2026-10-02T14:00:00-03:00",
+      "updated_at": "2026-10-02T14:00:00-03:00",
+      "active": true
     }
   ],
   "details": {
@@ -596,7 +617,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 64,
+          "id": 65,
           "at": "2026-10-09T07:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -611,7 +632,7 @@
           }
         },
         {
-          "id": 65,
+          "id": 66,
           "at": "2026-10-09T07:35:00-03:00",
           "type": "task-dispatched",
           "task_number": 5,
@@ -627,7 +648,7 @@
           }
         },
         {
-          "id": 66,
+          "id": 67,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 5,
@@ -651,7 +672,7 @@
           }
         },
         {
-          "id": 71,
+          "id": 72,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": 5,
@@ -661,12 +682,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 66,
+            "pending_decision": 67,
             "decision": "B: vira task nova para triagem."
           }
         },
         {
-          "id": 80,
+          "id": 81,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -880,7 +901,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 38,
+          "id": 39,
           "at": "2026-10-07T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -895,7 +916,7 @@
           }
         },
         {
-          "id": 44,
+          "id": 45,
           "at": "2026-10-08T10:20:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -909,7 +930,7 @@
           }
         },
         {
-          "id": 45,
+          "id": 46,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -925,7 +946,7 @@
           }
         },
         {
-          "id": 46,
+          "id": 47,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "task-graph",
           "task_number": null,
@@ -985,7 +1006,7 @@
           }
         },
         {
-          "id": 47,
+          "id": 48,
           "at": "2026-10-08T10:30:00-03:00",
           "type": "task-dispatched",
           "task_number": 3113,
@@ -1001,7 +1022,7 @@
           }
         },
         {
-          "id": 50,
+          "id": 51,
           "at": "2026-10-08T13:10:00-03:00",
           "type": "task-status",
           "task_number": 3113,
@@ -1021,7 +1042,7 @@
           }
         },
         {
-          "id": 51,
+          "id": 52,
           "at": "2026-10-08T13:12:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3113,
@@ -1047,7 +1068,7 @@
           }
         },
         {
-          "id": 52,
+          "id": 53,
           "at": "2026-10-08T14:02:00-03:00",
           "type": "task-integrated",
           "task_number": 3113,
@@ -1062,7 +1083,7 @@
           }
         },
         {
-          "id": 53,
+          "id": 54,
           "at": "2026-10-08T14:04:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1088,7 +1109,7 @@
           }
         },
         {
-          "id": 54,
+          "id": 55,
           "at": "2026-10-08T14:08:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -1098,12 +1119,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 53,
+            "pending_decision": 54,
             "decision": "Pode paralelizar. A 3115 integra primeiro."
           }
         },
         {
-          "id": 55,
+          "id": 56,
           "at": "2026-10-08T14:10:00-03:00",
           "type": "task-dispatched",
           "task_number": 3114,
@@ -1119,7 +1140,7 @@
           }
         },
         {
-          "id": 56,
+          "id": 57,
           "at": "2026-10-08T14:12:00-03:00",
           "type": "task-dispatched",
           "task_number": 3115,
@@ -1135,7 +1156,7 @@
           }
         },
         {
-          "id": 67,
+          "id": 68,
           "at": "2026-10-09T08:40:00-03:00",
           "type": "task-status",
           "task_number": 3115,
@@ -1155,7 +1176,7 @@
           }
         },
         {
-          "id": 68,
+          "id": 69,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3115,
@@ -1182,7 +1203,7 @@
           }
         },
         {
-          "id": 72,
+          "id": 73,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "task_number": 3114,
@@ -1202,7 +1223,7 @@
           }
         },
         {
-          "id": 76,
+          "id": 77,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "task_number": 3116,
@@ -1218,7 +1239,7 @@
           }
         },
         {
-          "id": 78,
+          "id": 79,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "task_number": 3116,
@@ -1235,7 +1256,7 @@
           }
         },
         {
-          "id": 79,
+          "id": 80,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -1344,7 +1365,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 77,
+          "id": 78,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1484,7 +1505,7 @@
           }
         },
         {
-          "id": 13,
+          "id": 14,
           "at": "2026-10-02T16:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -1498,7 +1519,7 @@
           }
         },
         {
-          "id": 14,
+          "id": 15,
           "at": "2026-10-02T16:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -1514,7 +1535,7 @@
           }
         },
         {
-          "id": 15,
+          "id": 16,
           "at": "2026-10-02T16:05:00-03:00",
           "type": "task-graph",
           "task_number": null,
@@ -1543,7 +1564,7 @@
           }
         },
         {
-          "id": 16,
+          "id": 17,
           "at": "2026-10-02T16:10:00-03:00",
           "type": "task-dispatched",
           "task_number": 49,
@@ -1559,7 +1580,7 @@
           }
         },
         {
-          "id": 27,
+          "id": 28,
           "at": "2026-10-05T11:30:00-03:00",
           "type": "task-integrated",
           "task_number": 49,
@@ -1574,7 +1595,7 @@
           }
         },
         {
-          "id": 28,
+          "id": 29,
           "at": "2026-10-05T11:40:00-03:00",
           "type": "task-dispatched",
           "task_number": 50,
@@ -1590,7 +1611,7 @@
           }
         },
         {
-          "id": 60,
+          "id": 61,
           "at": "2026-10-08T17:00:00-03:00",
           "type": "task-integrated",
           "task_number": 50,
@@ -1605,7 +1626,7 @@
           }
         },
         {
-          "id": 74,
+          "id": 75,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -1617,7 +1638,7 @@
           "payload": {}
         },
         {
-          "id": 75,
+          "id": 76,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1726,7 +1747,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 69,
+          "id": 70,
           "at": "2026-10-09T08:50:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1741,7 +1762,7 @@
           }
         },
         {
-          "id": 70,
+          "id": 71,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1765,7 +1786,7 @@
           }
         },
         {
-          "id": 73,
+          "id": 74,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "task_number": null,
@@ -1775,7 +1796,7 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 70,
+            "pending_decision": 71,
             "reason": "Entrou na especificação do item."
           }
         }
@@ -1866,7 +1887,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 23,
+          "id": 24,
           "at": "2026-10-04T11:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1881,7 +1902,7 @@
           }
         },
         {
-          "id": 33,
+          "id": 34,
           "at": "2026-10-06T13:20:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -1897,7 +1918,7 @@
           }
         },
         {
-          "id": 63,
+          "id": 64,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2007,7 +2028,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 18,
+          "id": 19,
           "at": "2026-10-03T08:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2022,7 +2043,7 @@
           }
         },
         {
-          "id": 19,
+          "id": 20,
           "at": "2026-10-03T08:40:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2038,7 +2059,7 @@
           }
         },
         {
-          "id": 39,
+          "id": 40,
           "at": "2026-10-07T16:45:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2050,7 +2071,7 @@
           "payload": {}
         },
         {
-          "id": 40,
+          "id": 41,
           "at": "2026-10-07T17:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2076,7 +2097,7 @@
           }
         },
         {
-          "id": 42,
+          "id": 43,
           "at": "2026-10-07T18:20:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -2086,12 +2107,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 40,
+            "pending_decision": 41,
             "decision": "A: 3 retentativas, com intervalo de 24 h."
           }
         },
         {
-          "id": 48,
+          "id": 49,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -2106,7 +2127,7 @@
           }
         },
         {
-          "id": 57,
+          "id": 58,
           "at": "2026-10-08T15:00:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2118,7 +2139,7 @@
           "payload": {}
         },
         {
-          "id": 61,
+          "id": 62,
           "at": "2026-10-08T17:50:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -2132,7 +2153,7 @@
           }
         },
         {
-          "id": 62,
+          "id": 63,
           "at": "2026-10-08T18:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2359,7 +2380,7 @@
           }
         },
         {
-          "id": 17,
+          "id": 18,
           "at": "2026-10-02T18:20:00-03:00",
           "type": "task-integrated",
           "task_number": 3101,
@@ -2374,7 +2395,7 @@
           }
         },
         {
-          "id": 20,
+          "id": 21,
           "at": "2026-10-03T09:00:00-03:00",
           "type": "task-dispatched",
           "task_number": 3102,
@@ -2390,7 +2411,7 @@
           }
         },
         {
-          "id": 25,
+          "id": 26,
           "at": "2026-10-05T10:40:00-03:00",
           "type": "task-integrated",
           "task_number": 3102,
@@ -2405,7 +2426,7 @@
           }
         },
         {
-          "id": 26,
+          "id": 27,
           "at": "2026-10-05T11:02:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2417,7 +2438,7 @@
           "payload": {}
         },
         {
-          "id": 29,
+          "id": 30,
           "at": "2026-10-05T16:20:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -2432,7 +2453,7 @@
           }
         },
         {
-          "id": 32,
+          "id": 33,
           "at": "2026-10-06T10:15:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2446,7 +2467,7 @@
           }
         },
         {
-          "id": 41,
+          "id": 42,
           "at": "2026-10-07T17:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2460,7 +2481,7 @@
           }
         },
         {
-          "id": 43,
+          "id": 44,
           "at": "2026-10-08T09:05:00-03:00",
           "type": "hml-recorded",
           "task_number": null,
@@ -2478,7 +2499,7 @@
           }
         },
         {
-          "id": 59,
+          "id": 60,
           "at": "2026-10-08T16:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2587,7 +2608,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 58,
+          "id": 59,
           "at": "2026-10-08T15:20:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2680,7 +2701,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 34,
+          "id": 35,
           "at": "2026-10-06T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2695,7 +2716,7 @@
           }
         },
         {
-          "id": 49,
+          "id": 50,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -2795,7 +2816,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 30,
+          "id": 31,
           "at": "2026-10-06T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2810,7 +2831,7 @@
           }
         },
         {
-          "id": 35,
+          "id": 36,
           "at": "2026-10-06T18:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2826,7 +2847,7 @@
           }
         },
         {
-          "id": 36,
+          "id": 37,
           "at": "2026-10-07T08:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2840,7 +2861,7 @@
           }
         },
         {
-          "id": 37,
+          "id": 38,
           "at": "2026-10-07T08:12:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -2935,7 +2956,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 24,
+          "id": 25,
           "at": "2026-10-05T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2950,7 +2971,7 @@
           }
         },
         {
-          "id": 31,
+          "id": 32,
           "at": "2026-10-06T10:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -3153,7 +3174,7 @@
           }
         },
         {
-          "id": 21,
+          "id": 22,
           "at": "2026-10-03T15:40:00-03:00",
           "type": "hml-recorded",
           "task_number": null,
@@ -3170,7 +3191,7 @@
           }
         },
         {
-          "id": 22,
+          "id": 23,
           "at": "2026-10-03T16:00:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -3182,12 +3203,105 @@
           "payload": {}
         }
       ]
+    },
+    "storefront/55": {
+      "key": "storefront/55",
+      "project": {
+        "id": "storefront",
+        "name": "Loja",
+        "tracker": "github",
+        "company": {
+          "id": "fabrikam",
+          "name": "Fabrikam"
+        }
+      },
+      "number": 55,
+      "tracker": "github",
+      "tracker_ref": "#55",
+      "title": "Busca por código de barras",
+      "stage": "specification",
+      "stage_since": "2026-10-02T14:00:00-03:00",
+      "started_at": "2026-10-02T14:00:00-03:00",
+      "updated_at": "2026-10-02T14:00:00-03:00",
+      "active": true,
+      "stages": [
+        {
+          "id": "specification",
+          "status": "current",
+          "entered_at": "2026-10-02T14:00:00-03:00"
+        },
+        {
+          "id": "implementation",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "final_adjustment",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "merge",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "tasks": [
+        {
+          "number": 55,
+          "title": "Busca por código de barras",
+          "self": true,
+          "state": "waiting",
+          "blocked_by": [],
+          "worker": null,
+          "floor": null,
+          "branch": null,
+          "sha": null,
+          "sha_before": null,
+          "status_text": null,
+          "progress": null,
+          "dispatched_at": null,
+          "integrated_at": null,
+          "updated_at": null
+        }
+      ],
+      "completed_at": null,
+      "pr": null,
+      "final_adjustment": null,
+      "hml": null,
+      "timeline": [
+        {
+          "id": 13,
+          "at": "2026-10-02T14:00:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Busca por código de barras",
+            "stage": "specification"
+          }
+        }
+      ]
     }
   },
   "pending_decisions": {
     "pending_decisions": [
       {
-        "id": 79,
+        "id": 80,
         "kind": "worker_blocked",
         "severity": "critical",
         "status": "open",
@@ -3235,7 +3349,7 @@
         }
       },
       {
-        "id": 59,
+        "id": 60,
         "kind": "hml",
         "severity": "high",
         "status": "open",
@@ -3279,7 +3393,7 @@
         "task": null
       },
       {
-        "id": 68,
+        "id": 69,
         "kind": "task_review",
         "severity": "high",
         "status": "open",
@@ -3328,7 +3442,7 @@
         }
       },
       {
-        "id": 75,
+        "id": 76,
         "kind": "finding",
         "severity": "normal",
         "status": "open",
@@ -3372,7 +3486,7 @@
         "task": null
       },
       {
-        "id": 70,
+        "id": 71,
         "kind": "decision",
         "severity": "low",
         "status": "canceled",
@@ -3419,7 +3533,7 @@
         "task": null
       },
       {
-        "id": 66,
+        "id": 67,
         "kind": "finding",
         "severity": "low",
         "status": "resolved",
@@ -3470,7 +3584,7 @@
         }
       },
       {
-        "id": 53,
+        "id": 54,
         "kind": "parallelize",
         "severity": "normal",
         "status": "resolved",
@@ -3517,7 +3631,7 @@
         "task": null
       },
       {
-        "id": 51,
+        "id": 52,
         "kind": "task_review",
         "severity": "normal",
         "status": "resolved",
@@ -3568,7 +3682,7 @@
         }
       },
       {
-        "id": 40,
+        "id": 41,
         "kind": "decision",
         "severity": "normal",
         "status": "resolved",
@@ -3646,5 +3760,2258 @@
         "name": "Sem empresa"
       }
     ]
+  },
+  "overview": {
+    "": {
+      "generated_at": "2026-10-09T10:24:30-03:00",
+      "company": null,
+      "stale_hours": 48,
+      "active": {
+        "total": 12,
+        "by_stage": {
+          "implementation": 4,
+          "specification": 3,
+          "final_adjustment": 1,
+          "merge": 1,
+          "pr_ready": 2,
+          "hml_validation": 1
+        },
+        "companies": [
+          {
+            "id": "contoso",
+            "name": "Contoso",
+            "unassigned": false,
+            "total": 5,
+            "projects": [
+              {
+                "id": "billing-api",
+                "name": "Cobrança",
+                "tracker": "azure_devops",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "hml_validation",
+                  "done"
+                ],
+                "total": 2,
+                "by_stage": {
+                  "specification": 1,
+                  "pr_ready": 1
+                }
+              },
+              {
+                "id": "design-system",
+                "name": "Design system",
+                "tracker": "github",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "done"
+                ],
+                "total": 1,
+                "by_stage": {
+                  "pr_ready": 1
+                }
+              },
+              {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "hml_validation",
+                  "done"
+                ],
+                "total": 2,
+                "by_stage": {
+                  "implementation": 1,
+                  "hml_validation": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "fabrikam",
+            "name": "Fabrikam",
+            "unassigned": false,
+            "total": 4,
+            "projects": [
+              {
+                "id": "erp",
+                "name": "ERP Fabrikam",
+                "tracker": "azure_devops",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "hml_validation",
+                  "done"
+                ],
+                "total": 1,
+                "by_stage": {
+                  "implementation": 1
+                }
+              },
+              {
+                "id": "storefront",
+                "name": "Loja",
+                "tracker": "github",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "done"
+                ],
+                "total": 3,
+                "by_stage": {
+                  "final_adjustment": 1,
+                  "merge": 1,
+                  "specification": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "personal",
+            "name": "Pessoal",
+            "unassigned": false,
+            "total": 1,
+            "projects": [
+              {
+                "id": "painel-maestro",
+                "name": "painel-maestro",
+                "tracker": "github",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "done"
+                ],
+                "total": 1,
+                "by_stage": {
+                  "implementation": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "unassigned",
+            "name": "Sem empresa",
+            "unassigned": true,
+            "total": 2,
+            "projects": [
+              {
+                "id": "relatorios-bi",
+                "name": "relatorios-bi",
+                "tracker": "azure_devops",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "hml_validation",
+                  "done"
+                ],
+                "total": 1,
+                "by_stage": {
+                  "implementation": 1
+                }
+              },
+              {
+                "id": "scratch",
+                "name": "scratch",
+                "tracker": "github",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "hml_validation",
+                  "done"
+                ],
+                "total": 1,
+                "by_stage": {
+                  "specification": 1
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "pending_decisions": {
+        "total": 4,
+        "by_severity": {
+          "critical": 1,
+          "high": 2,
+          "normal": 1,
+          "low": 0
+        },
+        "open": [
+          {
+            "id": 80,
+            "kind": "worker_blocked",
+            "severity": "critical",
+            "title": "Falta o certificado de homologação para assinar o PDF",
+            "opened_at": "2026-10-09T10:06:00-03:00",
+            "item": {
+              "key": "portal/3112",
+              "number": 3112,
+              "tracker_ref": "PBI 3112",
+              "title": "Exportar o extrato em PDF",
+              "stage": "implementation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "company": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": {
+              "number": 3116,
+              "title": "Assinatura digital do PDF",
+              "state": "blocked"
+            }
+          },
+          {
+            "id": 60,
+            "kind": "hml",
+            "severity": "high",
+            "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
+            "opened_at": "2026-10-08T16:30:00-03:00",
+            "item": {
+              "key": "portal/3100",
+              "number": 3100,
+              "tracker_ref": "PBI 3100",
+              "title": "Conciliação de boletos com o extrato do banco",
+              "stage": "hml_validation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "company": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": null
+          },
+          {
+            "id": 69,
+            "kind": "task_review",
+            "severity": "high",
+            "title": "Revisar e integrar a task 3115 (botão de exportar)",
+            "opened_at": "2026-10-09T08:42:00-03:00",
+            "item": {
+              "key": "portal/3112",
+              "number": 3112,
+              "tracker_ref": "PBI 3112",
+              "title": "Exportar o extrato em PDF",
+              "stage": "implementation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "company": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": {
+              "number": 3115,
+              "title": "Botão de exportar na tela do extrato",
+              "state": "review"
+            }
+          },
+          {
+            "id": 76,
+            "kind": "finding",
+            "severity": "normal",
+            "title": "Achado: o carrinho anônimo expira em 24 h",
+            "opened_at": "2026-10-09T09:45:00-03:00",
+            "item": {
+              "key": "storefront/48",
+              "number": 48,
+              "tracker_ref": "#48",
+              "title": "Carrinho salvo entre dispositivos",
+              "stage": "final_adjustment",
+              "project": {
+                "id": "storefront",
+                "name": "Loja",
+                "tracker": "github",
+                "company": {
+                  "id": "fabrikam",
+                  "name": "Fabrikam"
+                }
+              }
+            },
+            "task": null
+          }
+        ]
+      },
+      "stale_items": [
+        {
+          "key": "storefront/55",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "number": 55,
+          "tracker_ref": "#55",
+          "title": "Busca por código de barras",
+          "stage": "specification",
+          "stage_since": "2026-10-02T14:00:00-03:00",
+          "updated_at": "2026-10-02T14:00:00-03:00",
+          "hours": 164
+        },
+        {
+          "key": "erp/1204",
+          "project": {
+            "id": "erp",
+            "name": "ERP Fabrikam",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "number": 1204,
+          "tracker_ref": "PBI 1204",
+          "title": "Nota fiscal de serviço eletrônica",
+          "stage": "implementation",
+          "stage_since": "2026-10-06T10:00:00-03:00",
+          "updated_at": "2026-10-06T10:00:00-03:00",
+          "hours": 72
+        }
+      ],
+      "events_today": 17,
+      "recent_events": [
+        {
+          "id": 81,
+          "at": "2026-10-09T10:10:00-03:00",
+          "type": "task-status",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item_number": 5,
+          "item_key": "painel-maestro/5",
+          "item_title": "Item ponta a ponta (tracer bullet)",
+          "tracker_ref": "#5",
+          "task_number": 5,
+          "agent": {
+            "role": "worker",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "working",
+            "text": "API e telas prontas, faltam os testes",
+            "progress": {
+              "done": 4,
+              "total": 6
+            },
+            "maestri": "posted"
+          }
+        },
+        {
+          "id": 80,
+          "at": "2026-10-09T10:06:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3116,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "worker_blocked",
+            "severity": "critical",
+            "title": "Falta o certificado de homologação para assinar o PDF",
+            "context": "O subagente da 3116 parou: a assinatura digital precisa do certificado A1 de homologação, que não está no cofre do projeto.",
+            "options": [
+              "A: Enviar o certificado",
+              "B: Assinar com certificado de teste por enquanto"
+            ],
+            "recommendation": "B, e abrir um achado para trocar antes do HML.",
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3112"
+            }
+          }
+        },
+        {
+          "id": 79,
+          "at": "2026-10-09T10:05:00-03:00",
+          "type": "task-status",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3116,
+          "agent": {
+            "role": "worker",
+            "name": "subagente"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "blocked",
+            "text": "Preciso do certificado de homologação",
+            "progress": null,
+            "maestri": "outside"
+          }
+        },
+        {
+          "id": 78,
+          "at": "2026-10-09T10:05:00-03:00",
+          "type": "item-started",
+          "project": {
+            "id": "scratch",
+            "name": "scratch",
+            "tracker": "github",
+            "company": {
+              "id": "unassigned",
+              "name": "Sem empresa"
+            }
+          },
+          "item_number": 3,
+          "item_key": "scratch/3",
+          "item_title": "Testar o layout do relatório",
+          "tracker_ref": "#3",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Testar o layout do relatório",
+            "stage": "specification"
+          }
+        },
+        {
+          "id": 77,
+          "at": "2026-10-09T09:50:00-03:00",
+          "type": "task-dispatched",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3116,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "floor": null,
+            "worker": "subagente",
+            "branch": "task/3116-assinatura"
+          }
+        },
+        {
+          "id": 76,
+          "at": "2026-10-09T09:45:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 48,
+          "item_key": "storefront/48",
+          "item_title": "Carrinho salvo entre dispositivos",
+          "tracker_ref": "#48",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "finding",
+            "severity": "normal",
+            "title": "Achado: o carrinho anônimo expira em 24 h",
+            "context": "Na revisão final apareceu que o carrinho de quem não entrou na conta some em 24 h; ao juntar carrinhos, itens antigos se perdem.",
+            "options": [
+              "A: Manter 24 h",
+              "B: Estender para 7 dias (task nova)"
+            ],
+            "recommendation": "B, como task nova para triagem.",
+            "maestri": {
+              "workspace": "Fabrikam",
+              "terminal": "Maestro #48"
+            }
+          }
+        },
+        {
+          "id": 75,
+          "at": "2026-10-09T09:40:00-03:00",
+          "type": "final-adjustment-opened",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 48,
+          "item_key": "storefront/48",
+          "item_title": "Carrinho salvo entre dispositivos",
+          "tracker_ref": "#48",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {}
+        },
+        {
+          "id": 74,
+          "at": "2026-10-09T09:30:00-03:00",
+          "type": "pending-decision-canceled",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 2901,
+          "item_key": "billing-api/2901",
+          "item_title": "Limite de tentativas por cartão",
+          "tracker_ref": "PBI 2901",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "pending_decision": 71,
+            "reason": "Entrou na especificação do item."
+          }
+        },
+        {
+          "id": 73,
+          "at": "2026-10-09T09:15:00-03:00",
+          "type": "task-status",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3114,
+          "agent": {
+            "role": "worker",
+            "name": "Caio"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "working",
+            "text": "Layout gerado, faltam as fontes",
+            "progress": {
+              "done": 2,
+              "total": 5
+            },
+            "maestri": "posted"
+          }
+        },
+        {
+          "id": 72,
+          "at": "2026-10-09T09:00:00-03:00",
+          "type": "pending-decision-resolved",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item_number": 5,
+          "item_key": "painel-maestro/5",
+          "item_title": "Item ponta a ponta (tracer bullet)",
+          "tracker_ref": "#5",
+          "task_number": 5,
+          "agent": {
+            "role": "owner",
+            "name": null
+          },
+          "source": "cli",
+          "payload": {
+            "pending_decision": 67,
+            "decision": "B: vira task nova para triagem."
+          }
+        },
+        {
+          "id": 71,
+          "at": "2026-10-09T09:00:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 2901,
+          "item_key": "billing-api/2901",
+          "item_title": "Limite de tentativas por cartão",
+          "tracker_ref": "PBI 2901",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "decision",
+            "severity": "low",
+            "title": "Limite por cartão ou por cliente?",
+            "options": [
+              "A: Por cartão",
+              "B: Por cliente"
+            ],
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 2901"
+            }
+          }
+        },
+        {
+          "id": 70,
+          "at": "2026-10-09T08:50:00-03:00",
+          "type": "item-started",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 2901,
+          "item_key": "billing-api/2901",
+          "item_title": "Limite de tentativas por cartão",
+          "tracker_ref": "PBI 2901",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Limite de tentativas por cartão",
+            "stage": "specification"
+          }
+        }
+      ]
+    },
+    "contoso": {
+      "generated_at": "2026-10-09T10:24:30-03:00",
+      "company": "contoso",
+      "stale_hours": 48,
+      "active": {
+        "total": 5,
+        "by_stage": {
+          "implementation": 1,
+          "specification": 1,
+          "pr_ready": 2,
+          "hml_validation": 1
+        },
+        "companies": [
+          {
+            "id": "contoso",
+            "name": "Contoso",
+            "unassigned": false,
+            "total": 5,
+            "projects": [
+              {
+                "id": "billing-api",
+                "name": "Cobrança",
+                "tracker": "azure_devops",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "hml_validation",
+                  "done"
+                ],
+                "total": 2,
+                "by_stage": {
+                  "specification": 1,
+                  "pr_ready": 1
+                }
+              },
+              {
+                "id": "design-system",
+                "name": "Design system",
+                "tracker": "github",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "done"
+                ],
+                "total": 1,
+                "by_stage": {
+                  "pr_ready": 1
+                }
+              },
+              {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "hml_validation",
+                  "done"
+                ],
+                "total": 2,
+                "by_stage": {
+                  "implementation": 1,
+                  "hml_validation": 1
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "pending_decisions": {
+        "total": 3,
+        "by_severity": {
+          "critical": 1,
+          "high": 2,
+          "normal": 0,
+          "low": 0
+        },
+        "open": [
+          {
+            "id": 80,
+            "kind": "worker_blocked",
+            "severity": "critical",
+            "title": "Falta o certificado de homologação para assinar o PDF",
+            "opened_at": "2026-10-09T10:06:00-03:00",
+            "item": {
+              "key": "portal/3112",
+              "number": 3112,
+              "tracker_ref": "PBI 3112",
+              "title": "Exportar o extrato em PDF",
+              "stage": "implementation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "company": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": {
+              "number": 3116,
+              "title": "Assinatura digital do PDF",
+              "state": "blocked"
+            }
+          },
+          {
+            "id": 60,
+            "kind": "hml",
+            "severity": "high",
+            "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
+            "opened_at": "2026-10-08T16:30:00-03:00",
+            "item": {
+              "key": "portal/3100",
+              "number": 3100,
+              "tracker_ref": "PBI 3100",
+              "title": "Conciliação de boletos com o extrato do banco",
+              "stage": "hml_validation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "company": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": null
+          },
+          {
+            "id": 69,
+            "kind": "task_review",
+            "severity": "high",
+            "title": "Revisar e integrar a task 3115 (botão de exportar)",
+            "opened_at": "2026-10-09T08:42:00-03:00",
+            "item": {
+              "key": "portal/3112",
+              "number": 3112,
+              "tracker_ref": "PBI 3112",
+              "title": "Exportar o extrato em PDF",
+              "stage": "implementation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "company": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": {
+              "number": 3115,
+              "title": "Botão de exportar na tela do extrato",
+              "state": "review"
+            }
+          }
+        ]
+      },
+      "stale_items": [],
+      "events_today": 9,
+      "recent_events": [
+        {
+          "id": 80,
+          "at": "2026-10-09T10:06:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3116,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "worker_blocked",
+            "severity": "critical",
+            "title": "Falta o certificado de homologação para assinar o PDF",
+            "context": "O subagente da 3116 parou: a assinatura digital precisa do certificado A1 de homologação, que não está no cofre do projeto.",
+            "options": [
+              "A: Enviar o certificado",
+              "B: Assinar com certificado de teste por enquanto"
+            ],
+            "recommendation": "B, e abrir um achado para trocar antes do HML.",
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3112"
+            }
+          }
+        },
+        {
+          "id": 79,
+          "at": "2026-10-09T10:05:00-03:00",
+          "type": "task-status",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3116,
+          "agent": {
+            "role": "worker",
+            "name": "subagente"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "blocked",
+            "text": "Preciso do certificado de homologação",
+            "progress": null,
+            "maestri": "outside"
+          }
+        },
+        {
+          "id": 77,
+          "at": "2026-10-09T09:50:00-03:00",
+          "type": "task-dispatched",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3116,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "floor": null,
+            "worker": "subagente",
+            "branch": "task/3116-assinatura"
+          }
+        },
+        {
+          "id": 74,
+          "at": "2026-10-09T09:30:00-03:00",
+          "type": "pending-decision-canceled",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 2901,
+          "item_key": "billing-api/2901",
+          "item_title": "Limite de tentativas por cartão",
+          "tracker_ref": "PBI 2901",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "pending_decision": 71,
+            "reason": "Entrou na especificação do item."
+          }
+        },
+        {
+          "id": 73,
+          "at": "2026-10-09T09:15:00-03:00",
+          "type": "task-status",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3114,
+          "agent": {
+            "role": "worker",
+            "name": "Caio"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "working",
+            "text": "Layout gerado, faltam as fontes",
+            "progress": {
+              "done": 2,
+              "total": 5
+            },
+            "maestri": "posted"
+          }
+        },
+        {
+          "id": 71,
+          "at": "2026-10-09T09:00:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 2901,
+          "item_key": "billing-api/2901",
+          "item_title": "Limite de tentativas por cartão",
+          "tracker_ref": "PBI 2901",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "decision",
+            "severity": "low",
+            "title": "Limite por cartão ou por cliente?",
+            "options": [
+              "A: Por cartão",
+              "B: Por cliente"
+            ],
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 2901"
+            }
+          }
+        },
+        {
+          "id": 70,
+          "at": "2026-10-09T08:50:00-03:00",
+          "type": "item-started",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 2901,
+          "item_key": "billing-api/2901",
+          "item_title": "Limite de tentativas por cartão",
+          "tracker_ref": "PBI 2901",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Limite de tentativas por cartão",
+            "stage": "specification"
+          }
+        },
+        {
+          "id": 69,
+          "at": "2026-10-09T08:42:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3115,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "task_review",
+            "severity": "high",
+            "title": "Revisar e integrar a task 3115 (botão de exportar)",
+            "context": "Botão pronto, 4/4 testes verdes. Mudou o componente de cabeçalho da tela do extrato.",
+            "options": [
+              "A: Integrar",
+              "B: Pedir ajuste",
+              "C: Esperar a 3114"
+            ],
+            "recommendation": "A: a 3114 não depende do botão.",
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3112"
+            }
+          }
+        },
+        {
+          "id": 68,
+          "at": "2026-10-09T08:40:00-03:00",
+          "type": "task-status",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3115,
+          "agent": {
+            "role": "worker",
+            "name": "Dora"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "review",
+            "text": "Botão pronto, aguardando revisão",
+            "progress": {
+              "done": 4,
+              "total": 4
+            },
+            "maestri": "posted"
+          }
+        },
+        {
+          "id": 63,
+          "at": "2026-10-08T18:10:00-03:00",
+          "type": "pr-changed",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 2875,
+          "item_key": "billing-api/2875",
+          "item_title": "Reprocessar cobranças recusadas pelo gateway",
+          "tracker_ref": "PBI 2875",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "ready"
+          }
+        },
+        {
+          "id": 62,
+          "at": "2026-10-08T17:50:00-03:00",
+          "type": "final-adjustment-finished",
+          "project": {
+            "id": "billing-api",
+            "name": "Cobrança",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 2875,
+          "item_key": "billing-api/2875",
+          "item_title": "Reprocessar cobranças recusadas pelo gateway",
+          "tracker_ref": "PBI 2875",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "outcome": "passed"
+          }
+        },
+        {
+          "id": 60,
+          "at": "2026-10-08T16:30:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3100,
+          "item_key": "portal/3100",
+          "item_title": "Conciliação de boletos com o extrato do banco",
+          "tracker_ref": "PBI 3100",
+          "task_number": null,
+          "agent": {
+            "role": "owner",
+            "name": "Higor"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "hml",
+            "severity": "high",
+            "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
+            "context": "Na Validação HML, um boleto pago duas vezes no mesmo dia foi conciliado só uma vez. Cenários 1 a 3 aprovados.",
+            "options": [
+              "A: Voltar para Implementação",
+              "B: Aprovar e abrir um item novo"
+            ],
+            "recommendation": "A: é o caso que motivou o item.",
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3100"
+            }
+          }
+        }
+      ]
+    },
+    "fabrikam": {
+      "generated_at": "2026-10-09T10:24:30-03:00",
+      "company": "fabrikam",
+      "stale_hours": 48,
+      "active": {
+        "total": 4,
+        "by_stage": {
+          "final_adjustment": 1,
+          "merge": 1,
+          "implementation": 1,
+          "specification": 1
+        },
+        "companies": [
+          {
+            "id": "fabrikam",
+            "name": "Fabrikam",
+            "unassigned": false,
+            "total": 4,
+            "projects": [
+              {
+                "id": "erp",
+                "name": "ERP Fabrikam",
+                "tracker": "azure_devops",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "hml_validation",
+                  "done"
+                ],
+                "total": 1,
+                "by_stage": {
+                  "implementation": 1
+                }
+              },
+              {
+                "id": "storefront",
+                "name": "Loja",
+                "tracker": "github",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "done"
+                ],
+                "total": 3,
+                "by_stage": {
+                  "final_adjustment": 1,
+                  "merge": 1,
+                  "specification": 1
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "pending_decisions": {
+        "total": 1,
+        "by_severity": {
+          "critical": 0,
+          "high": 0,
+          "normal": 1,
+          "low": 0
+        },
+        "open": [
+          {
+            "id": 76,
+            "kind": "finding",
+            "severity": "normal",
+            "title": "Achado: o carrinho anônimo expira em 24 h",
+            "opened_at": "2026-10-09T09:45:00-03:00",
+            "item": {
+              "key": "storefront/48",
+              "number": 48,
+              "tracker_ref": "#48",
+              "title": "Carrinho salvo entre dispositivos",
+              "stage": "final_adjustment",
+              "project": {
+                "id": "storefront",
+                "name": "Loja",
+                "tracker": "github",
+                "company": {
+                  "id": "fabrikam",
+                  "name": "Fabrikam"
+                }
+              }
+            },
+            "task": null
+          }
+        ]
+      },
+      "stale_items": [
+        {
+          "key": "storefront/55",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "number": 55,
+          "tracker_ref": "#55",
+          "title": "Busca por código de barras",
+          "stage": "specification",
+          "stage_since": "2026-10-02T14:00:00-03:00",
+          "updated_at": "2026-10-02T14:00:00-03:00",
+          "hours": 164
+        },
+        {
+          "key": "erp/1204",
+          "project": {
+            "id": "erp",
+            "name": "ERP Fabrikam",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "number": 1204,
+          "tracker_ref": "PBI 1204",
+          "title": "Nota fiscal de serviço eletrônica",
+          "stage": "implementation",
+          "stage_since": "2026-10-06T10:00:00-03:00",
+          "updated_at": "2026-10-06T10:00:00-03:00",
+          "hours": 72
+        }
+      ],
+      "events_today": 2,
+      "recent_events": [
+        {
+          "id": 76,
+          "at": "2026-10-09T09:45:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 48,
+          "item_key": "storefront/48",
+          "item_title": "Carrinho salvo entre dispositivos",
+          "tracker_ref": "#48",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "finding",
+            "severity": "normal",
+            "title": "Achado: o carrinho anônimo expira em 24 h",
+            "context": "Na revisão final apareceu que o carrinho de quem não entrou na conta some em 24 h; ao juntar carrinhos, itens antigos se perdem.",
+            "options": [
+              "A: Manter 24 h",
+              "B: Estender para 7 dias (task nova)"
+            ],
+            "recommendation": "B, como task nova para triagem.",
+            "maestri": {
+              "workspace": "Fabrikam",
+              "terminal": "Maestro #48"
+            }
+          }
+        },
+        {
+          "id": 75,
+          "at": "2026-10-09T09:40:00-03:00",
+          "type": "final-adjustment-opened",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 48,
+          "item_key": "storefront/48",
+          "item_title": "Carrinho salvo entre dispositivos",
+          "tracker_ref": "#48",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {}
+        },
+        {
+          "id": 64,
+          "at": "2026-10-08T20:05:00-03:00",
+          "type": "pr-changed",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 52,
+          "item_key": "storefront/52",
+          "item_title": "Cupom de primeira compra",
+          "tracker_ref": "#52",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "merged"
+          }
+        },
+        {
+          "id": 61,
+          "at": "2026-10-08T17:00:00-03:00",
+          "type": "task-integrated",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 48,
+          "item_key": "storefront/48",
+          "item_title": "Carrinho salvo entre dispositivos",
+          "tracker_ref": "#48",
+          "task_number": 50,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "sha": "5f4e3d2c1b0a",
+            "sha_before": "0b7a6c5"
+          }
+        },
+        {
+          "id": 34,
+          "at": "2026-10-06T13:20:00-03:00",
+          "type": "pr-changed",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 52,
+          "item_key": "storefront/52",
+          "item_title": "Cupom de primeira compra",
+          "tracker_ref": "#52",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "ready",
+            "url": "https://github.com/fabrikam/storefront/pull/63",
+            "branch": "feature/issue-52"
+          }
+        },
+        {
+          "id": 32,
+          "at": "2026-10-06T10:00:00-03:00",
+          "type": "stage-changed",
+          "project": {
+            "id": "erp",
+            "name": "ERP Fabrikam",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 1204,
+          "item_key": "erp/1204",
+          "item_title": "Nota fiscal de serviço eletrônica",
+          "tracker_ref": "PBI 1204",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 29,
+          "at": "2026-10-05T11:40:00-03:00",
+          "type": "task-dispatched",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 48,
+          "item_key": "storefront/48",
+          "item_title": "Carrinho salvo entre dispositivos",
+          "tracker_ref": "#48",
+          "task_number": 50,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "floor": "Juntar carrinhos",
+            "worker": "Caio",
+            "branch": "task/50-juntar"
+          }
+        },
+        {
+          "id": 28,
+          "at": "2026-10-05T11:30:00-03:00",
+          "type": "task-integrated",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 48,
+          "item_key": "storefront/48",
+          "item_title": "Carrinho salvo entre dispositivos",
+          "tracker_ref": "#48",
+          "task_number": 49,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "sha": "0b7a6c5d4e3f",
+            "sha_before": "aa11bb2"
+          }
+        },
+        {
+          "id": 25,
+          "at": "2026-10-05T09:00:00-03:00",
+          "type": "item-started",
+          "project": {
+            "id": "erp",
+            "name": "ERP Fabrikam",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 1204,
+          "item_key": "erp/1204",
+          "item_title": "Nota fiscal de serviço eletrônica",
+          "tracker_ref": "PBI 1204",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Nota fiscal de serviço eletrônica",
+            "stage": "specification"
+          }
+        },
+        {
+          "id": 24,
+          "at": "2026-10-04T11:00:00-03:00",
+          "type": "item-started",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 52,
+          "item_key": "storefront/52",
+          "item_title": "Cupom de primeira compra",
+          "tracker_ref": "#52",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Cupom de primeira compra",
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 17,
+          "at": "2026-10-02T16:10:00-03:00",
+          "type": "task-dispatched",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 48,
+          "item_key": "storefront/48",
+          "item_title": "Carrinho salvo entre dispositivos",
+          "tracker_ref": "#48",
+          "task_number": 49,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "floor": "Carrinho",
+            "worker": "Ária",
+            "branch": "task/49-carrinho"
+          }
+        },
+        {
+          "id": 16,
+          "at": "2026-10-02T16:05:00-03:00",
+          "type": "task-graph",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "company": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 48,
+          "item_key": "storefront/48",
+          "item_title": "Carrinho salvo entre dispositivos",
+          "tracker_ref": "#48",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "tasks": [
+              {
+                "number": 49,
+                "title": "Persistir o carrinho na conta",
+                "blocked_by": [],
+                "out": false
+              },
+              {
+                "number": 50,
+                "title": "Juntar carrinhos ao entrar",
+                "blocked_by": [
+                  49
+                ],
+                "out": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "personal": {
+      "generated_at": "2026-10-09T10:24:30-03:00",
+      "company": "personal",
+      "stale_hours": 48,
+      "active": {
+        "total": 1,
+        "by_stage": {
+          "implementation": 1
+        },
+        "companies": [
+          {
+            "id": "personal",
+            "name": "Pessoal",
+            "unassigned": false,
+            "total": 1,
+            "projects": [
+              {
+                "id": "painel-maestro",
+                "name": "painel-maestro",
+                "tracker": "github",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "done"
+                ],
+                "total": 1,
+                "by_stage": {
+                  "implementation": 1
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "pending_decisions": {
+        "total": 0,
+        "by_severity": {
+          "critical": 0,
+          "high": 0,
+          "normal": 0,
+          "low": 0
+        },
+        "open": []
+      },
+      "stale_items": [],
+      "events_today": 5,
+      "recent_events": [
+        {
+          "id": 81,
+          "at": "2026-10-09T10:10:00-03:00",
+          "type": "task-status",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item_number": 5,
+          "item_key": "painel-maestro/5",
+          "item_title": "Item ponta a ponta (tracer bullet)",
+          "tracker_ref": "#5",
+          "task_number": 5,
+          "agent": {
+            "role": "worker",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "working",
+            "text": "API e telas prontas, faltam os testes",
+            "progress": {
+              "done": 4,
+              "total": 6
+            },
+            "maestri": "posted"
+          }
+        },
+        {
+          "id": 72,
+          "at": "2026-10-09T09:00:00-03:00",
+          "type": "pending-decision-resolved",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item_number": 5,
+          "item_key": "painel-maestro/5",
+          "item_title": "Item ponta a ponta (tracer bullet)",
+          "tracker_ref": "#5",
+          "task_number": 5,
+          "agent": {
+            "role": "owner",
+            "name": null
+          },
+          "source": "cli",
+          "payload": {
+            "pending_decision": 67,
+            "decision": "B: vira task nova para triagem."
+          }
+        },
+        {
+          "id": 67,
+          "at": "2026-10-09T08:30:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item_number": 5,
+          "item_key": "painel-maestro/5",
+          "item_title": "Item ponta a ponta (tracer bullet)",
+          "tracker_ref": "#5",
+          "task_number": 5,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "finding",
+            "severity": "low",
+            "title": "Achado: o selo de saúde não conta o maestro.db",
+            "options": [
+              "A: Corrigir agora",
+              "B: Task nova para triagem"
+            ],
+            "maestri": {
+              "workspace": "Pessoal",
+              "terminal": "Maestro #5"
+            }
+          }
+        },
+        {
+          "id": 66,
+          "at": "2026-10-09T07:35:00-03:00",
+          "type": "task-dispatched",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item_number": 5,
+          "item_key": "painel-maestro/5",
+          "item_title": "Item ponta a ponta (tracer bullet)",
+          "tracker_ref": "#5",
+          "task_number": 5,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "floor": "Item ponta a ponta",
+            "worker": "Ária",
+            "branch": "task/5-item-ponta-a-ponta"
+          }
+        },
+        {
+          "id": 65,
+          "at": "2026-10-09T07:30:00-03:00",
+          "type": "item-started",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item_number": 5,
+          "item_key": "painel-maestro/5",
+          "item_title": "Item ponta a ponta (tracer bullet)",
+          "tracker_ref": "#5",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Item ponta a ponta (tracer bullet)",
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 38,
+          "at": "2026-10-07T08:12:00-03:00",
+          "type": "item-done",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item_number": 2,
+          "item_key": "painel-maestro/2",
+          "item_title": "Remover Trello e Prospecção",
+          "tracker_ref": "#2",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {}
+        },
+        {
+          "id": 37,
+          "at": "2026-10-07T08:10:00-03:00",
+          "type": "pr-changed",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item_number": 2,
+          "item_key": "painel-maestro/2",
+          "item_title": "Remover Trello e Prospecção",
+          "tracker_ref": "#2",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "merged"
+          }
+        },
+        {
+          "id": 36,
+          "at": "2026-10-06T18:30:00-03:00",
+          "type": "pr-changed",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item_number": 2,
+          "item_key": "painel-maestro/2",
+          "item_title": "Remover Trello e Prospecção",
+          "tracker_ref": "#2",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "ready",
+            "url": "https://github.com/higorcesarqn/painel-maestro/pull/14",
+            "branch": "feature/issue-2"
+          }
+        },
+        {
+          "id": 31,
+          "at": "2026-10-06T09:00:00-03:00",
+          "type": "item-started",
+          "project": {
+            "id": "painel-maestro",
+            "name": "painel-maestro",
+            "tracker": "github",
+            "company": {
+              "id": "personal",
+              "name": "Pessoal"
+            }
+          },
+          "item_number": 2,
+          "item_key": "painel-maestro/2",
+          "item_title": "Remover Trello e Prospecção",
+          "tracker_ref": "#2",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Remover Trello e Prospecção",
+            "stage": "implementation"
+          }
+        }
+      ]
+    },
+    "unassigned": {
+      "generated_at": "2026-10-09T10:24:30-03:00",
+      "company": "unassigned",
+      "stale_hours": 48,
+      "active": {
+        "total": 2,
+        "by_stage": {
+          "specification": 1,
+          "implementation": 1
+        },
+        "companies": [
+          {
+            "id": "unassigned",
+            "name": "Sem empresa",
+            "unassigned": true,
+            "total": 2,
+            "projects": [
+              {
+                "id": "relatorios-bi",
+                "name": "relatorios-bi",
+                "tracker": "azure_devops",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "hml_validation",
+                  "done"
+                ],
+                "total": 1,
+                "by_stage": {
+                  "implementation": 1
+                }
+              },
+              {
+                "id": "scratch",
+                "name": "scratch",
+                "tracker": "github",
+                "stages": [
+                  "specification",
+                  "implementation",
+                  "final_adjustment",
+                  "pr_ready",
+                  "merge",
+                  "hml_validation",
+                  "done"
+                ],
+                "total": 1,
+                "by_stage": {
+                  "specification": 1
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "pending_decisions": {
+        "total": 0,
+        "by_severity": {
+          "critical": 0,
+          "high": 0,
+          "normal": 0,
+          "low": 0
+        },
+        "open": []
+      },
+      "stale_items": [],
+      "events_today": 1,
+      "recent_events": [
+        {
+          "id": 78,
+          "at": "2026-10-09T10:05:00-03:00",
+          "type": "item-started",
+          "project": {
+            "id": "scratch",
+            "name": "scratch",
+            "tracker": "github",
+            "company": {
+              "id": "unassigned",
+              "name": "Sem empresa"
+            }
+          },
+          "item_number": 3,
+          "item_key": "scratch/3",
+          "item_title": "Testar o layout do relatório",
+          "tracker_ref": "#3",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Testar o layout do relatório",
+            "stage": "specification"
+          }
+        },
+        {
+          "id": 59,
+          "at": "2026-10-08T15:20:00-03:00",
+          "type": "item-started",
+          "project": {
+            "id": "relatorios-bi",
+            "name": "relatorios-bi",
+            "tracker": "azure_devops",
+            "company": {
+              "id": "unassigned",
+              "name": "Sem empresa"
+            }
+          },
+          "item_number": 77,
+          "item_key": "relatorios-bi/77",
+          "item_title": "Painel de vendas por região",
+          "tracker_ref": "PBI 77",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Painel de vendas por região",
+            "stage": "implementation"
+          }
+        }
+      ]
+    }
+  },
+  "health": {
+    "level": "yellow",
+    "reasons": [
+      {
+        "code": "projects_unassigned",
+        "count": 2,
+        "projects": [
+          "scratch",
+          "relatorios-bi"
+        ]
+      }
+    ],
+    "last_event_at": "2026-10-09T10:10:00-03:00",
+    "last_raw_at": "2026-10-09T10:21:10-03:00"
   }
 }

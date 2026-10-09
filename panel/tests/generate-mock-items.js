@@ -11,6 +11,8 @@ const path = require('path');
 const { listItems, itemDetail } = require('../api-items.js');
 const { listPendingDecisions } = require('../api-pending-decisions.js');
 const { listCompanies, listProjects } = require('../api-projects.js');
+const { overview: overviewOf } = require('../api-overview.js');
+const { evaluateHealth } = require('../health.js');
 const { STAGES } = require('../../bin/flow-store.js');
 
 const OUT = path.join(__dirname, 'mock-items.json');
@@ -69,6 +71,8 @@ const ITEMS = [
   ['billing-api', 2901, 'Limite de tentativas por cartão', [['2026-10-09T08:50:00', 'specification']]],
   ['storefront', 48, 'Carrinho salvo entre dispositivos', [['2026-10-02T10:00:00', 'specification'], ['2026-10-02T16:00:00', 'implementation'],
     ['2026-10-02T16:05:00', pr('draft', { url: GH('fabrikam/storefront', 61), branch: 'feature/issue-48' })], ['2026-10-09T09:40:00', adjustmentOpened]]],
+  // Parked on Specification for a week (Overview, #14: stale items).
+  ['storefront', 55, 'Busca por código de barras', [['2026-10-02T14:00:00', 'specification']]],
   ['storefront', 52, 'Cupom de primeira compra', [['2026-10-04T11:00:00', 'implementation'],
     ['2026-10-06T13:20:00', pr('ready', { url: GH('fabrikam/storefront', 63), branch: 'feature/issue-52' })], ['2026-10-08T20:05:00', pr('merged')]]],
   ['painel-maestro', 5, 'Item ponta a ponta (tracer bullet)', [['2026-10-09T07:30:00', 'implementation']]],
@@ -199,7 +203,8 @@ events.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
 events.forEach((e, i) => { e.id = i + 1; });
 for (const e of events) if (typeof e.payload.pending_decision === 'string') e.payload.pending_decision = refs.get(e.payload.pending_decision).id;
 
-// In-memory store with the same reads as bin/flow-store.js.
+// In-memory store with the same reads as bin/flow-store.js (the Log's page of events too, for the Overview).
+const companyOf = (e) => projects.find((p) => p.id === e.project_id).company_id;
 const store = {
   projects: () => projects,
   project: (id) => projects.find((p) => p.id === id) || null,
@@ -207,8 +212,15 @@ const store = {
   projectRepos: (id) => projects.find((p) => p.id === id).repos.slice().sort(),
   allEvents: () => events,
   itemEvents: (projectId, number) => events.filter((e) => e.project_id === projectId && e.item_number === number),
+  logEvents: (f, { limit = 50, offset = 0 } = {}) => {
+    const list = events.filter((e) => (!f.companies || f.companies.includes(companyOf(e))) && (!f.since || e.at >= f.since)).slice().reverse();
+    return { total: list.length, events: list.slice(offset, offset + limit) };
+  },
+  logCounts: () => ({ company: {}, project: {}, type: {} }),
 };
 const source = { store: () => store };
+// The hook's last entry (bruto.db) a few minutes before the mock's moment: the hook is working.
+const raw = { store: () => ({ lastAt: () => '2026-10-09T10:21:10-03:00' }) };
 
 const { items } = listItems(source);
 const details = {};
@@ -217,7 +229,15 @@ const pending = listPendingDecisions(source);
 // Companies and projects (#6): the answers of GET /api/companies and GET /api/projects (the page filters them by company).
 const { companies: companyList } = listCompanies(source);
 const { projects: projectList } = listProjects(source, new URLSearchParams());
-fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, companies: companyList, projects: projectList, items, details, pending_decisions: pending }, null, 2)}\n`);
+// Overview (#14): the answer of GET /api/overview for every company of the selector ('' = all) and the health of the
+// new model (GET /api/state → health), with the server's default stale limit.
+const nowMs = Date.parse(GENERATED_AT);
+const overview = {};
+for (const id of ['', ...companyList.map((c) => c.id)]) {
+  overview[id] = overviewOf(source, new URLSearchParams(id ? { company: id } : {}), { nowMs, staleHours: 48 });
+}
+const health = evaluateHealth({ items: source, raw, nowMs });
+fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, companies: companyList, projects: projectList, items, details, pending_decisions: pending, overview, health }, null, 2)}\n`);
 const taskStates = new Set(Object.values(details).flatMap((d) => d.tasks.map((x) => x.state)));
 const pd = pending.pending_decisions;
 console.log(`mock-items.json: ${items.length} itens em ${new Set(items.map((i) => i.stage)).size} etapas; tasks em ${taskStates.size} estados (${[...taskStates].join(", ")}); `

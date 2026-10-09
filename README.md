@@ -19,7 +19,7 @@ O painel junta tudo isso num lugar só e não usa IA nem gasta tokens: ele só l
 O menu tem um grupo, Workspace (fonte em `panel/ui/src/data/context.js`). No topo, o **seletor de empresa** (Todas ou uma empresa, lembrado neste navegador) filtra Itens, Pendências e Log:
 
 - **Itens** (modelo novo): a lista de itens (Issues do GitHub e PBIs do Azure DevOps) com a etapa de cada um, e a **página do item**, com a etapa atual, as etapas do fluxo e a linha do tempo. A página de um item tem endereço fixo, `http://127.0.0.1:4777/#items/<projeto>/<número>` (ex.: `#items/cidax/3100`), que o portal do Maestri abre direto.
-- **Visão geral:** números do topo (pendências por severidade, uso do plano, eventos de hoje), atividade e resultados de 7 dias por agente, último evento de cada agente e atividade recente. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) com os motivos: hooks parados, arquivos ilegíveis.
+- **Visão geral** (modelo novo, #14): o retrato do dia: itens ativos por empresa, projeto e etapa, pendências abertas, itens parados há muito tempo na mesma etapa (limite em `PANEL_STALE_HOURS`, padrão 48 h), eventos de hoje, atividade recente e o uso do plano. O filtro de empresa do topo vale nela. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) que avalia o modelo novo, com os motivos: hook parado (os agentes registraram trabalho num item ativo e o `bruto.db` não recebeu nada depois), `maestro.db` ou `bruto.db` ilegível e projetos em "Sem empresa".
 - **Pendências** (modelo novo, só leitura): o que espera uma decisão do dono, com filtros por severidade e status (a empresa vem do seletor do topo); cada pendência mostra o item, a task, contexto, opções, recomendação e **onde responder** (workspace e terminal do maestro no Maestri) e, depois de fechada, a decisão. O dono responde no terminal do maestro, não no painel.
 - **Log** (modelo novo): os eventos do fluxo de cada item, do mais recente ao mais antigo, com filtros por período, projeto, item e tipo (a empresa vem do seletor do topo). Clicar numa linha abre o **evento**: o que foi gravado e os comandos brutos das sessões do Claude Code ligadas a ele (pela branch da sessão e pela janela de tempo).
 - **Agentes:** um cartão por agente (último evento, eventos de hoje, fluxos abertos, consumo) e a ficha completa num modal, com o log bruto de cada um.
@@ -201,7 +201,7 @@ Os dados (`registro/`, `logs/`, `state/`, `estado/`, `.segredos/`) ficam fora do
 | log de eventos, fluxos, modal | `logs/eventos/AAAA-MM.jsonl` | `bin/registrar.js` |
 | títulos dos fluxos | `estado/contador-fluxos.json` | `bin/registrar.js novo-fluxo` |
 | comandos brutos (tela Log) | `bruto.db` (modelo novo; padrão `~/.painel-maestro/bruto.db`) | `bin/hook-log.js` (hook do Claude Code) |
-| saúde dos hooks por agente | `logs/raw/<agente>/AAAA-MM-DD.jsonl`: o hook não grava mais aqui (#12) | ninguém; sai na #18 |
+| log bruto antigo (modal antigo, tela Agentes) | `logs/raw/<agente>/AAAA-MM-DD.jsonl`: o hook não grava mais aqui (#12) e a saúde não lê mais (#14) | ninguém; sai na #18 |
 | pendências do dono | `estado/pendencias.json` | `bin/pendencia.js` (e o painel, ao responder) |
 | uso do Claude | `state/usage.json` | `bin/collect-usage.js` (o servidor roda sozinho) |
 
@@ -231,7 +231,7 @@ Arquivo ausente não quebra nada: a parte correspondente aparece vazia, com o mo
 }
 ```
 
-O hook não usa mais este cadastro (#12): ele liga cada sessão a um projeto, item e task, não a um agente fixo. Por isso a saúde dos hooks por agente (`logs/raw/`) não é mais atualizada: um agente com `status: "ativo"` aqui fica sem log bruto e deixa o selo amarelo até a #18 tirar o cadastro.
+O hook não usa mais este cadastro (#12): ele liga cada sessão a um projeto, item e task, não a um agente fixo. Por isso o log bruto por agente (`logs/raw/`) não é mais atualizado; desde a #14 o selo de saúde também não lê mais este cadastro nem o `logs/raw/` (avalia o `maestro.db` e o `bruto.db`).
 
 ### 2. Registre eventos e pendências
 
@@ -250,7 +250,7 @@ node bin/pendencia.js abrir --agente cerebro --fluxo F-20261009-0001 --tipo deci
 
 Dentro de uma sessão do Claude Code com o hook instalado, `--agente` e `--fluxo` podem ser omitidos: o agente sai do cadastro e o fluxo, da sessão. Texto com aspas ou acentos vai melhor em JSON pela entrada padrão (`--json -`). Todas as opções: `node bin/registrar.js --help` e `node bin/pendencia.js --help`.
 
-A tela Pendências já lê só o modelo novo (`flow pending`, #10); as pendências do `pendencia.js` continuam só na contagem da Visão geral, até o modelo antigo sair (#18).
+A tela Pendências já lê só o modelo novo (`flow pending`, #10); as do `pendencia.js` saíram da Visão geral na #14 e só aparecem no `/api/state`, até o modelo antigo sair (#18).
 
 ### 3. Instale o hook do Claude Code
 

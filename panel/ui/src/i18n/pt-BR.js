@@ -13,6 +13,12 @@ function shortTime(v) {
   return spDay(d) === spDay(now()) ? hmFormat.format(d) : `${dayMonthFormat.format(d)} ${hmFormat.format(d)}`;
 }
 
+/** "10/10 13:00", always with the day (a health reason may stay on screen across midnight). */
+function dayTime(v) {
+  const d = toDate(v);
+  return d ? `${dayMonthFormat.format(d)} ${hmFormat.format(d)}` : '?';
+}
+
 /** Duration inside a health reason: "menos de 1 min", "25 min", "2 h 5 min", "3 dias". */
 function durationText(min) {
   const m = Math.round(min);
@@ -43,7 +49,6 @@ export default {
     recalculating: 'Recalculando…',
     never: 'nunca',
     unavailable: 'indisponível',
-    reading: 'lendo…',
     noSummary: '(sem resumo)',
     noEvents: 'Nenhum evento registrado ainda.',
     noDate: 'Sem data',
@@ -121,14 +126,13 @@ export default {
     ariaLabel: 'Saúde: {level}. {reasons} Clique para detalhes.',
     noProblem: 'Nenhum problema detectado.',
     title: 'Saúde do painel',
-    lastEvent: 'Último evento',
+    lastEvent: 'Último registro dos agentes',
+    lastRaw: 'Último registro do hook',
+    when: '{date} ({age})',
     planData: 'Dado de uso do plano',
     wire: 'Maestri Wire',
     wireOn: 'configurado',
     wireOff: 'não configurado (Fase B)',
-    hooks: 'Hooks (log bruto)',
-    lastRecord: 'Último registro',
-    age: 'Idade',
     readWarnings: 'Avisos de leitura ({count})',
   },
 
@@ -310,13 +314,27 @@ export default {
     agent: 'Agente {name}',
   },
 
+  // Overview of the new model (#14): GET /api/overview.
   overview: {
-    pending: 'Pendências',
+    readFailed: 'Não consegui ler a visão geral ({message}). Tento de novo a cada 20 s.',
+    activeItems: 'Itens ativos',
+    activeDetail: '{projects} · {companies}',
+    projectCount: { one: '{count} projeto', other: '{count} projetos' },
+    companyCount: { one: '{count} empresa', other: '{count} empresas' },
+    activeInfo: 'Itens em andamento (ainda não concluídos) em todos os projetos. Clique para abrir a tela Itens.',
+    pending: 'Pendências abertas',
     pendingTitle: 'Pendências do dono',
     pendingAria: 'Pendências do dono: {total} abertas. Abrir a tela Pendências.',
     pendingAriaWithSummary: 'Pendências do dono: {total} abertas ({summary}). Abrir a tela Pendências.',
-    pendingInfo: 'Esperando decisão sua: {summary}. Clique para ver e responder na tela Pendências.',
+    pendingInfo: 'Esperando decisão sua: {summary}. Clique para ver na tela Pendências; você responde no terminal do maestro.',
     pendingNone: 'Nada esperando por você agora.',
+    stale: 'Parados',
+    staleDetail: 'há mais de {limit} na etapa',
+    staleInfo: 'Itens ativos que estão na mesma etapa há mais de {limit} (limite ajustável no servidor pela variável PANEL_STALE_HOURS).',
+    hours: { one: '{count} h', other: '{count} h' },
+    days: { one: '{count} dia', other: '{count} dias' },
+    eventsToday: 'Eventos hoje',
+    eventsTodayInfo: 'Eventos registrados hoje nos itens (comandos flow dos agentes e do dono). Clique para abrir o Log.',
     plan5h: 'Uso 5 h',
     planWeekly: 'Uso semanal',
     plan5hLong: 'Uso do plano Claude na janela de 5 h',
@@ -328,28 +346,25 @@ export default {
     planAria: '{name}: {value}',
     resetsAt: 'Reinicia {when}',
     noReset: 'sem reset',
-    eventsToday: 'Eventos hoje',
-    eventsTodayInfo: 'Eventos registrados hoje por todos os agentes; as barras mostram as últimas horas. {flows}. Clique para abrir o Log.',
-    openFlows: { one: '{count} fluxo aberto', other: '{count} fluxos abertos' },
-    eventsPerHour: 'Eventos por hora hoje',
-    activity7d: 'Atividade · 7 dias',
-    activity7dInfo: 'Eventos registrados por dia e por agente nos últimos 7 dias. Passe o mouse numa barra para ver o dia.',
-    activity7dAria: 'Eventos por dia e por agente nos últimos 7 dias',
-    eventCount: '{count} eventos',
-    noRead: 'sem leitura ({message})',
-    results7d: 'Resultados · 7 dias',
-    results7dInfo: 'Resultado de cada evento registrado nos últimos 7 dias. Clique numa linha para ver esses eventos no Log.',
-    results7dAria: 'Resultados dos eventos dos últimos 7 dias',
-    askedYou: '{count} pediram você',
-    events: 'eventos',
-    resultTitle: '{name}: {value} ({share}). Ver no Log.',
-    agents: 'Agentes',
-    agentsInfo: 'O último evento de cada agente e a atividade dos últimos 7 dias (barras). Clique no evento para ver o detalhe; a tela Agentes tem tudo de cada um.',
-    seeAll: 'Ver todos',
-    eventsTodayCount: { one: '{count} evento hoje', other: '{count} eventos hoje' },
-    agentSparkAria: 'Eventos de {name} por dia, 7 dias',
+    activeTitle: 'Itens ativos por empresa, projeto e etapa',
+    activeTableInfo: 'Quantos itens ativos cada projeto tem em cada etapa do fluxo. Célula hachurada: o projeto não usa essa etapa. Empresa em amarelo: "Sem empresa", escolha a empresa na tela Itens.',
+    itemCount: { one: '{count} item', other: '{count} itens' },
+    openItems: 'Abrir itens',
+    noActive: 'Nenhum item ativo. Um item começa com o comando flow item start.',
+    stageNotUsed: 'O projeto não usa esta etapa',
+    columns: { project: 'Empresa e projeto', total: 'Total' },
+    openPending: 'Pendências abertas',
+    openPendingInfo: 'As pendências esperando decisão sua, as mais urgentes primeiro. Clique para ver a pendência inteira na tela Pendências.',
+    openCount: { one: '{count} aberta', other: '{count} abertas' },
+    openPendingScreen: 'Abrir pendências',
+    pendingLine: 'P-{id} · {kind} · {ref} · {project}',
+    morePending: { one: 'e mais {count} na tela Pendências', other: 'e mais {count} na tela Pendências' },
+    staleTitle: 'Parados há mais de {limit} na mesma etapa',
+    staleAria: '{ref} {title}: em {stage} desde {age}. Abrir o item.',
+    noStale: 'Nenhum item parado: todos mudaram de etapa dentro do limite.',
     recent: 'Atividade recente',
-    recentInfo: 'Os últimos eventos de todos os agentes. Fundo azul: precisa de você. Fundo vermelho: falhou ou está bloqueado. Clique para ver o detalhe.',
+    recentInfo: 'Os últimos eventos registrados nos itens, do mais novo para o mais antigo. Clique para ver o evento e os comandos do log bruto ligados a ele.',
+    recentAria: '{time} · {ref} · {event}. Abrir o evento.',
     openLog: 'Abrir o log',
   },
 
@@ -689,10 +704,11 @@ export default {
 
   // Codes the server returns ({code, ...params}), ADR 0004. A parameter may be another code (e.g. error).
   codes: {
-    // health and warnings
-    hook_never: (c) => `${c.name}: nenhum log bruto ainda (hooks instalados?)`,
-    hook_stale: (c) => `${c.name} sem log bruto há ${durationText(c.minutes)}`,
-    registry_missing: '{file} não existe',
+    // health of the new model (#14) and read warnings
+    hook_never: (c) => `O hook nunca gravou no log bruto, mas os agentes registraram trabalho em ${dayTime(c.last_event_at)} (hooks instalados?)`,
+    hook_stale: (c) => `Hook parado: nenhum registro no log bruto há ${durationText(c.minutes)}, mas os agentes registraram trabalho em ${dayTime(c.last_event_at)}`,
+    projects_unassigned: (c) => `${c.count === 1 ? '1 projeto' : `${c.count} projetos`} em "Sem empresa" (${(Array.isArray(c.projects) ? c.projects : []).join(', ')}): escolha a empresa na tela Itens`,
+    database_unreadable: 'Não consegui ler o {file} ({detail})',
     file_unreadable: (c, h) => `${c.file} ilegível (${h.display(c.error)})`,
     read_failed: 'não consegui ler ({detail})',
     empty_file: 'arquivo vazio',

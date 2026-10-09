@@ -81,14 +81,14 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
     'api(`/api/pending-decisions?${', "api(withQuery('/api/items', filters))",
     'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', '`/api/log?', 'api(`/api/log/${encodeURIComponent(id)}`)',
     "api('/api/companies')", "api(withQuery('/api/projects', filters))",
-    "api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } })"]) {
+    "api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } })", "api(withQuery('/api/overview', filters))"]) {
     assert.ok(api.includes(route), `the page calls ${route}`);
   }
   for (const route of ['/api/state', '/api/events?', '/api/event/', '/api/recalculate', '/api/pending-decisions?', '/api/items', '/api/log?', '/api/log/',
-    '/api/companies', '/api/projects']) {
+    '/api/companies', '/api/projects', '/api/overview']) {
     assert.ok(js.includes(route), `the build calls ${route}`);
   }
-  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions|items|items\/|log|log\/|companies|projects|projects\/)$/;
+  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions|items|items\/|log|log\/|companies|projects|projects\/|overview)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
   assert.ok(/export const REFRESH_MS = 20000;/.test(api), 'refreshes every 20 s');
@@ -102,7 +102,7 @@ suite.test('mock-state.json follows the contract and has the requested scenario'
   const e = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-state.json'), 'utf8'));
   const d = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-details.json'), 'utf8'));
   assert.deepStrictEqual(Object.keys(e).sort(), ['agents', 'events', 'generated_at', 'health', 'kpis', 'pending_decisions', 'usage', 'workspace']);
-  assert.deepStrictEqual(Object.keys(e.health).sort(), ['hooks', 'last_event_age_min', 'level', 'reasons', 'usage_age_min', 'wire']);
+  assert.deepStrictEqual(Object.keys(e.health).sort(), ['last_event_at', 'last_raw_at', 'level', 'reasons', 'usage_age_min', 'wire']);
   assert.deepStrictEqual(Object.keys(e.kpis).sort(), ['pending_decisions', 'usage']);
   assert.strictEqual(e.agents.length, 2);
   assert.strictEqual(e.pending_decisions.length, 6);
@@ -192,6 +192,23 @@ suite.test('companies (#6): the demo has two companies and "Pessoal" with GitHub
   assert.ok(js.includes('painel-maestro.company'));
 });
 
+suite.test('Overview (#14): the demo has stale items and open pending decisions per company, and the health of the new model', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const all = m.overview[''];
+  assert.ok(all && all.active.total > 0 && all.active.companies.length >= 3, 'active items by company');
+  assert.ok(all.stale_items.length >= 2, 'items parked on the same stage');
+  assert.ok(all.pending_decisions.total >= 3 && all.pending_decisions.open.length > 0, 'open pending decisions');
+  assert.ok(all.recent_events.length > 0 && all.events_today > 0, 'recent activity');
+  for (const c of m.companies) assert.strictEqual(m.overview[c.id].company, c.id, `the Overview of ${c.id}`);
+  assert.ok(m.overview.contoso.active.total < all.active.total, 'the company narrows it');
+  assert.ok(m.health && typeof m.health.level === 'string' && m.health.reasons.every((r) => typeof r.code === 'string'), 'health of the new model, by codes');
+  assert.ok(m.health.reasons.some((r) => r.code === 'projects_unassigned'), 'the demo shows the projects in "Sem empresa"');
+  // The page reads the new model with the selector's company and no longer the old events.
+  assert.ok(/readOverview\(companyFilter\)/.test(source['screens/Overview.jsx']), 'the Overview reads with the company filter');
+  assert.ok(!/state\.events|analysis|readEvents/.test(source['screens/Overview.jsx']), 'nothing of the old model in the Overview');
+  assert.ok(js.includes('/api/overview'));
+});
+
 let port = null;
 let pid = null;
 let root = null;
@@ -229,6 +246,10 @@ suite.test('the real server on a fake root (mock + hostile data) delivers what t
     for (const k of ['slug', 'name', 'color', 'responsibility', 'status', 'model', 'effort', 'skills', 'connected_to', 'events_today', 'open_flows', 'last_raw', 'usage']) assert.ok(k in a, `agent.${k}`);
     assert.ok(a.last_event && a.last_event.id, 'last_event.id to open the modal');
   }
+  // Overview of the new model (#14): this fake root has no maestro.db, so an empty picture and a green badge.
+  const ov = await request(port, '/api/overview');
+  assert.deepStrictEqual([ov.status, ov.json.active.total, ov.json.recent_events], [200, 0, []]);
+  assert.strictEqual(st.health.level, 'green', 'the old registry and logs/raw no longer count');
   const ev0 = st.events[0];
   for (const k of ['id', 'ts', 'agent', 'project', 'summary', 'direction', 'result', 'type', 'flow_id', 'needs_owner']) assert.ok(k in ev0, `event.${k}`);
 

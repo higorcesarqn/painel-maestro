@@ -50,6 +50,9 @@ export const readLogEvent = (id) => api(`/api/log/${encodeURIComponent(id)}`);
 // Pending decisions of the new model, read only: params { company, project, severity, status }.
 export const readPendingDecisions = (params) => api(`/api/pending-decisions?${new URLSearchParams(params).toString()}`);
 
+// Overview of the new model (#14): the picture of the day, narrowed by the company of the selector (companyFilter).
+export const readOverview = (filters) => api(withQuery('/api/overview', filters));
+
 // Companies and projects (#6). The company selector reaches each list as ?company=<id> (see companyFilter).
 export const readCompanies = () => api('/api/companies');
 export const readProjects = (filters) => api(withQuery('/api/projects', filters));
