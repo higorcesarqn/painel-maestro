@@ -20,7 +20,7 @@
 const path = require('path');
 const { spawn } = require('child_process');
 
-const { isoSP } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
+const { isoSP, InvalidData } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
 const { t } = require(path.join(__dirname, '..', 'bin', 'i18n'));
 const { projectItem, trackerRef, EVENT_TYPES } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
 
@@ -38,13 +38,13 @@ const RE_SEGMENT = /^[A-Za-z0-9._~%-]{1,200}$/;
 // Arguments that may go through the Windows shell (az is az.cmd there): no character the shell interprets.
 const RE_SAFE_ARG = /^[A-Za-z0-9._:/,=@-]+$/;
 
-/** Configuration of the check from the variables; throws an Error (a sentence of the pt-BR dictionary, for the terminal) when invalid. */
+/** Configuration of the check from the variables; throws InvalidData (exit 2 with the dictionary's message) when invalid. */
 function parseConfig(env, { collectorActive, fixedNow }) {
   const flag = env.PANEL_MERGE_CHECK;
-  if (flag !== undefined && flag !== '' && flag !== '0' && flag !== '1') throw new Error(t('server.errors.invalidMergeCheck', { value: flag }));
+  if (flag !== undefined && flag !== '' && flag !== '0' && flag !== '1') throw new InvalidData('server.errors.invalidMergeCheck', { value: flag });
   const secondsText = env.PANEL_MERGE_CHECK_SECONDS;
   const seconds = secondsText === undefined || secondsText === '' ? DEFAULT_SECONDS : Number(secondsText);
-  if (!Number.isInteger(seconds) || seconds < 1) throw new Error(t('server.errors.invalidMergeCheckSeconds', { value: secondsText }));
+  if (!Number.isInteger(seconds) || seconds < 1) throw new InvalidData('server.errors.invalidMergeCheckSeconds', { value: secondsText });
   let enabled = true;
   let reason = null;
   if (flag === '0') { enabled = false; reason = { code: 'merge_check_off', variable: 'PANEL_MERGE_CHECK' }; }

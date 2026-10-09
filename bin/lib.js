@@ -2,7 +2,8 @@
 /**
  * lib.js · shared functions of the bin/ commands (standard library only, CommonJS).
  *
- * Sections: paths and text · dates (America/Sao_Paulo) · standard input · secret redaction and truncation · output.
+ * Sections: paths and text · dates (America/Sao_Paulo) · command line (InvalidData, parseOptions) · standard input ·
+ * secret redaction and truncation · output.
  * Used by the flow CLI (flow.js, flow-admin.js), the hook (hook-log.js), install-skills.js, the usage collector and the
  * server (asDate, spParts, isoSP: the only implementation of the São Paulo dates).
  *
@@ -10,7 +11,7 @@
  *   MAESTRO_NOW   fixed date/time in ISO 8601. Tests only.
  *
  * Dates always with isoSP() (São Paulo offset). Never toISOString() in the data.
- * Messages for people stay in Portuguese (ADR 0004).
+ * Messages for people come from the pt-BR dictionary (bin/i18n, ADR 0004).
  */
 const fs = require('fs');
 
@@ -82,6 +83,52 @@ function isoSP(value = now()) {
   if (!date) return null;
   const p = spParts(date);
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}${p.offset}`;
+}
+
+// =============================================================================================
+// Command line: invalid data (exit 2) and a small option parser
+// =============================================================================================
+
+/** Invalid arguments or data: the command ends with exit 2 and this message (a key of the pt-BR dictionary). */
+class InvalidData extends Error {
+  constructor(key, params = {}) {
+    super(require('./i18n').t(key, params));
+    this.key = key;
+  }
+}
+
+/**
+ * Options of a command line. spec: { name: 'flag' | 'value' }; a value comes as "--name v" or "--name=v" and a
+ * "-h" is "--help" when spec has help. Anything not starting with "--" is positional. errors: dictionary keys for an
+ * unknown option and for a value option without value (params: { option, value }). → { opts, positional }.
+ * The flow CLI keeps its own parser (repeatable options and options per subcommand).
+ */
+function parseOptions(argv, spec, errors) {
+  const opts = {};
+  const positional = [];
+  const known = (name) => Object.prototype.hasOwnProperty.call(spec, name);
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i] === '-h' && known('help') ? '--help' : argv[i];
+    if (!a.startsWith('--') || a.length === 2) {
+      positional.push(a);
+      continue;
+    }
+    const eq = a.indexOf('=');
+    const name = a.slice(2, eq >= 0 ? eq : undefined);
+    if (!known(name) || (spec[name] === 'flag' && eq >= 0)) throw new InvalidData(errors.unknown, { option: a, value: a });
+    if (spec[name] === 'flag') {
+      opts[name] = true;
+      continue;
+    }
+    let value = eq >= 0 ? a.slice(eq + 1) : argv[i + 1];
+    if (eq < 0) {
+      if (value === undefined || (value.startsWith('--') && value.length > 2)) value = undefined;
+      else i++;
+    }
+    if (value === undefined || value === '') throw new InvalidData(errors.missing, { option: name, value: '' });
+    opts[name] = value;
+  }
+  return { opts, positional };
 }
 
 // =============================================================================================
@@ -290,6 +337,8 @@ module.exports = {
   slashes, stripAccents, safeSessionId,
   // dates
   TIME_ZONE, now, asDate, spParts, isoSP,
+  // command line
+  InvalidData, parseOptions,
   // standard input
   decodeText, stdinIsInteractive, readStdinSync,
   // redaction and truncation

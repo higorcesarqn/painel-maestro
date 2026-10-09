@@ -15,17 +15,16 @@ const TIME_ZONE = 'America/Sao_Paulo';
 const FMT = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
 const { t } = require('./i18n');
-
-class UsageError extends Error {}
+const { InvalidData, parseOptions } = require('./lib');
 
 /** "8", "08", "8:30", "22:00" → minutes since 00:00. */
 function parseHour(text, label, max) {
   const m = /^(\d{1,2})(?::(\d{2}))?$/.exec(String(text === undefined ? '' : text).trim());
-  if (!m) throw new UsageError(t('timeWindow.invalidHour', { label, value: text === undefined ? '' : text }));
+  if (!m) throw new InvalidData('timeWindow.invalidHour', { label, value: text === undefined ? '' : text });
   const h = Number(m[1]);
   const min = m[2] === undefined ? 0 : Number(m[2]);
   const total = h * 60 + min;
-  if (min > 59 || total > max) throw new UsageError(t('timeWindow.hourOutOfRange', { label, value: text }));
+  if (min > 59 || total > max) throw new InvalidData('timeWindow.hourOutOfRange', { label, value: text });
   return total;
 }
 
@@ -42,22 +41,16 @@ function isInsideWindow(minute, start, end) {
 }
 
 function parseArgs(argv, env) {
-  const positional = [];
+  const { opts, positional } = parseOptions(argv, { now: 'value' }, { unknown: 'timeWindow.unknownOption', missing: 'timeWindow.invalidNow' });
   let now = null;
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === '--now' || a.startsWith('--now=')) {
-      const v = a.includes('=') ? a.slice(a.indexOf('=') + 1) : argv[++i];
-      now = new Date(v);
-      if (!v || Number.isNaN(now.getTime())) throw new UsageError(t('timeWindow.invalidNow', { value: v === undefined ? '' : v }));
-    } else if (a.startsWith('--')) {
-      throw new UsageError(t('timeWindow.unknownOption', { option: a }));
-    } else positional.push(a);
+  if (opts.now !== undefined) {
+    now = new Date(opts.now);
+    if (Number.isNaN(now.getTime())) throw new InvalidData('timeWindow.invalidNow', { value: opts.now });
   }
-  if (positional.length !== 2) throw new UsageError(t('timeWindow.missingRange'));
+  if (positional.length !== 2) throw new InvalidData('timeWindow.missingRange');
   const start = parseHour(positional[0], t('timeWindow.start'), 23 * 60 + 59);
   const end = parseHour(positional[1], t('timeWindow.end'), 24 * 60);
-  if (start === end) throw new UsageError(t('timeWindow.emptyRange'));
+  if (start === end) throw new InvalidData('timeWindow.emptyRange');
   if (!now && env.MAESTRO_NOW) {
     now = new Date(env.MAESTRO_NOW);
     if (Number.isNaN(now.getTime())) now = null;
@@ -76,7 +69,7 @@ if (require.main === module) {
   try {
     process.exitCode = main(process.argv.slice(2));
   } catch (e) {
-    process.stderr.write(`${t('timeWindow.prefix', { message: e instanceof UsageError ? e.message : (e && e.stack) || e })}\n`);
+    process.stderr.write(`${t('timeWindow.prefix', { message: e instanceof InvalidData ? e.message : (e && e.stack) || e })}\n`);
     process.exitCode = 2;
   }
 }

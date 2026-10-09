@@ -25,27 +25,15 @@ const MANIFEST = path.join(REPO, 'skills', 'links.json');
 const BACKUP_DIR = path.join('backups', 'painel-maestro');
 const WIN = process.platform === 'win32';
 
-class InvalidData extends Error {
-  constructor(key, params = {}) {
-    super(t(key, params));
-    this.key = key;
-  }
-}
+const { InvalidData } = lib;
 
 // ---------- arguments ----------
 
 function parseArgs(argv) {
-  const opts = { undo: false, claudeDir: undefined };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === '--undo') opts.undo = true;
-    else if (a === '--claude-dir' || a.startsWith('--claude-dir=')) {
-      const value = a.includes('=') ? a.slice(a.indexOf('=') + 1) : argv[++i];
-      if (!value || value.startsWith('--')) throw new InvalidData('installSkills.errors.missingValue', { option: 'claude-dir' });
-      opts.claudeDir = value;
-    } else throw new InvalidData('installSkills.errors.unknownArgument', { value: a });
-  }
-  return opts;
+  const { opts, positional } = lib.parseOptions(argv, { undo: 'flag', 'claude-dir': 'value' },
+    { unknown: 'installSkills.errors.unknownArgument', missing: 'installSkills.errors.missingValue' });
+  if (positional.length) throw new InvalidData('installSkills.errors.unknownArgument', { value: positional[0] });
+  return { undo: !!opts.undo, claudeDir: opts['claude-dir'] };
 }
 
 function claudeDir(opts, env = process.env) {

@@ -54,7 +54,7 @@ const mergeCheck = require(path.join(__dirname, 'merge-check.js'));
 const usageApi = require(path.join(__dirname, 'api-usage.js'));
 const overviewApi = require(path.join(__dirname, 'api-overview.js'));
 const { evaluateHealth } = require(path.join(__dirname, 'health.js'));
-const { asDate, isoSP } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
+const { asDate, isoSP, InvalidData, parseOptions } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
 const { readJson, readText, withRetries, writeAtomic } = collector.util;
 
 const MIN_MS = 60 * 1000;
@@ -71,34 +71,24 @@ const JSON_TYPE = 'application/json; charset=utf-8';
 const HTML_TYPE = 'text/html; charset=utf-8';
 const USAGE_FILE = 'state/usage.json';         // written by the usage collector, relative to MAESTRO_DIR
 
-class UsageError extends Error {}
 
 // ---------- configuration ----------
 
 function parseConfig(argv = [], env = process.env) {
-  let port = env.PANEL_PORT;
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === '--port') port = argv[++i];
-    else if (a.startsWith('--port=')) port = a.slice('--port='.length);
-    else if (a === '--help' || a === '-h') return { help: true };
-    else throw new UsageError(t('server.errors.unknownOption', { option: a }));
-  }
+  const { opts, positional } = parseOptions(argv, { port: 'value', help: 'flag' }, { unknown: 'server.errors.unknownOption', missing: 'server.errors.invalidPort' });
+  if (opts.help) return { help: true };
+  if (positional.length) throw new InvalidData('server.errors.unknownOption', { option: positional[0] });
+  const port = opts.port !== undefined ? opts.port : env.PANEL_PORT;
   const p = port === undefined || port === '' ? DEFAULT_PORT : Number(port);
-  if (!Number.isInteger(p) || p < 1 || p > 65535) throw new UsageError(t('server.errors.invalidPort', { value: port }));
+  if (!Number.isInteger(p) || p < 1 || p > 65535) throw new InvalidData('server.errors.invalidPort', { value: port });
   const nowText = env.PANEL_NOW || env.MAESTRO_NOW || '';
   const fixedNow = nowText ? asDate(nowText) : null;
-  if (nowText && !fixedNow) throw new UsageError(t('server.errors.invalidNow', { value: nowText }));
+  if (nowText && !fixedNow) throw new InvalidData('server.errors.invalidNow', { value: nowText });
   // Overview (#14): an active item on the same stage for longer than this is "stale".
   const staleText = env.PANEL_STALE_HOURS;
   const staleHours = staleText === undefined || staleText === '' ? DEFAULT_STALE_HOURS : Number(staleText);
-  if (!(Number.isFinite(staleHours) && staleHours > 0)) throw new UsageError(t('server.errors.invalidStaleHours', { value: staleText }));
-  let mergeCheckConfig;
-  try {
-    mergeCheckConfig = mergeCheck.parseConfig(env, { collectorActive: env.PANEL_COLLECTOR !== '0', fixedNow });
-  } catch (e) {
-    throw new UsageError(e.message);
-  }
+  if (!(Number.isFinite(staleHours) && staleHours > 0)) throw new InvalidData('server.errors.invalidStaleHours', { value: staleText });
+  const mergeCheckConfig = mergeCheck.parseConfig(env, { collectorActive: env.PANEL_COLLECTOR !== '0', fixedNow });
   return {
     mergeCheck: mergeCheckConfig,
     staleHours,

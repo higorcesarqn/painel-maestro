@@ -44,12 +44,7 @@ const MAX_TASKS = 200;
 const MAESTRI_TIMEOUT_MS = 15000;
 const SOURCE = 'cli';
 
-class InvalidData extends Error {
-  constructor(key, params = {}) {
-    super(t(key, params));
-    this.key = key;
-  }
-}
+const { InvalidData } = lib;
 
 /** Something outside the data failed after the event was recorded (exit 1, the message says what). */
 class Failed extends Error {}

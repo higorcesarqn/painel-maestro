@@ -52,7 +52,7 @@ const crypto = require('crypto');
 const { openStore, flowDir } = require('./flow-store');
 const { openRawStore } = require('./raw-store');
 const { t, has } = require('./i18n');
-const { asDate, spParts, isoSP } = require('./lib');
+const { asDate, spParts, isoSP, InvalidData, parseOptions } = require('./lib');
 
 const TIME_ZONE = 'America/Sao_Paulo';
 const MIN_MS = 60 * 1000;
@@ -71,7 +71,6 @@ const MAX_SUBAGENTS = 5000;           // files per session (protection against a
 const FAILED_STATES = new Set(['failed', 'fileError', 'executableNotFound', 'needsNewerMaestri']);
 const RETRYABLE = new Set(['EPERM', 'EBUSY', 'EACCES', 'EAGAIN', 'EMFILE', 'ENFILE']);
 
-class UsageError extends Error {}
 
 // ---------- dates in the São Paulo time zone (Intl; never toISOString in the data) ----------
 
@@ -752,20 +751,12 @@ function describe(c, ref) {
 }
 
 function parseArgs(argv) {
-  const o = { json: false, noWrite: false, now: null, help: false };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === '--json') o.json = true;
-    else if (a === '--no-write') o.noWrite = true;
-    else if (a === '--help' || a === '-h') o.help = true;
-    else if (a === '--now' || a.startsWith('--now=')) {
-      const v = a.includes('=') ? a.slice(a.indexOf('=') + 1) : argv[++i];
-      const d = asDate(v);
-      if (!d) throw new UsageError(t('usage.errors.invalidNow', { value: v === undefined ? '' : v }));
-      o.now = d;
-    } else throw new UsageError(t('usage.errors.unknownOption', { option: a }));
-  }
-  return o;
+  const { opts, positional } = parseOptions(argv, { json: 'flag', 'no-write': 'flag', help: 'flag', now: 'value' },
+    { unknown: 'usage.errors.unknownOption', missing: 'usage.errors.invalidNow' });
+  if (positional.length) throw new InvalidData('usage.errors.unknownOption', { option: positional[0] });
+  const now = opts.now === undefined ? null : asDate(opts.now);
+  if (opts.now !== undefined && !now) throw new InvalidData('usage.errors.invalidNow', { value: opts.now });
+  return { json: !!opts.json, noWrite: !!opts['no-write'], now, help: !!opts.help };
 }
 
 function pct(v) {
@@ -827,7 +818,7 @@ if (require.main === module) {
   main(process.argv.slice(2)).then((code) => {
     process.exitCode = code;
   }).catch((e) => {
-    if (e instanceof UsageError) {
+    if (e instanceof InvalidData) {
       process.stderr.write(`${t('usage.errors.prefix', { message: e.message })}\n`);
       process.exitCode = 2;
     } else {
