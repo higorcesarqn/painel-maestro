@@ -27,7 +27,8 @@ export const SCREENS = [
 // Addresses of before the screens were in English (#visao, #pendencias...): still open the right screen.
 export const OLD_SCREEN_IDS = { visao: 'overview', pendencias: 'pending', agentes: 'agents', uso: 'usage' };
 
-/** Filters of the Log (new model): period and company, project, item (<project>/<number>) and event type. */
+/** Filters of the Log (new model): period, project, item (<project>/<number>) and event type. The company is the
+ * selector at the top of the panel (companyFilter, #6), joined to these filters when the Log is read. */
 export function newFilter() {
-  return { period: 'all', since: '', until: '', company: '', project: '', item: '', type: '' };
+  return { period: 'all', since: '', until: '', project: '', item: '', type: '' };
 }

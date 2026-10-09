@@ -8,6 +8,7 @@
 //   node bin/flow.js task dispatch <number> <task> [--floor F] [--worker W] [--branch B] [...] [--json -]
 //   node bin/flow.js task integrate <number> <task> --sha <sha> [--sha-before <sha>] [...] [--json -]
 //   node bin/flow.js status "<text>" [--state working|blocked|review|done] [--progress n/m] [--item N] [--task N] [...]
+//   node bin/flow.js company list|add …  ·  node bin/flow.js project list|add|edit|move …   (bin/flow-admin.js, #6)
 //
 // The project comes from the "git remote origin" of the current folder (also inside a floor's worktree); an
 // unregistered repository is registered in the company "Sem empresa" and the command goes on. Fields come
@@ -31,6 +32,7 @@ const { openStore, flowDir, STAGES, UNASSIGNED_COMPANY } = require('./flow-store
 const { originOf, branchOf, describeRemote } = require('./flow-repo');
 const { projectItem, trackerRef, EVENT_TYPES, WORKER_STATES } = require('./flow-projection');
 const { PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES } = require('./flow-projection');
+const { createAdmin, isAdminCommand } = require('./flow-admin');
 
 const ROLES = ['maestro', 'worker', 'owner'];
 const MAX_TITLE = 300;
@@ -760,6 +762,10 @@ function recordPending(store, cmd, { project, at }) {
 function run(argv, cwd) {
   if (argv.includes('--help') || argv.includes('-h') || argv[0] === 'help') {
     lib.print(t('help', { db: lib.slashes(path.join(flowDir(), 'maestro.db')) }));
+    return;
+  }
+  if (isAdminCommand(argv)) {
+    createAdmin({ InvalidData, parseArgs, readJson, pick }).run(argv, cwd);
     return;
   }
   const cmd = parseCommand(argv);

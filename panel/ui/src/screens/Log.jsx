@@ -1,5 +1,5 @@
-// Log (new model, #12): the events of every item (maestro.db), newest first, with filters by period, company,
-// project, item and event type, 50 per page (the table scrolls inside the card). A click or Enter on a row opens
+// Log (new model, #12): the events of every item (maestro.db), newest first, with filters by period, project, item
+// and event type (the company comes from the selector at the top of the panel, #6, like in the other screens), 50 per page (the table scrolls inside the card). A click or Enter on a row opens
 // the event with the raw commands of the Claude Code sessions linked to it (bruto.db, written by the hook).
 // The numbers of each option come from "counts" of /api/log (each filter ignores its own choice).
 import '../styles/log.css';
@@ -20,15 +20,15 @@ const KNOWN_TYPES = ['item-started', 'stage-changed', 'task-graph', 'task-dispat
 const withCount = (name, counts, key) => (counts ? `${name} · ${number(counts[key] || 0)}` : name);
 
 export function Log() {
-  const { filters: f, setFilters, page, setPage, log } = usePanel();
+  const { filters: f, setFilters, page, setPage, log, company, companyFilter } = usePanel();
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(null);
-  // Companies, projects and items to choose from: those of /api/items, plus those that show up in the counts.
+  // Projects and items to choose from: those of /api/items of the chosen company, plus those that show up in the counts.
   useEffect(() => {
     let alive = true;
-    readItems().then((r) => { if (alive) setItems(objs(r && r.items)); }).catch(() => {});
+    readItems(companyFilter).then((r) => { if (alive) setItems(objs(r && r.items)); }).catch(() => {});
     return () => { alive = false; };
-  }, [log.answer]);
+  }, [log.answer, companyFilter]);
 
   const r = log.answer;
   const events = objs(r && r.events);
@@ -36,25 +36,20 @@ export function Log() {
   const pages = r ? r.pages || Math.max(1, Math.ceil((r.total || 0) / (r.per_page || PAGE_SIZE))) : 1;
 
   const options = useMemo(() => {
-    const companies = new Map();
     const projects = new Map();
     for (const it of items) {
       const p = obj(it.project) || {};
       const c = obj(p.company) || {};
-      if (c.id) companies.set(c.id, txt(c.name) || c.id);
       if (p.id) projects.set(p.id, { name: txt(p.name) || p.id, company: c.id || '' });
     }
-    for (const k of Object.keys(obj(counts.company) || {})) if (!companies.has(k)) companies.set(k, k);
     for (const k of Object.keys(obj(counts.project) || {})) if (!projects.has(k)) projects.set(k, { name: k, company: '' });
     const types = [...new Set([...KNOWN_TYPES, ...Object.keys(obj(counts.type) || {}), ...(f.type ? [f.type] : [])])];
-    const itemList = items.filter((it) => (!f.project || (it.project && it.project.id === f.project))
-      && (!f.company || (it.project && it.project.company && it.project.company.id === f.company)));
-    return { companies, projects, types, items: itemList };
-  }, [items, r, f.company, f.project, f.type]);
+    const itemList = items.filter((it) => !f.project || (it.project && it.project.id === f.project));
+    return { projects, types, items: itemList };
+  }, [items, r, f.project, f.type]);
 
-  const companyOptions = [['', t('log.allCompanies')], ...[...options.companies].map(([id, name]) => [id, withCount(name, counts.company, id)])];
   const projectOptions = [['', t('log.allProjects')], ...[...options.projects]
-    .filter(([, p]) => !f.company || !p.company || p.company === f.company)
+    .filter(([, p]) => !company || !p.company || p.company === company)
     .map(([id, p]) => [id, withCount(p.name, counts.project, id)])];
   const itemOptions = [['', t('log.allItems')], ...options.items.map((it) => [it.key, t('log.itemOption', { ref: txt(it.tracker_ref), project: txt(it.project && it.project.name), title: txt(it.title) })])];
   if (f.item && !options.items.some((it) => it.key === f.item)) itemOptions.push([f.item, f.item]);
@@ -91,7 +86,6 @@ export function Log() {
           )}
         </div>
         <div class="log-row">
-          <Select value={f.company} options={companyOptions} ariaLabel={t('log.companyLabel')} onChange={(v) => setFilters({ company: v, project: '', item: '' })} width={190} />
           <Select value={f.project} options={projectOptions} ariaLabel={t('log.projectLabel')} onChange={(v) => setFilters({ project: v, item: '' })} width={190} />
           <Select value={f.item} options={itemOptions} ariaLabel={t('log.itemLabel')} onChange={(v) => setFilters({ item: v })} width={300} />
           <Select value={f.type} options={typeOptions} ariaLabel={t('log.typeLabel')} onChange={(v) => setFilters({ type: v })} width={210} />

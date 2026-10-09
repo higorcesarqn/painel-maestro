@@ -1,15 +1,15 @@
 // Owner's pending decisions of the new model (#10), read only: numbers on top (open ones by severity, resolved,
-// canceled), the list on the left with the company and status filters, the pending decision in the middle (item,
+// canceled), the list on the left with the status filter, the pending decision in the middle (item,
 // task, context, options, recommendation and, once closed, the decision) and, on the right, where to answer: the
 // workspace and the terminal of the maestro in the Maestri. The owner answers there; the maestro records the decision
-// with "flow pending resolve". Reads GET /api/pending-decisions every 20 s; each column scrolls inside.
+// with "flow pending resolve". Reads GET /api/pending-decisions every 20 s; each column scrolls inside. The company
+// comes from the selector at the top of the panel (#6, companyFilter), like in the other screens of the new model.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
 import { REFRESH_MS, readPendingDecisions } from '../data/api.js';
 import { objs, obj, arr, txt, age, dateTime, number } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Kpi, Badge, Segmented, Empty, InfoHint } from '../components/base.jsx';
-import { Select } from '../components/fields.jsx';
 import { Icon, Inbox, X } from '../components/Icon.jsx';
 import '../styles/pending-decisions.css';
 
@@ -29,18 +29,18 @@ const projectName = (it) => {
   return [txt(p.name || p.id), txt(company.name)].filter(Boolean).join(' · ');
 };
 
-/** The filters → query parameters of /api/pending-decisions (only the ones chosen). */
-function params(f) {
+/** The filters and the company of the selector → query parameters of /api/pending-decisions (only the ones chosen). */
+function params(f, companyFilter) {
   const sp = {};
-  if (f.company) sp.company = f.company;
+  if (companyFilter && companyFilter.company) sp.company = companyFilter.company;
   if (f.status !== 'all') sp.status = f.status;
   if (f.severity) sp.severity = f.severity;
   return sp;
 }
 
 export function PendingDecisions() {
-  const { pendingTarget, setActionStatus, goTo } = usePanel();
-  const [filters, setFilters] = useState({ company: '', status: 'open', severity: null });
+  const { pendingTarget, setActionStatus, goTo, company, companyFilter } = usePanel();
+  const [filters, setFilters] = useState({ status: 'open', severity: null });
   const [read, setRead] = useState({ answer: null, error: null });
   const [chosen, setChosen] = useState(null);
   const detail = useRef(null);
@@ -49,12 +49,12 @@ export function PendingDecisions() {
   const load = useCallback(async () => {
     const mine = ++seq.current;
     try {
-      const answer = await readPendingDecisions(params(filters));
+      const answer = await readPendingDecisions(params(filters, companyFilter));
       if (mine === seq.current) setRead({ answer, error: null });
     } catch (error) {
       if (mine === seq.current) setRead((r) => ({ answer: r.answer, error }));
     }
-  }, [filters]);
+  }, [filters, companyFilter]);
   useEffect(() => {
     load();
     const timer = setInterval(load, REFRESH_MS);
@@ -66,7 +66,6 @@ export function PendingDecisions() {
   const counts = obj(answer && answer.counts) || {};
   const byStatus = obj(counts.status) || {};
   const bySeverity = obj(counts.severity) || {};
-  const companies = objs(answer && answer.companies);
   const current = list.find((p) => p.id === chosen) || list[0] || null;
 
   // Coming from a link to a pending decision: shows it when it is in the list (the old model's P-NNNN never is).
@@ -83,7 +82,6 @@ export function PendingDecisions() {
   }, [pendingTarget]);
 
   const change = (f) => { setFilters((x) => ({ ...x, ...f })); setChosen(null); };
-  const companyOptions = [['', t('pending.allCompanies')], ...companies.map((c) => [txt(c.id), txt(c.name) || txt(c.id)])];
   const statusOptions = [...STATUSES, 'all'].map((s) => ({ id: s, name: s === 'all' ? t('pending.allStatuses') : statusName(s), n: s === 'all' ? undefined : number(byStatus[s] || 0) }));
 
   return (
@@ -104,16 +102,15 @@ export function PendingDecisions() {
 
       <Card scroll flush class="pending-list-col" aria-label={t('pending.listLabel')}
         actions={<Segmented label={t('pending.statusLabel')} value={filters.status} onChange={(v) => change({ status: v })} options={statusOptions} />}>
-        <div class="pending-filter">
-          <Select value={filters.company} options={companyOptions} onChange={(v) => change({ company: v })} ariaLabel={t('pending.companyLabel')} />
-          {filters.severity && (
+        {filters.severity && (
+          <div class="pending-filter">
             <button type="button" class="chip-filter" onClick={() => change({ severity: null })} aria-label={t('pending.removeFilter', { severity: t(`pending.severityPlural.${filters.severity}`) })}>
               {t('pending.onlySeverity', { severity: t(`pending.severityPlural.${filters.severity}`) })} <Icon of={X} size={12} />
             </button>
-          )}
-        </div>
+          </div>
+        )}
         {read.error && <p class="pending-error" role="alert">{t('pending.readFailed', { message: read.error.message })}</p>}
-        {answer && !list.length && <Empty icon={Inbox} center>{filters.status === 'open' && !filters.severity && !filters.company ? t('pending.emptyOpen') : t('pending.emptyFilter')}</Empty>}
+        {answer && !list.length && <Empty icon={Inbox} center>{filters.status === 'open' && !filters.severity && !company ? t('pending.emptyOpen') : t('pending.emptyFilter')}</Empty>}
         <div class="list pending-list" role="listbox" aria-label={t('pending.listboxLabel')}>
           {list.map((p) => {
             const it = obj(p.item) || {};

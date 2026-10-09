@@ -42,10 +42,23 @@ export const recalculateUsage = () => api('/api/recalculate', { method: 'POST' }
 export const readEvents = (params) => api(`/api/events?${new URLSearchParams(params).toString()}`);
 export const readEvent = (id) => api(`/api/event/${encodeURIComponent(id)}`);
 // New model (maestro.db): items with their state computed from the events.
-export const readItems = () => api('/api/items');
+export const readItems = (filters) => api(withQuery('/api/items', filters));
 export const readItem = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`);
 // New model Log: the events of maestro.db with filters and, for one event, the raw commands of bruto.db linked to it.
 export const readLog = (params) => api(`/api/log?${new URLSearchParams(params).toString()}`);
 export const readLogEvent = (id) => api(`/api/log/${encodeURIComponent(id)}`);
 // Pending decisions of the new model, read only: params { company, project, severity, status }.
 export const readPendingDecisions = (params) => api(`/api/pending-decisions?${new URLSearchParams(params).toString()}`);
+
+// Companies and projects (#6). The company selector reaches each list as ?company=<id> (see companyFilter).
+export const readCompanies = () => api('/api/companies');
+export const readProjects = (filters) => api(withQuery('/api/projects', filters));
+export const moveProject = (project, company) => api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } });
+
+/** path?k=v for the filled values of filters ({ company: 'contoso', project: '' } → path?company=contoso). */
+export function withQuery(path, filters) {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters || {})) if (typeof v === 'string' && v) sp.set(k, v);
+  const q = sp.toString();
+  return q ? `${path}?${q}` : path;
+}

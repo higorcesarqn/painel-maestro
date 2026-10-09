@@ -16,12 +16,12 @@ O painel junta tudo isso num lugar só e não usa IA nem gasta tokens: ele só l
 
 ## Telas
 
-O menu tem um grupo, Workspace (fonte em `panel/ui/src/data/context.js`):
+O menu tem um grupo, Workspace (fonte em `panel/ui/src/data/context.js`). No topo, o **seletor de empresa** (Todas ou uma empresa, lembrado neste navegador) filtra Itens, Pendências e Log:
 
 - **Itens** (modelo novo): a lista de itens (Issues do GitHub e PBIs do Azure DevOps) com a etapa de cada um, e a **página do item**, com a etapa atual, as etapas do fluxo e a linha do tempo. A página de um item tem endereço fixo, `http://127.0.0.1:4777/#items/<projeto>/<número>` (ex.: `#items/cidax/3100`), que o portal do Maestri abre direto.
 - **Visão geral:** números do topo (pendências por severidade, uso do plano, eventos de hoje), atividade e resultados de 7 dias por agente, último evento de cada agente e atividade recente. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) com os motivos: hooks parados, arquivos ilegíveis.
-- **Pendências** (modelo novo, só leitura): o que espera uma decisão do dono, com filtros por empresa, severidade e status; cada pendência mostra o item, a task, contexto, opções, recomendação e **onde responder** (workspace e terminal do maestro no Maestri) e, depois de fechada, a decisão. O dono responde no terminal do maestro, não no painel.
-- **Log** (modelo novo): os eventos do fluxo de cada item, do mais recente ao mais antigo, com filtros por período, empresa, projeto, item e tipo. Clicar numa linha abre o **evento**: o que foi gravado e os comandos brutos das sessões do Claude Code ligadas a ele (pela branch da sessão e pela janela de tempo).
+- **Pendências** (modelo novo, só leitura): o que espera uma decisão do dono, com filtros por severidade e status (a empresa vem do seletor do topo); cada pendência mostra o item, a task, contexto, opções, recomendação e **onde responder** (workspace e terminal do maestro no Maestri) e, depois de fechada, a decisão. O dono responde no terminal do maestro, não no painel.
+- **Log** (modelo novo): os eventos do fluxo de cada item, do mais recente ao mais antigo, com filtros por período, projeto, item e tipo (a empresa vem do seletor do topo). Clicar numa linha abre o **evento**: o que foi gravado e os comandos brutos das sessões do Claude Code ligadas a ele (pela branch da sessão e pela janela de tempo).
 - **Agentes:** um cartão por agente (último evento, eventos de hoje, fluxos abertos, consumo) e a ficha completa num modal, com o log bruto de cada um.
 - **Uso:** o plano do Claude (janela de 5 h e semanal, com o horário de reinício) e a participação de cada agente no consumo de tokens.
 
@@ -128,6 +128,28 @@ node .../bin/flow.js pending cancel P-7 [--reason "..."]
 - **Dados:** cada passo vira um **evento** no `maestro.db` (SQLite embutido do Node, `node:sqlite`, Node 22.13+), em `MAESTRO_DIR`, cujo padrão para o modelo novo é **`~/.painel-maestro`** (`C:\Users\<você>\.painel-maestro`). O banco usa WAL e espera a vez (`busy_timeout`), então o maestro e os trabalhadores gravam ao mesmo tempo sem perder eventos; a versão do esquema fica no próprio banco e é migrada ao abrir. O estado do item nunca é gravado: o painel o calcula dos eventos (ADR 0002). O aviso de módulo experimental do SQLite é silenciado.
 
 **Log bruto (`bruto.db`):** o hook do Claude Code (`bin/hook-log.js`, veja o [passo 3](#3-instale-o-hook-do-claude-code)) grava os prompts e os comandos de cada sessão num segundo banco, `bruto.db`, na mesma pasta do `maestro.db` (padrão `~/.painel-maestro/bruto.db`). Só entram sessões cuja pasta pertence a um **projeto cadastrado** no `maestro.db` (pelo `git remote origin`, normalizado como no `flow`, inclusive no worktree de um floor); as outras não gravam nada. Cada sessão fica ligada ao item e à task pela **branch atual**: `task/<id>-…` (ou `task/<id>`) é a task; `feature/pbi-<id>` ou `feature/issue-<n>` é o maestro do item; outra branch liga só ao projeto. A tela Log mostra, em cada evento, os comandos das sessões da mesma task (evento de uma task) ou do maestro do item (evento do próprio item), desde o evento anterior do mesmo item e task (no máximo 6 h antes) até um minuto depois dele. **Retenção:** o servidor apaga do `bruto.db` o que tem mais de **90 dias** ao subir e depois uma vez por dia, em rodadas curtas (o painel continua respondendo).
+
+#### Empresas e projetos (#6)
+
+O dono organiza os projetos por **empresa**; o trabalho pessoal é a empresa "Pessoal", uma empresa como as outras. Estes comandos não precisam rodar dentro de um repositório (o `project add` sem `--repo` usa o remote da pasta atual):
+
+```
+node .../bin/flow.js company add contoso --name "Contoso"
+node .../bin/flow.js company add personal --name "Pessoal"
+node .../bin/flow.js company list
+node .../bin/flow.js project add cidax --name "CIDAX" --company contoso --tracker azure_devops \
+  --repo https://dev.azure.com/contoso/CIDAX/_git/cidax-api --repo https://dev.azure.com/contoso/CIDAX/_git/cidax-web \
+  --stages specification,implementation,final_adjustment,pr_ready,merge,hml_validation,done --done-state Committed --workspace "CIDAX"
+node .../bin/flow.js project edit cidax --repo <url> --remove-repo <url> --stages ... --done-state "" --workspace "..."
+node .../bin/flow.js project move scratch personal
+node .../bin/flow.js project list [--company contoso]
+```
+
+- **Repositórios:** um projeto tem um ou mais repositórios, guardados pela URL do remote normalizada (SSH e HTTPS iguais). Um projeto do Azure DevOps com vários repositórios é **um projeto só**: o CLI rodado em qualquer um deles (ou num worktree deles) resolve o mesmo projeto. Um repositório pertence a um projeto só; o tracker do projeto precisa bater com o do endereço.
+- **Etapas usadas** (`--stages`, na ordem do fluxo; padrão: todas) e **estado de concluído no tracker** (`--done-state`, ex.: `Committed` no CIDAX). `flow stage` ou `item start` numa etapa que o projeto não usa sai com **código 2**.
+- **"Sem empresa":** um repositório sem cadastro entra sozinho em "Sem empresa" (`unassigned`). O painel mostra esses projetos em destaque no topo da tela Itens, com a escolha da empresa e o botão **Mover** (`POST /api/projects/<id>/company`); pelo CLI, `project move` ou `project edit --company`. O id do projeto não muda (a chave dos itens continua valendo).
+- **Seletor de empresa:** no topo do painel, **Todas** ou uma empresa. Ele filtra as telas do modelo novo (Itens, Pendências e Log; as próximas telas migradas seguem o mesmo filtro) e fica lembrado neste navegador.
+- JSON pela entrada padrão: `id`, `name`, `company`, `tracker`, `repos`, `remove_repos`, `stages`, `done_state`, `maestri_workspace`. Dado inválido (empresa ou projeto que não existe ou já existe, id fora de `[a-z0-9-]`, repositório de outro projeto, tracker que não bate, etapa desconhecida, último repositório removido) sai com **código 2**.
 
 Com `MAESTRO_DIR` definido, o modelo antigo e o novo usam a mesma pasta; sem ele, o antigo continua na pasta do repositório e o novo vai para `~/.painel-maestro`. O servidor lê o `maestro.db` do mesmo jeito: suba-o com o mesmo `MAESTRO_DIR` (ou nenhum) que os agentes usam.
 
@@ -289,7 +311,7 @@ Todos usam só a biblioteca padrão do Node e respeitam `MAESTRO_DIR` (o `flow.j
 
 | Script | Para que serve |
 |---|---|
-| `flow.js` | **modelo novo**: `item start`, `stage`, `pr`, `final-adjustment`, `hml`, `item done`, `task graph`/`dispatch`/`integrate`, `status` e `pending open`/`resolve`/`cancel` gravam os eventos de um item, das tasks e das pendências dele no `maestro.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)) |
+| `flow.js` | **modelo novo**: `item start`, `stage`, `pr`, `final-adjustment`, `hml`, `item done`, `task graph`/`dispatch`/`integrate`, `status` e `pending open`/`resolve`/`cancel` gravam os eventos de um item, das tasks e das pendências dele no `maestro.db` (veja [Modelo novo](#modelo-novo-itens-o-cli-flow-e-o-maestrodb)); `company` e `project` (em `flow-admin.js`) cadastram empresas e projetos |
 | `install-skills.js` | liga as skills do dono declaradas em `skills/links.json` ao `~/.claude`, com backup e `--undo` (veja [Instalar as skills](#instalar-as-skills-do-dono-painel_maestro-e-install-skillsjs)) |
 | `flow-store.js`, `flow-projection.js`, `flow-repo.js`, `i18n/` | banco do modelo novo (`node:sqlite`, WAL, migrações), projeção pura do estado do item, projeto pelo `git remote origin` e o dicionário pt-BR do CLI |
 | `registrar.js` | log semântico: `novo-fluxo`, `evento`, `ultimos`, `fluxo` |
@@ -333,7 +355,7 @@ npm test                                   # node panel/tests/run-all.js
 node panel/tests/run-all.js server       # só os arquivos com "server" no nome
 ```
 
-Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das tasks usa uma CLI do Maestri falsa, que só grava os argumentos. São 13 arquivos: coletor de uso, modelo novo (`test-flow.js`, `test-flow-tasks.js`, `test-flow-delivery.js`, PR, ajuste final, HML e conclusão, e `test-flow-pending.js`, pendências), hook do log bruto (`bruto.db`), tela Log (`test-log.js`), dicionário, desempenho (`maestro.db` com 20 mil eventos e `bruto.db` com 400 mil registros), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária), filtro de horário e servidor. Eles conferem códigos, não frases. O `test-flow.js`, o `test-flow-tasks.js`, o `test-flow-delivery.js` e o `test-flow-pending.js` seguem uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
+Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `panel/tests/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda para inspeção). O teste das tasks usa uma CLI do Maestri falsa, que só grava os argumentos. São 14 arquivos: coletor de uso, modelo novo (`test-flow.js`, `test-flow-tasks.js`, `test-flow-delivery.js`, PR, ajuste final, HML e conclusão, `test-flow-pending.js`, pendências, e `test-companies.js`, empresas e projetos), hook do log bruto (`bruto.db`), tela Log (`test-log.js`), dicionário, desempenho (`maestro.db` com 20 mil eventos e `bruto.db` com 400 mil registros), página compilada, instalador das skills (`test-install-skills.js`, sempre numa pasta do Claude temporária), filtro de horário e servidor. Eles conferem códigos, não frases. O `test-flow.js`, o `test-flow-tasks.js`, o `test-flow-delivery.js` e o `test-flow-pending.js` seguem uma regra só: o CLI `flow` roda como processo dentro de repositórios git temporários com `remote origin` fictício (e um worktree), grava num `maestro.db` temporário e o resultado é conferido só pela API do servidor, inclusive com 12 processos gravando ao mesmo tempo; nenhum teste lê o banco.
 
 Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, para os itens e as pendências, `node panel/tests/generate-mock-items.js` (usa a mesma projeção do servidor).
 
@@ -343,6 +365,7 @@ Para regerar os dados da demonstração: `node panel/tests/generate-mock.js` e, 
 painel-maestro/
 ├── bin/                      scripts de linha de comando (só biblioteca padrão do Node)
 │   ├── flow.js               modelo novo: CLI que grava os eventos de cada item no maestro.db
+│   ├── flow-admin.js         flow company / flow project: cadastro de empresas e projetos
 │   ├── flow-store.js         maestro.db (node:sqlite, WAL, esquema e migrações)
 │   ├── flow-projection.js    estado do item calculado dos eventos (função pura)
 │   ├── flow-repo.js          projeto pelo git remote origin
@@ -358,6 +381,7 @@ painel-maestro/
 ├── panel/
 │   ├── server.js             servidor HTTP e API (em inglês, devolve códigos)
 │   ├── api-items.js          itens do modelo novo (/api/items)
+│   ├── api-projects.js       empresas e projetos (/api/companies, /api/projects, mover de empresa)
 │   ├── legacy-records.js     nomes em inglês para os registros do modelo antigo
 │   ├── api-pending-decisions.js  pendências do modelo novo, só leitura (/api/pending-decisions)
 │   ├── index.html            a página compilada (não edite à mão)

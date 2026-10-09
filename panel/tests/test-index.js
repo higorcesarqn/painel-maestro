@@ -78,14 +78,17 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   new vm.Script(js, { filename: 'index.html#script' });
   const api = source['data/api.js'];
   for (const route of ["api('/api/state')", '`/api/events?', '`/api/event/${encodeURIComponent(id)}`', "api('/api/recalculate', { method: 'POST' })",
-    'api(`/api/pending-decisions?${', "api('/api/items')",
-    'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', '`/api/log?', 'api(`/api/log/${encodeURIComponent(id)}`)']) {
+    'api(`/api/pending-decisions?${', "api(withQuery('/api/items', filters))",
+    'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', '`/api/log?', 'api(`/api/log/${encodeURIComponent(id)}`)',
+    "api('/api/companies')", "api(withQuery('/api/projects', filters))",
+    "api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } })"]) {
     assert.ok(api.includes(route), `the page calls ${route}`);
   }
-  for (const route of ['/api/state', '/api/events?', '/api/event/', '/api/recalculate', '/api/pending-decisions?', '/api/items', '/api/log?', '/api/log/']) {
+  for (const route of ['/api/state', '/api/events?', '/api/event/', '/api/recalculate', '/api/pending-decisions?', '/api/items', '/api/log?', '/api/log/',
+    '/api/companies', '/api/projects']) {
     assert.ok(js.includes(route), `the build calls ${route}`);
   }
-  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions|items|items\/|log|log\/)$/;
+  const allowed = /^\/api\/(state|events|event\/|flow\/|recalculate|brain|pending-decisions|items|items\/|log|log\/|companies|projects|projects\/)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
   assert.ok(/export const REFRESH_MS = 20000;/.test(api), 'refreshes every 20 s');
@@ -171,6 +174,22 @@ suite.test('mock-items.json: items in Final adjustment, PR ready, Merge, HML val
   assert.ok(details.some((d) => d.stage === 'done' && !d.stages.some((s) => s.id === 'hml_validation')), 'a done item of a project without HML');
   assert.ok(m.items.some((i) => i.active === false) && m.items.some((i) => i.active === true), 'active and done items');
   for (const d of details) assert.strictEqual(d.active, d.stage !== 'done');
+});
+
+suite.test('companies (#6): the demo has two companies and "Pessoal" with GitHub and Azure DevOps projects; the selector is remembered', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const named = m.companies.filter((c) => !c.unassigned);
+  assert.ok(named.length >= 3 && named.some((c) => c.name === 'Pessoal'), 'two companies and Pessoal');
+  assert.deepStrictEqual([...new Set(m.projects.map((p) => p.tracker))].sort(), ['azure_devops', 'github']);
+  assert.ok(m.projects.some((p) => p.tracker === 'azure_devops' && p.repos.length > 1), 'an Azure DevOps project with several repositories');
+  assert.ok(m.projects.some((p) => p.unassigned), 'a project in "Sem empresa" to move');
+  for (const c of m.companies) assert.strictEqual(c.project_count, m.projects.filter((p) => p.company.id === c.id).length, c.id);
+  // The choice lives in localStorage, always behind try/catch (blocked storage must not break the page).
+  const companies = source['data/companies.js'];
+  assert.ok(/localStorage\.getItem/.test(companies) && /localStorage\.setItem/.test(companies), 'remembered in the browser');
+  assert.strictEqual((companies.match(/try \{/g) || []).length >= 2, true, 'reads and writes behind try/catch');
+  assert.ok(/readItems\(companyFilter\)/.test(source['screens/Items.jsx']), 'the Items list reads with the company filter');
+  assert.ok(js.includes('painel-maestro.company'));
 });
 
 let port = null;

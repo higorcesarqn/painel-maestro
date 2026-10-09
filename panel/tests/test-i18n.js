@@ -41,7 +41,7 @@ function leafKeys(o, prefix = '', acc = []) {
 
 /** Codes the server writes ({code: '...'}) in the API (pending decisions included) and the usage collector. */
 function serverCodes() {
-  const files = ['panel/server.js', 'panel/api-pending-decisions.js', 'panel/api-log.js', 'bin/collect-usage.js'];
+  const files = ['panel/server.js', 'panel/api-pending-decisions.js', 'panel/api-log.js', 'panel/api-projects.js', 'bin/collect-usage.js'];
   const codes = new Set();
   for (const f of files) {
     for (const m of fs.readFileSync(path.join(REPO, f), 'utf8').matchAll(/\bcode: '([a-z][a-z0-9_]*)'/g)) codes.add(m[1]);
@@ -139,7 +139,9 @@ suite.test('server codes keep the texts the page showed before', () => {
   assert.strictEqual(c({ code: 'maestri_claude_provider' }), 'provedor Claude do Maestri');
   assert.strictEqual(c({ code: 'invalid_filter', param: 'severity', value: 'alta', allowed: ['critical', 'high', 'normal', 'low'] }),
     'Filtro "severity" inválido: "alta" (use critical, high, normal ou low).');
-  assert.strictEqual(c({ code: 'invalid_filter', param: 'project', value: 'X Y', allowed: null }), 'Filtro "project" inválido: "X Y".');
+  // company and project (#6) by the names the person knows; the others (#10) as they are
+  assert.strictEqual(c({ code: 'invalid_filter', param: 'project', value: 'X Y', allowed: null }), 'Filtro "projeto" inválido: "X Y".');
+  assert.strictEqual(c({ code: 'invalid_filter', param: 'company', value: 'X Y' }), 'Filtro "empresa" inválido: "X Y".');
   assert.ok(/^Host não permitido\. Abra o painel em http:\/\/127\.0\.0\.1:4777\.$/.test(c({ code: 'host_not_allowed', port: 4777 })));
 });
 

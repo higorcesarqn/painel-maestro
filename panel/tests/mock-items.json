@@ -1,5 +1,245 @@
 {
   "generated_at": "2026-10-09T10:24:30-03:00",
+  "companies": [
+    {
+      "id": "contoso",
+      "name": "Contoso",
+      "unassigned": false,
+      "project_count": 3,
+      "item_count": 6
+    },
+    {
+      "id": "fabrikam",
+      "name": "Fabrikam",
+      "unassigned": false,
+      "project_count": 2,
+      "item_count": 3
+    },
+    {
+      "id": "personal",
+      "name": "Pessoal",
+      "unassigned": false,
+      "project_count": 1,
+      "item_count": 2
+    },
+    {
+      "id": "unassigned",
+      "name": "Sem empresa",
+      "unassigned": true,
+      "project_count": 2,
+      "item_count": 2
+    }
+  ],
+  "projects": [
+    {
+      "id": "relatorios-bi",
+      "name": "relatorios-bi",
+      "tracker": "azure_devops",
+      "company": {
+        "id": "unassigned",
+        "name": "Sem empresa"
+      },
+      "unassigned": true,
+      "repos": [
+        "dev.azure.com/fabrikam/bi/_git/relatorios-bi"
+      ],
+      "stages": [
+        "specification",
+        "implementation",
+        "final_adjustment",
+        "pr_ready",
+        "merge",
+        "hml_validation",
+        "done"
+      ],
+      "done_state": null,
+      "maestri_workspace": null,
+      "created_at": "2026-10-01T09:00:00-03:00",
+      "item_count": 1
+    },
+    {
+      "id": "scratch",
+      "name": "scratch",
+      "tracker": "github",
+      "company": {
+        "id": "unassigned",
+        "name": "Sem empresa"
+      },
+      "unassigned": true,
+      "repos": [
+        "github.com/higorcesarqn/scratch"
+      ],
+      "stages": [
+        "specification",
+        "implementation",
+        "final_adjustment",
+        "pr_ready",
+        "merge",
+        "hml_validation",
+        "done"
+      ],
+      "done_state": null,
+      "maestri_workspace": null,
+      "created_at": "2026-10-01T09:00:00-03:00",
+      "item_count": 1
+    },
+    {
+      "id": "billing-api",
+      "name": "Cobrança",
+      "tracker": "azure_devops",
+      "company": {
+        "id": "contoso",
+        "name": "Contoso"
+      },
+      "unassigned": false,
+      "repos": [
+        "dev.azure.com/contoso/billing/_git/billing-api"
+      ],
+      "stages": [
+        "specification",
+        "implementation",
+        "final_adjustment",
+        "pr_ready",
+        "merge",
+        "hml_validation",
+        "done"
+      ],
+      "done_state": "Done",
+      "maestri_workspace": "Contoso Cobrança",
+      "created_at": "2026-10-01T09:00:00-03:00",
+      "item_count": 2
+    },
+    {
+      "id": "design-system",
+      "name": "Design system",
+      "tracker": "github",
+      "company": {
+        "id": "contoso",
+        "name": "Contoso"
+      },
+      "unassigned": false,
+      "repos": [
+        "github.com/contoso/design-system"
+      ],
+      "stages": [
+        "specification",
+        "implementation",
+        "final_adjustment",
+        "pr_ready",
+        "merge",
+        "done"
+      ],
+      "done_state": null,
+      "maestri_workspace": null,
+      "created_at": "2026-10-01T09:00:00-03:00",
+      "item_count": 1
+    },
+    {
+      "id": "portal",
+      "name": "Portal Contoso",
+      "tracker": "azure_devops",
+      "company": {
+        "id": "contoso",
+        "name": "Contoso"
+      },
+      "unassigned": false,
+      "repos": [
+        "dev.azure.com/contoso/portal/_git/portal-api",
+        "dev.azure.com/contoso/portal/_git/portal-web"
+      ],
+      "stages": [
+        "specification",
+        "implementation",
+        "final_adjustment",
+        "pr_ready",
+        "merge",
+        "hml_validation",
+        "done"
+      ],
+      "done_state": "Committed",
+      "maestri_workspace": "Contoso Portal",
+      "created_at": "2026-10-01T09:00:00-03:00",
+      "item_count": 3
+    },
+    {
+      "id": "erp",
+      "name": "ERP Fabrikam",
+      "tracker": "azure_devops",
+      "company": {
+        "id": "fabrikam",
+        "name": "Fabrikam"
+      },
+      "unassigned": false,
+      "repos": [
+        "fabrikam.visualstudio.com/erp/_git/erp-core",
+        "fabrikam.visualstudio.com/erp/_git/erp-fiscal",
+        "fabrikam.visualstudio.com/erp/_git/erp-web"
+      ],
+      "stages": [
+        "specification",
+        "implementation",
+        "final_adjustment",
+        "pr_ready",
+        "merge",
+        "hml_validation",
+        "done"
+      ],
+      "done_state": "Closed",
+      "maestri_workspace": null,
+      "created_at": "2026-10-01T09:00:00-03:00",
+      "item_count": 1
+    },
+    {
+      "id": "storefront",
+      "name": "Loja",
+      "tracker": "github",
+      "company": {
+        "id": "fabrikam",
+        "name": "Fabrikam"
+      },
+      "unassigned": false,
+      "repos": [
+        "github.com/fabrikam/storefront"
+      ],
+      "stages": [
+        "specification",
+        "implementation",
+        "final_adjustment",
+        "pr_ready",
+        "merge",
+        "done"
+      ],
+      "done_state": null,
+      "maestri_workspace": "Fabrikam",
+      "created_at": "2026-10-01T09:00:00-03:00",
+      "item_count": 2
+    },
+    {
+      "id": "painel-maestro",
+      "name": "painel-maestro",
+      "tracker": "github",
+      "company": {
+        "id": "personal",
+        "name": "Pessoal"
+      },
+      "unassigned": false,
+      "repos": [
+        "github.com/higorcesarqn/painel-maestro"
+      ],
+      "stages": [
+        "specification",
+        "implementation",
+        "final_adjustment",
+        "pr_ready",
+        "merge",
+        "done"
+      ],
+      "done_state": null,
+      "maestri_workspace": null,
+      "created_at": "2026-10-01T09:00:00-03:00",
+      "item_count": 2
+    }
+  ],
   "items": [
     {
       "key": "painel-maestro/5",
@@ -170,6 +410,48 @@
       "active": true
     },
     {
+      "key": "relatorios-bi/77",
+      "project": {
+        "id": "relatorios-bi",
+        "name": "relatorios-bi",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "unassigned",
+          "name": "Sem empresa"
+        }
+      },
+      "number": 77,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 77",
+      "title": "Painel de vendas por região",
+      "stage": "implementation",
+      "stage_since": "2026-10-08T15:20:00-03:00",
+      "started_at": "2026-10-08T15:20:00-03:00",
+      "updated_at": "2026-10-08T15:20:00-03:00",
+      "active": true
+    },
+    {
+      "key": "design-system/31",
+      "project": {
+        "id": "design-system",
+        "name": "Design system",
+        "tracker": "github",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 31,
+      "tracker": "github",
+      "tracker_ref": "#31",
+      "title": "Tokens de cor para o modo escuro",
+      "stage": "pr_ready",
+      "stage_since": "2026-10-08T11:30:00-03:00",
+      "started_at": "2026-10-06T14:00:00-03:00",
+      "updated_at": "2026-10-08T11:30:00-03:00",
+      "active": true
+    },
+    {
       "key": "painel-maestro/2",
       "project": {
         "id": "painel-maestro",
@@ -189,6 +471,27 @@
       "started_at": "2026-10-06T09:00:00-03:00",
       "updated_at": "2026-10-07T08:12:00-03:00",
       "active": false
+    },
+    {
+      "key": "erp/1204",
+      "project": {
+        "id": "erp",
+        "name": "ERP Fabrikam",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "fabrikam",
+          "name": "Fabrikam"
+        }
+      },
+      "number": 1204,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 1204",
+      "title": "Nota fiscal de serviço eletrônica",
+      "stage": "implementation",
+      "stage_since": "2026-10-06T10:00:00-03:00",
+      "started_at": "2026-10-05T09:00:00-03:00",
+      "updated_at": "2026-10-06T10:00:00-03:00",
+      "active": true
     },
     {
       "key": "portal/3088",
@@ -293,7 +596,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 59,
+          "id": 64,
           "at": "2026-10-09T07:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -308,7 +611,7 @@
           }
         },
         {
-          "id": 60,
+          "id": 65,
           "at": "2026-10-09T07:35:00-03:00",
           "type": "task-dispatched",
           "task_number": 5,
@@ -324,7 +627,7 @@
           }
         },
         {
-          "id": 61,
+          "id": 66,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 5,
@@ -348,7 +651,7 @@
           }
         },
         {
-          "id": 66,
+          "id": 71,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": 5,
@@ -358,12 +661,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 61,
+            "pending_decision": 66,
             "decision": "B: vira task nova para triagem."
           }
         },
         {
-          "id": 75,
+          "id": 80,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -577,7 +880,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 35,
+          "id": 38,
           "at": "2026-10-07T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -592,7 +895,7 @@
           }
         },
         {
-          "id": 41,
+          "id": 44,
           "at": "2026-10-08T10:20:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -606,7 +909,7 @@
           }
         },
         {
-          "id": 42,
+          "id": 45,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -622,7 +925,7 @@
           }
         },
         {
-          "id": 43,
+          "id": 46,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "task-graph",
           "task_number": null,
@@ -682,7 +985,7 @@
           }
         },
         {
-          "id": 44,
+          "id": 47,
           "at": "2026-10-08T10:30:00-03:00",
           "type": "task-dispatched",
           "task_number": 3113,
@@ -698,7 +1001,7 @@
           }
         },
         {
-          "id": 46,
+          "id": 50,
           "at": "2026-10-08T13:10:00-03:00",
           "type": "task-status",
           "task_number": 3113,
@@ -718,7 +1021,7 @@
           }
         },
         {
-          "id": 47,
+          "id": 51,
           "at": "2026-10-08T13:12:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3113,
@@ -744,7 +1047,7 @@
           }
         },
         {
-          "id": 48,
+          "id": 52,
           "at": "2026-10-08T14:02:00-03:00",
           "type": "task-integrated",
           "task_number": 3113,
@@ -759,7 +1062,7 @@
           }
         },
         {
-          "id": 49,
+          "id": 53,
           "at": "2026-10-08T14:04:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -785,7 +1088,7 @@
           }
         },
         {
-          "id": 50,
+          "id": 54,
           "at": "2026-10-08T14:08:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -795,12 +1098,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 49,
+            "pending_decision": 53,
             "decision": "Pode paralelizar. A 3115 integra primeiro."
           }
         },
         {
-          "id": 51,
+          "id": 55,
           "at": "2026-10-08T14:10:00-03:00",
           "type": "task-dispatched",
           "task_number": 3114,
@@ -816,7 +1119,7 @@
           }
         },
         {
-          "id": 52,
+          "id": 56,
           "at": "2026-10-08T14:12:00-03:00",
           "type": "task-dispatched",
           "task_number": 3115,
@@ -832,7 +1135,7 @@
           }
         },
         {
-          "id": 62,
+          "id": 67,
           "at": "2026-10-09T08:40:00-03:00",
           "type": "task-status",
           "task_number": 3115,
@@ -852,7 +1155,7 @@
           }
         },
         {
-          "id": 63,
+          "id": 68,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3115,
@@ -879,7 +1182,7 @@
           }
         },
         {
-          "id": 67,
+          "id": 72,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "task_number": 3114,
@@ -899,7 +1202,7 @@
           }
         },
         {
-          "id": 71,
+          "id": 76,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "task_number": 3116,
@@ -915,7 +1218,7 @@
           }
         },
         {
-          "id": 73,
+          "id": 78,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "task_number": 3116,
@@ -932,7 +1235,7 @@
           }
         },
         {
-          "id": 74,
+          "id": 79,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -1041,7 +1344,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 72,
+          "id": 77,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1256,7 +1559,7 @@
           }
         },
         {
-          "id": 26,
+          "id": 27,
           "at": "2026-10-05T11:30:00-03:00",
           "type": "task-integrated",
           "task_number": 49,
@@ -1271,7 +1574,7 @@
           }
         },
         {
-          "id": 27,
+          "id": 28,
           "at": "2026-10-05T11:40:00-03:00",
           "type": "task-dispatched",
           "task_number": 50,
@@ -1287,7 +1590,7 @@
           }
         },
         {
-          "id": 55,
+          "id": 60,
           "at": "2026-10-08T17:00:00-03:00",
           "type": "task-integrated",
           "task_number": 50,
@@ -1302,7 +1605,7 @@
           }
         },
         {
-          "id": 69,
+          "id": 74,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -1314,7 +1617,7 @@
           "payload": {}
         },
         {
-          "id": 70,
+          "id": 75,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1423,7 +1726,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 64,
+          "id": 69,
           "at": "2026-10-09T08:50:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1438,7 +1741,7 @@
           }
         },
         {
-          "id": 65,
+          "id": 70,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1462,7 +1765,7 @@
           }
         },
         {
-          "id": 68,
+          "id": 73,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "task_number": null,
@@ -1472,7 +1775,7 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 65,
+            "pending_decision": 70,
             "reason": "Entrou na especificação do item."
           }
         }
@@ -1578,7 +1881,7 @@
           }
         },
         {
-          "id": 31,
+          "id": 33,
           "at": "2026-10-06T13:20:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -1594,7 +1897,7 @@
           }
         },
         {
-          "id": 58,
+          "id": 63,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -1735,7 +2038,7 @@
           }
         },
         {
-          "id": 36,
+          "id": 39,
           "at": "2026-10-07T16:45:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -1747,7 +2050,7 @@
           "payload": {}
         },
         {
-          "id": 37,
+          "id": 40,
           "at": "2026-10-07T17:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1773,7 +2076,7 @@
           }
         },
         {
-          "id": 39,
+          "id": 42,
           "at": "2026-10-07T18:20:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -1783,12 +2086,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 37,
+            "pending_decision": 40,
             "decision": "A: 3 retentativas, com intervalo de 24 h."
           }
         },
         {
-          "id": 45,
+          "id": 48,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -1803,7 +2106,7 @@
           }
         },
         {
-          "id": 53,
+          "id": 57,
           "at": "2026-10-08T15:00:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -1815,7 +2118,7 @@
           "payload": {}
         },
         {
-          "id": 56,
+          "id": 61,
           "at": "2026-10-08T17:50:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -1829,7 +2132,7 @@
           }
         },
         {
-          "id": 57,
+          "id": 62,
           "at": "2026-10-08T18:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2087,7 +2390,7 @@
           }
         },
         {
-          "id": 24,
+          "id": 25,
           "at": "2026-10-05T10:40:00-03:00",
           "type": "task-integrated",
           "task_number": 3102,
@@ -2102,7 +2405,7 @@
           }
         },
         {
-          "id": 25,
+          "id": 26,
           "at": "2026-10-05T11:02:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2114,7 +2417,7 @@
           "payload": {}
         },
         {
-          "id": 28,
+          "id": 29,
           "at": "2026-10-05T16:20:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -2129,7 +2432,7 @@
           }
         },
         {
-          "id": 30,
+          "id": 32,
           "at": "2026-10-06T10:15:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2143,7 +2446,7 @@
           }
         },
         {
-          "id": 38,
+          "id": 41,
           "at": "2026-10-07T17:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2157,7 +2460,7 @@
           }
         },
         {
-          "id": 40,
+          "id": 43,
           "at": "2026-10-08T09:05:00-03:00",
           "type": "hml-recorded",
           "task_number": null,
@@ -2175,7 +2478,7 @@
           }
         },
         {
-          "id": 54,
+          "id": 59,
           "at": "2026-10-08T16:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2198,6 +2501,211 @@
               "workspace": "Contoso",
               "terminal": "Maestro PBI 3100"
             }
+          }
+        }
+      ]
+    },
+    "relatorios-bi/77": {
+      "key": "relatorios-bi/77",
+      "project": {
+        "id": "relatorios-bi",
+        "name": "relatorios-bi",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "unassigned",
+          "name": "Sem empresa"
+        }
+      },
+      "number": 77,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 77",
+      "title": "Painel de vendas por região",
+      "stage": "implementation",
+      "stage_since": "2026-10-08T15:20:00-03:00",
+      "started_at": "2026-10-08T15:20:00-03:00",
+      "updated_at": "2026-10-08T15:20:00-03:00",
+      "active": true,
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "implementation",
+          "status": "current",
+          "entered_at": "2026-10-08T15:20:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "merge",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "hml_validation",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "tasks": [
+        {
+          "number": 77,
+          "title": "Painel de vendas por região",
+          "self": true,
+          "state": "waiting",
+          "blocked_by": [],
+          "worker": null,
+          "floor": null,
+          "branch": null,
+          "sha": null,
+          "sha_before": null,
+          "status_text": null,
+          "progress": null,
+          "dispatched_at": null,
+          "integrated_at": null,
+          "updated_at": null
+        }
+      ],
+      "completed_at": null,
+      "pr": null,
+      "final_adjustment": null,
+      "hml": null,
+      "timeline": [
+        {
+          "id": 58,
+          "at": "2026-10-08T15:20:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Painel de vendas por região",
+            "stage": "implementation"
+          }
+        }
+      ]
+    },
+    "design-system/31": {
+      "key": "design-system/31",
+      "project": {
+        "id": "design-system",
+        "name": "Design system",
+        "tracker": "github",
+        "company": {
+          "id": "contoso",
+          "name": "Contoso"
+        }
+      },
+      "number": 31,
+      "tracker": "github",
+      "tracker_ref": "#31",
+      "title": "Tokens de cor para o modo escuro",
+      "stage": "pr_ready",
+      "stage_since": "2026-10-08T11:30:00-03:00",
+      "started_at": "2026-10-06T14:00:00-03:00",
+      "updated_at": "2026-10-08T11:30:00-03:00",
+      "active": true,
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "implementation",
+          "status": "done",
+          "entered_at": "2026-10-06T14:00:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "current",
+          "entered_at": "2026-10-08T11:30:00-03:00"
+        },
+        {
+          "id": "merge",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "tasks": [
+        {
+          "number": 31,
+          "title": "Tokens de cor para o modo escuro",
+          "self": true,
+          "state": "waiting",
+          "blocked_by": [],
+          "worker": null,
+          "floor": null,
+          "branch": null,
+          "sha": null,
+          "sha_before": null,
+          "status_text": null,
+          "progress": null,
+          "dispatched_at": null,
+          "integrated_at": null,
+          "updated_at": null
+        }
+      ],
+      "completed_at": null,
+      "pr": null,
+      "final_adjustment": null,
+      "hml": null,
+      "timeline": [
+        {
+          "id": 34,
+          "at": "2026-10-06T14:00:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Tokens de cor para o modo escuro",
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 49,
+          "at": "2026-10-08T11:30:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "pr_ready"
           }
         }
       ]
@@ -2287,7 +2795,7 @@
       "hml": null,
       "timeline": [
         {
-          "id": 29,
+          "id": 30,
           "at": "2026-10-06T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2302,7 +2810,7 @@
           }
         },
         {
-          "id": 32,
+          "id": 35,
           "at": "2026-10-06T18:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2318,7 +2826,7 @@
           }
         },
         {
-          "id": 33,
+          "id": 36,
           "at": "2026-10-07T08:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2332,7 +2840,7 @@
           }
         },
         {
-          "id": 34,
+          "id": 37,
           "at": "2026-10-07T08:12:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -2342,6 +2850,118 @@
           },
           "source": "cli",
           "payload": {}
+        }
+      ]
+    },
+    "erp/1204": {
+      "key": "erp/1204",
+      "project": {
+        "id": "erp",
+        "name": "ERP Fabrikam",
+        "tracker": "azure_devops",
+        "company": {
+          "id": "fabrikam",
+          "name": "Fabrikam"
+        }
+      },
+      "number": 1204,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 1204",
+      "title": "Nota fiscal de serviço eletrônica",
+      "stage": "implementation",
+      "stage_since": "2026-10-06T10:00:00-03:00",
+      "started_at": "2026-10-05T09:00:00-03:00",
+      "updated_at": "2026-10-06T10:00:00-03:00",
+      "active": true,
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": "2026-10-05T09:00:00-03:00"
+        },
+        {
+          "id": "implementation",
+          "status": "current",
+          "entered_at": "2026-10-06T10:00:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "merge",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "hml_validation",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "tasks": [
+        {
+          "number": 1204,
+          "title": "Nota fiscal de serviço eletrônica",
+          "self": true,
+          "state": "waiting",
+          "blocked_by": [],
+          "worker": null,
+          "floor": null,
+          "branch": null,
+          "sha": null,
+          "sha_before": null,
+          "status_text": null,
+          "progress": null,
+          "dispatched_at": null,
+          "integrated_at": null,
+          "updated_at": null
+        }
+      ],
+      "completed_at": null,
+      "pr": null,
+      "final_adjustment": null,
+      "hml": null,
+      "timeline": [
+        {
+          "id": 24,
+          "at": "2026-10-05T09:00:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Nota fiscal de serviço eletrônica",
+            "stage": "specification"
+          }
+        },
+        {
+          "id": 31,
+          "at": "2026-10-06T10:00:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "implementation"
+          }
         }
       ]
     },
@@ -2567,7 +3187,7 @@
   "pending_decisions": {
     "pending_decisions": [
       {
-        "id": 74,
+        "id": 79,
         "kind": "worker_blocked",
         "severity": "critical",
         "status": "open",
@@ -2615,7 +3235,7 @@
         }
       },
       {
-        "id": 54,
+        "id": 59,
         "kind": "hml",
         "severity": "high",
         "status": "open",
@@ -2659,7 +3279,7 @@
         "task": null
       },
       {
-        "id": 63,
+        "id": 68,
         "kind": "task_review",
         "severity": "high",
         "status": "open",
@@ -2708,7 +3328,7 @@
         }
       },
       {
-        "id": 70,
+        "id": 75,
         "kind": "finding",
         "severity": "normal",
         "status": "open",
@@ -2752,7 +3372,7 @@
         "task": null
       },
       {
-        "id": 65,
+        "id": 70,
         "kind": "decision",
         "severity": "low",
         "status": "canceled",
@@ -2799,7 +3419,7 @@
         "task": null
       },
       {
-        "id": 61,
+        "id": 66,
         "kind": "finding",
         "severity": "low",
         "status": "resolved",
@@ -2850,7 +3470,7 @@
         }
       },
       {
-        "id": 49,
+        "id": 53,
         "kind": "parallelize",
         "severity": "normal",
         "status": "resolved",
@@ -2897,7 +3517,7 @@
         "task": null
       },
       {
-        "id": 47,
+        "id": 51,
         "kind": "task_review",
         "severity": "normal",
         "status": "resolved",
@@ -2948,7 +3568,7 @@
         }
       },
       {
-        "id": 37,
+        "id": 40,
         "kind": "decision",
         "severity": "normal",
         "status": "resolved",

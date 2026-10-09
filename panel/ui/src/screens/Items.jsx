@@ -11,6 +11,7 @@ import { Card, Badge, Empty, Skeleton } from '../components/base.jsx';
 import { Icon, Workflow, ArrowLeft, Check, CircleDashed } from '../components/Icon.jsx';
 import { ItemTasks } from './ItemTasks.jsx';
 import { ItemDelivery, deliveryEventText, useDoneFilter } from './ItemDelivery.jsx';
+import { UnassignedProjects } from './UnassignedProjects.jsx';
 import '../styles/items.css';
 
 const RE_ITEM = /^([a-z0-9][a-z0-9-]*)\/([1-9]\d*)$/;
@@ -47,14 +48,24 @@ export function Items() {
 }
 
 function ItemList() {
-  const { goTo } = usePanel();
-  const { answer, error } = usePolling(() => readItems(), []);
+  const { goTo, company, companies, setCompany, companyFilter } = usePanel();
+  // The company selector (#6) reaches the list as ?company=<id>; a project moved out of "Sem empresa" reads it again.
+  const [moves, setMoves] = useState(0);
+  const { answer, error } = usePolling(() => readItems(companyFilter), [companyFilter, moves]);
   const all = objs(answer && answer.items);
   const { shown: items, control: doneFilter, which } = useDoneFilter(all);
   const open = (it) => goTo('items', it.key);
+  const chosen = company && companies.find((c) => c.id === company);
   return (
     <div class="screen screen-items">
+      <UnassignedProjects onMoved={() => setMoves((n) => n + 1)} />
       <Card label={t('items.title')} extra={answer ? t('items.count', { count: items.length }) : null} info={t('items.listInfo')} actions={answer && all.length ? doneFilter : null} scroll flush>
+        {chosen && (
+          <p class="items-filtered muted small">
+            {t('companies.filtered', { company: txt(chosen.name) })}
+            <button type="button" class="button small" onClick={() => setCompany('')}>{t('companies.showAll')}</button>
+          </p>
+        )}
         {error && <p class="items-error" role="alert">{t('items.readFailed', { message: error.message })}</p>}
         {!answer && !error && <div class="items-loading"><Skeleton /><Skeleton /><Skeleton /></div>}
         {answer && !all.length && <Empty icon={Workflow} center>{t('items.none')}</Empty>}

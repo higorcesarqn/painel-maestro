@@ -16,6 +16,8 @@
 //         Pending decisions of the new model, read only (api-pending-decisions.js): GET /api/pending-decisions.
 //         Log of the new model (api-log.js, maestro.db + bruto.db): GET /api/log, GET /api/log/<id>, GET /api/raw;
 //         the raw log older than 90 days is deleted on startup and once a day.
+//         Companies and projects (api-projects.js): GET /api/companies, GET /api/projects[?company=],
+//         POST /api/projects/<id>/company {company}; GET /api/items also takes ?company= and ?project=.
 // The API never returns sentences: reasons, warnings and errors are codes with parameters
 // ({code, ...params}) and the page translates them (ADR 0004). Old-model records (events and pending
 // decisions written by bin/registrar.js and bin/pendencia.js) go out with English field names
@@ -40,6 +42,7 @@ const collector = require(path.join(__dirname, '..', 'bin', 'collect-usage.js'))
 const itemsApi = require(path.join(__dirname, 'api-items.js'));
 const pendingApi = require(path.join(__dirname, 'api-pending-decisions.js'));
 const logApi = require(path.join(__dirname, 'api-log.js'));
+const projectsApi = require(path.join(__dirname, 'api-projects.js'));
 const { eventToApi, pendingDecisionToApi } = require(path.join(__dirname, 'legacy-records.js'));
 const { asDate, isoSP, spDay, readJson, readText, withRetries, writeAtomic } = collector.util;
 
@@ -66,7 +69,7 @@ const RE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/;
 const RE_DAY = /^\d{4}-\d{2}-\d{2}$/;
 // index.html is a single file (embedded CSS and JS); nothing external is loaded.
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (none reads one today)
+const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (POST /api/projects/<id>/company)
 const JSON_TYPE = 'application/json; charset=utf-8';
 const HTML_TYPE = 'text/html; charset=utf-8';
 // Old-model files, relative to MAESTRO_DIR (bin/registrar.js and bin/pendencia.js; removed in #18).
@@ -1607,10 +1610,17 @@ const FIXED_ROUTES = {
   '/api/pending-decisions': { name: 'pending-decisions', methods: ['GET', 'HEAD'] },
   '/api/log': { name: 'log', methods: ['GET', 'HEAD'] },
   '/api/raw': { name: 'raw', methods: ['GET', 'HEAD'] },
+  '/api/companies': { name: 'companies', methods: ['GET', 'HEAD'] },
+  '/api/projects': { name: 'projects', methods: ['GET', 'HEAD'] },
 };
 
 function findRoute(urlPath) {
   if (Object.prototype.hasOwnProperty.call(FIXED_ROUTES, urlPath)) return FIXED_ROUTES[urlPath];
+  const mc = /^\/api\/projects\/([^/]+)\/company$/.exec(urlPath);
+  if (mc) {
+    const id = projectsApi.parseProjectId(mc[1]);
+    return id ? { name: 'project-company', methods: ['POST'], project: id } : null;
+  }
   const mi = /^\/api\/items\/([^/]+)\/([^/]+)$/.exec(urlPath);
   if (mi) {
     const it = itemsApi.parseItemPath(mi[1], mi[2]);
@@ -1633,7 +1643,7 @@ function findRoute(urlPath) {
 }
 
 async function route(ctx, req, res) {
-  // No route reads the body today (a POST that reads JSON gets up to 16 KB); the rest is discarded, capped at 1 MB.
+  // Only POST /api/projects/<id>/company reads the body (a POST that reads JSON gets up to 16 KB); the rest is discarded, capped at 1 MB.
   let received = 0;
   const parts = [];
   const body = new Promise((resolve) => {
@@ -1692,7 +1702,18 @@ async function route(ctx, req, res) {
     case 'items': {
       const active = itemsApi.activeFilter(query);
       if (active === undefined) return respondError(req, res, 400, { code: 'invalid_param', param: 'active', value: truncate(query.get('active'), 20), expected: 'flag' });
-      return respondJson(req, res, 200, itemsApi.listItems(ctx.items, { active }));
+      return respondJson(req, res, 200, projectsApi.filterItems(itemsApi.listItems(ctx.items, { active }), query));
+    }
+    case 'companies':
+      return respondJson(req, res, 200, projectsApi.listCompanies(ctx.items));
+    case 'projects':
+      return respondJson(req, res, 200, projectsApi.listProjects(ctx.items, query));
+    case 'project-company': {
+      const buf = await body;
+      if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });
+      const x = projectsApi.moveProject(ctx.items, r.project, buf);
+      ctx.log(`Projeto ${r.project} movido pelo painel para a empresa ${x.project.company.id}`);
+      return respondJson(req, res, 200, x);
     }
     case 'item': {
       const x = itemsApi.itemDetail(ctx.items, r.project, r.number);
@@ -1726,7 +1747,8 @@ async function route(ctx, req, res) {
 function createHandler(ctx) {
   return (req, res) => {
     route(ctx, req, res).catch((e) => {
-      const known = e instanceof RequestError || e instanceof pendingApi.PendingFilterError || e instanceof logApi.LogError;
+      const known = e instanceof RequestError || e instanceof pendingApi.PendingFilterError || e instanceof logApi.LogError
+        || e instanceof projectsApi.ProjectsError;
       const status = known ? e.status : 500;
       if (status === 500) ctx.logError(`Erro em ${req.method} ${String(req.url).slice(0, 200)}: ${e && e.stack ? e.stack : e}`);
       if (res.headersSent) {

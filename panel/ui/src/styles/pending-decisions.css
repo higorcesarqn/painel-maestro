@@ -25,7 +25,6 @@
 .pending-list-col .segmented { width: 100%; }
 .pending-list-col .segmented button { flex: 1 1 auto; justify-content: center; padding-left: 8px; padding-right: 8px; }
 .pending-filter { padding: 0 12px 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.pending-filter .select-box { flex: 1; min-width: 160px; }
 .chip-filter {
   display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px;
   border: 1px solid var(--blue-border); background: var(--blue-bg); color: var(--text); font: inherit; font-size: 12px; cursor: pointer;

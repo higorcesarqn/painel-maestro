@@ -5,6 +5,7 @@ import { PanelContext, SCREENS, OLD_SCREEN_IDS, newFilter } from '../data/contex
 import { REFRESH_MS, ANALYSIS_REFRESH_MS, MOCK, readState, recalculateUsage, readEvents, readLog } from '../data/api.js';
 import { syncClock, now, spDay, time, txt, obj, arr } from '../data/format.js';
 import { logParams, analyze } from '../data/queries.js';
+import { useCompanies } from '../data/companies.js';
 import { t } from '../i18n/index.js';
 import { Sidebar } from './Sidebar.jsx';
 import { Header } from './Header.jsx';
@@ -92,18 +93,23 @@ export function App() {
     document.title = t('app.documentTitle', { screen: t(`nav.${screen}`), panel });
   }, [screen, state && state.workspace && state.workspace.name]);
 
-  // ---------- Log: filters, page and reading ----------
+  // ---------- company selector (#6) ----------
+  const companySelector = useCompanies();
+  const { company, companyFilter } = companySelector;
+
+  // ---------- Log: filters, page and reading (the company comes from the selector) ----------
   const [filters, setRawFilters] = useState(newFilter);
   const [page, setPage] = useState(1);
   const [log, setLog] = useState({ answer: null, error: null, loading: false });
   const logSeq = useRef(0);
   const filtersRef = useRef(filters); filtersRef.current = filters;
   const pageRef = useRef(page); pageRef.current = page;
+  const companyFilterRef = useRef(companyFilter); companyFilterRef.current = companyFilter;
   const loadLog = useCallback(async (silent) => {
     const seq = ++logSeq.current;
     if (!silent) setLog((l) => ({ ...l, loading: true }));
     try {
-      const r = await readLog(logParams(filtersRef.current, pageRef.current));
+      const r = await readLog(logParams({ ...filtersRef.current, ...companyFilterRef.current }, pageRef.current));
       if (seq !== logSeq.current) return;
       const pages = r.pages || Math.max(1, Math.ceil((r.total || 0) / (r.per_page || 50)));
       // the page may be gone (fewer events with the filter): back to the last one that exists
@@ -115,7 +121,15 @@ export function App() {
     }
   }, []);
   const loadLogRef = useRef(loadLog);
-  useEffect(() => { if (screen === 'log' || log.answer) loadLog(false); }, [filters, page]);
+  useEffect(() => { if (screen === 'log' || log.answer) loadLog(false); }, [filters, page, companyFilter]);
+  // Another company: the project and item of the Log may belong to the previous one, so they go, and back to page 1.
+  const previousCompany = useRef(company);
+  useEffect(() => {
+    if (previousCompany.current === company) return;
+    previousCompany.current = company;
+    setRawFilters((f) => (f.project || f.item ? { ...f, project: '', item: '' } : f));
+    setPage(1);
+  }, [company]);
   useEffect(() => { if (screen === 'log' && !log.answer) loadLog(false); }, [screen]);
   const setFilters = useCallback((change) => {
     setRawFilters((f) => (typeof change === 'function' ? change(f) : { ...f, ...change }));
@@ -194,6 +208,7 @@ export function App() {
   }, []);
 
   const ctx = {
+    ...companySelector,
     state, connectionError, failingSince, screen, goTo, actionStatus, setActionStatus, recalculating, recalculate,
     modal, openModal, closeModal, setModal, filterByFlow, goToPendingDecision, pendingTarget,
     filters, setFilters, setRawFilters, page, setPage, log, loadLog,
