@@ -32,7 +32,7 @@
 // for the next round; a transcript that does not exist yet is ignored without error.
 //
 // usage.json never carries sentences: reasons, warnings, notes and bases are codes with parameters
-// ({code, ...params}); the page translates them (ADR 0004). Only the CLI summary is in Portuguese.
+// ({code, ...params}); the page translates them (ADR 0004). The CLI summary comes from the pt-BR dictionary (bin/i18n).
 //
 // Usage:  node collect-usage.js [--json] [--no-write] [--now <ISO>]
 //   --json       prints usage.json to stdout (without the flag, prints a readable summary)
@@ -51,6 +51,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { openStore, flowDir } = require('./flow-store');
 const { openRawStore } = require('./raw-store');
+const { t, has } = require('./i18n');
 
 const TIME_ZONE = 'America/Sao_Paulo';
 const MIN_MS = 60 * 1000;
@@ -769,42 +770,14 @@ async function collect(options = {}) {
   return usage;
 }
 
-// ---------- command line (messages for people in Portuguese, ADR 0004) ----------
+// ---------- command line (messages for people from the pt-BR dictionary, bin/i18n; ADR 0004) ----------
 
-const HELP = `Uso: node collect-usage.js [--json] [--no-write] [--now <ISO>]
-  Coleta o uso do Claude: o % do plano (Maestri) e a participação de cada item e de cada
-  agente (transcrições das sessões que o hook ligou no bruto.db), e grava state/usage.json.
-  --json       imprime o usage.json no stdout
-  --no-write   não grava state/usage.json nem state/usage-cache.json
-  --now        fixa o "agora" (testes), ex.: 2026-10-08T15:50:00-03:00
-Variáveis: MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DIR (padrão ~/.maestri), CLAUDE_CONFIG_DIR (padrão ~/.claude).`;
-
-/** Portuguese text of a reason/warning code, for the CLI summary only. */
+/** Portuguese text of a reason/warning code, for the CLI summary only (usage.codes.* of the dictionary). */
 function describe(c, ref) {
   if (!c || typeof c !== 'object') return c ? String(c) : '';
-  const win = (w) => (w === '5h' ? 'de 5 h' : 'semanal');
-  const err = (e) => (e && typeof e === 'object' ? describe(e, ref) : e);
-  switch (c.code) {
-    case 'plan_file_missing': return `O Maestri ainda não gravou o uso do plano (${c.file} não existe). Ligue o uso dos agentes no Maestri (Configurações → Agentes → Uso) e deixe os anéis visíveis.`;
-    case 'plan_file_unreadable': return `Não consegui ler ${c.file}: ${err(c.error)}.`;
-    case 'read_failed': return `não consegui ler (${c.detail})`;
-    case 'empty_file': return 'arquivo vazio';
-    case 'invalid_json': return `JSON inválido (${c.detail})`;
-    case 'plan_provider_missing': return 'O arquivo de uso do Maestri não tem o provedor "claude".';
-    case 'plan_provider_off': return 'O provedor Claude está desligado no Maestri (Configurações → Agentes → Uso).';
-    case 'plan_read_failed': return `O Maestri não conseguiu ler o uso do Claude (estado "${c.state}"${c.error ? `: ${c.error}` : ''}).`;
-    case 'plan_windows_missing': return 'O Maestri ainda não trouxe as janelas do plano (5 h e semanal).';
-    case 'plan_windows_unavailable': return [describe(c.window_5h_reason, ref), describe(c.weekly_reason, ref)].filter(Boolean).join(' ');
-    case 'plan_last_read_failed': return `A última consulta do Maestri falhou (estado "${c.state}"${c.error ? `: ${c.error}` : ''}); os valores são da leitura${c.read_at ? ` de ${shortTime(c.read_at, ref)}` : ''}.`;
-    case 'window_missing': return `O Maestri não trouxe a janela ${win(c.window)}.`;
-    case 'window_without_pct': return `A janela ${win(c.window)} veio sem o percentual usado.`;
-    case 'window_reset': return `A janela ${win(c.window)} reiniciou às ${shortTime(c.reset_at, ref)}, depois da última leitura do Maestri${c.read_at ? ` (${shortTime(c.read_at, ref)})` : ''}; o % novo aparece na próxima leitura.`;
-    case 'raw_log_missing': return 'Ainda não há log bruto (bruto.db): o hook não gravou nenhuma sessão de projeto cadastrado.';
-    case 'invalid_transcript_lines': return `${c.count} linha(s) de transcrição ilegível(is) ignorada(s).`;
-    case 'transcript_unreadable': return `Não consegui ler ${c.file}: ${c.error}`;
-    case 'transcript_read_interrupted': return `Leitura interrompida em ${c.file}: ${c.error}`;
-    default: return c.code;
-  }
+  const key = `usage.codes.${c.code}`;
+  if (!has(key)) return c.code;
+  return t(key, { ...c, time: (iso) => shortTime(iso, ref), describe: (x) => describe(x, ref) });
 }
 
 function parseArgs(argv) {
@@ -817,9 +790,9 @@ function parseArgs(argv) {
     else if (a === '--now' || a.startsWith('--now=')) {
       const v = a.includes('=') ? a.slice(a.indexOf('=') + 1) : argv[++i];
       const d = asDate(v);
-      if (!d) throw new UsageError(`--now inválido: "${v === undefined ? '' : v}" (use ISO, ex.: 2026-10-08T15:50:00-03:00).`);
+      if (!d) throw new UsageError(t('usage.errors.invalidNow', { value: v === undefined ? '' : v }));
       o.now = d;
-    } else throw new UsageError(`Opção desconhecida: ${a} (use --help).`);
+    } else throw new UsageError(t('usage.errors.unknownOption', { option: a }));
   }
   return o;
 }
@@ -832,20 +805,20 @@ function readableSummary(usage, wrote) {
   const L = [];
   const p = usage.plan;
   const ref = usage.collected_at;
-  L.push(`Uso coletado em ${dateTimeBR(usage.collected_at)}`);
+  const S = (key, params) => t(`usage.summary.${key}`, params);
+  L.push(S('collected', { when: dateTimeBR(usage.collected_at) }));
   if (p.available) {
-    const r5 = p.reset_5h ? ` (reinicia ${shortTime(p.reset_5h, ref)})` : '';
-    const r7 = p.weekly_reset ? ` (reinicia ${shortTime(p.weekly_reset, ref)})` : '';
-    const age = p.age_min === null ? '' : ` · dado de ${p.age_min} min`;
-    L.push(`Plano: 5 h ${pct(p.window_5h_pct)}${r5} · semanal ${pct(p.weekly_pct)}${r7}${age}`);
+    const reset = (iso) => (iso ? S('resets', { when: shortTime(iso, ref) }) : '');
+    const age = p.age_min === null ? '' : S('age', { minutes: p.age_min });
+    L.push(S('plan', { pct5: pct(p.window_5h_pct), reset5: reset(p.reset_5h), pct7: pct(p.weekly_pct), reset7: reset(p.weekly_reset), age }));
   } else {
-    L.push(`Plano: indisponível. ${describe(p.reason, ref)}`);
+    L.push(S('planUnavailable', { reason: describe(p.reason, ref) }));
   }
-  for (const w of p.warnings || []) L.push(`  Aviso: ${describe(w, ref)}`);
-  for (const [list, title] of [['by_item', 'Por item'], ['by_agent', 'Por agente']]) {
+  for (const w of p.warnings || []) L.push(S('planWarning', { warning: describe(w, ref) }));
+  for (const [list, title] of [['by_item', 'byItem'], ['by_agent', 'byAgent']]) {
     const keys = [...new Set(PERIODS.flatMap((x) => usage[list][x].map((l) => l.key)))];
-    L.push(`${title}, % do consumo (janela de 5 h · hoje · 7 dias):`);
-    if (!keys.length) L.push('  nenhuma sessão com consumo');
+    L.push(S(title));
+    if (!keys.length) L.push(S('noSessions'));
     for (const k of keys) {
       const v = PERIODS.map((x) => (usage[list][x].find((l) => l.key === k) || {}).consumption_pct);
       L.push(`  ${k.padEnd(32)} ${v.map(pct).join(' · ')}`);
@@ -853,17 +826,17 @@ function readableSummary(usage, wrote) {
   }
   const d = usage.collection;
   const mb = (d.bytes_read / 1048576).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
-  const cache = { new: 'novo', reused: 'reaproveitado', recreated: 'recriado' }[d.cache] || d.cache;
-  L.push(`Sessões: ${d.sessions} · transcrições: ${d.transcripts} (${d.missing_transcripts} ainda sem arquivo) · ${mb} MB lidos · cache ${cache}`);
-  for (const w of usage.warnings) L.push(`Aviso: ${describe(w, ref)}`);
-  L.push(wrote ? 'Gravado em state/usage.json' : 'Nada gravado (--no-write)');
+  const cache = has(`usage.summary.cache.${d.cache}`) ? S(`cache.${d.cache}`) : d.cache;
+  L.push(S('collection', { sessions: d.sessions, transcripts: d.transcripts, missing: d.missing_transcripts, mb, cache }));
+  for (const w of usage.warnings) L.push(S('warning', { warning: describe(w, ref) }));
+  L.push(wrote ? S('wrote') : S('notWritten'));
   return L.join('\n') + '\n';
 }
 
 async function main(argv) {
   const args = parseArgs(argv);
   if (args.help) {
-    process.stdout.write(HELP + '\n');
+    process.stdout.write(t('usage.help') + '\n');
     return 0;
   }
   const usage = await collect({ now: args.now || undefined, write: !args.noWrite });
@@ -884,10 +857,10 @@ if (require.main === module) {
     process.exitCode = code;
   }).catch((e) => {
     if (e instanceof UsageError) {
-      process.stderr.write(`Erro: ${e.message}\n`);
+      process.stderr.write(`${t('usage.errors.prefix', { message: e.message })}\n`);
       process.exitCode = 2;
     } else {
-      process.stderr.write(`Erro inesperado: ${e && e.stack ? e.stack : e}\n`);
+      process.stderr.write(`${t('usage.errors.unexpected', { detail: e && e.stack ? e.stack : e })}\n`);
       process.exitCode = 1;
     }
   });

@@ -1,5 +1,5 @@
 'use strict';
-// pt-BR dictionary of the flow CLI (ADR 0004): every message a person reads. The keys are in English; the values
+// pt-BR dictionary of the bin/ commands and of the server's terminal (ADR 0004): every message a person reads. The keys are in English; the values
 // are what the person reads. Same idea as the page's dictionary (panel/ui/src/i18n/pt-BR.js): a text with {param}
 // or a function when the text needs logic. Read through t() in bin/i18n/index.js.
 
@@ -87,6 +87,115 @@ module.exports = {
   pending: PENDING,
   companies: {
     unassigned: 'Sem empresa',
+  },
+  // bin/collect-usage.js: help, errors and the readable summary (the codes of usage.json, in Portuguese for the CLI)
+  usage: {
+    help: `Uso: node collect-usage.js [--json] [--no-write] [--now <ISO>]
+  Coleta o uso do Claude: o % do plano (Maestri) e a participação de cada item e de cada
+  agente (transcrições das sessões que o hook ligou no bruto.db), e grava state/usage.json.
+  --json       imprime o usage.json no stdout
+  --no-write   não grava state/usage.json nem state/usage-cache.json
+  --now        fixa o "agora" (testes), ex.: 2026-10-08T15:50:00-03:00
+Variáveis: MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DIR (padrão ~/.maestri), CLAUDE_CONFIG_DIR (padrão ~/.claude).`,
+    errors: {
+      prefix: 'Erro: {message}',
+      unexpected: 'Erro inesperado: {detail}',
+      invalidNow: '--now inválido: "{value}" (use ISO, ex.: 2026-10-08T15:50:00-03:00).',
+      unknownOption: 'Opção desconhecida: {option} (use --help).',
+    },
+    // c: the code's parameters, plus time(iso) (short time next to the collection) and describe(code) (a nested code)
+    codes: {
+      plan_file_missing: 'O Maestri ainda não gravou o uso do plano ({file} não existe). Ligue o uso dos agentes no Maestri (Configurações → Agentes → Uso) e deixe os anéis visíveis.',
+      plan_file_unreadable: (c) => `Não consegui ler ${c.file}: ${c.describe(c.error)}.`,
+      read_failed: 'não consegui ler ({detail})',
+      empty_file: 'arquivo vazio',
+      invalid_json: 'JSON inválido ({detail})',
+      plan_provider_missing: 'O arquivo de uso do Maestri não tem o provedor "claude".',
+      plan_provider_off: 'O provedor Claude está desligado no Maestri (Configurações → Agentes → Uso).',
+      plan_read_failed: (c) => `O Maestri não conseguiu ler o uso do Claude (estado "${c.state}"${c.error ? `: ${c.error}` : ''}).`,
+      plan_windows_missing: 'O Maestri ainda não trouxe as janelas do plano (5 h e semanal).',
+      plan_windows_unavailable: (c) => [c.describe(c.window_5h_reason), c.describe(c.weekly_reason)].filter(Boolean).join(' '),
+      plan_last_read_failed: (c) => `A última consulta do Maestri falhou (estado "${c.state}"${c.error ? `: ${c.error}` : ''}); os valores são da leitura${c.read_at ? ` de ${c.time(c.read_at)}` : ''}.`,
+      window_missing: (c) => `O Maestri não trouxe a janela ${c.window === '5h' ? 'de 5 h' : 'semanal'}.`,
+      window_without_pct: (c) => `A janela ${c.window === '5h' ? 'de 5 h' : 'semanal'} veio sem o percentual usado.`,
+      window_reset: (c) => `A janela ${c.window === '5h' ? 'de 5 h' : 'semanal'} reiniciou às ${c.time(c.reset_at)}, depois da última leitura do Maestri${c.read_at ? ` (${c.time(c.read_at)})` : ''}; o % novo aparece na próxima leitura.`,
+      raw_log_missing: 'Ainda não há log bruto (bruto.db): o hook não gravou nenhuma sessão de projeto cadastrado.',
+      invalid_transcript_lines: '{count} linha(s) de transcrição ilegível(is) ignorada(s).',
+      transcript_unreadable: 'Não consegui ler {file}: {error}',
+      transcript_read_interrupted: 'Leitura interrompida em {file}: {error}',
+    },
+    summary: {
+      collected: 'Uso coletado em {when}',
+      resets: ' (reinicia {when})',
+      age: ' · dado de {minutes} min',
+      plan: 'Plano: 5 h {pct5}{reset5} · semanal {pct7}{reset7}{age}',
+      planUnavailable: 'Plano: indisponível. {reason}',
+      planWarning: '  Aviso: {warning}',
+      byItem: 'Por item, % do consumo (janela de 5 h · hoje · 7 dias):',
+      byAgent: 'Por agente, % do consumo (janela de 5 h · hoje · 7 dias):',
+      noSessions: '  nenhuma sessão com consumo',
+      cache: { new: 'novo', reused: 'reaproveitado', recreated: 'recriado' },
+      collection: 'Sessões: {sessions} · transcrições: {transcripts} ({missing} ainda sem arquivo) · {mb} MB lidos · cache {cache}',
+      warning: 'Aviso: {warning}',
+      wrote: 'Gravado em state/usage.json',
+      notWritten: 'Nada gravado (--no-write)',
+    },
+  },
+  // bin/time-window.js (the --pre-run of Maestri routines)
+  timeWindow: {
+    prefix: 'time-window: {message}',
+    start: 'Início',
+    end: 'Fim',
+    invalidHour: '{label} inválido: "{value}" (use H, HH ou HH:MM, ex.: 8 ou 22:30).',
+    hourOutOfRange: '{label} fora do intervalo: "{value}".',
+    invalidNow: '--now inválido: "{value}" (use ISO, ex.: 2026-10-08T15:50:00-03:00).',
+    unknownOption: 'Opção desconhecida: {option}.',
+    missingRange: 'Informe início e fim, ex.: node time-window.js 8 22',
+    emptyRange: 'Início e fim iguais: a janela ficaria vazia.',
+  },
+  // panel/server.js and panel/merge-check.js: help, start-up and the terminal's log lines
+  server: {
+    help: `Uso: node server.js [--port 4777]
+  Sobe o painel em http://127.0.0.1:<porta> (só nesta máquina).
+  Parar: Ctrl+C neste terminal, ou taskkill /PID <pid de <MAESTRO_DIR>/state/panel.pid> /F
+Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DIR, CLAUDE_CONFIG_DIR,
+  PANEL_COLLECTOR=0 (sem coletor automático), PANEL_STALE_HOURS (padrão 48: horas na mesma
+  etapa para um item contar como parado na Visão geral).
+  Verificador de merge: PANEL_MERGE_CHECK=0 (desliga) ou 1 (liga), PANEL_MERGE_CHECK_SECONDS
+  (intervalo, padrão 600), PANEL_GH_CLI, PANEL_AZ_CLI, PANEL_AZURE_DEVOPS_URL.
+`,
+    errors: {
+      prefix: 'Erro: {message}',
+      unknownOption: 'Opção desconhecida: {option} (use --help).',
+      invalidPort: 'Porta inválida: "{value}" (use um número de 1 a 65535).',
+      invalidNow: 'Relógio fixo inválido: "{value}" (use ISO, ex.: 2026-10-08T15:50:00-03:00).',
+      invalidStaleHours: 'PANEL_STALE_HOURS inválido: "{value}" (use um número de horas maior que zero).',
+      invalidMergeCheck: 'PANEL_MERGE_CHECK inválido: "{value}" (use 0 ou 1).',
+      invalidMergeCheckSeconds: 'PANEL_MERGE_CHECK_SECONDS inválido: "{value}" (use um inteiro a partir de 1).',
+      portInUse: 'Erro: a porta {port} já está em uso em 127.0.0.1. Outro painel já está rodando? Veja o PID em {pidFile} ou suba em outra porta com --port.',
+      portDenied: 'Erro: sem permissão para usar a porta {port}.',
+      startFailed: 'Erro ao subir o painel: {detail}',
+      unhandled: 'Erro não tratado: {detail}',
+    },
+    started: 'Painel no ar em http://127.0.0.1:{port} (PID {pid})',
+    data: 'Dados: {dir} · PID em {pidFile}',
+    howToStop: 'Para parar: Ctrl+C aqui, ou taskkill /PID {pid} /F',
+    stopping: 'Encerrando o painel ({signal})...',
+    indexMissing: 'O arquivo do painel não foi encontrado em {file}.',
+    log: {
+      usageCollected: 'Uso coletado ({trigger}): {plan} · {sessions} sessão(ões) · {ms} ms',
+      usagePlan: (c) => (c.available ? `plano 5 h ${c.pct5}% · semanal ${c.pct7}%` : 'plano indisponível'),
+      collectorFailed: 'Falha no coletor de uso ({trigger}): {detail}',
+      projectMoved: 'Projeto {project} movido pelo painel para a empresa {company}',
+      requestFailed: 'Erro em {method} {url}: {detail}',
+      serverError: 'Erro no servidor: {detail}',
+      rawPurged: 'Log bruto: {entries} registro(s) e {sessions} sessão(ões) com mais de 90 dias apagados',
+      rawPurgeFailed: 'Falha na limpeza do log bruto: {detail}',
+      mergeCheckItemFailed: 'Verificação de merge de {key} falhou: {code}{detail}',
+      mergeRecorded: 'PR de {key} mergeado no tracker: gravado (origem painel)',
+      mergeCheckFailed: 'Falha na verificação de merge: {detail}',
+      markedMerged: 'PR de {key} marcado como mergeado pelo painel',
+    },
   },
   // flow company / flow project (bin/flow-admin.js, #6)
   admin: {

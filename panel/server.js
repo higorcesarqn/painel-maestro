@@ -45,6 +45,7 @@ const zlib = require('zlib');
 
 const collector = require(path.join(__dirname, '..', 'bin', 'collect-usage.js'));
 const { flowDir } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { t } = require(path.join(__dirname, '..', 'bin', 'i18n'));
 const itemsApi = require(path.join(__dirname, 'api-items.js'));
 const pendingApi = require(path.join(__dirname, 'api-pending-decisions.js'));
 const logApi = require(path.join(__dirname, 'api-log.js'));
@@ -80,17 +81,17 @@ function parseConfig(argv = [], env = process.env) {
     if (a === '--port') port = argv[++i];
     else if (a.startsWith('--port=')) port = a.slice('--port='.length);
     else if (a === '--help' || a === '-h') return { help: true };
-    else throw new UsageError(`Opção desconhecida: ${a} (use --help).`);
+    else throw new UsageError(t('server.errors.unknownOption', { option: a }));
   }
   const p = port === undefined || port === '' ? DEFAULT_PORT : Number(port);
-  if (!Number.isInteger(p) || p < 1 || p > 65535) throw new UsageError(`Porta inválida: "${port}" (use um número de 1 a 65535).`);
+  if (!Number.isInteger(p) || p < 1 || p > 65535) throw new UsageError(t('server.errors.invalidPort', { value: port }));
   const nowText = env.PANEL_NOW || env.MAESTRO_NOW || '';
   const fixedNow = nowText ? asDate(nowText) : null;
-  if (nowText && !fixedNow) throw new UsageError(`Relógio fixo inválido: "${nowText}" (use ISO, ex.: 2026-10-08T15:50:00-03:00).`);
+  if (nowText && !fixedNow) throw new UsageError(t('server.errors.invalidNow', { value: nowText }));
   // Overview (#14): an active item on the same stage for longer than this is "stale".
   const staleText = env.PANEL_STALE_HOURS;
   const staleHours = staleText === undefined || staleText === '' ? DEFAULT_STALE_HOURS : Number(staleText);
-  if (!(Number.isFinite(staleHours) && staleHours > 0)) throw new UsageError(`PANEL_STALE_HOURS inválido: "${staleText}" (use um número de horas maior que zero).`);
+  if (!(Number.isFinite(staleHours) && staleHours > 0)) throw new UsageError(t('server.errors.invalidStaleHours', { value: staleText }));
   let mergeCheckConfig;
   try {
     mergeCheckConfig = mergeCheck.parseConfig(env, { collectorActive: env.PANEL_COLLECTOR !== '0', fixedNow });
@@ -302,12 +303,12 @@ function createContext(cfg) {
         ctx.lastRun = { at: isoSP(new Date()), trigger, ok: true, duration_ms: Date.now() - startedAt, error: null };
         if (trigger !== 'periodic') {
           const pl = usage.plan;
-          const plan = pl.available ? `plano 5 h ${pl.window_5h_pct ?? '—'}% · semanal ${pl.weekly_pct ?? '—'}%` : 'plano indisponível';
-          ctx.log(`Uso coletado (${trigger}): ${plan} · ${usage.collection.sessions} sessão(ões) · ${ctx.lastRun.duration_ms} ms`);
+          const plan = t('server.log.usagePlan', { available: pl.available, pct5: pl.window_5h_pct ?? '—', pct7: pl.weekly_pct ?? '—' });
+          ctx.log(t('server.log.usageCollected', { trigger, plan, sessions: usage.collection.sessions, ms: ctx.lastRun.duration_ms }));
         }
       } catch (e) {
         ctx.lastRun = { at: isoSP(new Date()), trigger, ok: false, duration_ms: Date.now() - startedAt, error: e && e.message ? e.message : String(e) };
-        ctx.logError(`Falha no coletor de uso (${trigger}): ${e && e.stack ? e.stack : e}`);
+        ctx.logError(t('server.log.collectorFailed', { trigger, detail: e && e.stack ? e.stack : e }));
       } finally {
         ctx.currentRun = null;
       }
@@ -450,7 +451,7 @@ async function route(ctx, req, res) {
       const x = await ctx.files.text(ctx.cfg.indexPath);
       if (!x.exists || typeof x.text !== 'string') {
         // A page for people (Portuguese, ADR 0004): the API JSON never carries sentences.
-        const html = `<!doctype html><meta charset="utf-8"><title>Painel</title><p>O arquivo do painel não foi encontrado em ${escapeHtml(ctx.cfg.indexPath.replace(/\\/g, '/'))}.</p>`;
+        const html = `<!doctype html><meta charset="utf-8"><title>Painel</title><p>${escapeHtml(t('server.indexMissing', { file: ctx.cfg.indexPath.replace(/\\/g, '/') }))}</p>`;
         return respond(req, res, 503, html, HTML_TYPE, { 'Content-Security-Policy': CSP });
       }
       return respond(req, res, 200, x.text, HTML_TYPE, { 'Content-Security-Policy': CSP });
@@ -476,7 +477,7 @@ async function route(ctx, req, res) {
       const buf = await body;
       if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });
       const x = projectsApi.moveProject(ctx.items, r.project, buf);
-      ctx.log(`Projeto ${r.project} movido pelo painel para a empresa ${x.project.company.id}`);
+      ctx.log(t('server.log.projectMoved', { project: r.project, company: x.project.company.id }));
       return respondJson(req, res, 200, x);
     }
     case 'item': {
@@ -523,7 +524,7 @@ function createHandler(ctx) {
       const known = e instanceof pendingApi.PendingFilterError || e instanceof logApi.LogError
         || e instanceof projectsApi.ProjectsError || e instanceof usageApi.UsageApiError;
       const status = known ? e.status : 500;
-      if (status === 500) ctx.logError(`Erro em ${req.method} ${String(req.url).slice(0, 200)}: ${e && e.stack ? e.stack : e}`);
+      if (status === 500) ctx.logError(t('server.log.requestFailed', { method: req.method, url: String(req.url).slice(0, 200), detail: e && e.stack ? e.stack : e }));
       if (res.headersSent) {
         res.destroy();
         return;
@@ -565,7 +566,7 @@ async function start(options = {}) {
       resolve();
     });
   });
-  server.on('error', (e) => ctx.logError(`Erro no servidor: ${e && e.message}`));
+  server.on('error', (e) => ctx.logError(t('server.log.serverError', { detail: e && e.message })));
   ctx.setPort(server.address().port);
   const pidFile = ctx.pidFile;
   await writeAtomic(pidFile, `${process.pid}\n`);
@@ -581,9 +582,9 @@ async function start(options = {}) {
   const purge = () => {
     if (purging) return purging;
     purging = logApi.purgeRaw(ctx.raw, ctx.now().getTime(), { stopped: () => stopped }).then((r) => {
-      if (r && (r.entries || r.sessions)) ctx.log(`Log bruto: ${r.entries} registro(s) e ${r.sessions} sessão(ões) com mais de 90 dias apagados`);
+      if (r && (r.entries || r.sessions)) ctx.log(t('server.log.rawPurged', { entries: r.entries, sessions: r.sessions }));
     }).catch((e) => {
-      ctx.logError(`Falha na limpeza do log bruto: ${e && e.message ? e.message : e}`);
+      ctx.logError(t('server.log.rawPurgeFailed', { detail: e && e.message ? e.message : e }));
     }).finally(() => { purging = null; });
     return purging;
   };
@@ -609,16 +610,6 @@ async function start(options = {}) {
   return { server, port: ctx.port, ctx, stop, pidFile };
 }
 
-const HELP = `Uso: node server.js [--port 4777]
-  Sobe o painel em http://127.0.0.1:<porta> (só nesta máquina).
-  Parar: Ctrl+C neste terminal, ou taskkill /PID <pid de <MAESTRO_DIR>/state/panel.pid> /F
-Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DIR, CLAUDE_CONFIG_DIR,
-  PANEL_COLLECTOR=0 (sem coletor automático), PANEL_STALE_HOURS (padrão 48: horas na mesma
-  etapa para um item contar como parado na Visão geral).
-  Verificador de merge: PANEL_MERGE_CHECK=0 (desliga) ou 1 (liga), PANEL_MERGE_CHECK_SECONDS
-  (intervalo, padrão 600), PANEL_GH_CLI, PANEL_AZ_CLI, PANEL_AZURE_DEVOPS_URL.
-`;
-
 module.exports = { start, parseConfig, buildState, stateAnswer, findRoute, CSP };
 
 if (require.main === module) {
@@ -626,25 +617,25 @@ if (require.main === module) {
   try {
     cfg = parseConfig(process.argv.slice(2), process.env);
   } catch (e) {
-    process.stderr.write(`Erro: ${e.message}\n`);
+    process.stderr.write(`${t('server.errors.prefix', { message: e.message })}\n`);
     process.exit(2);
   }
   if (cfg.help) {
-    process.stdout.write(HELP);
+    process.stdout.write(t('server.help'));
     process.exit(0);
   }
   process.on('unhandledRejection', (e) => {
-    try { process.stderr.write(`Erro não tratado: ${e && e.stack ? e.stack : e}\n`); } catch (_) { /* nothing */ }
+    try { process.stderr.write(`${t('server.errors.unhandled', { detail: e && e.stack ? e.stack : e })}\n`); } catch (_) { /* nothing */ }
   });
   start({ cfg }).then(({ port, stop, pidFile }) => {
-    process.stdout.write(`Painel no ar em http://127.0.0.1:${port} (PID ${process.pid})\n`);
-    process.stdout.write(`Dados: ${cfg.dataDir.replace(/\\/g, '/')} · PID em ${pidFile.replace(/\\/g, '/')}\n`);
-    process.stdout.write(`Para parar: Ctrl+C aqui, ou taskkill /PID ${process.pid} /F\n`);
+    process.stdout.write(`${t('server.started', { port, pid: process.pid })}\n`);
+    process.stdout.write(`${t('server.data', { dir: cfg.dataDir.replace(/\\/g, '/'), pidFile: pidFile.replace(/\\/g, '/') })}\n`);
+    process.stdout.write(`${t('server.howToStop', { pid: process.pid })}\n`);
     let leaving = false;
     const leave = (signal) => {
       if (leaving) return;
       leaving = true;
-      try { process.stdout.write(`Encerrando o painel (${signal})...\n`); } catch (_) { /* terminal closed */ }
+      try { process.stdout.write(`${t('server.stopping', { signal })}\n`); } catch (_) { /* terminal closed */ }
       setTimeout(() => process.exit(0), 3000).unref();
       stop().finally(() => process.exit(0));
     };
@@ -652,11 +643,11 @@ if (require.main === module) {
     process.on('exit', () => removePidSync(pidFile));
   }).catch((e) => {
     if (e && e.code === 'EADDRINUSE') {
-      process.stderr.write(`Erro: a porta ${cfg.port} já está em uso em 127.0.0.1. Outro painel já está rodando? Veja o PID em ${path.join(cfg.dataDir, 'state', 'panel.pid').replace(/\\/g, '/')} ou suba em outra porta com --port.\n`);
+      process.stderr.write(`${t('server.errors.portInUse', { port: cfg.port, pidFile: path.join(cfg.dataDir, 'state', 'panel.pid').replace(/\\/g, '/') })}\n`);
     } else if (e && e.code === 'EACCES') {
-      process.stderr.write(`Erro: sem permissão para usar a porta ${cfg.port}.\n`);
+      process.stderr.write(`${t('server.errors.portDenied', { port: cfg.port })}\n`);
     } else {
-      process.stderr.write(`Erro ao subir o painel: ${e && e.stack ? e.stack : e}\n`);
+      process.stderr.write(`${t('server.errors.startFailed', { detail: e && e.stack ? e.stack : e })}\n`);
     }
     process.exit(1);
   });

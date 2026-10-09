@@ -9,21 +9,23 @@
 //   "22 6" covers 22:00 to 05:59.
 //   Writes nothing to stdout. Invalid argument: message on stderr and exit 2.
 //   --now pins the clock (tests); the MAESTRO_NOW variable does the same.
-// Messages for people stay in Portuguese (ADR 0004).
+// Messages for people come from the pt-BR dictionary (bin/i18n, ADR 0004).
 
 const TIME_ZONE = 'America/Sao_Paulo';
 const FMT = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+
+const { t } = require('./i18n');
 
 class UsageError extends Error {}
 
 /** "8", "08", "8:30", "22:00" → minutes since 00:00. */
 function parseHour(text, label, max) {
   const m = /^(\d{1,2})(?::(\d{2}))?$/.exec(String(text === undefined ? '' : text).trim());
-  if (!m) throw new UsageError(`${label} inválido: "${text === undefined ? '' : text}" (use H, HH ou HH:MM, ex.: 8 ou 22:30).`);
+  if (!m) throw new UsageError(t('timeWindow.invalidHour', { label, value: text === undefined ? '' : text }));
   const h = Number(m[1]);
   const min = m[2] === undefined ? 0 : Number(m[2]);
   const total = h * 60 + min;
-  if (min > 59 || total > max) throw new UsageError(`${label} fora do intervalo: "${text}".`);
+  if (min > 59 || total > max) throw new UsageError(t('timeWindow.hourOutOfRange', { label, value: text }));
   return total;
 }
 
@@ -47,15 +49,15 @@ function parseArgs(argv, env) {
     if (a === '--now' || a.startsWith('--now=')) {
       const v = a.includes('=') ? a.slice(a.indexOf('=') + 1) : argv[++i];
       now = new Date(v);
-      if (!v || Number.isNaN(now.getTime())) throw new UsageError(`--now inválido: "${v === undefined ? '' : v}" (use ISO, ex.: 2026-10-08T15:50:00-03:00).`);
+      if (!v || Number.isNaN(now.getTime())) throw new UsageError(t('timeWindow.invalidNow', { value: v === undefined ? '' : v }));
     } else if (a.startsWith('--')) {
-      throw new UsageError(`Opção desconhecida: ${a}.`);
+      throw new UsageError(t('timeWindow.unknownOption', { option: a }));
     } else positional.push(a);
   }
-  if (positional.length !== 2) throw new UsageError('Informe início e fim, ex.: node time-window.js 8 22');
-  const start = parseHour(positional[0], 'Início', 23 * 60 + 59);
-  const end = parseHour(positional[1], 'Fim', 24 * 60);
-  if (start === end) throw new UsageError('Início e fim iguais: a janela ficaria vazia.');
+  if (positional.length !== 2) throw new UsageError(t('timeWindow.missingRange'));
+  const start = parseHour(positional[0], t('timeWindow.start'), 23 * 60 + 59);
+  const end = parseHour(positional[1], t('timeWindow.end'), 24 * 60);
+  if (start === end) throw new UsageError(t('timeWindow.emptyRange'));
   if (!now && env.MAESTRO_NOW) {
     now = new Date(env.MAESTRO_NOW);
     if (Number.isNaN(now.getTime())) now = null;
@@ -74,7 +76,7 @@ if (require.main === module) {
   try {
     process.exitCode = main(process.argv.slice(2));
   } catch (e) {
-    process.stderr.write(`time-window: ${e instanceof UsageError ? e.message : (e && e.stack) || e}\n`);
+    process.stderr.write(`${t('timeWindow.prefix', { message: e instanceof UsageError ? e.message : (e && e.stack) || e })}\n`);
     process.exitCode = 2;
   }
 }

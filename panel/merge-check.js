@@ -21,6 +21,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const { isoSP } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
+const { t } = require(path.join(__dirname, '..', 'bin', 'i18n'));
 const { projectItem, trackerRef, EVENT_TYPES } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
 
 const DEFAULT_SECONDS = 600;
@@ -37,13 +38,13 @@ const RE_SEGMENT = /^[A-Za-z0-9._~%-]{1,200}$/;
 // Arguments that may go through the Windows shell (az is az.cmd there): no character the shell interprets.
 const RE_SAFE_ARG = /^[A-Za-z0-9._:/,=@-]+$/;
 
-/** Configuration of the check from the variables; throws an Error (with a sentence for the terminal) when invalid. */
+/** Configuration of the check from the variables; throws an Error (a sentence of the pt-BR dictionary, for the terminal) when invalid. */
 function parseConfig(env, { collectorActive, fixedNow }) {
   const flag = env.PANEL_MERGE_CHECK;
-  if (flag !== undefined && flag !== '' && flag !== '0' && flag !== '1') throw new Error(`PANEL_MERGE_CHECK inválido: "${flag}" (use 0 ou 1).`);
+  if (flag !== undefined && flag !== '' && flag !== '0' && flag !== '1') throw new Error(t('server.errors.invalidMergeCheck', { value: flag }));
   const secondsText = env.PANEL_MERGE_CHECK_SECONDS;
   const seconds = secondsText === undefined || secondsText === '' ? DEFAULT_SECONDS : Number(secondsText);
-  if (!Number.isInteger(seconds) || seconds < 1) throw new Error(`PANEL_MERGE_CHECK_SECONDS inválido: "${secondsText}" (use um inteiro a partir de 1).`);
+  if (!Number.isInteger(seconds) || seconds < 1) throw new Error(t('server.errors.invalidMergeCheckSeconds', { value: secondsText }));
   let enabled = true;
   let reason = null;
   if (flag === '0') { enabled = false; reason = { code: 'merge_check_off', variable: 'PANEL_MERGE_CHECK' }; }
@@ -215,13 +216,13 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
     const before = statuses.get(key);
     if (r.error) {
       statuses.set(key, { checked_at: checkedAt, error: r.error });
-      if (!before || !before.error || before.error.code !== r.error.code) logError(`Verificação de merge de ${key} falhou: ${r.error.code}${r.error.detail ? ` (${r.error.detail})` : ''}`);
+      if (!before || !before.error || before.error.code !== r.error.code) logError(t('server.log.mergeCheckItemFailed', { key, code: r.error.code, detail: r.error.detail ? ` (${r.error.detail})` : '' }));
       return;
     }
     statuses.set(key, { checked_at: checkedAt, error: null });
     if (r.merged && recordMerge(store, project, state.number, null).recorded) {
       statuses.delete(key);
-      log(`PR de ${key} mergeado no tracker: gravado (origem painel)`);
+      log(t('server.log.mergeRecorded', { key }));
     }
   }
 
@@ -245,7 +246,7 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
     if (current) return current;
     const controller = new AbortController();
     stopping = controller;
-    current = round(controller).catch((e) => logError(`Falha na verificação de merge: ${e && e.stack ? e.stack : e}`)).finally(() => { current = null; });
+    current = round(controller).catch((e) => logError(t('server.log.mergeCheckFailed', { detail: e && e.stack ? e.stack : e }))).finally(() => { current = null; });
     return current;
   }
 
@@ -296,7 +297,7 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
       if (!x.state) return { status: 404, error: { code: 'item_not_found', project: projectId, number } };
       if (!x.recorded) return { status: 409, error: { code: 'pr_not_ready', project: projectId, number, state: x.state.pr ? x.state.pr.state : null } };
       statuses.delete(`${projectId}/${number}`);
-      log(`PR de ${projectId}/${number} marcado como mergeado pelo painel`);
+      log(t('server.log.markedMerged', { key: `${projectId}/${number}` }));
       return { status: 200 };
     },
   };
