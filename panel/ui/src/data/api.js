@@ -45,8 +45,11 @@ export const readItem = (project, number) => api(`/api/items/${encodeURIComponen
 // The Log: the events of maestro.db with filters and, for one event, the raw commands of bruto.db linked to it.
 export const readLog = (params) => api(withQuery('/api/log', params));
 export const readLogEvent = (id) => api(`/api/log/${encodeURIComponent(id)}`);
-// Pending decisions, read only: params { organization, project, severity, status }.
+// Pending decisions: params { organization, project, severity, status }.
 export const readPendingDecisions = (params) => api(withQuery('/api/pending-decisions', params));
+// The owner's answer to an open pending decision (#32): option, a letter or null; text, the comment. Returns the pending
+// decision as readPendingDecisions lists it (resolved, with the decision); 409 when it was closed meanwhile.
+export const answerPendingDecision = (id, option, text) => api(`/api/pending-decisions/${encodeURIComponent(id)}/answer`, { method: 'POST', body: { option, text } });
 // "Mark as merged" (#11): records the PR merge by hand when the merge check cannot read it. Returns { item }.
 export const markItemMerged = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}/merged`, { method: 'POST' });
 // Usage and agents per item (#13). filters: the organization selector's organizationFilter ({ organization }) and/or { project }.

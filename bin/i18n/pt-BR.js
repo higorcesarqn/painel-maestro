@@ -210,6 +210,7 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       mergeRecorded: 'PR de {key} mergeado no tracker: gravado (origem painel)',
       mergeCheckFailed: 'Falha na verificação de merge: {detail}',
       markedMerged: 'PR de {key} marcado como mergeado pelo painel',
+      pendingAnswered: 'Pendência P-{id} de {key} respondida pelo painel',
     },
   },
   // flow org / flow project (bin/flow-admin.js, #6)

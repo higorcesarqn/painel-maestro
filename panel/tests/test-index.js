@@ -76,6 +76,7 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   const api = source['data/api.js'];
   for (const route of ["api('/api/state')", "api('/api/recalculate', { method: 'POST' })",
     "api(withQuery('/api/pending-decisions', params))", "api(withQuery('/api/items', filters))",
+    "api(`/api/pending-decisions/${encodeURIComponent(id)}/answer`, { method: 'POST', body: { option, text } })",
     'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', "api(withQuery('/api/log', params))", 'api(`/api/log/${encodeURIComponent(id)}`)',
     "api('/api/organizations')", "api(withQuery('/api/projects', filters))",
     "api(`/api/organizations/${encodeURIComponent(id)}/rename`, { method: 'POST', body: { name } })",
@@ -90,7 +91,7 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   }
   // Nothing of the old model: no events/flows routes, no Brain.
   for (const old of ['/api/events', '/api/event/', '/api/flow/', '/api/brain']) assert.ok(!js.includes(old), `the build still calls ${old}`);
-  const allowed = /^\/api\/(state|recalculate|pending-decisions|items|items\/|log|log\/|organizations|organizations\/|projects|projects\/|usage|agents|overview)$/;
+  const allowed = /^\/api\/(state|recalculate|pending-decisions|pending-decisions\/|items|items\/|log|log\/|organizations|organizations\/|projects|projects\/|usage|agents|overview)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
   assert.ok(!/new URLSearchParams\(\)/.test(api.replace(/export function withQuery[\s\S]*?\r?\n}\r?\n/, '')), 'every query string goes through withQuery');
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
@@ -329,6 +330,32 @@ suite.test('Overview (#14): the demo has stale items and open pending decisions 
   assert.ok(js.includes('/api/overview'));
 });
 
+suite.test('Pendências (#32): the page\'s copy of the answer rules (option letters, decision limit) agrees with the server\'s', async () => {
+  const domain = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'domain.js')).href);
+  // Parity between the page's copy and the server's rules (contract constants): same exception as the stages above.
+  const server = require('../api-pending-decisions.js');
+  assert.strictEqual(domain.MAX_DECISION, require('../../bin/flow-projection.js').MAX_PENDING_DECISION);
+  for (const options of [[], ['A: Integrar', 'B: Pedir ajuste'], ['b) Um', 'a) Dois'], ['Corrigir', 'Task nova'],
+    ['A: Integrar', 'Pedir ajuste', 'B: Descartar'], ['A: Um', 'A: Outro'], ['<b>A</b>', 'B: javascript:alert(1)']]) {
+    assert.deepStrictEqual(domain.optionLetters(options), server.optionLetters(options), JSON.stringify(options));
+  }
+  assert.deepStrictEqual(server.optionLetters(['A: Integrar', 'Pedir ajuste', 'B: Descartar']), ['A', 'B', 'C'], 'no two options share a letter');
+  assert.deepStrictEqual(server.optionLetters(['b) Um', 'a) Dois']), ['B', 'A'], 'their own letters when all have one');
+  assert.deepStrictEqual(['A: segue o contrato.', 'B, e abrir um achado', 'A opção B', 'C: não existe'].map((r) => domain.recommendedLetter(r, ['A', 'B'])), ['A', 'B', null, null]);
+  assert.strictEqual(domain.decisionText('B: Pedir ajuste', 'mantenha o nome'), 'B: Pedir ajuste — mantenha o nome');
+});
+
+suite.test('Pendências (#32): the demo has open pending decisions to answer, with and without options and of different kinds; the screen answers through the API', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
+  assert.ok(open.some((p) => p.options.length > 0) && open.some((p) => p.options.length === 0), 'open ones with and without options');
+  assert.ok(new Set(open.map((p) => p.kind)).size >= 4, 'open ones of different kinds');
+  const screen = source['screens/PendingDecisions.jsx'];
+  assert.ok(/answerPendingDecision\(p\.id, letter, comment\)/.test(screen), 'the form sends the option and the comment');
+  assert.ok(/e\.status === 409/.test(screen), 'a 409 reads the pending decision again');
+  assert.ok(!/readOnlyNote/.test(screen), 'the "read only" note is gone');
+  assert.ok(js.includes('/api/pending-decisions/'), 'the build calls the answer route');
+});
 
 let port = null;
 let pid = null;
@@ -395,6 +422,16 @@ suite.test('the real server on a fake root (the demo in a real maestro.db + a ho
   assert.strictEqual(det.event.id, last.id);
   const none = await request(port, '/api/log/999999');
   assert.deepStrictEqual([none.status, none.json.error.code], [404, 'event_not_found']);
+
+  // The demo's open pending decisions can be answered with the real server (#32): with an option, and only with a comment.
+  const post = (id, body) => request(port, `/api/pending-decisions/P-${id}/answer`, { method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const withOptions = pd.find((x) => x.status === 'open' && x.options.length && !x.title.includes('onerror'));
+  const withoutOptions = pd.find((x) => x.status === 'open' && !x.options.length);
+  const a = await post(withOptions.id, { option: 'A', text: 'ok' });
+  assert.deepStrictEqual([a.status, a.json.status, a.json.decision, a.json.closed_by], [200, 'resolved', `${withOptions.options[0]} — ok`, { role: 'owner', name: null }]);
+  const b = await post(withoutOptions.id, { text: 'Meu carrinho' });
+  assert.deepStrictEqual([b.status, b.json.decision], [200, 'Meu carrinho']);
+  assert.strictEqual((await post(withOptions.id, { option: 'B' })).status, 409);
 
   // Header button.
   assert.strictEqual((await request(port, '/api/recalculate', { method: 'POST' })).status, 403);

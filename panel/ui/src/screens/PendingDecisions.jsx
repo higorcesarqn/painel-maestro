@@ -1,17 +1,19 @@
-// Owner's pending decisions of the new model (#10), read only: numbers on top (open ones by severity, resolved,
-// canceled), the list on the left with the status filter, the pending decision in the middle (item,
-// task, context, options, recommendation and, once closed, the decision) and, on the right, where to answer: the
-// workspace and the terminal of the maestro in the Maestri. The owner answers there; the maestro records the decision
-// with "flow pending resolve". Reads GET /api/pending-decisions every 20 s; each column scrolls inside. The organization
-// comes from the selector at the top of the panel (#6, organizationFilter), like in the other screens of the new model.
+// Owner's pending decisions of the new model (#10): numbers on top (open ones by severity, resolved, canceled), the list
+// on the left with the status filter, the pending decision in the middle (item, task, context, options, recommendation
+// and, once closed, the decision) and, on the right, the answer (#32): for an open one, the form (options that only
+// select, the recommended one highlighted, a comment and "Enviar resposta", POST /api/pending-decisions/<id>/answer), a
+// note on when the maestro learns of it and, below, the workspace and the terminal of the maestro in the Maestri, the
+// other way to answer; for a closed one, the dates and who closed it. Reads GET /api/pending-decisions every 20 s; each
+// column scrolls inside. The organization comes from the selector at the top of the panel (#6, organizationFilter), like
+// in the other screens of the new model.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
-import { REFRESH_MS, readPendingDecisions } from '../data/api.js';
+import { REFRESH_MS, readPendingDecisions, answerPendingDecision } from '../data/api.js';
 import { objs, obj, arr, txt, age, dateTime, number } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Kpi, Badge, Segmented, Empty, InfoHint } from '../components/base.jsx';
-import { Icon, Inbox, X } from '../components/Icon.jsx';
-import { pendingTitle, SEVERITIES, SEVERITY_TONE } from '../data/domain.js';
+import { Icon, Inbox, Send, X } from '../components/Icon.jsx';
+import { pendingTitle, SEVERITIES, SEVERITY_TONE, MAX_DECISION, optionLetters, recommendedLetter, decisionText } from '../data/domain.js';
 import { TrackerLink } from './ItemDelivery.jsx';
 import '../styles/pending-decisions.css';
 
@@ -46,14 +48,29 @@ export function PendingDecisions() {
   const [filters, setFilters] = useState({ status: 'open', severity: null });
   const [read, setRead] = useState({ answer: null, error: null });
   const [chosen, setChosen] = useState(null);
+  // The pending decision just answered (or closed before the answer went out): it stays on screen, closed, even when
+  // the status filter takes it out of the list.
+  const [kept, setKept] = useState(null);
   const detail = useRef(null);
   const seq = useRef(0);
 
+  // The open pending decision on screen ({ id, query }): when a new reading of the same query no longer has it open,
+  // it was closed elsewhere (the maestro, an integration, a cancel) and closedMeanwhile shows how.
+  const shownOpen = useRef(null);
+  const onClosed = useRef(null);
+
   const load = useCallback(async () => {
     const mine = ++seq.current;
+    const query = params(filters, organizationFilter);
     try {
-      const answer = await readPendingDecisions(params(filters, organizationFilter));
-      if (mine === seq.current) setRead({ answer, error: null });
+      const answer = await readPendingDecisions(query);
+      if (mine !== seq.current) return;
+      setRead({ answer, error: null });
+      const open = shownOpen.current;
+      if (open && open.query === JSON.stringify(query)) {
+        const now = objs(answer && answer.pending_decisions).find((p) => p.id === open.id);
+        if (!now || now.status !== 'open') onClosed.current(open.id, { reload: false });
+      }
     } catch (error) {
       if (mine === seq.current) setRead((r) => ({ answer: r.answer, error }));
     }
@@ -69,7 +86,34 @@ export function PendingDecisions() {
   const counts = obj(answer && answer.counts) || {};
   const byStatus = obj(counts.status) || {};
   const bySeverity = obj(counts.severity) || {};
-  const current = list.find((p) => p.id === chosen) || list[0] || null;
+  // The kept one wins over the list: it is already closed (final), while the list may still hold the open copy read
+  // before the answer.
+  const current = (kept && kept.id === chosen ? kept : null) || list.find((p) => p.id === chosen) || list[0] || null;
+  shownOpen.current = current && current.status === 'open' ? { id: current.id, query: JSON.stringify(params(filters, organizationFilter)) } : null;
+
+  /** After the answer: the pending decision as the server recorded it, and the lists read again. */
+  const answered = (p) => {
+    shownOpen.current = null;
+    setKept(p);
+    setChosen(p.id);
+    setActionStatus(t('pending.answered', { id: p.id }));
+    load();
+  };
+  /**
+   * Closed meanwhile (a 409 on the answer, or a reading where it is no longer open): says so and shows it as it is now,
+   * read with every status.
+   */
+  const closedMeanwhile = async (id, { reload = true } = {}) => {
+    shownOpen.current = null;
+    setActionStatus(t('pending.alreadyClosed', { id }));
+    if (reload) load();
+    try {
+      const all = await readPendingDecisions(params({ status: 'all', severity: null }, organizationFilter));
+      const now = objs(all && all.pending_decisions).find((p) => p.id === id);
+      if (now) { setKept(now); setChosen(id); }
+    } catch (_) { /* the next reading shows it */ }
+  };
+  onClosed.current = closedMeanwhile;
 
   // Coming from a link to a pending decision (the Overview): shows it when it is in the list.
   useEffect(() => {
@@ -139,8 +183,10 @@ export function PendingDecisions() {
         {current ? <PendingDetail p={current} goTo={goTo} /> : <Empty icon={Inbox} center>{t('pending.choose')}</Empty>}
       </section>
 
-      <section class="card pending-panel" aria-label={t('pending.whereTitle')}>
-        {current ? <WhereToAnswer p={current} /> : <Empty center>{t('pending.whereEmpty')}</Empty>}
+      <section class="card pending-panel" aria-label={t(current && current.status === 'open' ? 'pending.answerTitle' : 'pending.whereTitle')}>
+        {!current ? <Empty center>{t('pending.answerEmpty')}</Empty>
+          : current.status === 'open' ? <Answer key={current.id} p={current} onAnswered={answered} onClosed={closedMeanwhile} />
+            : <WhereToAnswer p={current} />}
       </section>
     </div>
   );
@@ -205,32 +251,114 @@ function PendingDetail({ p, goTo }) {
   );
 }
 
-/** Where the owner answers (the maestro's Maestri terminal) and the dates of the pending decision. */
-function WhereToAnswer({ p }) {
-  const m = obj(p.maestri) || {};
-  const who = (a) => {
-    const x = obj(a) || {};
-    return [x.role ? t(`items.roles.${x.role}`) : '', txt(x.name)].filter(Boolean).join(' · ') || '—';
+/**
+ * The owner's answer to an open pending decision (#32): the options only select (the recommended one highlighted), the
+ * comment is optional, or required when there are no options, and only "Enviar resposta" records. A failed answer keeps
+ * what was written; a 409 (closed meanwhile) goes to onClosed(id), the recorded one to onAnswered(pending decision).
+ */
+function Answer({ p, onAnswered, onClosed }) {
+  const options = arr(p.options).map(txt).filter(Boolean);
+  const letters = optionLetters(options);
+  const recommended = recommendedLetter(p.recommendation, letters);
+  const [letter, setLetter] = useState(null);
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const chosen = letter ? options[letters.indexOf(letter)] : '';
+  const length = decisionText(chosen, comment.replace(/\r\n?/g, '\n').trim()).length;
+  const tooLong = length > MAX_DECISION;
+  const ready = !busy && !tooLong && (!!letter || comment.trim() !== '');
+  const send = async (ev) => {
+    ev.preventDefault();
+    if (!ready) return;
+    setBusy(true);
+    setError('');
+    try {
+      onAnswered(await answerPendingDecision(p.id, letter, comment));
+    } catch (e) {
+      // 409: the form stays disabled until the screen shows how the pending decision closed.
+      if (e.status === 409) onClosed(p.id);
+      else {
+        setBusy(false);
+        setError(t('pending.answerFailed', { message: e.message }));
+      }
+    }
   };
+  return (
+    <div class="pending-form">
+      <div class="pending-form-head">
+        <h2 class="label">{t('pending.answerTitle')}</h2>
+        <InfoHint text={t('pending.answerInfo')} />
+      </div>
+      <form class="pending-answer-form" onSubmit={send}>
+        {options.length > 0 && (
+          <div class="pending-choices" role="group" aria-label={t('pending.options')}>
+            {options.map((o, i) => (
+              <button type="button" key={`${letters[i]}-${o}`} class={`pending-choice${letters[i] === recommended ? ' recommended' : ''}`}
+                aria-pressed={letter === letters[i] ? 'true' : 'false'} disabled={busy} onClick={() => setLetter(letter === letters[i] ? null : letters[i])}>
+                <span class="pending-choice-text">{o}</span>
+                {letters[i] === recommended && <Badge tone="blue" class="pending-choice-badge">{t('pending.recommended')}</Badge>}
+              </button>
+            ))}
+          </div>
+        )}
+        <label class="field">
+          <span class="label">{options.length ? t('pending.commentOptional') : t('pending.comment')}</span>
+          <textarea class="pending-comment" rows={4} value={comment} disabled={busy} aria-invalid={tooLong ? 'true' : undefined}
+            placeholder={options.length ? t('pending.commentHintOptions') : t('pending.commentHintNoOptions')} onInput={(e) => setComment(e.currentTarget.value)} />
+        </label>
+        {tooLong && <p class="pending-form-error small">{t('pending.answerTooLong', { count: length, max: MAX_DECISION })}</p>}
+        {error && <p class="pending-form-error small" role="alert">{error}</p>}
+        <button type="submit" class="button primary pending-send" disabled={!ready}>
+          <Icon of={Send} size={15} />{busy ? t('pending.sending') : t('pending.send')}
+        </button>
+      </form>
+      <p class="muted tiny">{t('pending.answerNote')}</p>
+      <div class="pending-form-head">
+        <h3 class="label">{t('pending.otherWayTitle')}</h3>
+      </div>
+      <MaestroTerminal p={p} />
+      <PendingDates p={p} />
+    </div>
+  );
+}
+
+/** Where to answer (the maestro's Maestri terminal) and the dates of a closed pending decision. */
+function WhereToAnswer({ p }) {
   return (
     <div class="pending-form">
       <div class="pending-form-head">
         <h2 class="label">{t('pending.whereTitle')}</h2>
         <InfoHint text={t('pending.whereInfo')} />
       </div>
-      {m.workspace || m.terminal
-        ? (
-          <dl class="pending-dates pending-where">
-            <dt>{t('pending.workspace')}</dt><dd>{txt(m.workspace) || '—'}</dd>
-            <dt>{t('pending.terminal')}</dt><dd>{txt(m.terminal) || '—'}</dd>
-          </dl>
-        )
-        : <p class="muted">{t('pending.whereUnknown')}</p>}
-      {p.status === 'open' && <p class="muted tiny">{t('pending.readOnlyNote')}</p>}
-      <dl class="pending-dates">
-        <dt>{t('pending.openedLabel')}</dt><dd>{dateTime(p.opened_at)} · {who(p.opened_by)}</dd>
-        {p.closed_at && <><dt>{t(`pending.closedLabel.${p.status}`)}</dt><dd>{dateTime(p.closed_at)} · {who(p.closed_by)}</dd></>}
-      </dl>
+      <MaestroTerminal p={p} />
+      <PendingDates p={p} />
     </div>
+  );
+}
+
+/** The workspace and the terminal of the maestro in the Maestri. */
+function MaestroTerminal({ p }) {
+  const m = obj(p.maestri) || {};
+  if (!m.workspace && !m.terminal) return <p class="muted">{t('pending.whereUnknown')}</p>;
+  return (
+    <dl class="pending-dates pending-where">
+      <dt>{t('pending.workspace')}</dt><dd>{txt(m.workspace) || '—'}</dd>
+      <dt>{t('pending.terminal')}</dt><dd>{txt(m.terminal) || '—'}</dd>
+    </dl>
+  );
+}
+
+/** When the pending decision was opened and closed, and by whom. */
+function PendingDates({ p }) {
+  const who = (a) => {
+    const x = obj(a) || {};
+    return [x.role ? t(`items.roles.${x.role}`) : '', txt(x.name)].filter(Boolean).join(' · ') || '—';
+  };
+  return (
+    <dl class="pending-dates">
+      <dt>{t('pending.openedLabel')}</dt><dd>{dateTime(p.opened_at)} · {who(p.opened_by)}</dd>
+      {p.closed_at && <><dt>{t(`pending.closedLabel.${p.status}`)}</dt><dd>{dateTime(p.closed_at)} · {who(p.closed_by)}</dd></>}
+    </dl>
   );
 }

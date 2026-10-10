@@ -18,7 +18,8 @@
 //   GET  /api/overview[?organization=]        Overview (api-overview.js)
 //   GET  /api/items[?active=&organization=&project=], GET /api/items/<project>/<number>   items (api-items.js)
 //   POST /api/items/<project>/<number>/merged "mark as merged" (merge-check.js)
-//   GET  /api/pending-decisions               pending decisions, read only (api-pending-decisions.js)
+//   GET  /api/pending-decisions               pending decisions (api-pending-decisions.js)
+//   POST /api/pending-decisions/<id>/answer   the owner's answer to an open pending decision (#32)
 //   GET  /api/log, GET /api/log/<id>, GET /api/raw   the Log and the raw log (api-log.js)
 //   GET  /api/organizations, POST /api/organizations, POST /api/organizations/<id>/rename, POST /api/organizations/<id>/remove,
 //   GET  /api/projects, POST /api/projects/<id>/organization
@@ -69,7 +70,7 @@ const DEFAULT_STALE_HOURS = 48;               // Overview (#14): PANEL_STALE_HOU
 const RAW_PURGE_INTERVAL_MS = DAY_MS;          // bruto.db: entries older than 90 days leave once a day
 // index.html is a single file (embedded CSS and JS); nothing external is loaded.
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (POST /api/organizations, .../<id>/rename, POST /api/projects/<id>/organization)
+const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (POST /api/organizations, .../<id>/rename, POST /api/projects/<id>/organization, POST /api/pending-decisions/<id>/answer)
 const JSON_TYPE = 'application/json; charset=utf-8';
 const HTML_TYPE = 'text/html; charset=utf-8';
 const USAGE_FILE = 'state/usage.json';         // written by the usage collector, relative to MAESTRO_DIR
@@ -406,6 +407,11 @@ function findRoute(urlPath) {
     const it = itemsApi.parseItemPath(mm[1], mm[2]);
     return it ? { name: 'item-merged', methods: ['POST'], project: it.project, number: it.number } : null;
   }
+  const ma = /^\/api\/pending-decisions\/([^/]+)\/answer$/.exec(urlPath);
+  if (ma) {
+    const id = pendingApi.parsePendingId(ma[1]);
+    return id ? { name: 'pending-answer', methods: ['POST'], id } : null;
+  }
   const ml = /^\/api\/log\/([^/]+)$/.exec(urlPath);
   if (ml) {
     const id = logApi.parseLogId(ml[1]);
@@ -415,8 +421,8 @@ function findRoute(urlPath) {
 }
 
 async function route(ctx, req, res) {
-  // Only POST /api/organizations, POST /api/organizations/<id>/rename and POST /api/projects/<id>/organization read the body (a POST
-  // that reads JSON gets up to 16 KB); the rest is discarded, capped at 1 MB.
+  // Only POST /api/organizations, POST /api/organizations/<id>/rename, POST /api/projects/<id>/organization and
+  // POST /api/pending-decisions/<id>/answer read the body (a POST that reads JSON gets up to 16 KB); the rest is discarded, capped at 1 MB.
   let received = 0;
   const parts = [];
   const body = new Promise((resolve) => {
@@ -512,6 +518,13 @@ async function route(ctx, req, res) {
     }
     case 'pending-decisions':
       return respondJson(req, res, 200, pendingApi.listPendingDecisions(ctx.items, query));
+    case 'pending-answer': {
+      const buf = await body;
+      if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });
+      const x = pendingApi.answerPendingDecision(ctx.items, r.id, buf, isoSP(ctx.now()));
+      ctx.log(t('server.log.pendingAnswered', { id: x.id, key: x.item.key }));
+      return respondJson(req, res, 200, x);
+    }
     case 'log':
       return respondJson(req, res, 200, logApi.listLog(ctx.items, ctx.raw, query, ctx.now().getTime()));
     case 'log-event': {
@@ -541,7 +554,7 @@ function withMergeCheck(ctx, detail) {
 function createHandler(ctx) {
   return (req, res) => {
     route(ctx, req, res).catch((e) => {
-      const known = e instanceof pendingApi.PendingFilterError || e instanceof logApi.LogError
+      const known = e instanceof pendingApi.PendingError || e instanceof logApi.LogError
         || e instanceof projectsApi.ProjectsError || e instanceof usageApi.UsageApiError || e instanceof SchemaTooNew;
       // A maestro.db written by a newer painel-maestro (#28): nothing is served from it until the code is updated.
       const status = e instanceof SchemaTooNew ? 503 : known ? e.status : 500;

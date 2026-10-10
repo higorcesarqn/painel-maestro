@@ -185,6 +185,8 @@ suite.test('the API answers 503 schema_too_new and the health badge says why (re
     }
     const post = await get('/api/organizations', { method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 'nova', name: 'Nova' }) });
     assert.deepStrictEqual([post.status, post.json], [503, { error: REFUSAL }]);
+    const answer = await get('/api/pending-decisions/P-1/answer', { method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ option: 'A' }) });
+    assert.deepStrictEqual([answer.status, answer.json], [503, { error: REFUSAL }]);
     const st = await get('/api/state');
     assert.strictEqual(st.status, 200, st.text);
     assert.strictEqual(st.json.health.level, 'red');

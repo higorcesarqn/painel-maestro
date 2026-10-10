@@ -2,7 +2,7 @@
 
 Painel web local do **fluxo dos itens** que eu implemento com agentes Claude Code: Issues do GitHub e PBIs do Azure DevOps, organizados por **organização** e **projeto**. As skills de implementação (com floors do Maestri ou com subagentes) gravam cada passo do fluxo por um CLI deste repositório (`flow`) num banco SQLite fora do repositório; um servidor Node.js sem dependências calcula o estado de cada item a partir desses eventos e mostra tudo numa página só, em `http://127.0.0.1:4777`.
 
-O painel não usa IA nem gasta tokens: ele só lê o que os agentes gravaram. Nesta fase ele só **mostra** as pendências: o dono responde no terminal do maestro.
+O painel não usa IA nem gasta tokens: ele lê o que os agentes gravaram. O dono responde as pendências na própria tela Pendências ou no terminal do maestro; o painel grava a resposta em nome dele (ADR 0005).
 
 O vocabulário (Organização, Projeto, Item, Task, Achado, Pendência, Fluxo, Etapa, Maestro, Trabalhador) está em [`CONTEXT.md`](CONTEXT.md); as decisões de arquitetura, em [`docs/adr/`](docs/adr/).
 
@@ -13,7 +13,7 @@ O vocabulário (Organização, Projeto, Item, Task, Achado, Pendência, Fluxo, E
 - **Tasks.** As filhas do item (sub-issues ou cards filhos), com os bloqueios entre elas, formam um **grafo**. Cada task tem um estado: aguardando, trabalhando, revisão, bloqueada, integrada ou fora. O maestro despacha cada task para um **trabalhador** (um floor do Maestri, com codinome, ou um subagente) numa branch `task/<id>-…` e a integra na branch integradora do item. Uma issue sem filhas é um item com uma task, ele mesmo.
 - **Relatórios.** O trabalhador grava o relatório completo (status, testes, o que mudou, decisões, riscos, arquivos compartilhados, o texto inteiro) **antes** de enviá-lo ao maestro, para ele não se perder no terminal.
 - **Achados.** O que o maestro encontra nas revisões, classificado como defeito claro, decisão do dono ou descartado; um achado pode virar uma **task nova para triagem**, que aparece no item com o estado "fora".
-- **Pendências.** O que espera uma decisão do dono (revisar e integrar uma task, trabalhador bloqueado, decisão, achado que depende do dono, paralelizar tasks, cenário de HML reprovado), com contexto, opções, recomendação e **onde responder** (workspace e terminal do maestro no Maestri). A revisão de uma task e o OK para integrá-la são a mesma pendência, que se resolve sozinha quando a task é integrada.
+- **Pendências.** O que espera uma decisão do dono (revisar e integrar uma task, trabalhador bloqueado, decisão, achado que depende do dono, paralelizar tasks, cenário de HML reprovado), com contexto, opções e recomendação. O dono **responde pelo painel** (escolhe uma opção, escreve um comentário se quiser e envia) ou no terminal do maestro, cujo workspace e terminal no Maestri a pendência mostra. A revisão de uma task e o OK para integrá-la são a mesma pendência, que se resolve sozinha quando a task é integrada.
 - **PR, HML e conclusão.** O maestro registra o PR em rascunho, o ajuste final, o PR pronto e, quando ele mesmo faz o merge, o merge; o resultado da Validação HML e a conclusão também viram eventos. O merge feito pela interface do tracker, sem agente presente, é descoberto pelo próprio painel (o **verificador de merge**), com um botão "Marcar como mergeado" para quando a consulta falha.
 - **Log bruto e uso.** Um hook do Claude Code grava os prompts e comandos de cada sessão dos projetos cadastrados, ligada ao item e à task pela branch; um coletor soma o consumo de tokens por item e por agente e lê o uso do plano Claude (janela de 5 h e semanal) que o Maestri grava.
 
@@ -25,7 +25,7 @@ No topo, o **seletor de organização** (Todas ou uma organização, lembrado ne
 
 - **Visão geral:** o retrato do dia: itens ativos por organização, projeto e etapa, pendências abertas por severidade, itens parados há muito tempo na mesma etapa (`PANEL_STALE_HOURS`, padrão 48 h), eventos de hoje, atividade recente e o uso do plano.
 - **Itens:** a lista (ativos, concluídos ou todos; filtros de projeto, etapa e tracker, além do seletor de organização do topo), os projetos em "Sem organização" em destaque para mover, e a **página do item**, com endereço fixo `http://127.0.0.1:4777/#items/<projeto>/<número>` (é o que o portal do Maestri abre): etapa atual e desde quando, a Entrega (PR, ajuste final, Validação HML, conclusão, o estado do verificador de merge), o grafo de tasks com bloqueios e quem está em cada task (floor, trabalhador, branch, SHA, último status), os relatórios, os achados, as etapas do fluxo e a linha do tempo com todos os eventos e quem gravou cada um.
-- **Pendências:** as pendências abertas, resolvidas e canceladas, com filtros por severidade e status, cada uma com o item, a task, contexto, opções, recomendação, onde responder e, depois de fechada, a decisão.
+- **Pendências:** as pendências abertas, resolvidas e canceladas, com filtros por severidade e status, cada uma com o item, a task, contexto, opções, recomendação e, depois de fechada, a decisão. Na pendência aberta, a coluna **Responder** traz as opções como botões que só selecionam (a recomendada destacada), um comentário (obrigatório quando não há opções) e o botão **Enviar resposta**; abaixo, o workspace e o terminal do maestro, para conversar com ele. A resposta grava o mesmo `pending-decision-resolved` do `flow pending resolve`, com papel dono e origem painel, e a pendência passa para resolvida na hora. Se ela fechou enquanto você lia (o maestro resolveu, a task foi integrada, ela foi cancelada), a tela diz que ela já foi fechada e mostra como ficou; outros erros aparecem traduzidos, sem apagar o que você escreveu. O maestro que estiver esperando a pendência é acordado com a decisão; senão, ele a vê quando retomar o item.
 - **Log:** os eventos de todos os itens, com filtros por período, projeto, item e tipo; abrir um evento mostra o que foi gravado e os comandos brutos das sessões do Claude Code ligadas a ele.
 - **Agentes:** os maestros e trabalhadores ativos, sem cadastro fixo: o maestro de cada item ainda não concluído e o trabalhador de cada task em andamento, com o último evento, a última atividade vista pelo hook e o consumo da janela de 5 h.
 - **Uso:** o plano Claude (5 h e semanal, com o reinício), o consumo de cada item em cada período e os tokens de cada agente.
@@ -204,6 +204,8 @@ flow pending resolve P-7 --decision "A, com a ressalva X"     # a decisão fica 
 flow pending cancel P-7 --reason "Entrou na especificação"
 ```
 
+Uma pendência que o dono já respondeu pelo painel não aceita outra resolução: o `pending resolve` sai com o "não está aberta" de sempre (código 2).
+
 Tipos (`--kind`): `task_review` (exige `--task`; resolvida sozinha pela integração da task), `worker_blocked`, `decision`, `finding`, `parallelize`, `hml` (um `flow hml` com falha ou bloqueio já abre uma sozinho, que fecha quando uma HML seguinte passar em tudo ou o item for concluído; abrir uma `hml` à mão a substitui). Severidades: `critical`, `high`, `normal` (padrão), `low`. Onde responder: `--workspace`/`--terminal`, senão o terminal do Maestri onde o comando roda (`MAESTRI_WORKSPACE_NAME`/`_ID`, `MAESTRI_TERMINAL_NAME`/`_ID`) e o workspace do projeto.
 
 **Achados (maestro):**
@@ -277,7 +279,7 @@ Precisa só do Node.js:
 npm run demo                 # ou: npm run demo -- 4794 (portas 4790 a 4799)
 ```
 
-Abra **http://127.0.0.1:4795/?mock=1**. A página lê dados fictícios de `panel/tests/mock-items.json`: as organizações Contoso, Fabrikam e Pessoal e dois projetos em "Sem organização", projetos do GitHub e do Azure DevOps (um com vários repositórios), itens em todas as etapas, o PBI 3112 com tasks nos seis estados e bloqueios, relatórios e achados, pendências abertas e fechadas dos seis tipos, itens parados, uso por item e por agente e os agentes ativos. Uma faixa azul avisa que são dados de teste. Ctrl+C para parar.
+Abra **http://127.0.0.1:4795/?mock=1**. A página lê dados fictícios de `panel/tests/mock-items.json`: as organizações Contoso, Fabrikam e Pessoal e dois projetos em "Sem organização", projetos do GitHub e do Azure DevOps (um com vários repositórios), itens em todas as etapas, o PBI 3112 com tasks nos seis estados e bloqueios, relatórios e achados, pendências abertas e fechadas dos seis tipos (as abertas, com e sem opções, podem ser respondidas: na demonstração a resposta fica só na memória da página), itens parados, uso por item e por agente e os agentes ativos. Uma faixa azul avisa que são dados de teste. Ctrl+C para parar.
 
 O `mock-items.json` é gerado por `node panel/tests/generate-mock-items.js`, que passa eventos fictícios pelo próprio código do servidor (a projeção, as APIs, o coletor de uso, a saúde): a demonstração nunca se afasta do formato da API.
 

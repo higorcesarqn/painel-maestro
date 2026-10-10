@@ -1,4 +1,4 @@
-/* Pending decisions (read only): numbers on top; list | pending decision | where to answer. Each column scrolls inside. */
+/* Pending decisions: numbers on top; list | pending decision | the answer (#32) or where to answer. Each column scrolls inside. */
 .screen-pending {
   grid-template-columns: 372px minmax(0, 1fr) 340px;
   grid-template-rows: auto minmax(0, 1fr);
@@ -48,7 +48,7 @@
 .pending-options-read { display: flex; flex-direction: column; gap: 8px; }
 .pending-options-read .pending-options { margin: 0; padding: 0; }
 
-/* where to answer */
+/* the answer (#32) and where to answer */
 .pending-panel { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .pending-form { padding: 16px 20px 18px; display: flex; flex-direction: column; gap: 14px; }
 .pending-form-head { display: flex; align-items: center; gap: 8px; min-height: 22px; }
@@ -57,3 +57,28 @@
 .pending-dates dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .pending-where { font-size: 14px; }
 .pending-where dd { color: var(--text); }
+
+/* the owner's answer (#32): options that only select, the recommended one highlighted; the comment; the send button */
+.pending-answer-form { display: flex; flex-direction: column; gap: 12px; }
+.pending-choices { display: flex; flex-direction: column; gap: 8px; }
+.pending-choice {
+  display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 9px;
+  background: #0b0b0b; color: var(--text); font: inherit; font-size: 13.5px; line-height: 1.4; text-align: left; cursor: pointer;
+}
+.pending-choice:hover { border-color: var(--border-strong); background: var(--card-2); }
+.pending-choice:focus-visible { outline: 1px solid var(--blue-text); outline-offset: 1px; }
+.pending-choice.recommended { border-color: var(--blue-border); }
+.pending-choice[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-bg); box-shadow: inset 3px 0 0 var(--blue); }
+.pending-choice[disabled] { opacity: .55; cursor: progress; }
+.pending-choice-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.pending-choice-badge { flex: none; }
+.pending-comment {
+  min-height: 84px; resize: vertical; border: 1px solid var(--border); border-radius: 9px; background: #0b0b0b; color: var(--text);
+  padding: 8px 10px; font: inherit; font-size: 13.5px; line-height: 1.45; width: 100%;
+}
+.pending-comment:hover { border-color: var(--border-strong); }
+.pending-comment:focus-visible { outline: 1px solid var(--blue-text); outline-offset: 1px; border-color: var(--blue); }
+.pending-comment[aria-invalid="true"] { border-color: var(--danger); }
+.pending-form-error { color: var(--danger); }
+.pending-send { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; }
+.pending-send[disabled] { cursor: not-allowed; }

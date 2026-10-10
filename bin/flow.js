@@ -33,7 +33,7 @@ const { t } = require('./i18n');
 const { openStore, flowDir, STAGES, SchemaTooNew } = require('./flow-store');
 const { originOf, branchOf, describeRemote, parseBranch } = require('./flow-repo');
 const { projectItem, trackerRef, EVENT_TYPES, WORKER_STATES } = require('./flow-projection');
-const { PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES } = require('./flow-projection');
+const { PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES, MAX_PENDING_DECISION } = require('./flow-projection');
 const { createAdmin, isAdminCommand } = require('./flow-admin');
 
 const ROLES = ['maestro', 'worker', 'owner'];
@@ -792,7 +792,7 @@ const MAX_CONTEXT = 4000;
 const MAX_OPTION = 300;
 const MAX_OPTIONS = 10;
 const MAX_RECOMMENDATION = 1000;
-const MAX_DECISION = 2000;
+const MAX_DECISION = MAX_PENDING_DECISION;
 
 /** Optional text that may hold several lines: null when absent or blank. */
 function longText(value, field, max) {
