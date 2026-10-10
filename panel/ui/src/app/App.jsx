@@ -16,10 +16,11 @@ import { PendingDecisions } from '../screens/PendingDecisions.jsx';
 import { Log } from '../screens/Log.jsx';
 import { Agents } from '../screens/Agents.jsx';
 import { Usage } from '../screens/Usage.jsx';
+import { Companies } from '../screens/Companies.jsx';
 import { Icon, TriangleAlert, Info } from '../components/Icon.jsx';
 
 // One screen per item of SCREENS (data/screens.js). A new screen goes here and there.
-const SCREEN_COMPONENTS = { overview: Overview, items: Items, pending: PendingDecisions, log: Log, agents: Agents, usage: Usage };
+const SCREEN_COMPONENTS = { overview: Overview, items: Items, pending: PendingDecisions, log: Log, agents: Agents, usage: Usage, companies: Companies };
 // URL: #<screen> or #<screen>/<sub-tab> (data/screens.js); a malformed address opens the Overview.
 const hashParts = () => parseHash(location.hash);
 const screenFromHash = () => hashParts().id;

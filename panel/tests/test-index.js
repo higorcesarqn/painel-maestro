@@ -78,6 +78,8 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
     "api(withQuery('/api/pending-decisions', params))", "api(withQuery('/api/items', filters))",
     'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', "api(withQuery('/api/log', params))", 'api(`/api/log/${encodeURIComponent(id)}`)',
     "api('/api/companies')", "api(withQuery('/api/projects', filters))",
+    "api(`/api/companies/${encodeURIComponent(id)}/rename`, { method: 'POST', body: { name } })",
+    "api(`/api/companies/${encodeURIComponent(id)}/remove`, { method: 'POST' })",
     "api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } })",
     "api(withQuery('/api/usage', filters))", "api(withQuery('/api/agents', filters))", "api(withQuery('/api/overview', filters))"]) {
     assert.ok(api.includes(route), `the page calls ${route}`);
@@ -88,7 +90,7 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   }
   // Nothing of the old model: no events/flows routes, no Brain.
   for (const old of ['/api/events', '/api/event/', '/api/flow/', '/api/brain']) assert.ok(!js.includes(old), `the build still calls ${old}`);
-  const allowed = /^\/api\/(state|recalculate|pending-decisions|items|items\/|log|log\/|companies|projects|projects\/|usage|agents|overview)$/;
+  const allowed = /^\/api\/(state|recalculate|pending-decisions|items|items\/|log|log\/|companies|companies\/|projects|projects\/|usage|agents|overview)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
   assert.ok(!/new URLSearchParams\(\)/.test(api.replace(/export function withQuery[\s\S]*?\r?\n}\r?\n/, '')), 'every query string goes through withQuery');
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
@@ -208,6 +210,79 @@ suite.test('companies (#6): the demo has two companies and "Pessoal" with GitHub
   assert.strictEqual((companies.match(/try \{/g) || []).length >= 2, true, 'reads and writes behind try/catch');
   assert.ok(/readItems\(\{ \.\.\.companyFilter/.test(source['screens/Items.jsx']), 'the Items list reads with the company filter');
   assert.ok(js.includes('painel-maestro.company'));
+});
+
+suite.test('Companies screen (#21): in the menu, sharing the project line with "Sem empresa"; the mock refuses "Sem empresa" as a destination, renames and removes only an empty company', async () => {
+  const { SCREENS, parseHash } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
+  assert.ok(SCREENS.some((s) => s.id === 'companies' && s.group === 'workspace'));
+  assert.deepStrictEqual(parseHash('#companies'), { id: 'companies', sub: '' });
+  for (const f of ['screens/Companies.jsx', 'screens/UnassignedProjects.jsx']) assert.ok(/import \{ ProjectRow \} from '\.\/ProjectRow\.jsx'/.test(source[f]), f);
+  // Exception to the seam rule (panel/README.md, Testes): the mock lives only in the page (?mock=1), with no server or
+  // process to drive, so its refusal of "Sem empresa" is checked by calling mockApi() with the page's address and its
+  // one file (tests/mock-items.json), without a browser.
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const saved = { location: globalThis.location, fetch: globalThis.fetch };
+  globalThis.location = new URL('http://127.0.0.1:4795/?mock=1');
+  globalThis.fetch = async () => ({ ok: true, json: async () => m });
+  try {
+    const { mockApi } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'mock.js')).href);
+    const p = m.projects.find((x) => !x.unassigned);
+    await assert.rejects(mockApi(`/api/projects/${p.id}/company`, 'POST', { company: 'unassigned' }),
+      (e) => e.status === 400 && e.error.code === 'company_reserved' && e.error.company === 'unassigned');
+    const target = m.companies.find((c) => !c.unassigned && c.id !== p.company.id);
+    const count = async (id) => (await mockApi('/api/companies', 'GET')).companies.find((c) => c.id === id).project_count;
+    const origin = p.company.id;
+    const before = [await count(origin), await count(target.id)];
+    const moved = await mockApi(`/api/projects/${p.id}/company`, 'POST', { company: target.id });
+    assert.deepStrictEqual(moved.project.company, { id: target.id, name: target.name });
+    assert.deepStrictEqual([await count(origin), await count(target.id)], [before[0] - 1, before[1] + 1], 'the counts follow the move');
+    // Removing a company (#24) under the store's rules: "Sem empresa" (400), with projects (409 with the count),
+    // unknown (404); an empty one leaves the list.
+    const remove = (id) => mockApi(`/api/companies/${id}/remove`, 'POST');
+    await assert.rejects(remove('unassigned'), (e) => e.status === 400 && e.error.code === 'company_reserved');
+    await assert.rejects(remove(target.id), (e) => e.status === 409 && e.error.code === 'company_not_empty' && e.error.project_count === before[1] + 1);
+    await assert.rejects(remove('nobody'), (e) => e.status === 404 && e.error.code === 'company_not_found');
+    const created = await mockApi('/api/companies', 'POST', { id: 'tmp-empty', name: 'Vazia de teste' });
+    assert.strictEqual(created.company.project_count, 0);
+    assert.deepStrictEqual(await remove('tmp-empty'), { removed: 'tmp-empty' });
+    assert.ok(!(await mockApi('/api/companies', 'GET')).companies.some((c) => c.id === 'tmp-empty'), 'the removed company leaves the list');
+    // Renaming a company (#23) under the store's rules: "Sem empresa" (400), unknown (404), another company's name
+    // ignoring case (409), an invalid name (400); its own name with another case is accepted, the id is kept, and every
+    // answer of the mock that carries the company shows the new name, as the server's do.
+    const rename = (id, name) => mockApi(`/api/companies/${id}/rename`, 'POST', { name });
+    const other = m.companies.find((c) => !c.unassigned && c.id !== target.id);
+    await assert.rejects(rename('unassigned', 'Outra'), (e) => e.status === 400 && e.error.code === 'company_reserved');
+    await assert.rejects(rename('nobody', 'Outra'), (e) => e.status === 404 && e.error.code === 'company_not_found');
+    await assert.rejects(rename(target.id, ` ${other.name.toUpperCase()} `), (e) => e.status === 409 && e.error.code === 'company_name_taken' && e.error.company === other.id);
+    await assert.rejects(rename(target.id, '  '), (e) => e.status === 400 && e.error.code === 'invalid_field' && e.error.field === 'name');
+    // The name of "Sem empresa" is reserved, by a rename and by a creation (P-18, #20).
+    const reservedName = (e) => e.status === 409 && e.error.code === 'company_name_taken' && e.error.company === 'unassigned';
+    await assert.rejects(rename(target.id, 'SEM EMPRESA'), reservedName);
+    await assert.rejects(mockApi('/api/companies', 'POST', { id: 'tmp-reserved', name: ' sem empresa ' }), reservedName);
+    assert.strictEqual((await rename(target.id, target.name.toLowerCase())).company.name, target.name.toLowerCase());
+    const renamed = await rename(target.id, '  Renomeada de Teste ');
+    assert.deepStrictEqual([renamed.company.id, renamed.company.name, renamed.company.project_count], [target.id, 'Renomeada de Teste', before[1] + 1]);
+    const names = new Set();
+    const collect = (x) => {
+      if (Array.isArray(x)) return x.forEach(collect);
+      if (!x || typeof x !== 'object') return undefined;
+      for (const [k, v] of Object.entries(x)) {
+        if (k === 'company' && v && v.id === target.id && 'name' in v) names.add(v.name);
+        if (k === 'companies' && Array.isArray(v)) for (const c of v) if (c && c.id === target.id) names.add(c.name);
+        collect(v);
+      }
+      return undefined;
+    };
+    const item = (await mockApi(`/api/items?company=${target.id}`, 'GET')).items[0];
+    for (const route of ['/api/companies', '/api/projects', `/api/items?company=${target.id}`, '/api/pending-decisions', '/api/overview',
+      `/api/overview?company=${target.id}`, '/api/usage', '/api/agents', '/api/log', `/api/items/${item.project.id}/${item.number}`]) {
+      collect(await mockApi(route, 'GET'));
+    }
+    assert.deepStrictEqual([...names], ['Renomeada de Teste'], 'every answer of the mock shows the new name');
+  } finally {
+    globalThis.location = saved.location;
+    globalThis.fetch = saved.fetch;
+  }
 });
 
 suite.test('mock-items.json: reports by task (ok and blocked) and findings of every classification, one of them an "out" task', () => {

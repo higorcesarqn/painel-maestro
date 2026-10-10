@@ -11,6 +11,11 @@ Um agrupamento de projetos de um mesmo contratante; o trabalho pessoal é a empr
 Em código: `Company`.
 _Avoid_: cliente, organização
 
+**Sem empresa**:
+A empresa reservada onde cai o projeto de um repositório sem cadastro, até o dono movê-lo; não é destino de mover, nem se renomeia ou exclui.
+Em código: `UNASSIGNED_COMPANY`.
+_Avoid_: empresa padrão, sem cadastro
+
 **Projeto**:
 Um projeto do tracker (um repositório no GitHub, um projeto no Azure DevOps), com os repositórios e pastas locais que pertencem a ele.
 Em código: `Project`.

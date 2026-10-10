@@ -10,7 +10,19 @@ import { REFRESH_MS, readCompanies } from './api.js';
 import { objs } from './format.js';
 
 const STORAGE_KEY = 'painel-maestro.company';
-const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
+// The id format of the register (bin/flow-store.js); the server is the one that validates it.
+export const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
+// The longest company name the store accepts (bin/flow-store.js); the server checks it again.
+export const MAX_COMPANY_NAME = 80;
+
+/**
+ * The id suggested for a new company from its name (#22): lowercase, no accents, spaces and symbols become one hyphen,
+ * trimmed of hyphens, up to 80 characters ("Fabrikam Ltda" -> "fabrikam-ltda").
+ */
+export function suggestCompanyId(name) {
+  return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+/, '').slice(0, 80).replace(/-+$/, '');
+}
 
 function stored() {
   try {

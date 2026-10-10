@@ -88,9 +88,9 @@ export default {
 
   groups: { workspace: 'Workspace' },
   // Name of each screen in the menu (and in the browser tab title).
-  nav: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso' },
+  nav: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso', companies: 'Empresas' },
   // Title of each screen in the header.
-  screens: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude' },
+  screens: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude', companies: 'Empresas' },
 
   sidebar: {
     brand: 'painel',
@@ -270,7 +270,10 @@ export default {
     },
   },
 
-  // Companies and projects (#6): the company selector of the header and the projects in "Sem empresa".
+  // Companies and projects (#6): the company selector of the header, the projects in "Sem empresa" and the Companies
+  // screen (#21), whose project lines (ProjectRow) are the same as the "Sem empresa" card's, with its modals "Nova
+  // empresa" (#22, CompanyCreateModal), Renomear (#23, CompanyRenameModal) and the confirmation of Excluir (#24,
+  // CompanyRemoveModal).
   companies: {
     selectorLabel: 'Empresa',
     selectorTitle: 'Mostra só o que é desta empresa nas telas do fluxo (lembrado neste navegador)',
@@ -278,7 +281,7 @@ export default {
     option: '{name} ({count})',
     unassignedTitle: 'Projetos sem empresa',
     unassignedInfo: 'Repositórios onde o comando flow rodou sem cadastro entram em "Sem empresa". Escolha a empresa de cada um; o cadastro completo (etapas, repositórios, estado de concluído) é feito com node bin/flow.js project edit.',
-    unassignedCount: { one: '{count} projeto', other: '{count} projetos' },
+    projectCount: { one: '{count} projeto', other: '{count} projetos' },
     projectItems: { one: '{count} item', other: '{count} itens' },
     moveTo: 'Mover para',
     moveLabel: 'Empresa para o projeto {project}',
@@ -287,9 +290,61 @@ export default {
     moving: 'Movendo…',
     moved: 'Projeto {project} movido para {company}.',
     moveFailed: 'Não consegui mover {project}: {message}',
-    noTarget: 'Nenhuma empresa cadastrada. Cadastre com: node bin/flow.js company add <id> --name "<nome>".',
+    noTarget: 'Nenhuma empresa cadastrada para receber os projetos. Crie uma pelo botão "Nova empresa" da tela Empresas (ou pelo CLI: node bin/flow.js company add <id> --name "<nome>").',
+    screenNote: 'Esta tela mostra todas as empresas, qualquer que seja a escolha do seletor do topo.',
+    none: 'Nenhuma empresa cadastrada ainda. Crie a primeira pelo botão "Nova empresa", acima.',
+    noProjects: 'Nenhum projeto nesta empresa.',
+    readFailed: 'Não consegui ler as empresas: {message}',
     filtered: 'Mostrando só {company}.',
     showAll: 'Ver todas',
+    create: {
+      button: 'Nova empresa',
+      title: 'Nova empresa',
+      name: 'Nome',
+      namePlaceholder: 'Ex.: Fabrikam Ltda',
+      nameHint: 'Até 80 caracteres. Não pode repetir o nome de outra empresa, mesmo com outras maiúsculas.',
+      nameTooLong: 'Nome longo demais: {count} caracteres (até {max}).',
+      id: 'Id',
+      idHint: 'Sugerido a partir do nome; pode ser editado agora, mas depois não muda mais. Aparece nos filtros e endereços do painel.',
+      idMissing: 'Não deu para sugerir um id a partir deste nome: escreva um (letras minúsculas, números e hífen).',
+      idInvalid: 'Id fora do formato: use letras minúsculas sem acento, números e hífen, começando por letra ou número, até 80 caracteres.',
+      cancel: 'Cancelar',
+      save: 'Criar empresa',
+      saving: 'Criando…',
+      failed: 'Não consegui criar a empresa: {message}',
+      created: 'Empresa {name} criada.',
+    },
+    // #23: renaming a company (CompanyRenameModal, the name filled in; the id never changes); "Sem empresa" has no button.
+    rename: {
+      button: 'Renomear',
+      label: 'Renomear a empresa {name}',
+      title: 'Renomear empresa',
+      name: 'Nome',
+      nameHint: 'Até 80 caracteres. Não pode repetir o nome de outra empresa, mesmo com outras maiúsculas; o próprio nome com outras maiúsculas vale.',
+      nameTooLong: 'Nome longo demais: {count} caracteres (até {max}).',
+      nameMissing: 'Informe o nome da empresa.',
+      idKept: 'O id {id} continua o mesmo: os filtros, os endereços e o seletor do topo seguem funcionando.',
+      cancel: 'Cancelar',
+      save: 'Renomear',
+      saving: 'Renomeando…',
+      failed: 'Não consegui renomear a empresa: {message}',
+      renamed: 'Empresa {from} renomeada para {name}.',
+    },
+    // #24: removing a company without projects (CompanyRemoveModal); "Sem empresa" has no button.
+    remove: {
+      button: 'Excluir',
+      label: 'Excluir a empresa {name}',
+      blocked: { one: 'mova o projeto antes', other: 'mova os {count} projetos antes' },
+      blockedTitle: { one: 'A empresa {name} tem 1 projeto: mova-o para outra empresa antes de excluí-la.', other: 'A empresa {name} tem {count} projetos: mova-os para outra empresa antes de excluí-la.' },
+      title: 'Excluir empresa',
+      question: 'Excluir a empresa {name} ({id})?',
+      detail: 'Ela não tem projetos. A exclusão não se desfaz, mas uma empresa com o mesmo id e nome pode ser criada de novo.',
+      cancel: 'Cancelar',
+      confirm: 'Excluir empresa',
+      removing: 'Excluindo…',
+      failed: 'Não consegui excluir a empresa: {message}',
+      removed: 'Empresa {name} excluída.',
+    },
   },
 
   // Workers' reports and maestro's findings of an item (#8, screens/ItemReview.jsx).
@@ -715,9 +770,20 @@ export default {
     // pending decisions (#10) and companies and projects (#6): a filter value outside the allowed ones
     invalid_filter: (c) => `Filtro "${PARAM_NAMES[c.param] || c.param}" inválido: "${c.value}"${Array.isArray(c.allowed) && c.allowed.length ? ` (use ${c.allowed.slice(0, -1).join(', ')}${c.allowed.length > 1 ? ' ou ' : ''}${c.allowed[c.allowed.length - 1]})` : ''}.`,
     json_object_required: 'Corpo inválido: envie um objeto JSON.',
-    invalid_field: 'Campo "{field}" inválido: "{value}".',
-    company_not_found: 'Empresa não encontrada: {company}. Cadastre com: node bin/flow.js company add.',
+    // #22: the fields of a new company (id and name) are explained; any other field as it is.
+    invalid_field: (c) => (c.field === 'name'
+      ? `Nome inválido: informe de 1 a ${c.max || 80} caracteres, numa linha só.`
+      : c.field === 'id'
+        ? `Id inválido: "${c.value}". Use letras minúsculas sem acento, números e hífen, começando por letra ou número, até 80 caracteres.`
+        : `Campo "${c.field}" inválido: "${c.value}".`),
+    // The destination of a move, or the company renamed (#23) or removed (#24): gone, or never registered.
+    company_not_found: 'Empresa não encontrada: {company}. Ela pode ter sido excluída em outro lugar; a tela Empresas mostra o cadastro atual.',
     project_not_found: 'Projeto não encontrado: {project}.',
+    // Moving a project to, removing (#24) or renaming (#23) "Sem empresa".
+    company_reserved: '"Sem empresa" é reservada aos repositórios sem cadastro: não é destino de mover, não se renomeia e não se exclui.',
+    company_not_empty: (c) => `A empresa ${c.name || c.company} tem ${c.project_count} projeto${Number(c.project_count) === 1 ? ': mova-o' : 's: mova-os'} para outra empresa antes de excluí-la.`,
+    company_exists: (c) => `O id "${c.company}" já é da empresa "${c.name || 'Sem empresa'}": escolha outro.`,
+    company_name_taken: 'O nome "{name}" já é da empresa {company_name} ({company}), sem diferenciar maiúsculas: escolha outro.',
     // merge check (#11)
     merge_check_failed: (c, h) => `Consulta do merge de ${c.tracker_ref || c.item || '?'}${c.item ? ` (${c.item})` : ''} falhou: ${h.display(c.error) || '?'}`,
     merge_check_cli_missing: (c) => `não achei o ${c.cli || toolName(c)} (instalado e no PATH?)`,

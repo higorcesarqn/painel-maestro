@@ -13,13 +13,16 @@
  *   projects(id, name, company_id, tracker, stages JSON, done_state, maestri_workspace, created_at)
  *   project_repos(remote, project_id)            normalized remote URL → project (a project may have many repos)
  *   events(id, at, type, project_id, item_number, task_number, agent_role, agent_name, source, payload JSON)
- * Companies and projects are the owner's register (flow company / flow project, bin/flow-admin.js; the panel only
- * moves a project to another company): they may change, unlike the events.
+ * Companies and projects are the owner's register (flow company / flow project, bin/flow-admin.js; the panel creates,
+ * renames and removes a company and moves a project to another company): they may change, unlike the events. Its rules live here, once: a write that
+ * breaks one throws RegisterError with a code ({ code, ...params }), which the CLI turns into a message (exit 2) and
+ * the API into an HTTP answer; neither repeats the rule.
  * The events table is append-only (triggers refuse UPDATE and DELETE) and is the only source of the state of
  * items: nothing derived is stored (the projection is computed by flow-projection.js).
  *
  * projectedItems() is the one place that groups the events by item and projects them (the server's routes and the
- * CLI's lookups); on a long-lived connection (the server) it is cached until an event is appended or a project changes.
+ * CLI's lookups); on a long-lived connection (the server) it is cached until an event is appended or a project changes
+ * (its company's name included: a rename, #23, by any process).
  *
  * Several processes (maestro, workers, the panel) write at the same time: every write is a short
  * BEGIN IMMEDIATE transaction and busy_timeout makes the others wait instead of failing.
@@ -28,11 +31,17 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { projectItem } = require('./flow-projection');
+const { t } = require('./i18n');
 
 const DB_FILE = 'maestro.db';
 const BUSY_TIMEOUT_MS = 15000;
 const SCHEMA_VERSION = 1;
 const UNASSIGNED_COMPANY = 'unassigned';
+// The name "Sem empresa" is registered with (the pt-BR dictionary): reserved for it, even before it exists (P-18, #20).
+const UNASSIGNED_NAME = t('companies.unassigned');
+// Ids of companies and projects (lowercase letters, digits and "-", starting with a letter or digit, up to 80).
+const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
+const MAX_COMPANY_NAME = 80;
 const TRACKERS = ['github', 'azure_devops'];
 const STAGES = ['specification', 'implementation', 'final_adjustment', 'pr_ready', 'merge', 'hml_validation', 'done'];
 
@@ -100,6 +109,55 @@ const MIGRATIONS = [
     CREATE TRIGGER events_no_delete BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;
   `),
 ];
+
+/** A rule of the register broken by a write: error is { code, ...params } (ADR 0004), translated by the CLI and the API. */
+class RegisterError extends Error {
+  constructor(error) {
+    super(error.code);
+    this.code = error.code;
+    this.error = error;
+  }
+}
+
+/** A company's name in the register's format: trimmed, 1 to 80 characters on one line (invalid_field, field: name). */
+function companyNameFormat(name) {
+  const s = typeof name === 'string' ? name.trim() : '';
+  if (!s || s.length > MAX_COMPANY_NAME || /[\r\n]/.test(s)) {
+    throw new RegisterError({ code: 'invalid_field', field: 'name', value: String(name ?? '').slice(0, 100), max: MAX_COMPANY_NAME });
+  }
+  return s;
+}
+
+/** The key two company names are compared by: the same letters (Unicode NFC) ignoring case. */
+const nameKey = (name) => name.normalize('NFC').toLowerCase();
+
+/** The company { id, name } that holds a name without a database: "Sem empresa", for its own name (P-18, #20); else null. */
+const reservedNameOwner = (name) => (nameKey(name) === nameKey(UNASSIGNED_NAME) ? { id: UNASSIGNED_COMPANY, name: UNASSIGNED_NAME } : null);
+
+/**
+ * "Sem empresa" is reserved, without a database: it is never renamed, removed or the company of a registered project
+ * (company_reserved, even before a repository lands there). The panel checks a POST with it before maestro.db exists.
+ */
+function notReserved(companyId) {
+  if (companyId === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_reserved', company: companyId });
+  return companyId;
+}
+
+/**
+ * The fields of a new company in the register's format, without a database (#22): the id (invalid_field, field: id;
+ * "unassigned" is always taken, company_exists) and the name (companyNameFormat; the name of "Sem empresa" is always
+ * taken, company_name_taken), trimmed. The panel checks a POST with it before creating maestro.db, so a refused POST
+ * never creates it.
+ */
+function companyFields({ id, name }) {
+  const companyId = typeof id === 'string' ? id.trim() : '';
+  if (!RE_ID.test(companyId)) throw new RegisterError({ code: 'invalid_field', field: 'id', value: String(id ?? '').slice(0, 100) });
+  if (companyId === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_exists', company: companyId });
+  const companyName = companyNameFormat(name);
+  const reserved = reservedNameOwner(companyName);
+  if (reserved) throw new RegisterError({ code: 'company_name_taken', name: companyName, company: reserved.id, company_name: reserved.name });
+  return { id: companyId, name: companyName };
+}
 
 const isBusy = (e) => e && (e.errcode === 5 || e.errcode === 6 || /database is locked|SQLITE_BUSY/i.test(String(e.message)));
 
@@ -235,6 +293,14 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
   // projectedItems() of every project, kept while MAX(events.id) and the projects stay the same.
   let projectedCache = null;
 
+  /** Inserts a project in companyId, already checked by its caller, with its first repository. */
+  function insertProject({ id, name, companyId, tracker, stages = STAGES, remote, at, doneState = null, maestriWorkspace = null }) {
+    db.prepare('INSERT INTO projects (id, name, company_id, tracker, stages, done_state, maestri_workspace, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(id, name, companyId, tracker, JSON.stringify(stages), doneState, maestriWorkspace, at);
+    if (remote) db.prepare('INSERT INTO project_repos (remote, project_id) VALUES (?, ?)').run(remote, id);
+    return store.project(id);
+  }
+
   const store = {
     file,
     close: () => db.close(),
@@ -254,12 +320,17 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     ensureCompany(id, name, at) {
       db.prepare('INSERT OR IGNORE INTO companies (id, name, created_at) VALUES (?, ?, ?)').run(id, name, at);
     },
-    /** New project with its first repository. The id must be free (see freeProjectId). */
-    addProject({ id, name, companyId, tracker, stages = STAGES, remote, at, doneState = null, maestriWorkspace = null }) {
-      db.prepare('INSERT INTO projects (id, name, company_id, tracker, stages, done_state, maestri_workspace, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(id, name, companyId, tracker, JSON.stringify(stages), doneState, maestriWorkspace, at);
-      if (remote) db.prepare('INSERT INTO project_repos (remote, project_id) VALUES (?, ?)').run(remote, id);
-      return store.project(id);
+    /**
+     * New project with its first repository, in a company of projectCompany's rule ("Sem empresa" only receives the
+     * unregistered repositories: addUnregisteredProject). The id must be free (see freeProjectId).
+     */
+    addProject({ companyId, ...fields }) {
+      return insertProject({ ...fields, companyId: store.projectCompany(companyId).id });
+    },
+    /** The project of an unregistered repository, in "Sem empresa" (registered with its name when needed). */
+    addUnregisteredProject({ at, ...fields }) {
+      store.ensureCompany(UNASSIGNED_COMPANY, UNASSIGNED_NAME, at);
+      return insertProject({ ...fields, at, companyId: UNASSIGNED_COMPANY });
     },
     /** base, or base-2, base-3… when a project already uses it. */
     freeProjectId(base) {
@@ -275,9 +346,62 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     companies() {
       return db.prepare('SELECT id, name, created_at FROM companies ORDER BY id').all().map((c) => ({ id: c.id, name: c.name, created_at: c.created_at }));
     },
+    /**
+     * The rule of a company's name (#22; renaming reuses it with exceptId, the company being renamed): required,
+     * trimmed, 1 to 80 characters on one line (invalid_field, field: name) and unique ignoring case (nameKey) among
+     * the other companies, the name of "Sem empresa" included (company_name_taken, with the company that uses it).
+     * There is no unique index: a database that already has repeated names keeps working, and the rule holds for the
+     * next writes. Returns the trimmed name.
+     */
+    companyName(name, exceptId = null) {
+      const s = companyNameFormat(name);
+      const key = nameKey(s);
+      // The name of "Sem empresa" is taken even before a repository lands there.
+      const other = store.companies().find((c) => c.id !== exceptId && nameKey(c.name) === key) || reservedNameOwner(s);
+      if (other) throw new RegisterError({ code: 'company_name_taken', name: s, company: other.id, company_name: other.name });
+      return s;
+    },
+    /**
+     * New company: both fields in the register's format (companyFields, with "Sem empresa"'s id and name always taken),
+     * the id free (company_exists) and the name under companyName's rule.
+     * The id never changes afterwards.
+     */
     addCompany({ id, name, at }) {
-      db.prepare('INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)').run(id, name, at);
-      return store.company(id);
+      const { id: companyId } = companyFields({ id, name });
+      const existing = store.company(companyId);
+      if (existing) throw new RegisterError({ code: 'company_exists', company: companyId, name: existing.name });
+      const companyName = store.companyName(name);
+      db.prepare('INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)').run(companyId, companyName, at);
+      return store.company(companyId);
+    },
+    /**
+     * Renames a company (#23) and returns it renamed, with from: the name it had; the id never changes. "Sem empresa" is never renamed
+     * (company_reserved, even before a repository lands there); an unknown company is company_not_found; the name
+     * follows companyName's rule without counting the company itself, so its own name (even with another case) is
+     * accepted. The projects read the name from here (no copy), so every answer shows the new one.
+     */
+    renameCompany(id, name) {
+      notReserved(id);
+      const before = store.company(id);
+      if (!before) throw new RegisterError({ code: 'company_not_found', company: id });
+      const companyName = store.companyName(name, id);
+      db.prepare('UPDATE companies SET name = ? WHERE id = ?').run(companyName, id);
+      return { ...store.company(id), from: before.name };
+    },
+    /**
+     * Removes a company without projects (#24) and returns it as it was. "Sem empresa" is never removed
+     * (company_reserved, even before a repository lands there); an unknown company is company_not_found; a company
+     * with projects is company_not_empty (with project_count), checked here on the register as it is now, so a screen
+     * out of date never leaves a project without its company.
+     */
+    removeCompany(id) {
+      notReserved(id);
+      const c = store.company(id);
+      if (!c) throw new RegisterError({ code: 'company_not_found', company: id });
+      const { n } = db.prepare('SELECT COUNT(*) AS n FROM projects WHERE company_id = ?').get(id);
+      if (n > 0) throw new RegisterError({ code: 'company_not_empty', company: id, name: c.name, project_count: Number(n) });
+      db.prepare('DELETE FROM companies WHERE id = ?').run(id);
+      return c;
     },
     /** Normalized remotes of a project, in alphabetical order. */
     projectRepos(projectId) {
@@ -294,8 +418,12 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     removeRepo(projectId, remote) {
       db.prepare('DELETE FROM project_repos WHERE remote = ? AND project_id = ?').run(remote, projectId);
     },
-    /** Changes the given fields of a project (name, companyId, tracker, stages, doneState, maestriWorkspace). */
+    /**
+     * Changes the given fields of a project (name, companyId, tracker, stages, doneState, maestriWorkspace). A new
+     * companyId follows projectCompany's rule.
+     */
     updateProject(id, change) {
+      if (change.companyId !== undefined) store.projectCompany(change.companyId);
       const columns = { name: 'name', companyId: 'company_id', tracker: 'tracker', stages: 'stages', doneState: 'done_state', maestriWorkspace: 'maestri_workspace' };
       for (const [key, column] of Object.entries(columns)) {
         if (change[key] === undefined) continue;
@@ -303,6 +431,22 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
         db.prepare(`UPDATE projects SET ${column} = ? WHERE id = ?`).run(value, id);
       }
       return store.project(id);
+    },
+    /**
+     * The company a project may be added to or moved to: a registered company other than "Sem empresa", which only
+     * receives the unregistered repositories (company_reserved, even before it exists; an unknown one is
+     * company_not_found).
+     */
+    projectCompany(companyId) {
+      notReserved(companyId);
+      const c = store.company(companyId);
+      if (!c) throw new RegisterError({ code: 'company_not_found', company: companyId });
+      return c;
+    },
+    /** Moves a project to another company (the rules of updateProject); an unknown project is project_not_found. */
+    moveProject(id, companyId) {
+      if (!store.project(id)) throw new RegisterError({ code: 'project_not_found', project: id });
+      return store.updateProject(id, { companyId });
     },
 
     appendEvent({ at, type, projectId, itemNumber, taskNumber = null, agentRole = null, agentName = null, source, payload = {} }) {
@@ -325,8 +469,8 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
      * Every item projected from its events (bin/flow-projection.js), in the order each one first appeared:
      * Map('<project>/<number>' → { key, project, state, events }). Items whose project is gone or that never
      * started are left out. Without projectId the answer is kept on this connection and reused while no event was
-     * appended (MAX(id) is exact: the table is append-only) and no project changed (its stages and company shape
-     * the answer): the server's routes read it many times per poll. It is shared: never change what it returns.
+     * appended (MAX(id) is exact: the table is append-only) and no project changed (its stages and company, with the
+     * company's name, shape the answer): the server's routes read it many times per poll. It is shared: never change what it returns.
      * With projectId, only that project's items, computed now (the CLI looks up a task or a pending decision).
      */
     projectedItems({ projectId } = {}) {
@@ -383,5 +527,5 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
 }
 
 module.exports = {
-  openStore, projectEventsByItem, flowDir, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite, retryBusy, transaction,
+  openStore, projectEventsByItem, flowDir, RegisterError, RE_ID, companyFields, notReserved, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite, retryBusy, transaction,
 };

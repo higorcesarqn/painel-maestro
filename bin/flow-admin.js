@@ -5,6 +5,8 @@
 //
 //   flow company list
 //   flow company add <id> --name "<name>"
+//   flow company rename <id> --name "<name>"      (the id never changes, #23)
+//   flow company remove <id>                     (only a company without projects, #24)
 //   flow project list [--company <id>]
 //   flow project add <id> --company <id> [--name "..."] [--tracker github|azure_devops] [--repo <url>]...
 //                    [--stages a,b,...] [--done-state "<state>"] [--workspace "<Maestri workspace>"]
@@ -14,26 +16,29 @@
 //
 // A project may have many repositories (an Azure DevOps project usually does): each one is a remote URL, kept
 // normalized (flow-repo.js), so the flow commands run in any of them resolve the same project. "Pessoal" is a
-// company like the others; "unassigned" (Sem empresa) is where unregistered repositories land.
-// Invalid data throws helpers.InvalidData (exit 2); the messages come from the pt-BR dictionary (admin.*).
+// company like the others; "unassigned" (Sem empresa) is where unregistered repositories land, never a destination,
+// never renamed and never removed.
+// Invalid data throws helpers.InvalidData (exit 2); the messages come from the pt-BR dictionary (admin.*). The rules of the
+// register are the store's (RegisterError, bin/flow-store.js): run() turns its codes into the same kind of message.
 const lib = require('./lib');
 const { t } = require('./i18n');
-const { openStore, flowDir, STAGES, TRACKERS } = require('./flow-store');
+const { openStore, flowDir, RegisterError, RE_ID, STAGES, TRACKERS } = require('./flow-store');
 const { originOf, describeRemote } = require('./flow-repo');
 
-const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const MAX_NAME = 120;
 const MAX_REPOS = 50;
 
 const OPTIONS = {
   'company add': ['name', 'json'],
   'company list': [],
+  'company rename': ['name', 'json'],
+  'company remove': ['json'],
   'project list': ['company'],
   'project add': ['name', 'company', 'tracker', 'repo', 'stages', 'done-state', 'workspace', 'json'],
   'project edit': ['name', 'company', 'tracker', 'repo', 'remove-repo', 'stages', 'done-state', 'workspace', 'json'],
   'project move': ['json'],
 };
-const POSITIONAL = { 'company add': 1, 'company list': 0, 'project list': 0, 'project add': 1, 'project edit': 1, 'project move': 2 };
+const POSITIONAL = { 'company add': 1, 'company list': 0, 'company rename': 1, 'company remove': 1, 'project list': 0, 'project add': 1, 'project edit': 1, 'project move': 2 };
 const REPEATABLE = ['repo', 'remove-repo'];
 
 const isAdminCommand = (argv) => argv[0] === 'company' || argv[0] === 'project';
@@ -103,10 +108,19 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
     if (name === 'company list') return cmd;
     if (name === 'project list') return { ...cmd, company: opts.company === undefined ? null : id(opts.company, 'company') };
     if (name === 'company add') {
-      const companyName = text(pick(opts.name, json.name), 'name');
-      if (!companyName) throw fail('missingCompanyName');
+      // The name's rule (trimmed, up to 80, unique ignoring case) is the store's (companyName).
+      const companyName = pick(opts.name, json.name);
+      if (companyName === undefined || companyName === null) throw fail('missingCompanyName');
       return { ...cmd, id: id(pick(pos[0], json.id), 'company'), companyName };
     }
+    if (name === 'company rename') {
+      // The name's rule (trimmed, up to 80, unique ignoring case but for the company itself) is the store's.
+      const companyId = id(pick(pos[0], json.id), 'company');
+      const companyName = pick(opts.name, json.name);
+      if (companyName === undefined || companyName === null) throw fail('missingCompanyName');
+      return { ...cmd, id: companyId, companyName };
+    }
+    if (name === 'company remove') return { ...cmd, id: id(pick(pos[0], json.id), 'company') };
     if (name === 'project move') return { ...cmd, id: id(pick(pos[0], json.id), 'project'), company: id(pick(pos[1], json.company), 'company') };
     const fields = {
       ...cmd,
@@ -125,16 +139,31 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
 
   // ---------- commands ----------
 
-  function needCompany(store, companyId) {
+  // key: unknownCompany suggests registering it; companyNotFound (a rename or a removal) only lists the companies.
+  const unknownCompanyError = (store, companyId, key = 'unknownCompany') => fail(key, { company: companyId, known: store.companies().map((x) => x.id).join(', ') || '-' });
+  const unknownProjectError = (store, projectId) => fail('unknownProject', { project: projectId, known: store.projects().map((x) => x.id).join(', ') || '-' });
+
+  function needCompany(store, companyId, key) {
     const c = store.company(companyId);
-    if (!c) throw fail('unknownCompany', { company: companyId, known: store.companies().map((x) => x.id).join(', ') || '-' });
+    if (!c) throw unknownCompanyError(store, companyId, key);
     return c;
   }
 
   function needProject(store, projectId) {
     const p = store.project(projectId);
-    if (!p) throw fail('unknownProject', { project: projectId, known: store.projects().map((x) => x.id).join(', ') || '-' });
+    if (!p) throw unknownProjectError(store, projectId);
     return p;
+  }
+
+  /**
+   * A rule of the store broken (RegisterError) → the InvalidData of exit 2, with the message of the code. An unknown
+   * company in a rename or a removal lists the companies without suggesting to register it.
+   */
+  function registerFailure(store, e, cmd) {
+    const x = e.error;
+    if (x.code === 'company_not_found') return unknownCompanyError(store, x.company, cmd.name === 'company rename' || cmd.name === 'company remove' ? 'companyNotFound' : undefined);
+    if (x.code === 'project_not_found') return unknownProjectError(store, x.project);
+    return new InvalidData(`admin.codes.${x.code}`, x);
   }
 
   /** The new repositories must be free (or already this project's) and of the project's tracker. */
@@ -157,15 +186,24 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
   }
 
   function companyAdd(store, cmd, at) {
-    if (store.company(cmd.id)) throw fail('companyExists', { company: cmd.id, name: store.company(cmd.id).name });
-    store.addCompany({ id: cmd.id, name: cmd.companyName, at });
-    return [t('admin.done.companyAdded', { company: cmd.id, name: cmd.companyName })];
+    const c = store.addCompany({ id: cmd.id, name: cmd.companyName, at });
+    return [t('admin.done.companyAdded', { company: c.id, name: c.name })];
+  }
+
+  function companyRename(store, cmd) {
+    const c = store.renameCompany(cmd.id, cmd.companyName);
+    return [t('admin.done.companyRenamed', { company: c.id, from: c.from, name: c.name })];
+  }
+
+  function companyRemove(store, cmd) {
+    const c = store.removeCompany(cmd.id);
+    return [t('admin.done.companyRemoved', { company: c.id, name: c.name })];
   }
 
   function projectAdd(store, cmd, at, cwd) {
     if (store.project(cmd.id)) throw fail('projectExists', { project: cmd.id });
     if (cmd.company === undefined) throw fail('missingCompany');
-    needCompany(store, cmd.company);
+    store.projectCompany(cmd.company);
     let list = cmd.repos;
     if (!list.length) {
       const origin = originOf(cwd);
@@ -184,7 +222,8 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
 
   function projectEdit(store, cmd) {
     const p = needProject(store, cmd.id);
-    if (cmd.company !== undefined) needCompany(store, cmd.company);
+    // The new company first (the store's rule, as in project add), before the repositories.
+    if (cmd.company !== undefined) store.projectCompany(cmd.company);
     const projectTracker = cmd.tracker || p.tracker;
     const current = store.projectRepos(p.id);
     const remaining = current.filter((r) => !cmd.removeRepos.includes(r));
@@ -202,9 +241,8 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
 
   function projectMove(store, cmd) {
     const p = needProject(store, cmd.id);
-    const c = needCompany(store, cmd.company);
-    store.updateProject(p.id, { companyId: c.id });
-    return [t('admin.done.projectMoved', { project: p.id, from: p.company_name, to: c.name })];
+    const moved = store.moveProject(p.id, cmd.company);
+    return [t('admin.done.projectMoved', { project: p.id, from: p.company_name, to: moved.company_name })];
   }
 
   function listCompanies(store) {
@@ -215,7 +253,8 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
   }
 
   function listProjects(store, cmd) {
-    if (cmd.company) needCompany(store, cmd.company);
+    // A filter, not a register: an unknown company only lists the companies (no "Cadastre com", never for "Sem empresa").
+    if (cmd.company) needCompany(store, cmd.company, 'companyNotFound');
     const projects = store.projects().filter((p) => !cmd.company || p.company_id === cmd.company);
     if (!projects.length) return [t('admin.done.noProjects')];
     return projects.flatMap((p) => describeProject(store, p));
@@ -231,11 +270,15 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
         if (cmd.name === 'company list') return listCompanies(store);
         if (cmd.name === 'project list') return listProjects(store, cmd);
         if (cmd.name === 'company add') return companyAdd(store, cmd, at);
+        if (cmd.name === 'company rename') return companyRename(store, cmd);
+        if (cmd.name === 'company remove') return companyRemove(store, cmd);
         if (cmd.name === 'project add') return projectAdd(store, cmd, at, cwd);
         if (cmd.name === 'project edit') return projectEdit(store, cmd);
         return projectMove(store, cmd);
       });
       for (const l of lines) lib.print(l);
+    } catch (e) {
+      throw e instanceof RegisterError ? registerFailure(store, e, cmd) : e;
     } finally {
       store.close();
     }

@@ -1,13 +1,18 @@
 // Test mode (?mock=1): reads tests/mock-items.json (written by tests/generate-mock-items.js with the server's own code:
 // the projection, the APIs, the usage collector and the health) and imitates every route the page calls: /api/state
-// and POST /api/recalculate, the companies and projects routes (#6, POST /api/projects/<id>/company in memory),
+// and POST /api/recalculate, the companies and projects routes (#6, POST /api/companies, POST /api/companies/<id>/rename,
+// POST /api/companies/<id>/remove and POST /api/projects/<id>/company in memory),
 // /api/items, /api/items/<project>/<number> (and POST .../merged in memory), /api/pending-decisions, /api/log,
 // /api/log/<id> (the raw commands are made up on the spot), /api/overview, /api/usage and /api/agents, answering in the
 // API shape (English fields and codes), as the real server does. Items, pending decisions, the Log, the Overview, usage
 // and agents take ?company=<id> (the company selector of the header) like the server.
 // Serve with "npm run demo" and open http://127.0.0.1:4795/?mock=1 (or use npm run dev in panel/ui).
 import { t } from '../i18n/index.js';
+import { LOCALE } from '../i18n/locale.js';
 import { arr, obj, spDay, txt, now } from './format.js';
+import { MAX_COMPANY_NAME, RE_ID } from './companies.js';
+
+const UNASSIGNED = 'unassigned';
 
 let loadItems = null;
 function loadMockItems() {
@@ -43,31 +48,122 @@ function mockPendingDecisions(m, sp) {
 }
 
 /**
- * Companies and projects (#6) from tests/mock-items.json: GET /api/companies, GET /api/projects[?company=] and
- * POST /api/projects/<id>/company, which moves the project only in this page's memory. null for any other path.
+ * The store's rule of a company's name (companyName in bin/flow-store.js): trimmed, 1 to 80 characters on one line and
+ * unique ignoring case (and Unicode NFC) among the companies other than exceptId, the name of "Sem empresa" (in the
+ * demo's companies) included. Returns the trimmed name.
+ */
+function mockCompanyName(companies, value, exceptId = null) {
+  const name = typeof value === 'string' ? value.trim() : '';
+  if (!name || name.length > MAX_COMPANY_NAME || /[\r\n]/.test(name)) {
+    throw error('invalid_field', 400, { field: 'name', value: String(value ?? '').slice(0, 100), max: MAX_COMPANY_NAME });
+  }
+  const key = (s) => s.normalize('NFC').toLowerCase();
+  const other = companies.find((c) => c.id !== exceptId && key(c.name) === key(name));
+  if (other) throw error('company_name_taken', 409, { name, company: other.id, company_name: other.name });
+  return name;
+}
+
+/** The server's order of the companies: alphabetical, "Sem empresa" last. */
+const sortCompanies = (companies) => companies.sort((a, b) => Number(!!a.unassigned) - Number(!!b.unassigned) || a.name.localeCompare(b.name, LOCALE));
+
+/**
+ * POST /api/companies (#22): creates the company only in this page's memory, under the store's rules (addCompany and
+ * companyName in bin/flow-store.js): the id's format, free id ("unassigned" is always taken), name trimmed, 1 to 80
+ * characters on one line and unique ignoring case. Keeps the server's order (alphabetical, "Sem empresa" last).
+ */
+function mockCreateCompany(companies, body, summary) {
+  if (!obj(body)) throw error('json_object_required', 400);
+  const id = typeof body.id === 'string' ? body.id.trim() : '';
+  if (!RE_ID.test(id)) throw error('invalid_field', 400, { field: 'id', value: String(body.id ?? '').slice(0, 100) });
+  const existing = companies.find((c) => c.id === id);
+  if (existing || id === UNASSIGNED) throw error('company_exists', 409, { company: id, name: existing ? existing.name : undefined });
+  const company = { id, name: mockCompanyName(companies, body.name), unassigned: false };
+  companies.push(company);
+  sortCompanies(companies);
+  return { company: summary(company) };
+}
+
+/**
+ * POST /api/companies/<id>/rename (#23): renames the company only in this page's memory, under the store's rules
+ * (renameCompany in bin/flow-store.js): "Sem empresa" is reserved (400), an unknown company is 404 and the name follows
+ * mockCompanyName without counting the company itself. As on the server, where every answer reads the name from the
+ * register, the whole mock shows the new name: every { id, name } under a "company" key and every element of a
+ * "companies" list (projects, items, item pages, pending decisions, Overview, usage, agents).
+ */
+function mockRenameCompany(m, companies, id, body, summary) {
+  if (!obj(body)) throw error('json_object_required', 400);
+  if (id === UNASSIGNED) throw error('company_reserved', 400, { company: id });
+  const company = companies.find((c) => c.id === id);
+  if (!company) throw error('company_not_found', 404, { company: id });
+  const name = mockCompanyName(companies, body.name, id);
+  const rename = (x) => {
+    if (Array.isArray(x)) {
+      x.forEach(rename);
+      return;
+    }
+    if (!x || typeof x !== 'object') return;
+    for (const [k, v] of Object.entries(x)) {
+      if (k === 'company' && obj(v) && v.id === id && 'name' in v) v.name = name;
+      else if (k === 'companies' && Array.isArray(v)) for (const c of v) if (obj(c) && c.id === id) c.name = name;
+      rename(v);
+    }
+  };
+  rename(m);
+  sortCompanies(companies);
+  return { company: summary(company) };
+}
+
+/**
+ * POST /api/companies/<id>/remove (#24): removes the company only in this page's memory, under the store's rules
+ * (removeCompany in bin/flow-store.js): "Sem empresa" is reserved (400), an unknown company is 404 and a company with
+ * projects is 409 company_not_empty, with project_count.
+ */
+function mockRemoveCompany(companies, projects, id) {
+  if (id === UNASSIGNED) throw error('company_reserved', 400, { company: id });
+  const at = companies.findIndex((c) => c.id === id);
+  if (at < 0) throw error('company_not_found', 404, { company: id });
+  const count = projects.filter((x) => x.company.id === id).length;
+  if (count > 0) throw error('company_not_empty', 409, { company: id, name: companies[at].name, project_count: count });
+  companies.splice(at, 1);
+  return { removed: id };
+}
+
+/**
+ * Companies and projects (#6) from tests/mock-items.json: GET /api/companies, POST /api/companies (mockCreateCompany),
+ * POST /api/companies/<id>/rename (mockRenameCompany), POST /api/companies/<id>/remove (mockRemoveCompany),
+ * GET /api/projects[?company=] and POST /api/projects/<id>/company, which moves the project only in this page's memory
+ * and, like the store, refuses "Sem empresa" as a destination (400 company_reserved, #21). null for any other path.
  */
 async function mockCompanies(u, method, body) {
   const p = u.pathname;
   const move = /^\/api\/projects\/([^/]+)\/company$/.exec(p);
-  if (p !== '/api/companies' && p !== '/api/projects' && !move) return null;
+  const own = /^\/api\/companies\/([^/]+)\/(rename|remove)$/.exec(p);
+  if (p !== '/api/companies' && p !== '/api/projects' && !move && !own) return null;
   const m = await loadMockItems();
-  const companies = arr(m.companies);
+  if (!Array.isArray(m.companies)) m.companies = [];
+  const companies = m.companies;
   const projects = arr(m.projects);
+  const summary = (c) => {
+    const own = projects.filter((x) => x.company.id === c.id);
+    return { ...c, project_count: own.length, item_count: own.reduce((n, x) => n + (Number(x.item_count) || 0), 0) };
+  };
   if (p === '/api/companies') {
-    return { companies: companies.map((c) => {
-      const own = projects.filter((x) => x.company.id === c.id);
-      return { ...c, project_count: own.length, item_count: own.reduce((n, x) => n + (Number(x.item_count) || 0), 0) };
-    }) };
+    if (method === 'POST') return mockCreateCompany(companies, body, summary);
+    return { companies: companies.map(summary) };
   }
   if (p === '/api/projects') {
     const company = u.searchParams.get('company');
     return { projects: projects.filter((x) => !company || x.company.id === company) };
   }
   if (method !== 'POST') throw error('method_not_allowed', 405, { method, allowed: ['POST'] });
+  if (own && own[2] === 'rename') return mockRenameCompany(m, companies, decodeURIComponent(own[1]), body, summary);
+  if (own) return mockRemoveCompany(companies, projects, decodeURIComponent(own[1]));
   const id = decodeURIComponent(move[1]);
   const project = projects.find((x) => x.id === id);
   if (!project) throw error('project_not_found', 404, { project: id });
-  const target = companies.find((c) => c.id === (obj(body) && body.company));
+  const wanted = obj(body) && body.company;
+  if (wanted === UNASSIGNED) throw error('company_reserved', 400, { company: wanted });
+  const target = companies.find((c) => c.id === wanted);
   if (!target) throw error('company_not_found', 400, { company: txt(obj(body) && body.company) });
   project.company = { id: target.id, name: target.name };
   project.unassigned = !!target.unassigned;
