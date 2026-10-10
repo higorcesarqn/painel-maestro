@@ -203,7 +203,7 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
   function projectAdd(store, cmd, at, cwd) {
     if (store.project(cmd.id)) throw fail('projectExists', { project: cmd.id });
     if (cmd.company === undefined) throw fail('missingCompany');
-    needCompany(store, cmd.company);
+    store.projectCompany(cmd.company);
     let list = cmd.repos;
     if (!list.length) {
       const origin = originOf(cwd);

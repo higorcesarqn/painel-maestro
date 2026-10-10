@@ -554,6 +554,52 @@ suite.test('the panel and the CLI rename a company (POST /api/companies/<id>/ren
   });
 });
 
+suite.test('"Sem empresa" is never the company of a new project: flow project add --company unassigned exits 2', async () => {
+  const r = buildRoot('add-reserved');
+  const scratch = repo(r, 'scratch', 'https://github.com/higor/scratch.git');
+  const reserved = /"Sem empresa" é reservada: ela só recebe os repositórios sem cadastro/;
+  // Refused before "Sem empresa" exists in the register and after a repository lands there.
+  invalid(flow(r, ['project', 'add', 'shop', '--company', 'unassigned', '--repo', 'https://github.com/contoso/shop']), reserved);
+  ok(flow(r, ['item', 'start', '3', '--title', 'Rascunho'], { cwd: scratch }));
+  invalid(flow(r, ['project', 'add', 'shop', '--company', 'unassigned', '--repo', 'https://github.com/contoso/shop']), reserved);
+  invalid(flow(r, ['project', 'add', '--json', '-'], { input: JSON.stringify({ id: 'shop', company: 'unassigned', repos: ['https://github.com/contoso/shop'] }) }), reserved);
+  invalid(flow(r, ['project', 'add', 'shop', '--company', 'nobody', '--repo', 'https://github.com/contoso/shop']), /a empresa "nobody" não existe .*Cadastre com: flow company add nobody/);
+  ok(flow(r, ['company', 'add', 'contoso', '--name', 'Contoso']));
+  ok(flow(r, ['project', 'add', 'shop', '--company', 'contoso', '--repo', 'https://github.com/contoso/shop']));
+  await withServer(r, async ({ get }) => {
+    assert.deepStrictEqual((await get('/api/projects')).projects.map((p) => [p.id, p.company.id, p.repos]),
+      [['scratch', 'unassigned', ['github.com/higor/scratch']], ['shop', 'contoso', ['github.com/contoso/shop']]]);
+  });
+});
+
+suite.test('the name of "Sem empresa" is reserved: creating or renaming a company with it (ignoring case) is company_name_taken', async () => {
+  const r = buildRoot('reserved-name');
+  const taken = (name) => ({ code: 'company_name_taken', name, company: 'unassigned', company_name: 'Sem empresa' });
+  const cli = (name) => new RegExp(`o nome "${name}" já é da empresa "unassigned" \\(Sem empresa\\)`);
+  ok(flow(r, ['company', 'add', 'contoso', '--name', 'Contoso']));
+  // Before "Sem empresa" exists in the register, by the CLI and by the panel.
+  invalid(flow(r, ['company', 'add', 'fabrikam', '--name', 'Sem empresa']), cli('Sem empresa'));
+  invalid(flow(r, ['company', 'add', '--json', '-'], { input: JSON.stringify({ id: 'fabrikam', name: ' SEM EMPRESA ' }) }), cli('SEM EMPRESA'));
+  invalid(flow(r, ['company', 'rename', 'contoso', '--name', 'sem empresa']), cli('sem empresa'));
+  const post = (port, p, body) => request(port, p, { method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const check = async ({ port, get }, when) => {
+    const created = await post(port, '/api/companies', { id: 'fabrikam', name: 'sem EMPRESA' });
+    assert.deepStrictEqual([when, created.status, created.json], [when, 409, { error: taken('sem EMPRESA') }]);
+    const renamed = await post(port, '/api/companies/contoso/rename', { name: '  Sem Empresa ' });
+    assert.deepStrictEqual([when, renamed.status, renamed.json], [when, 409, { error: taken('Sem Empresa') }]);
+    assert.deepStrictEqual([when, (await get('/api/companies')).companies.filter((c) => !c.unassigned).map((c) => [c.id, c.name])], [when, [['contoso', 'Contoso']]]);
+  };
+  await withServer(r, (s) => check(s, 'before "Sem empresa" exists'));
+  // After a repository lands there, the same.
+  ok(flow(r, ['item', 'start', '3', '--title', 'Rascunho'], { cwd: repo(r, 'scratch', 'https://github.com/higor/scratch.git') }));
+  invalid(flow(r, ['company', 'add', 'fabrikam', '--name', 'sem empresa']), cli('sem empresa'));
+  invalid(flow(r, ['company', 'rename', 'contoso', '--name', 'SEM EMPRESA']), cli('SEM EMPRESA'));
+  await withServer(r, (s) => check(s, 'after "Sem empresa" exists'));
+  // A name that only contains it is a name like the others.
+  ok(flow(r, ['company', 'add', 'fabrikam', '--name', 'Sem empresa Ltda']));
+  ok(flow(r, ['company', 'rename', 'contoso', '--name', 'Contoso sem empresa']));
+});
+
 suite.test('help lists the company and project subcommands', () => {
   const r = buildRoot('help');
   const out = ok(flow(r, ['--help']));

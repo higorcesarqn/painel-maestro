@@ -229,13 +229,13 @@ flow item done 12                                                               
 
 ```
 flow company list
-flow company add <id> --name "<nome>"   # nome até 80, único sem diferenciar maiúsculas (a tela Empresas também cria)
+flow company add <id> --name "<nome>"   # nome até 80, único sem diferenciar maiúsculas, nunca o de "Sem empresa" (a tela Empresas também cria)
 flow company rename <id> --name "<nome>" # o id não muda; "Sem empresa" não se renomeia (a tela Empresas também renomeia)
 flow company remove <id>                # só empresa sem projetos; "Sem empresa" não se exclui (a tela Empresas também exclui)
 flow project list [--company <id>]
 flow project add <id> --company <id> [--name] [--tracker github|azure_devops] [--repo <url>]... [--stages a,b,...] [--done-state "..."] [--workspace "..."]
 flow project edit <id> [--name] [--company] [--tracker] [--repo <url>]... [--remove-repo <url>]... [--stages] [--done-state] [--workspace]
-flow project move <id> <empresa>        # "Sem empresa" (unassigned) não é destino: código 2
+flow project move <id> <empresa>        # "Sem empresa" (unassigned) não é destino (nem em project add/edit): código 2
 ```
 
 Um projeto do Azure DevOps com vários repositórios é um projeto só: o CLI rodado em qualquer um deles (ou num worktree deles) resolve o mesmo projeto. As formas SSH e HTTPS do mesmo remote são iguais.

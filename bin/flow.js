@@ -29,7 +29,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const lib = require('./lib');
 const { t } = require('./i18n');
-const { openStore, flowDir, STAGES, UNASSIGNED_COMPANY } = require('./flow-store');
+const { openStore, flowDir, STAGES } = require('./flow-store');
 const { originOf, branchOf, describeRemote, parseBranch } = require('./flow-repo');
 const { projectItem, trackerRef, EVENT_TYPES, WORKER_STATES } = require('./flow-projection');
 const { PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES } = require('./flow-projection');
@@ -303,8 +303,7 @@ function resolveProject(store, origin, at) {
   const d = describeRemote(origin);
   const known = store.projectByRemote(d.remote);
   if (known) return { project: known, registered: false, remote: d.remote };
-  store.ensureCompany(UNASSIGNED_COMPANY, t('companies.unassigned'), at);
-  const project = store.addProject({ id: store.freeProjectId(slug(d.repo)), name: d.repo, companyId: UNASSIGNED_COMPANY, tracker: d.tracker, remote: d.remote, at });
+  const project = store.addUnregisteredProject({ id: store.freeProjectId(slug(d.repo)), name: d.repo, tracker: d.tracker, remote: d.remote, at });
   return { project, registered: true, remote: d.remote };
 }
 

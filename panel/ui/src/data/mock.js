@@ -13,6 +13,8 @@ import { arr, obj, spDay, txt, now } from './format.js';
 import { MAX_COMPANY_NAME, RE_ID } from './companies.js';
 
 const UNASSIGNED = 'unassigned';
+// The name "Sem empresa" is registered with (companies.unassigned in bin/i18n/pt-BR.js), reserved for it like in the store.
+const UNASSIGNED_NAME = 'Sem empresa';
 
 let loadItems = null;
 function loadMockItems() {
@@ -49,14 +51,15 @@ function mockPendingDecisions(m, sp) {
 
 /**
  * The store's rule of a company's name (companyName in bin/flow-store.js): trimmed, 1 to 80 characters on one line and
- * unique ignoring case among the companies other than exceptId. Returns the trimmed name.
+ * unique ignoring case among the companies other than exceptId, the name of "Sem empresa" included. Returns the trimmed name.
  */
 function mockCompanyName(companies, value, exceptId = null) {
   const name = typeof value === 'string' ? value.trim() : '';
   if (!name || name.length > MAX_COMPANY_NAME || /[\r\n]/.test(name)) {
     throw error('invalid_field', 400, { field: 'name', value: String(value ?? '').slice(0, 100), max: MAX_COMPANY_NAME });
   }
-  const other = companies.find((c) => c.id !== exceptId && c.name.toLowerCase() === name.toLowerCase());
+  const other = companies.find((c) => c.id !== exceptId && c.name.toLowerCase() === name.toLowerCase())
+    || (name.toLowerCase() === UNASSIGNED_NAME.toLowerCase() ? { id: UNASSIGNED, name: UNASSIGNED_NAME } : null);
   if (other) throw error('company_name_taken', 409, { name, company: other.id, company_name: other.name });
   return name;
 }

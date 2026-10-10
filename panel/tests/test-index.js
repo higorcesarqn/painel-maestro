@@ -255,6 +255,10 @@ suite.test('Companies screen (#21): in the menu, sharing the project line with "
     await assert.rejects(rename('nobody', 'Outra'), (e) => e.status === 404 && e.error.code === 'company_not_found');
     await assert.rejects(rename(target.id, ` ${other.name.toUpperCase()} `), (e) => e.status === 409 && e.error.code === 'company_name_taken' && e.error.company === other.id);
     await assert.rejects(rename(target.id, '  '), (e) => e.status === 400 && e.error.code === 'invalid_field' && e.error.field === 'name');
+    // The name of "Sem empresa" is reserved, by a rename and by a creation (P-18, #20).
+    const reservedName = (e) => e.status === 409 && e.error.code === 'company_name_taken' && e.error.company === 'unassigned';
+    await assert.rejects(rename(target.id, 'SEM EMPRESA'), reservedName);
+    await assert.rejects(mockApi('/api/companies', 'POST', { id: 'tmp-reserved', name: ' sem empresa ' }), reservedName);
     assert.strictEqual((await rename(target.id, target.name.toLowerCase())).company.name, target.name.toLowerCase());
     const renamed = await rename(target.id, '  Renomeada de Teste ');
     assert.deepStrictEqual([renamed.company.id, renamed.company.name, renamed.company.project_count], [target.id, 'Renomeada de Teste', before[1] + 1]);

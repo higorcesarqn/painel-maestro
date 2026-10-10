@@ -31,11 +31,14 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { projectItem } = require('./flow-projection');
+const { t } = require('./i18n');
 
 const DB_FILE = 'maestro.db';
 const BUSY_TIMEOUT_MS = 15000;
 const SCHEMA_VERSION = 1;
 const UNASSIGNED_COMPANY = 'unassigned';
+// The name "Sem empresa" is registered with (the pt-BR dictionary): reserved for it, even before it exists (P-18, #20).
+const UNASSIGNED_NAME = t('companies.unassigned');
 // Ids of companies and projects (lowercase letters, digits and "-", starting with a letter or digit, up to 80).
 const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const MAX_COMPANY_NAME = 80;
@@ -269,6 +272,14 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
   // projectedItems() of every project, kept while MAX(events.id) and the projects stay the same.
   let projectedCache = null;
 
+  /** Inserts a project in companyId, already checked by its caller, with its first repository. */
+  function insertProject({ id, name, companyId, tracker, stages = STAGES, remote, at, doneState = null, maestriWorkspace = null }) {
+    db.prepare('INSERT INTO projects (id, name, company_id, tracker, stages, done_state, maestri_workspace, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(id, name, companyId, tracker, JSON.stringify(stages), doneState, maestriWorkspace, at);
+    if (remote) db.prepare('INSERT INTO project_repos (remote, project_id) VALUES (?, ?)').run(remote, id);
+    return store.project(id);
+  }
+
   const store = {
     file,
     close: () => db.close(),
@@ -288,12 +299,17 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     ensureCompany(id, name, at) {
       db.prepare('INSERT OR IGNORE INTO companies (id, name, created_at) VALUES (?, ?, ?)').run(id, name, at);
     },
-    /** New project with its first repository. The id must be free (see freeProjectId). */
-    addProject({ id, name, companyId, tracker, stages = STAGES, remote, at, doneState = null, maestriWorkspace = null }) {
-      db.prepare('INSERT INTO projects (id, name, company_id, tracker, stages, done_state, maestri_workspace, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(id, name, companyId, tracker, JSON.stringify(stages), doneState, maestriWorkspace, at);
-      if (remote) db.prepare('INSERT INTO project_repos (remote, project_id) VALUES (?, ?)').run(remote, id);
-      return store.project(id);
+    /**
+     * New project with its first repository, in a company of projectCompany's rule ("Sem empresa" only receives the
+     * unregistered repositories: addUnregisteredProject). The id must be free (see freeProjectId).
+     */
+    addProject({ companyId, ...fields }) {
+      return insertProject({ ...fields, companyId: store.projectCompany(companyId).id });
+    },
+    /** The project of an unregistered repository, in "Sem empresa" (registered with its name when needed). */
+    addUnregisteredProject({ at, ...fields }) {
+      store.ensureCompany(UNASSIGNED_COMPANY, UNASSIGNED_NAME, at);
+      return insertProject({ ...fields, at, companyId: UNASSIGNED_COMPANY });
     },
     /** base, or base-2, base-3… when a project already uses it. */
     freeProjectId(base) {
@@ -312,13 +328,15 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     /**
      * The rule of a company's name (#22; renaming reuses it with exceptId, the company being renamed): required,
      * trimmed, 1 to 80 characters on one line (invalid_field, field: name) and unique ignoring case among the other
-     * companies (company_name_taken, with the company that uses it). There is no unique index: a database that already
+     * companies, the name of "Sem empresa" included (company_name_taken, with the company that uses it). There is no unique index: a database that already
      * has repeated names keeps working, and the rule holds for the next writes. Returns the trimmed name.
      */
     companyName(name, exceptId = null) {
       const s = companyNameFormat(name);
       const key = s.toLowerCase();
-      const other = store.companies().find((c) => c.id !== exceptId && c.name.toLowerCase() === key);
+      // The name of "Sem empresa" is taken even before a repository lands there.
+      const other = store.companies().find((c) => c.id !== exceptId && c.name.toLowerCase() === key)
+        || (key === UNASSIGNED_NAME.toLowerCase() ? { id: UNASSIGNED_COMPANY, name: UNASSIGNED_NAME } : null);
       if (other) throw new RegisterError({ code: 'company_name_taken', name: s, company: other.id, company_name: other.name });
       return s;
     },
@@ -381,14 +399,10 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     },
     /**
      * Changes the given fields of a project (name, companyId, tracker, stages, doneState, maestriWorkspace). A new
-     * companyId must be a registered company other than "Sem empresa", which only receives unregistered repositories
-     * (company_reserved; an unknown one is company_not_found).
+     * companyId follows projectCompany's rule.
      */
     updateProject(id, change) {
-      if (change.companyId !== undefined) {
-        if (change.companyId === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_reserved', company: change.companyId });
-        if (!store.company(change.companyId)) throw new RegisterError({ code: 'company_not_found', company: change.companyId });
-      }
+      if (change.companyId !== undefined) store.projectCompany(change.companyId);
       const columns = { name: 'name', companyId: 'company_id', tracker: 'tracker', stages: 'stages', doneState: 'done_state', maestriWorkspace: 'maestri_workspace' };
       for (const [key, column] of Object.entries(columns)) {
         if (change[key] === undefined) continue;
@@ -396,6 +410,17 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
         db.prepare(`UPDATE projects SET ${column} = ? WHERE id = ?`).run(value, id);
       }
       return store.project(id);
+    },
+    /**
+     * The company a project may be added to or moved to: a registered company other than "Sem empresa", which only
+     * receives the unregistered repositories (company_reserved, even before it exists; an unknown one is
+     * company_not_found).
+     */
+    projectCompany(companyId) {
+      if (companyId === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_reserved', company: companyId });
+      const c = store.company(companyId);
+      if (!c) throw new RegisterError({ code: 'company_not_found', company: companyId });
+      return c;
     },
     /** Moves a project to another company (the rules of updateProject); an unknown project is project_not_found. */
     moveProject(id, companyId) {
