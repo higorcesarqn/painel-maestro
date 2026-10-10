@@ -20,7 +20,8 @@
 //   POST /api/items/<project>/<number>/merged "mark as merged" (merge-check.js)
 //   GET  /api/pending-decisions               pending decisions, read only (api-pending-decisions.js)
 //   GET  /api/log, GET /api/log/<id>, GET /api/raw   the Log and the raw log (api-log.js)
-//   GET  /api/companies, GET /api/projects, POST /api/projects/<id>/company   companies and projects (api-projects.js)
+//   GET  /api/companies, POST /api/companies, GET /api/projects, POST /api/projects/<id>/company
+//                                             companies and projects (api-projects.js)
 //   GET  /api/usage, GET /api/agents          usage and agents per item (api-usage.js)
 // The raw log older than 90 days is deleted on startup and once a day.
 // The API never returns sentences: reasons, warnings and errors are codes with parameters ({code, ...params})
@@ -66,7 +67,7 @@ const DEFAULT_STALE_HOURS = 48;               // Overview (#14): PANEL_STALE_HOU
 const RAW_PURGE_INTERVAL_MS = DAY_MS;          // bruto.db: entries older than 90 days leave once a day
 // index.html is a single file (embedded CSS and JS); nothing external is loaded.
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (POST /api/projects/<id>/company)
+const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (POST /api/companies, POST /api/projects/<id>/company)
 const JSON_TYPE = 'application/json; charset=utf-8';
 const HTML_TYPE = 'text/html; charset=utf-8';
 const USAGE_FILE = 'state/usage.json';         // written by the usage collector, relative to MAESTRO_DIR
@@ -372,7 +373,7 @@ const FIXED_ROUTES = {
   '/api/pending-decisions': { name: 'pending-decisions', methods: ['GET', 'HEAD'] },
   '/api/log': { name: 'log', methods: ['GET', 'HEAD'] },
   '/api/raw': { name: 'raw', methods: ['GET', 'HEAD'] },
-  '/api/companies': { name: 'companies', methods: ['GET', 'HEAD'] },
+  '/api/companies': { name: 'companies', methods: ['GET', 'HEAD', 'POST'] },
   '/api/projects': { name: 'projects', methods: ['GET', 'HEAD'] },
   '/api/usage': { name: 'usage', methods: ['GET', 'HEAD'] },
   '/api/agents': { name: 'agents', methods: ['GET', 'HEAD'] },
@@ -405,7 +406,8 @@ function findRoute(urlPath) {
 }
 
 async function route(ctx, req, res) {
-  // Only POST /api/projects/<id>/company reads the body (a POST that reads JSON gets up to 16 KB); the rest is discarded, capped at 1 MB.
+  // Only POST /api/companies and POST /api/projects/<id>/company read the body (a POST that reads JSON gets up to 16 KB);
+  // the rest is discarded, capped at 1 MB.
   let received = 0;
   const parts = [];
   const body = new Promise((resolve) => {
@@ -460,8 +462,14 @@ async function route(ctx, req, res) {
       if (active === undefined) return respondError(req, res, 400, { code: 'invalid_param', param: 'active', value: truncate(query.get('active'), 20), expected: 'flag' });
       return respondJson(req, res, 200, projectsApi.filterItems(itemsApi.listItems(ctx.items, { active }), query));
     }
-    case 'companies':
-      return respondJson(req, res, 200, projectsApi.listCompanies(ctx.items));
+    case 'companies': {
+      if (req.method !== 'POST') return respondJson(req, res, 200, projectsApi.listCompanies(ctx.items));
+      const buf = await body;
+      if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });
+      const x = projectsApi.createCompany(ctx.items, buf, isoSP(ctx.now()));
+      ctx.log(t('server.log.companyCreated', { company: x.company.id, name: x.company.name }));
+      return respondJson(req, res, 201, x);
+    }
     case 'projects':
       return respondJson(req, res, 200, projectsApi.listProjects(ctx.items, query));
     case 'project-company': {

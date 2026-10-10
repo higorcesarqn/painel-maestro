@@ -1,15 +1,19 @@
 // Test mode (?mock=1): reads tests/mock-items.json (written by tests/generate-mock-items.js with the server's own code:
 // the projection, the APIs, the usage collector and the health) and imitates every route the page calls: /api/state
-// and POST /api/recalculate, the companies and projects routes (#6, POST /api/projects/<id>/company in memory),
+// and POST /api/recalculate, the companies and projects routes (#6, POST /api/companies and POST /api/projects/<id>/company
+// in memory),
 // /api/items, /api/items/<project>/<number> (and POST .../merged in memory), /api/pending-decisions, /api/log,
 // /api/log/<id> (the raw commands are made up on the spot), /api/overview, /api/usage and /api/agents, answering in the
 // API shape (English fields and codes), as the real server does. Items, pending decisions, the Log, the Overview, usage
 // and agents take ?company=<id> (the company selector of the header) like the server.
 // Serve with "npm run demo" and open http://127.0.0.1:4795/?mock=1 (or use npm run dev in panel/ui).
 import { t } from '../i18n/index.js';
+import { LOCALE } from '../i18n/locale.js';
 import { arr, obj, spDay, txt, now } from './format.js';
+import { RE_ID } from './companies.js';
 
 const UNASSIGNED = 'unassigned';
+const MAX_COMPANY_NAME = 80;
 
 let loadItems = null;
 function loadMockItems() {
@@ -45,22 +49,48 @@ function mockPendingDecisions(m, sp) {
 }
 
 /**
- * Companies and projects (#6) from tests/mock-items.json: GET /api/companies, GET /api/projects[?company=] and
- * POST /api/projects/<id>/company, which moves the project only in this page's memory and, like the store, refuses
- * "Sem empresa" as a destination (400 company_reserved, #21). null for any other path.
+ * POST /api/companies (#22): creates the company only in this page's memory, under the store's rules (addCompany and
+ * companyName in bin/flow-store.js): the id's format, free id ("unassigned" is always taken), name trimmed, 1 to 80
+ * characters on one line and unique ignoring case. Keeps the server's order (alphabetical, "Sem empresa" last).
+ */
+function mockCreateCompany(companies, body, summary) {
+  if (!obj(body)) throw error('json_object_required', 400);
+  const id = typeof body.id === 'string' ? body.id.trim() : '';
+  if (!RE_ID.test(id)) throw error('invalid_field', 400, { field: 'id', value: String(body.id ?? '').slice(0, 100) });
+  const existing = companies.find((c) => c.id === id);
+  if (existing || id === UNASSIGNED) throw error('company_exists', 409, { company: id, name: existing ? existing.name : undefined });
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (!name || name.length > MAX_COMPANY_NAME || /[\r\n]/.test(name)) {
+    throw error('invalid_field', 400, { field: 'name', value: String(body.name ?? '').slice(0, 100), max: MAX_COMPANY_NAME });
+  }
+  const other = companies.find((c) => c.name.toLowerCase() === name.toLowerCase());
+  if (other) throw error('company_name_taken', 409, { name, company: other.id, company_name: other.name });
+  const company = { id, name, unassigned: false };
+  companies.push(company);
+  companies.sort((a, b) => Number(!!a.unassigned) - Number(!!b.unassigned) || a.name.localeCompare(b.name, LOCALE));
+  return { company: summary(company) };
+}
+
+/**
+ * Companies and projects (#6) from tests/mock-items.json: GET /api/companies, POST /api/companies (mockCreateCompany),
+ * GET /api/projects[?company=] and POST /api/projects/<id>/company, which moves the project only in this page's memory
+ * and, like the store, refuses "Sem empresa" as a destination (400 company_reserved, #21). null for any other path.
  */
 async function mockCompanies(u, method, body) {
   const p = u.pathname;
   const move = /^\/api\/projects\/([^/]+)\/company$/.exec(p);
   if (p !== '/api/companies' && p !== '/api/projects' && !move) return null;
   const m = await loadMockItems();
-  const companies = arr(m.companies);
+  if (!Array.isArray(m.companies)) m.companies = [];
+  const companies = m.companies;
   const projects = arr(m.projects);
+  const summary = (c) => {
+    const own = projects.filter((x) => x.company.id === c.id);
+    return { ...c, project_count: own.length, item_count: own.reduce((n, x) => n + (Number(x.item_count) || 0), 0) };
+  };
   if (p === '/api/companies') {
-    return { companies: companies.map((c) => {
-      const own = projects.filter((x) => x.company.id === c.id);
-      return { ...c, project_count: own.length, item_count: own.reduce((n, x) => n + (Number(x.item_count) || 0), 0) };
-    }) };
+    if (method === 'POST') return mockCreateCompany(companies, body, summary);
+    return { companies: companies.map(summary) };
   }
   if (p === '/api/projects') {
     const company = u.searchParams.get('company');

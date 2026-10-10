@@ -1,18 +1,18 @@
 'use strict';
 // api-projects.js · companies and projects of the new model (#6), from maestro.db (bin/flow-store.js):
 //   GET  /api/companies                    → { companies: [{ id, name, unassigned, project_count, item_count }] }
+//   POST /api/companies {id, name}         → 201 { company } (creates a company, #22; one element of GET /api/companies)
 //   GET  /api/projects[?company=<id>]      → { projects: [{ id, name, tracker, company: {id, name}, unassigned, repos,
 //                                                           stages, done_state, maestri_workspace, created_at, item_count }] }
 //   POST /api/projects/<id>/company {company} → { project } (moves the project to another company, never to "Sem empresa")
-// The register itself is written by the CLI (flow company / flow project); the panel only moves a project, which is
-// how a repository that landed in "Sem empresa" gets its company. The rules are the store's (RegisterError,
-// bin/flow-store.js): this file only gives each code its HTTP status. No sentences: errors are codes (ADR 0004).
+// The panel writes the register of companies (create, #22) and moves a project, which is how a repository that landed
+// in "Sem empresa" gets its company; registering and editing projects stays with the CLI (flow project). The rules are
+// the store's (RegisterError, bin/flow-store.js): this file only gives each code its HTTP status, per route (a code
+// without one is a 500). No sentences: errors are codes (ADR 0004).
 const path = require('path');
 
-const { UNASSIGNED_COMPANY, STAGES, TRACKERS, RegisterError } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { UNASSIGNED_COMPANY, STAGES, TRACKERS, RE_ID, RegisterError, companyFields } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 const { listItems, projectInfo } = require(path.join(__dirname, 'api-items.js'));
-
-const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
 
 class ProjectsError extends Error {
   constructor(status, error) {
@@ -22,8 +22,31 @@ class ProjectsError extends Error {
   }
 }
 
-// HTTP status of each code of the store's register rules, in a move (the company comes in the body: 400).
+// HTTP status of each code of the store's register rules, per route. In a move the company comes in the body (400).
 const MOVE_STATUS = { project_not_found: 404, company_not_found: 400, company_reserved: 400 };
+const CREATE_STATUS = { invalid_field: 400, company_exists: 409, company_name_taken: 409 };
+
+/** fn() under the store's rules: a RegisterError with a status in statuses becomes that HTTP answer (else a 500). */
+function underRules(statuses, fn) {
+  try {
+    return fn();
+  } catch (e) {
+    if (e instanceof RegisterError && statuses[e.code]) throw new ProjectsError(statuses[e.code], e.error);
+    throw e;
+  }
+}
+
+/** The raw JSON body of a POST as an object; 400 json_object_required otherwise. */
+function jsonObject(body) {
+  let input;
+  try {
+    input = JSON.parse(String(body || ''));
+  } catch (_) {
+    throw new ProjectsError(400, { code: 'json_object_required' });
+  }
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new ProjectsError(400, { code: 'json_object_required' });
+  return input;
+}
 
 /** Number of items per project id. */
 function itemCounts(source) {
@@ -48,19 +71,22 @@ function idParam(query, name) {
   return v;
 }
 
+/** A company as GET /api/companies lists it (and POST /api/companies answers it). */
+function companySummary(c, projects, counts) {
+  const own = projects.filter((p) => p.company_id === c.id);
+  return {
+    id: c.id, name: c.name, unassigned: c.id === UNASSIGNED_COMPANY,
+    project_count: own.length, item_count: own.reduce((n, p) => n + (counts.get(p.id) || 0), 0),
+  };
+}
+
 /** { companies }: every company (the empty "Sem empresa" too, when it exists), alphabetical with "Sem empresa" last. */
 function listCompanies(source) {
   const store = source.store();
   if (!store) return { companies: [] };
   const projects = store.projects();
   const counts = itemCounts(source);
-  const companies = store.companies().map((c) => {
-    const own = projects.filter((p) => p.company_id === c.id);
-    return {
-      id: c.id, name: c.name, unassigned: c.id === UNASSIGNED_COMPANY,
-      project_count: own.length, item_count: own.reduce((n, p) => n + (counts.get(p.id) || 0), 0),
-    };
-  });
+  const companies = store.companies().map((c) => companySummary(c, projects, counts));
   companies.sort((a, b) => Number(a.unassigned) - Number(b.unassigned) || a.name.localeCompare(b.name, 'pt-BR'));
   return { companies };
 }
@@ -102,25 +128,27 @@ function filterItems(answer, query) {
   };
 }
 
+/**
+ * Creates a company. body: the raw JSON body ({ id, name }); the store checks both (the name's rule is companyName).
+ * at: the creation time (isoSP). The first valid company creates maestro.db, which the panel otherwise never creates:
+ * the format of the fields is checked before (companyFields), so an invalid body creates nothing.
+ */
+function createCompany(source, body, at) {
+  const input = jsonObject(body);
+  underRules(CREATE_STATUS, () => companyFields(input));
+  const store = source.store({ create: true });
+  const c = underRules(CREATE_STATUS, () => store.transaction(() => store.addCompany({ id: input.id, name: input.name, at })));
+  return { company: companySummary(c, store.projects(), itemCounts(source)) };
+}
+
 /** Moves a project to a company. body: the raw JSON body ({ company }). */
 function moveProject(source, projectId, body) {
-  let input;
-  try {
-    input = JSON.parse(String(body || ''));
-  } catch (_) {
-    throw new ProjectsError(400, { code: 'json_object_required' });
-  }
-  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new ProjectsError(400, { code: 'json_object_required' });
+  const input = jsonObject(body);
   const company = typeof input.company === 'string' ? input.company.trim() : '';
   if (!RE_ID.test(company)) throw new ProjectsError(400, { code: 'invalid_field', field: 'company', value: String(input.company ?? '').slice(0, 100) });
   const store = source.store();
   if (!store || !store.project(projectId)) throw new ProjectsError(404, { code: 'project_not_found', project: projectId });
-  try {
-    return store.transaction(() => ({ project: projectDetail(store, store.moveProject(projectId, company), itemCounts(source)) }));
-  } catch (e) {
-    if (e instanceof RegisterError && MOVE_STATUS[e.code]) throw new ProjectsError(MOVE_STATUS[e.code], e.error);
-    throw e;
-  }
+  return underRules(MOVE_STATUS, () => store.transaction(() => ({ project: projectDetail(store, store.moveProject(projectId, company), itemCounts(source)) })));
 }
 
 /** Route of a project: the decoded id, or null. */
@@ -134,4 +162,4 @@ function parseProjectId(text) {
   return RE_ID.test(id) ? id : null;
 }
 
-module.exports = { listCompanies, listProjects, filterItems, moveProject, parseProjectId, ProjectsError };
+module.exports = { listCompanies, listProjects, filterItems, createCompany, moveProject, parseProjectId, ProjectsError };

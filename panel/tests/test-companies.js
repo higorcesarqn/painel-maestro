@@ -303,6 +303,79 @@ suite.test('invalid company and project data end with a clear message and exit 2
   });
 });
 
+suite.test('the panel creates a company (POST /api/companies) under the name rule of the store, which the CLI shares', async () => {
+  const r = buildRoot('create');
+  // The server starts before maestro.db exists: the first company creates it.
+  await withServer(r, async ({ port, get }) => {
+    assert.deepStrictEqual((await get('/api/companies')).companies, []);
+    const create = (body, headers = { 'X-Panel': '1' }) => request(port, '/api/companies', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body),
+    });
+    const ids = async () => (await get('/api/companies')).companies.map((c) => [c.id, c.name]);
+    // Security: X-Panel and Origin, exactly as every POST of the server.
+    const without = await create({ id: 'contoso', name: 'Contoso' }, {});
+    assert.deepStrictEqual([without.status, without.json], [403, { error: { code: 'missing_panel_header', header: 'X-Panel' } }]);
+    const foreign = await create({ id: 'contoso', name: 'Contoso' }, { 'X-Panel': '1', Origin: 'http://evil.example' });
+    assert.deepStrictEqual([foreign.status, foreign.json.error.code], [403, 'origin_not_allowed']);
+    const tooLarge = await create(JSON.stringify({ id: 'contoso', name: 'x'.repeat(17 * 1024) }));
+    assert.deepStrictEqual([tooLarge.status, tooLarge.json.error.code], [413, 'body_too_large']);
+    for (const body of ['[1]', { id: 'Bad Id', name: 'Contoso' }, { id: 'contoso', name: ' ' }]) {
+      assert.strictEqual((await create(body)).status, 400, JSON.stringify(body));
+    }
+    assert.ok(!fs.existsSync(path.join(r.data, 'maestro.db')), 'an invalid POST does not create maestro.db');
+    assert.deepStrictEqual(await ids(), [], 'nothing created by a refused POST');
+    // The creation, from the page's origin: 201 with the company as GET /api/companies lists it; the name is trimmed.
+    const created = await create({ id: 'contoso', name: '  Contoso  ' }, { 'X-Panel': '1', Origin: `http://127.0.0.1:${port}` });
+    assert.strictEqual(created.status, 201, created.text);
+    const listed = (await get('/api/companies')).companies;
+    assert.deepStrictEqual(created.json, { company: { id: 'contoso', name: 'Contoso', unassigned: false, project_count: 0, item_count: 0 } });
+    assert.deepStrictEqual(listed, [created.json.company]);
+    // Invalid bodies, ids and names: 400 with the field; an id in use or a name in use (ignoring case): 409.
+    const cases = [
+      ['{', 400, { code: 'json_object_required' }],
+      ['[1]', 400, { code: 'json_object_required' }],
+      ['"contoso"', 400, { code: 'json_object_required' }],
+      [{ name: 'Fabrikam' }, 400, { code: 'invalid_field', field: 'id', value: '' }],
+      [{ id: 'Fabrikam Ltda', name: 'Fabrikam' }, 400, { code: 'invalid_field', field: 'id', value: 'Fabrikam Ltda' }],
+      [{ id: `f${'a'.repeat(80)}`, name: 'Fabrikam' }, 400, { code: 'invalid_field', field: 'id', value: `f${'a'.repeat(80)}` }],
+      [{ id: 'fabrikam' }, 400, { code: 'invalid_field', field: 'name', value: '', max: 80 }],
+      [{ id: 'fabrikam', name: '' }, 400, { code: 'invalid_field', field: 'name', value: '', max: 80 }],
+      [{ id: 'fabrikam', name: '   ' }, 400, { code: 'invalid_field', field: 'name', value: '   ', max: 80 }],
+      [{ id: 'fabrikam', name: 42 }, 400, { code: 'invalid_field', field: 'name', value: '42', max: 80 }],
+      [{ id: 'fabrikam', name: 'Fabrikam\nLtda' }, 400, { code: 'invalid_field', field: 'name', value: 'Fabrikam\nLtda', max: 80 }],
+      [{ id: 'fabrikam', name: 'F'.repeat(81) }, 400, { code: 'invalid_field', field: 'name', value: 'F'.repeat(81), max: 80 }],
+      [{ id: 'contoso', name: 'Outra' }, 409, { code: 'company_exists', company: 'contoso', name: 'Contoso' }],
+      // "Sem empresa" is not registered yet, but its id is reserved.
+      [{ id: 'unassigned', name: 'Outra' }, 409, { code: 'company_exists', company: 'unassigned' }],
+      [{ id: 'contoso-br', name: ' CONTOSO ' }, 409, { code: 'company_name_taken', name: 'CONTOSO', company: 'contoso', company_name: 'Contoso' }],
+    ];
+    for (const [body, status, error] of cases) {
+      const x = await create(body);
+      assert.deepStrictEqual([body, x.status, x.json], [body, status, { error }]);
+    }
+    assert.deepStrictEqual(await ids(), [['contoso', 'Contoso']], 'nothing created by an invalid body');
+    // 80 characters is the limit; ids of 80 characters too.
+    const longest = await create({ id: `f${'a'.repeat(79)}`, name: 'F'.repeat(80) });
+    assert.strictEqual(longest.status, 201, longest.text);
+    // The route keeps answering GET and refuses other methods.
+    const put = await request(port, '/api/companies', { method: 'PUT', headers: { 'X-Panel': '1' } });
+    assert.deepStrictEqual([put.status, put.json.error.code, put.json.error.allowed], [405, 'method_not_allowed', ['GET', 'HEAD', 'POST']]);
+  });
+  // The CLI applies the same rule: a name in use ignoring case, empty or too long exits 2 with a Portuguese message.
+  invalid(flow(r, ['company', 'add', 'contoso-br', '--name', 'contoso']), /o nome "contoso" já é da empresa "contoso" \(Contoso\)/);
+  invalid(flow(r, ['company', 'add', '--json', '-'], { input: JSON.stringify({ id: 'contoso-br', name: 'CONTOSO' }) }), /o nome "CONTOSO" já é da empresa "contoso"/);
+  invalid(flow(r, ['company', 'add', 'fabrikam', '--name', 'F'.repeat(81)]), /o nome da empresa precisa ter de 1 a 80 caracteres/);
+  invalid(flow(r, ['company', 'add', 'fabrikam', '--name', '   ']), /o nome da empresa precisa ter de 1 a 80 caracteres/);
+  invalid(flow(r, ['company', 'add', 'unassigned', '--name', 'Outra']), /a empresa "unassigned" já existe \(reservada para "Sem empresa"\)/);
+  assert.ok(/Empresa "fabrikam" \(Fabrikam\) cadastrada/.test(ok(flow(r, ['company', 'add', 'fabrikam', '--name', '  Fabrikam ']))));
+  // The company the panel created is a company like the others for the CLI.
+  ok(flow(r, ['project', 'add', 'shop', '--company', 'contoso', '--repo', 'https://github.com/contoso/shop']));
+  await withServer(r, async ({ get }) => {
+    assert.deepStrictEqual((await get('/api/companies')).companies.map((c) => [c.id, c.name, c.project_count]),
+      [['contoso', 'Contoso', 1], ['fabrikam', 'Fabrikam', 0], [`f${'a'.repeat(79)}`, 'F'.repeat(80), 0]]);
+  });
+});
+
 suite.test('help lists the company and project subcommands', () => {
   const r = buildRoot('help');
   const out = ok(flow(r, ['--help']));

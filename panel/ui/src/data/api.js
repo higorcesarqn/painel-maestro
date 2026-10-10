@@ -59,6 +59,8 @@ export const readOverview = (filters) => api(withQuery('/api/overview', filters)
 // Companies and projects (#6). The company selector reaches each list as ?company=<id> (see companyFilter).
 export const readCompanies = () => api('/api/companies');
 export const readProjects = (filters) => api(withQuery('/api/projects', filters));
+// Creates a company (#22): { company }, as GET /api/companies lists it.
+export const createCompany = (id, name) => api('/api/companies', { method: 'POST', body: { id, name } });
 export const moveProject = (project, company) => api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } });
 
 /**

@@ -19,10 +19,9 @@
 // register are the store's (RegisterError, bin/flow-store.js): run() turns its codes into the same kind of message.
 const lib = require('./lib');
 const { t } = require('./i18n');
-const { openStore, flowDir, RegisterError, STAGES, TRACKERS } = require('./flow-store');
+const { openStore, flowDir, RegisterError, RE_ID, STAGES, TRACKERS } = require('./flow-store');
 const { originOf, describeRemote } = require('./flow-repo');
 
-const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const MAX_NAME = 120;
 const MAX_REPOS = 50;
 
@@ -104,8 +103,9 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
     if (name === 'company list') return cmd;
     if (name === 'project list') return { ...cmd, company: opts.company === undefined ? null : id(opts.company, 'company') };
     if (name === 'company add') {
-      const companyName = text(pick(opts.name, json.name), 'name');
-      if (!companyName) throw fail('missingCompanyName');
+      // The name's rule (trimmed, up to 80, unique ignoring case) is the store's (companyName).
+      const companyName = pick(opts.name, json.name);
+      if (companyName === undefined || companyName === null) throw fail('missingCompanyName');
       return { ...cmd, id: id(pick(pos[0], json.id), 'company'), companyName };
     }
     if (name === 'project move') return { ...cmd, id: id(pick(pos[0], json.id), 'project'), company: id(pick(pos[1], json.company), 'company') };
@@ -169,9 +169,8 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
   }
 
   function companyAdd(store, cmd, at) {
-    if (store.company(cmd.id)) throw fail('companyExists', { company: cmd.id, name: store.company(cmd.id).name });
-    store.addCompany({ id: cmd.id, name: cmd.companyName, at });
-    return [t('admin.done.companyAdded', { company: cmd.id, name: cmd.companyName })];
+    const c = store.addCompany({ id: cmd.id, name: cmd.companyName, at });
+    return [t('admin.done.companyAdded', { company: c.id, name: c.name })];
   }
 
   function projectAdd(store, cmd, at, cwd) {

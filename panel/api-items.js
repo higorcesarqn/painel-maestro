@@ -12,14 +12,17 @@ const { projectItem, trackerRef } = require(path.join(__dirname, '..', 'bin', 'f
 const RE_PROJECT = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const RE_NUMBER = /^[1-9]\d{0,8}$/;
 
-/** Lazily opened store (null while maestro.db does not exist: the panel shows no item, without creating it). */
+/**
+ * Lazily opened store (null while maestro.db does not exist: the panel shows no item, without creating it). Only a
+ * write that starts the register (creating the first company, #22) asks for store({ create: true }).
+ */
 function createItemsSource(env) {
   const dir = flowDir(env);
   let store = null;
   return {
     dir,
-    store() {
-      if (!store) store = openStore({ dir, create: false });
+    store({ create = false } = {}) {
+      if (!store) store = openStore({ dir, create });
       return store;
     },
     close() {

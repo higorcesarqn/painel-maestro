@@ -18,9 +18,11 @@
 .project-row-move { display: inline-flex; align-items: center; gap: 8px; }
 .project-row-error { flex-basis: 100%; color: var(--danger); }
 
-/* The Companies screen: the note on top and the cards, which scroll inside the screen when they do not fit. */
+/* The Companies screen: the note and the "Nova empresa" button on top, and the cards, which scroll inside the screen
+   when they do not fit. */
 .screen-companies { grid-template-rows: auto minmax(0, 1fr); }
 .screen-companies:has(> .companies-error) { grid-template-rows: auto auto minmax(0, 1fr); }
+.companies-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
 .companies-note { display: flex; align-items: center; gap: 7px; }
 .companies-error { color: var(--danger); }
 .companies-grid {
@@ -29,3 +31,16 @@
 }
 .company-meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .company-meta .mono { color: var(--text-2); }
+
+/* The "Nova empresa" modal (CompanyCreateModal.jsx) */
+.company-form .modal-body { display: flex; flex-direction: column; gap: 16px; }
+.company-form .field { gap: 6px; }
+.text-input {
+  height: 36px; border: 1px solid var(--border); border-radius: 9px; background: #0b0b0b; color: var(--text);
+  padding: 0 10px; font-size: 13.5px; width: 100%;
+}
+.text-input:hover { border-color: var(--border-strong); }
+.text-input:focus-visible { outline: 1px solid var(--blue-text); outline-offset: 1px; border-color: var(--blue); }
+.text-input[aria-invalid="true"] { border-color: var(--danger); }
+.company-form-error { color: var(--danger); }
+.company-form-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }

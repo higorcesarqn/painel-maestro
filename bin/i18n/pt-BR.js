@@ -63,7 +63,9 @@ const PENDING = {
 const ADMIN_HELP = `EMPRESAS E PROJETOS (dono; não precisam rodar dentro de um repositório)
   node bin/flow.js company list
   node bin/flow.js company add <id> --name "<nome>"
-      Cadastra uma empresa. O trabalho pessoal é uma empresa como as outras (ex.: personal, "Pessoal").
+      Cadastra uma empresa. O trabalho pessoal é uma empresa como as outras (ex.: personal, "Pessoal"). O nome
+      tem até 80 caracteres e não repete o de outra empresa, mesmo com outras maiúsculas (a tela Empresas do
+      painel cria com a mesma regra). O id não muda depois.
   node bin/flow.js project list [--company <id>]
   node bin/flow.js project add <id> --company <id> [--name "<nome>"] [--tracker github|azure_devops]
         [--repo <url do remote>]... [--stages <etapa,...>] [--done-state "<estado>"] [--workspace "<workspace>"]
@@ -188,6 +190,7 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       usagePlan: (c) => (c.available ? `plano 5 h ${c.pct5}% · semanal ${c.pct7}%` : 'plano indisponível'),
       collectorFailed: 'Falha no coletor de uso ({trigger}): {detail}',
       projectMoved: 'Projeto {project} movido pelo painel para a empresa {company}',
+      companyCreated: 'Empresa {company} ({name}) criada pelo painel',
       requestFailed: 'Erro em {method} {url}: {detail}',
       serverError: 'Erro no servidor: {detail}',
       rawPurged: 'Log bruto: {entries} registro(s) e {sessions} sessão(ões) com mais de 90 dias apagados',
@@ -225,7 +228,6 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       tooManyRepos: 'repositórios demais (máximo {max}).',
       invalidRepo: 'URL de repositório inválida: "{value}" (use a URL do "git remote", HTTPS ou SSH).',
       missingCompanyName: 'falta o nome da empresa (--name "<nome>").',
-      companyExists: 'a empresa "{company}" já existe ({name}).',
       unknownCompany: 'a empresa "{company}" não existe (empresas: {known}). Cadastre com: flow company add {company} --name "<nome>".',
       unknownProject: 'o projeto "{project}" não existe (projetos: {known}).',
       projectExists: 'o projeto "{project}" já existe. Para mudá-lo, use: flow project edit {project} ...',
@@ -241,6 +243,12 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
     // reuse unknownCompany and unknownProject above.
     codes: {
       company_reserved: '"Sem empresa" não é destino de mover: ela só recebe os repositórios sem cadastro. Escolha uma empresa cadastrada (flow company list).',
+      // #22: creating a company (and, in #23, renaming one) under the name rule of the store.
+      company_exists: (p) => `a empresa "${p.company}" já existe (${p.name || 'reservada para "Sem empresa"'}).`,
+      company_name_taken: 'o nome "{name}" já é da empresa "{company}" ({company_name}): escolha outro nome (sem diferenciar maiúsculas).',
+      invalid_field: (p) => (p.field === 'name'
+        ? `o nome da empresa precisa ter de 1 a ${p.max} caracteres, numa linha só (os espaços das pontas não contam).`
+        : `id de empresa inválido: "${p.value}" (use letras minúsculas, números e "-", começando por letra ou número, até 80 caracteres).`),
     },
   },
   // bin/install-skills.js (#15)

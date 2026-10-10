@@ -271,7 +271,8 @@ export default {
   },
 
   // Companies and projects (#6): the company selector of the header, the projects in "Sem empresa" and the Companies
-  // screen (#21), whose project lines (ProjectRow) are the same as the "Sem empresa" card's.
+  // screen (#21), whose project lines (ProjectRow) are the same as the "Sem empresa" card's, with its modal "Nova
+  // empresa" (#22, CompanyCreateModal).
   companies: {
     selectorLabel: 'Empresa',
     selectorTitle: 'Mostra só o que é desta empresa nas telas do fluxo (lembrado neste navegador)',
@@ -290,11 +291,28 @@ export default {
     moveFailed: 'Não consegui mover {project}: {message}',
     noTarget: 'Nenhuma empresa cadastrada. Cadastre com: node bin/flow.js company add <id> --name "<nome>".',
     screenNote: 'Esta tela mostra todas as empresas, qualquer que seja a escolha do seletor do topo.',
-    none: 'Nenhuma empresa cadastrada. Cadastre com: node bin/flow.js company add <id> --name "<nome>".',
+    none: 'Nenhuma empresa cadastrada ainda. Crie a primeira pelo botão "Nova empresa", acima.',
     noProjects: 'Nenhum projeto nesta empresa.',
     readFailed: 'Não consegui ler as empresas: {message}',
     filtered: 'Mostrando só {company}.',
     showAll: 'Ver todas',
+    create: {
+      button: 'Nova empresa',
+      title: 'Nova empresa',
+      name: 'Nome',
+      namePlaceholder: 'Ex.: Fabrikam Ltda',
+      nameHint: 'Até 80 caracteres. Não pode repetir o nome de outra empresa, mesmo com outras maiúsculas.',
+      nameTooLong: 'Nome longo demais: {count} caracteres (até {max}).',
+      id: 'Id',
+      idHint: 'Sugerido a partir do nome; pode ser editado agora, mas depois não muda mais. Aparece nos filtros e endereços do painel.',
+      idMissing: 'Não deu para sugerir um id a partir deste nome: escreva um (letras minúsculas, números e hífen).',
+      idInvalid: 'Id fora do formato: use letras minúsculas sem acento, números e hífen, começando por letra ou número, até 80 caracteres.',
+      cancel: 'Cancelar',
+      save: 'Criar empresa',
+      saving: 'Criando…',
+      failed: 'Não consegui criar a empresa: {message}',
+      created: 'Empresa {name} criada.',
+    },
   },
 
   // Workers' reports and maestro's findings of an item (#8, screens/ItemReview.jsx).
@@ -720,10 +738,17 @@ export default {
     // pending decisions (#10) and companies and projects (#6): a filter value outside the allowed ones
     invalid_filter: (c) => `Filtro "${PARAM_NAMES[c.param] || c.param}" inválido: "${c.value}"${Array.isArray(c.allowed) && c.allowed.length ? ` (use ${c.allowed.slice(0, -1).join(', ')}${c.allowed.length > 1 ? ' ou ' : ''}${c.allowed[c.allowed.length - 1]})` : ''}.`,
     json_object_required: 'Corpo inválido: envie um objeto JSON.',
-    invalid_field: 'Campo "{field}" inválido: "{value}".',
+    // #22: the fields of a new company (id and name) are explained; any other field as it is.
+    invalid_field: (c) => (c.field === 'name'
+      ? `Nome inválido: informe de 1 a ${c.max || 80} caracteres, numa linha só.`
+      : c.field === 'id'
+        ? `Id inválido: "${c.value}". Use letras minúsculas sem acento, números e hífen, começando por letra ou número, até 80 caracteres.`
+        : `Campo "${c.field}" inválido: "${c.value}".`),
     company_not_found: 'Empresa não encontrada: {company}. Cadastre com: node bin/flow.js company add.',
     project_not_found: 'Projeto não encontrado: {project}.',
     company_reserved: '"Sem empresa" não é destino de mover: escolha uma empresa cadastrada.',
+    company_exists: (c) => `O id "${c.company}" já é da empresa "${c.name || 'Sem empresa'}": escolha outro.`,
+    company_name_taken: 'O nome "{name}" já é da empresa {company_name} ({company}), sem diferenciar maiúsculas: escolha outro.',
     // merge check (#11)
     merge_check_failed: (c, h) => `Consulta do merge de ${c.tracker_ref || c.item || '?'}${c.item ? ` (${c.item})` : ''} falhou: ${h.display(c.error) || '?'}`,
     merge_check_cli_missing: (c) => `não achei o ${c.cli || toolName(c)} (instalado e no PATH?)`,

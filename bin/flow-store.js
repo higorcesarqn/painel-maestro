@@ -35,6 +35,9 @@ const DB_FILE = 'maestro.db';
 const BUSY_TIMEOUT_MS = 15000;
 const SCHEMA_VERSION = 1;
 const UNASSIGNED_COMPANY = 'unassigned';
+// Ids of companies and projects (lowercase letters, digits and "-", starting with a letter or digit, up to 80).
+const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
+const MAX_COMPANY_NAME = 80;
 const TRACKERS = ['github', 'azure_devops'];
 const STAGES = ['specification', 'implementation', 'final_adjustment', 'pr_ready', 'merge', 'hml_validation', 'done'];
 
@@ -110,6 +113,25 @@ class RegisterError extends Error {
     this.code = error.code;
     this.error = error;
   }
+}
+
+/** A company's name in the register's format: trimmed, 1 to 80 characters on one line (invalid_field, field: name). */
+function companyNameFormat(name) {
+  const s = typeof name === 'string' ? name.trim() : '';
+  if (!s || s.length > MAX_COMPANY_NAME || /[\r\n]/.test(s)) {
+    throw new RegisterError({ code: 'invalid_field', field: 'name', value: String(name ?? '').slice(0, 100), max: MAX_COMPANY_NAME });
+  }
+  return s;
+}
+
+/**
+ * The fields of a new company in the register's format, without a database (#22): the id (invalid_field, field: id)
+ * and the name (companyNameFormat), trimmed. The panel checks a POST with it before creating maestro.db.
+ */
+function companyFields({ id, name }) {
+  const companyId = typeof id === 'string' ? id.trim() : '';
+  if (!RE_ID.test(companyId)) throw new RegisterError({ code: 'invalid_field', field: 'id', value: String(id ?? '').slice(0, 100) });
+  return { id: companyId, name: companyNameFormat(name) };
 }
 
 const isBusy = (e) => e && (e.errcode === 5 || e.errcode === 6 || /database is locked|SQLITE_BUSY/i.test(String(e.message)));
@@ -286,9 +308,31 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     companies() {
       return db.prepare('SELECT id, name, created_at FROM companies ORDER BY id').all().map((c) => ({ id: c.id, name: c.name, created_at: c.created_at }));
     },
+    /**
+     * The rule of a company's name (#22; renaming reuses it with exceptId, the company being renamed): required,
+     * trimmed, 1 to 80 characters on one line (invalid_field, field: name) and unique ignoring case among the other
+     * companies (company_name_taken, with the company that uses it). There is no unique index: a database that already
+     * has repeated names keeps working, and the rule holds for the next writes. Returns the trimmed name.
+     */
+    companyName(name, exceptId = null) {
+      const s = companyNameFormat(name);
+      const key = s.toLowerCase();
+      const other = store.companies().find((c) => c.id !== exceptId && c.name.toLowerCase() === key);
+      if (other) throw new RegisterError({ code: 'company_name_taken', name: s, company: other.id, company_name: other.name });
+      return s;
+    },
+    /**
+     * New company: both fields in the register's format (companyFields), the id free (company_exists; "unassigned" is
+     * always taken, it is "Sem empresa"'s even before a repository lands there) and the name under companyName's rule.
+     * The id never changes afterwards.
+     */
     addCompany({ id, name, at }) {
-      db.prepare('INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)').run(id, name, at);
-      return store.company(id);
+      const { id: companyId } = companyFields({ id, name });
+      const existing = store.company(companyId);
+      if (existing || companyId === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_exists', company: companyId, name: existing ? existing.name : undefined });
+      const companyName = store.companyName(name);
+      db.prepare('INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)').run(companyId, companyName, at);
+      return store.company(companyId);
     },
     /** Normalized remotes of a project, in alphabetical order. */
     projectRepos(projectId) {
@@ -407,5 +451,5 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
 }
 
 module.exports = {
-  openStore, projectEventsByItem, flowDir, RegisterError, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite, retryBusy, transaction,
+  openStore, projectEventsByItem, flowDir, RegisterError, RE_ID, companyFields, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite, retryBusy, transaction,
 };
