@@ -233,7 +233,8 @@ function usageKpi(usageFile, t, warnings) {
  * The menu counter: open pending decisions of every organization, by severity (computed from the events, #10), and
  * the open ones themselves (#45), every one, the most urgent first, in the Overview's summary shape: the page's
  * browser notification compares their ids between reads. An unreadable maestro.db counts nothing: the health badge
- * already says why (database_unreadable).
+ * already says why (database_unreadable); its list is null, unknown: an empty one would read as "all closed", and the
+ * page would notify every open one again on the next good read.
  */
 function pendingKpi(items) {
   let counts;
@@ -242,10 +243,10 @@ function pendingKpi(items) {
     ({ counts, pending_decisions: open } = pendingApi.listPendingDecisions(items, new URLSearchParams({ status: 'open' })));
   } catch (_) {
     counts = { severity: { critical: 0, high: 0, normal: 0, low: 0 } };
-    open = [];
+    open = null;
   }
   const bySeverity = { ...counts.severity };
-  return { total: Object.values(bySeverity).reduce((n, x) => n + x, 0), by_severity: bySeverity, open: open.map(overviewApi.pendingSummary) };
+  return { total: Object.values(bySeverity).reduce((n, x) => n + x, 0), by_severity: bySeverity, open: open && open.map(overviewApi.pendingSummary) };
 }
 
 /**

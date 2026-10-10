@@ -138,6 +138,16 @@ suite.test('without maestro.db, open is an empty list', async () => {
   assert.deepStrictEqual((await get('/api/state')).kpis.pending_decisions, { total: 0, by_severity: { critical: 0, high: 0, normal: 0, low: 0 }, open: [] });
 });
 
+suite.test('with an unreadable maestro.db, open is null (unknown), never an empty list the page would take for "all closed"', async () => {
+  const r = buildRoot('unreadable');
+  fs.mkdirSync(r.data, { recursive: true });
+  fs.writeFileSync(path.join(r.data, 'maestro.db'), 'isto não é um banco SQLite '.repeat(100));
+  const get = await start(r);
+  const state = await get('/api/state');
+  assert.deepStrictEqual(state.kpis.pending_decisions, { total: 0, by_severity: { critical: 0, high: 0, normal: 0, low: 0 }, open: null });
+  assert.ok(state.health.reasons.some((x) => x.code === 'database_unreadable'), 'the health badge says why');
+});
+
 suite.run().finally(() => {
   for (const pid of pids) kill(pid);
   if (!process.env.KEEP_TMP) for (const d of roots) remove(d);

@@ -902,7 +902,10 @@ function findPending(store, project, id) {
   throw new InvalidData('pending.errors.notFound', { id, project: project.id });
 }
 
-/** The item of a pending open, checked: it was started and has the task. { key, ref } of the item. */
+/**
+ * Everything of a pending open that can be refused, checked before the owner is told: the item was started and has the
+ * task, and where to answer is valid. { key, ref } of the item and maestri: { workspace, terminal }.
+ */
 function checkPendingOpen(store, cmd, project) {
   const key = `${project.id}/${cmd.number}`;
   const ref = trackerRef(project.tracker, cmd.number);
@@ -911,7 +914,7 @@ function checkPendingOpen(store, cmd, project) {
   if (cmd.task !== null && !item.tasks.some((x) => x.number === cmd.task)) {
     throw new InvalidData('errors.taskNotInItem', { key, task: cmd.task, tasks: item.tasks.map((x) => x.number).join(', ') });
   }
-  return { key, ref };
+  return { key, ref, maestri: answerIn(cmd, project) };
 }
 
 /**
@@ -930,7 +933,7 @@ function openPending(store, cmd, origin, at) {
   const notification = !inside ? 'outside' : told.ok ? 'sent' : 'failed';
   let id = null;
   lines.push(...withProject(store, origin, at, (project) => {
-    const maestri = answerIn(cmd, project);
+    const { key, ref, maestri } = where;
     id = store.appendEvent({
       at, projectId: project.id, itemNumber: cmd.number, taskNumber: cmd.task, agentRole: cmd.agentRole, agentName: cmd.agentName,
       source: SOURCE, type: EVENT_TYPES.pendingDecisionOpened,
@@ -939,7 +942,7 @@ function openPending(store, cmd, origin, at) {
         recommendation: cmd.recommendation, maestri, notification,
       },
     });
-    return [t('pending.done.opened', { id, ...where, task: cmd.task, kind: cmd.pendingKind, ...maestri })];
+    return [t('pending.done.opened', { id, key, ref, task: cmd.task, kind: cmd.pendingKind, ...maestri })];
   }));
   for (const l of lines) lib.print(l);
   if (told && !told.ok) process.stderr.write(`${t('pending.notify.failed', { id, detail: told.detail })}\n`);

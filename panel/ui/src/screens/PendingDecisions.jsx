@@ -5,9 +5,9 @@
 // note on when the maestro learns of it and, below, the workspace and the terminal of the maestro in the Maestri, the
 // other way to answer; for a closed one, the dates and who closed it. A discreet line under the title of an open one
 // says when the Maestri's notification failed as it opened (#44, notification 'failed'; nothing once closed, nor for
-// the others or the older ones). Reads GET /api/pending-decisions every 20 s; each
-// column scrolls inside. The organization comes from the selector at the top of the panel (#6, organizationFilter), like
-// in the other screens of the new model.
+// the others or the older ones). Reads GET /api/pending-decisions every 20 s; each column scrolls inside. The
+// organization comes from the selector at the top of the panel (#6, organizationFilter), like in the other screens of
+// the new model.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
 import { REFRESH_MS, readPendingDecisions, answerPendingDecision } from '../data/api.js';
@@ -67,7 +67,7 @@ export function PendingDecisions() {
     try {
       const answer = await readPendingDecisions(query);
       if (mine !== seq.current) return;
-      setRead({ answer, error: null });
+      setRead({ answer, error: null, seq: mine });
       const open = shownOpen.current;
       if (open && open.query === JSON.stringify(query)) {
         const now = objs(answer && answer.pending_decisions).find((p) => p.id === open.id);
@@ -117,18 +117,28 @@ export function PendingDecisions() {
   };
   onClosed.current = closedMeanwhile;
 
-  // Coming from a link to a pending decision (the Overview): shows it when it is in the list.
+  // Coming from a link to a pending decision (the Overview, a browser notification): reads the list again and shows it
+  // when it is there. The link may be newer than the list on screen, or come before the first read (the screen was just
+  // opened), so the lookup waits for a read started after the link.
+  const targetRead = useRef(null);
   useEffect(() => {
     if (!pendingTarget) return;
-    const hit = list.find((p) => ref(p) === pendingTarget.id || String(p.id) === String(pendingTarget.id));
-    if (!hit) { setActionStatus(t('pending.notInList', { id: pendingTarget.id })); return; }
+    load();
+    targetRead.current = { target: pendingTarget, seq: seq.current };
+  }, [pendingTarget]);
+  useEffect(() => {
+    const wait = targetRead.current;
+    if (!wait || !(read.seq >= wait.seq)) return;
+    targetRead.current = null;
+    const hit = list.find((p) => ref(p) === wait.target.id || String(p.id) === String(wait.target.id));
+    if (!hit) { setActionStatus(t('pending.notInList', { id: wait.target.id })); return; }
     setChosen(hit.id);
     requestAnimationFrame(() => {
       const el = document.getElementById(domId(hit));
       if (el) el.scrollIntoView({ block: 'nearest' });
       if (detail.current) detail.current.focus({ preventScroll: true });
     });
-  }, [pendingTarget]);
+  }, [read]);
 
   const change = (f) => { setFilters((x) => ({ ...x, ...f })); setChosen(null); };
   const statusOptions = [...STATUSES, 'all'].map((s) => ({ id: s, name: s === 'all' ? t('pending.allStatuses') : statusName(s), n: s === 'all' ? undefined : number(byStatus[s] || 0) }));

@@ -141,6 +141,8 @@ suite.test('inside a Maestri terminal, pending open runs "maestri notify" with t
   // Nothing recorded, no one told.
   invalid(flow(r, ['pending', 'open', '99', '--kind', 'decision', '--title', 'Item que não existe'], { extra: INSIDE }), /99/);
   invalid(flow(r, ['pending', 'open', '12', '--task', '77', '--kind', 'decision', '--title', 'Task que não existe'], { extra: INSIDE }), /77/);
+  // Where to answer is checked before the notification too: the owner is never told of one that was not recorded.
+  invalid(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Terminal com quebra'], { extra: { ...INSIDE, MAESTRI_TERMINAL_NAME: 'Maestro\n12' } }), /maestri/);
   const calls = maestriCalls(r);
   assert.deepStrictEqual(calls.slice(0, 2), [
     ['notify', 'Pendência nova (alta): revisão de task no item widgets/12 (#12), task 13. Revisar a task 13'],

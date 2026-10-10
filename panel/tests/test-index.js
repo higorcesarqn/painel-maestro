@@ -500,6 +500,12 @@ suite.test('browser notification (#45): the bell\'s states, the notification\'s 
   assert.ok(/pendingNotice\(/.test(app) && /document\.visibilityState === 'visible'/.test(app), 'the shell asks the rule at each read, with the tab\'s visibility');
   assert.ok(/tag: content\.tag/.test(app), 'the tag goes to the notification');
   assert.ok(/window\.focus\(\)/.test(app) && /goToPendingDecision\(content\.target\)/.test(app) && /goTo\('pending'\)/.test(app), 'the click focuses the tab and opens the pending decision (or the list)');
+  // The Pendências screen looks for the linked one only in a read started after the link: the screen may have just
+  // opened (no list yet), or its list may be older than the pending decision the notification announces.
+  const pendingScreen = source['screens/PendingDecisions.jsx'];
+  assert.ok(/setRead\(\{ answer, error: null, seq: mine \}\)/.test(pendingScreen), 'each read keeps its number');
+  assert.ok(/if \(!pendingTarget\) return;\s+load\(\);\s+targetRead\.current = \{ target: pendingTarget, seq: seq\.current \};/.test(pendingScreen), 'the link reads the list again');
+  assert.ok(/read\.seq >= wait\.seq/.test(pendingScreen) && /\}, \[read\]\);/.test(pendingScreen), 'the lookup waits for that read');
   assert.ok(/Notification\.requestPermission/.test(app) && /onClick=\{toggleBell\}/.test(source['app/Header.jsx']), 'the permission comes only from the bell\'s click');
   const storage = source['data/notification.js'];
   assert.ok(/localStorage\.getItem/.test(storage) && /localStorage\.setItem/.test(storage) && (storage.match(/try \{/g) || []).length >= 2, 'the choice is remembered, in a try/catch');
