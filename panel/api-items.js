@@ -6,10 +6,9 @@
 // of an item is "<project>/<number>". No sentences: errors are codes (ADR 0004).
 const path = require('path');
 
-const { openStore, flowDir } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { openStore, flowDir, RE_ID } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 const { projectItem, trackerRef } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
 
-const RE_PROJECT = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const RE_NUMBER = /^[1-9]\d{0,8}$/;
 
 /**
@@ -118,7 +117,7 @@ function parseItemPath(projectText, numberText) {
   } catch (_) {
     return null;
   }
-  if (!RE_PROJECT.test(project) || !RE_NUMBER.test(numberText)) return null;
+  if (!RE_ID.test(project) || !RE_NUMBER.test(numberText)) return null;
   return { project, number: Number(numberText) };
 }
 

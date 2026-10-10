@@ -68,7 +68,7 @@ const DEFAULT_STALE_HOURS = 48;               // Overview (#14): PANEL_STALE_HOU
 const RAW_PURGE_INTERVAL_MS = DAY_MS;          // bruto.db: entries older than 90 days leave once a day
 // index.html is a single file (embedded CSS and JS); nothing external is loaded.
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (POST /api/companies, POST /api/projects/<id>/company)
+const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (POST /api/companies, .../<id>/rename, POST /api/projects/<id>/company)
 const JSON_TYPE = 'application/json; charset=utf-8';
 const HTML_TYPE = 'text/html; charset=utf-8';
 const USAGE_FILE = 'state/usage.json';         // written by the usage collector, relative to MAESTRO_DIR
@@ -412,8 +412,8 @@ function findRoute(urlPath) {
 }
 
 async function route(ctx, req, res) {
-  // Only POST /api/companies and POST /api/projects/<id>/company read the body (a POST that reads JSON gets up to 16 KB);
-  // the rest is discarded, capped at 1 MB.
+  // Only POST /api/companies, POST /api/companies/<id>/rename and POST /api/projects/<id>/company read the body (a POST
+  // that reads JSON gets up to 16 KB); the rest is discarded, capped at 1 MB.
   let received = 0;
   const parts = [];
   const body = new Promise((resolve) => {

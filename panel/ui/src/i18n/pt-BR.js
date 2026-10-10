@@ -290,7 +290,7 @@ export default {
     moving: 'Movendo…',
     moved: 'Projeto {project} movido para {company}.',
     moveFailed: 'Não consegui mover {project}: {message}',
-    noTarget: 'Nenhuma empresa cadastrada. Cadastre com: node bin/flow.js company add <id> --name "<nome>".',
+    noTarget: 'Nenhuma empresa cadastrada para receber os projetos. Crie uma pelo botão "Nova empresa" da tela Empresas (ou pelo CLI: node bin/flow.js company add <id> --name "<nome>").',
     screenNote: 'Esta tela mostra todas as empresas, qualquer que seja a escolha do seletor do topo.',
     none: 'Nenhuma empresa cadastrada ainda. Crie a primeira pelo botão "Nova empresa", acima.',
     noProjects: 'Nenhum projeto nesta empresa.',

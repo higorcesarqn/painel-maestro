@@ -13,7 +13,7 @@
 // route (a code without one is a 500). No sentences: errors are codes (ADR 0004).
 const path = require('path');
 
-const { UNASSIGNED_COMPANY, STAGES, TRACKERS, RE_ID, RegisterError, companyFields } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { UNASSIGNED_COMPANY, STAGES, TRACKERS, RE_ID, RegisterError, companyFields, notReserved } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 const { listItems, projectInfo } = require(path.join(__dirname, 'api-items.js'));
 
 class ProjectsError extends Error {
@@ -148,23 +148,31 @@ function createCompany(source, body, at) {
 /**
  * Renames a company (#23; the rules are the store's renameCompany, with companyName's rule for the name). body: the
  * raw JSON body ({ name }). Returns { company } as GET /api/companies lists it and from, the name it had (for the
- * server's log); without maestro.db there is none (404 company_not_found, and nothing is created).
+ * server's log); without maestro.db there is none (404 company_not_found, and nothing is created), but "Sem empresa"
+ * is reserved all the same (400 company_reserved).
  */
 function renameCompany(source, companyId, body) {
   const input = jsonObject(body);
   const store = source.store();
-  if (!store) throw new ProjectsError(RENAME_STATUS.company_not_found, { code: 'company_not_found', company: companyId });
+  if (!store) {
+    underRules(RENAME_STATUS, () => notReserved(companyId));
+    throw new ProjectsError(RENAME_STATUS.company_not_found, { code: 'company_not_found', company: companyId });
+  }
   const c = underRules(RENAME_STATUS, () => store.transaction(() => store.renameCompany(companyId, input.name)));
   return { company: companySummary(c, store.projects(), itemCounts(source)), from: c.from };
 }
 
 /**
  * Removes a company without projects (#24; the rules are the store's removeCompany). Returns the removed company
- * ({ id, name, created_at }); without maestro.db there is none (404 company_not_found, and nothing is created).
+ * ({ id, name, created_at }); without maestro.db there is none (404 company_not_found, and nothing is created), but
+ * "Sem empresa" is reserved all the same (400 company_reserved).
  */
 function removeCompany(source, companyId) {
   const store = source.store();
-  if (!store) throw new ProjectsError(REMOVE_STATUS.company_not_found, { code: 'company_not_found', company: companyId });
+  if (!store) {
+    underRules(REMOVE_STATUS, () => notReserved(companyId));
+    throw new ProjectsError(REMOVE_STATUS.company_not_found, { code: 'company_not_found', company: companyId });
+  }
   return underRules(REMOVE_STATUS, () => store.transaction(() => store.removeCompany(companyId)));
 }
 

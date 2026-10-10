@@ -322,6 +322,12 @@ suite.test('the panel creates a company (POST /api/companies) under the name rul
     for (const body of ['[1]', { id: 'Bad Id', name: 'Contoso' }, { id: 'contoso', name: ' ' }]) {
       assert.strictEqual((await create(body)).status, 400, JSON.stringify(body));
     }
+    // "Sem empresa"'s id and name are taken before maestro.db exists too: refused without creating it.
+    const reservedId = await create({ id: 'unassigned', name: 'Outra' });
+    assert.deepStrictEqual([reservedId.status, reservedId.json], [409, { error: { code: 'company_exists', company: 'unassigned' } }]);
+    const reservedName = await create({ id: 'fabrikam', name: 'SEM EMPRESA' });
+    assert.deepStrictEqual([reservedName.status, reservedName.json],
+      [409, { error: { code: 'company_name_taken', name: 'SEM EMPRESA', company: 'unassigned', company_name: 'Sem empresa' } }]);
     assert.ok(!fs.existsSync(path.join(r.data, 'maestro.db')), 'an invalid POST does not create maestro.db');
     assert.deepStrictEqual(await ids(), [], 'nothing created by a refused POST');
     // The creation, from the page's origin: 201 with the company as GET /api/companies lists it; the name is trimmed.
@@ -368,6 +374,11 @@ suite.test('the panel creates a company (POST /api/companies) under the name rul
   invalid(flow(r, ['company', 'add', 'fabrikam', '--name', '   ']), /o nome da empresa precisa ter de 1 a 80 caracteres/);
   invalid(flow(r, ['company', 'add', 'unassigned', '--name', 'Outra']), /a empresa "unassigned" já existe \(reservada para "Sem empresa"\)/);
   assert.ok(/Empresa "fabrikam" \(Fabrikam\) cadastrada/.test(ok(flow(r, ['company', 'add', 'fabrikam', '--name', '  Fabrikam ']))));
+  // The same letters in another Unicode form (a combining accent, NFD) are the same name.
+  ok(flow(r, ['company', 'add', 'cafe', '--name', 'Caf\u00e9']));
+  invalid(flow(r, ['company', 'add', 'cafe-2', '--name', 'CAFE\u0301']), /já é da empresa "cafe"/);
+  invalid(flow(r, ['company', 'rename', 'fabrikam', '--name', 'cafe\u0301']), /já é da empresa "cafe"/);
+  ok(flow(r, ['company', 'remove', 'cafe']));
   // The company the panel created is a company like the others for the CLI.
   ok(flow(r, ['project', 'add', 'shop', '--company', 'contoso', '--repo', 'https://github.com/contoso/shop']));
   await withServer(r, async ({ get }) => {
@@ -383,6 +394,9 @@ suite.test('the panel and the CLI remove an empty company only (POST /api/compan
   await withServer(r, async ({ port }) => {
     const x = await request(port, '/api/companies/contoso/remove', { method: 'POST', headers: { 'X-Panel': '1' } });
     assert.deepStrictEqual([x.status, x.json], [404, { error: { code: 'company_not_found', company: 'contoso' } }]);
+    // "Sem empresa" is reserved even before the database exists (as the CLI, which creates it, says).
+    const reserved = await request(port, '/api/companies/unassigned/remove', { method: 'POST', headers: { 'X-Panel': '1' } });
+    assert.deepStrictEqual([reserved.status, reserved.json], [400, { error: { code: 'company_reserved', company: 'unassigned' } }]);
   });
   assert.ok(!fs.existsSync(path.join(r.data, 'maestro.db')), 'a refused removal does not create maestro.db');
   for (const [id, name] of [['contoso', 'Contoso'], ['fabrikam', 'Fabrikam'], ['personal', 'Pessoal'], ['northwind', 'Northwind']]) {
@@ -459,6 +473,11 @@ suite.test('the panel and the CLI rename a company (POST /api/companies/<id>/ren
       method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Contoso' }),
     });
     assert.deepStrictEqual([x.status, x.json], [404, { error: { code: 'company_not_found', company: 'contoso' } }]);
+    // "Sem empresa" is reserved even before the database exists (as the CLI, which creates it, says).
+    const reserved = await request(port, '/api/companies/unassigned/rename', {
+      method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Outra' }),
+    });
+    assert.deepStrictEqual([reserved.status, reserved.json], [400, { error: { code: 'company_reserved', company: 'unassigned' } }]);
   });
   assert.ok(!fs.existsSync(path.join(r.data, 'maestro.db')), 'a refused rename does not create maestro.db');
   ok(flow(r, ['company', 'add', 'contoso', '--name', 'Contoso']));
@@ -566,6 +585,11 @@ suite.test('"Sem empresa" is never the company of a new project: flow project ad
   invalid(flow(r, ['project', 'add', 'shop', '--company', 'nobody', '--repo', 'https://github.com/contoso/shop']), /a empresa "nobody" não existe .*Cadastre com: flow company add nobody/);
   ok(flow(r, ['company', 'add', 'contoso', '--name', 'Contoso']));
   ok(flow(r, ['project', 'add', 'shop', '--company', 'contoso', '--repo', 'https://github.com/contoso/shop']));
+  // project edit checks the new company first, as project add does, before the repositories.
+  invalid(flow(r, ['project', 'edit', 'shop', '--company', 'nobody', '--repo', 'https://github.com/higor/scratch']), /a empresa "nobody" não existe/);
+  invalid(flow(r, ['project', 'edit', 'shop', '--company', 'unassigned', '--repo', 'https://github.com/higor/scratch']), reserved);
+  // A filter of project list by an unknown company only lists the companies (no "Cadastre com").
+  invalid(flow(r, ['project', 'list', '--company', 'nobody']), /a empresa "nobody" não existe \(empresas: contoso, unassigned\)\.\s*$/);
   await withServer(r, async ({ get }) => {
     assert.deepStrictEqual((await get('/api/projects')).projects.map((p) => [p.id, p.company.id, p.repos]),
       [['scratch', 'unassigned', ['github.com/higor/scratch']], ['shop', 'contoso', ['github.com/contoso/shop']]]);

@@ -143,9 +143,9 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
   const unknownCompanyError = (store, companyId, key = 'unknownCompany') => fail(key, { company: companyId, known: store.companies().map((x) => x.id).join(', ') || '-' });
   const unknownProjectError = (store, projectId) => fail('unknownProject', { project: projectId, known: store.projects().map((x) => x.id).join(', ') || '-' });
 
-  function needCompany(store, companyId) {
+  function needCompany(store, companyId, key) {
     const c = store.company(companyId);
-    if (!c) throw unknownCompanyError(store, companyId);
+    if (!c) throw unknownCompanyError(store, companyId, key);
     return c;
   }
 
@@ -222,6 +222,8 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
 
   function projectEdit(store, cmd) {
     const p = needProject(store, cmd.id);
+    // The new company first (the store's rule, as in project add), before the repositories.
+    if (cmd.company !== undefined) store.projectCompany(cmd.company);
     const projectTracker = cmd.tracker || p.tracker;
     const current = store.projectRepos(p.id);
     const remaining = current.filter((r) => !cmd.removeRepos.includes(r));
@@ -251,7 +253,8 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
   }
 
   function listProjects(store, cmd) {
-    if (cmd.company) needCompany(store, cmd.company);
+    // A filter, not a register: an unknown company only lists the companies (no "Cadastre com", never for "Sem empresa").
+    if (cmd.company) needCompany(store, cmd.company, 'companyNotFound');
     const projects = store.projects().filter((p) => !cmd.company || p.company_id === cmd.company);
     if (!projects.length) return [t('admin.done.noProjects')];
     return projects.flatMap((p) => describeProject(store, p));

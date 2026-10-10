@@ -128,14 +128,35 @@ function companyNameFormat(name) {
   return s;
 }
 
+/** The key two company names are compared by: the same letters (Unicode NFC) ignoring case. */
+const nameKey = (name) => name.normalize('NFC').toLowerCase();
+
+/** The company { id, name } that holds a name without a database: "Sem empresa", for its own name (P-18, #20); else null. */
+const reservedNameOwner = (name) => (nameKey(name) === nameKey(UNASSIGNED_NAME) ? { id: UNASSIGNED_COMPANY, name: UNASSIGNED_NAME } : null);
+
 /**
- * The fields of a new company in the register's format, without a database (#22): the id (invalid_field, field: id)
- * and the name (companyNameFormat), trimmed. The panel checks a POST with it before creating maestro.db.
+ * "Sem empresa" is reserved, without a database: it is never renamed, removed or the company of a registered project
+ * (company_reserved, even before a repository lands there). The panel checks a POST with it before maestro.db exists.
+ */
+function notReserved(companyId) {
+  if (companyId === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_reserved', company: companyId });
+  return companyId;
+}
+
+/**
+ * The fields of a new company in the register's format, without a database (#22): the id (invalid_field, field: id;
+ * "unassigned" is always taken, company_exists) and the name (companyNameFormat; the name of "Sem empresa" is always
+ * taken, company_name_taken), trimmed. The panel checks a POST with it before creating maestro.db, so a refused POST
+ * never creates it.
  */
 function companyFields({ id, name }) {
   const companyId = typeof id === 'string' ? id.trim() : '';
   if (!RE_ID.test(companyId)) throw new RegisterError({ code: 'invalid_field', field: 'id', value: String(id ?? '').slice(0, 100) });
-  return { id: companyId, name: companyNameFormat(name) };
+  if (companyId === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_exists', company: companyId });
+  const companyName = companyNameFormat(name);
+  const reserved = reservedNameOwner(companyName);
+  if (reserved) throw new RegisterError({ code: 'company_name_taken', name: companyName, company: reserved.id, company_name: reserved.name });
+  return { id: companyId, name: companyName };
 }
 
 const isBusy = (e) => e && (e.errcode === 5 || e.errcode === 6 || /database is locked|SQLITE_BUSY/i.test(String(e.message)));
@@ -327,28 +348,28 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     },
     /**
      * The rule of a company's name (#22; renaming reuses it with exceptId, the company being renamed): required,
-     * trimmed, 1 to 80 characters on one line (invalid_field, field: name) and unique ignoring case among the other
-     * companies, the name of "Sem empresa" included (company_name_taken, with the company that uses it). There is no unique index: a database that already
-     * has repeated names keeps working, and the rule holds for the next writes. Returns the trimmed name.
+     * trimmed, 1 to 80 characters on one line (invalid_field, field: name) and unique ignoring case (nameKey) among
+     * the other companies, the name of "Sem empresa" included (company_name_taken, with the company that uses it).
+     * There is no unique index: a database that already has repeated names keeps working, and the rule holds for the
+     * next writes. Returns the trimmed name.
      */
     companyName(name, exceptId = null) {
       const s = companyNameFormat(name);
-      const key = s.toLowerCase();
+      const key = nameKey(s);
       // The name of "Sem empresa" is taken even before a repository lands there.
-      const other = store.companies().find((c) => c.id !== exceptId && c.name.toLowerCase() === key)
-        || (key === UNASSIGNED_NAME.toLowerCase() ? { id: UNASSIGNED_COMPANY, name: UNASSIGNED_NAME } : null);
+      const other = store.companies().find((c) => c.id !== exceptId && nameKey(c.name) === key) || reservedNameOwner(s);
       if (other) throw new RegisterError({ code: 'company_name_taken', name: s, company: other.id, company_name: other.name });
       return s;
     },
     /**
-     * New company: both fields in the register's format (companyFields), the id free (company_exists; "unassigned" is
-     * always taken, it is "Sem empresa"'s even before a repository lands there) and the name under companyName's rule.
+     * New company: both fields in the register's format (companyFields, with "Sem empresa"'s id and name always taken),
+     * the id free (company_exists) and the name under companyName's rule.
      * The id never changes afterwards.
      */
     addCompany({ id, name, at }) {
       const { id: companyId } = companyFields({ id, name });
       const existing = store.company(companyId);
-      if (existing || companyId === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_exists', company: companyId, name: existing ? existing.name : undefined });
+      if (existing) throw new RegisterError({ code: 'company_exists', company: companyId, name: existing.name });
       const companyName = store.companyName(name);
       db.prepare('INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)').run(companyId, companyName, at);
       return store.company(companyId);
@@ -360,7 +381,7 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
      * accepted. The projects read the name from here (no copy), so every answer shows the new one.
      */
     renameCompany(id, name) {
-      if (id === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_reserved', company: id });
+      notReserved(id);
       const before = store.company(id);
       if (!before) throw new RegisterError({ code: 'company_not_found', company: id });
       const companyName = store.companyName(name, id);
@@ -374,7 +395,7 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
      * out of date never leaves a project without its company.
      */
     removeCompany(id) {
-      if (id === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_reserved', company: id });
+      notReserved(id);
       const c = store.company(id);
       if (!c) throw new RegisterError({ code: 'company_not_found', company: id });
       const { n } = db.prepare('SELECT COUNT(*) AS n FROM projects WHERE company_id = ?').get(id);
@@ -417,7 +438,7 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
      * company_not_found).
      */
     projectCompany(companyId) {
-      if (companyId === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_reserved', company: companyId });
+      notReserved(companyId);
       const c = store.company(companyId);
       if (!c) throw new RegisterError({ code: 'company_not_found', company: companyId });
       return c;
@@ -506,5 +527,5 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
 }
 
 module.exports = {
-  openStore, projectEventsByItem, flowDir, RegisterError, RE_ID, companyFields, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite, retryBusy, transaction,
+  openStore, projectEventsByItem, flowDir, RegisterError, RE_ID, companyFields, notReserved, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite, retryBusy, transaction,
 };
