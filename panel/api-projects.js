@@ -2,13 +2,14 @@
 // api-projects.js · companies and projects of the new model (#6), from maestro.db (bin/flow-store.js):
 //   GET  /api/companies                    → { companies: [{ id, name, unassigned, project_count, item_count }] }
 //   POST /api/companies {id, name}         → 201 { company } (creates a company, #22; one element of GET /api/companies)
+//   POST /api/companies/<id>/remove        → { removed: <id> } (removes a company without projects, #24)
 //   GET  /api/projects[?company=<id>]      → { projects: [{ id, name, tracker, company: {id, name}, unassigned, repos,
 //                                                           stages, done_state, maestri_workspace, created_at, item_count }] }
 //   POST /api/projects/<id>/company {company} → { project } (moves the project to another company, never to "Sem empresa")
-// The panel writes the register of companies (create, #22) and moves a project, which is how a repository that landed
-// in "Sem empresa" gets its company; registering and editing projects stays with the CLI (flow project). The rules are
-// the store's (RegisterError, bin/flow-store.js): this file only gives each code its HTTP status, per route (a code
-// without one is a 500). No sentences: errors are codes (ADR 0004).
+// The panel writes the register of companies (create, #22; remove, #24) and moves a project, which is how a repository
+// that landed in "Sem empresa" gets its company; registering and editing projects stays with the CLI (flow project).
+// The rules are the store's (RegisterError, bin/flow-store.js): this file only gives each code its HTTP status, per
+// route (a code without one is a 500). No sentences: errors are codes (ADR 0004).
 const path = require('path');
 
 const { UNASSIGNED_COMPANY, STAGES, TRACKERS, RE_ID, RegisterError, companyFields } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
@@ -25,6 +26,7 @@ class ProjectsError extends Error {
 // HTTP status of each code of the store's register rules, per route. In a move the company comes in the body (400).
 const MOVE_STATUS = { project_not_found: 404, company_not_found: 400, company_reserved: 400 };
 const CREATE_STATUS = { invalid_field: 400, company_exists: 409, company_name_taken: 409 };
+const REMOVE_STATUS = { company_reserved: 400, company_not_found: 404, company_not_empty: 409 };
 
 /** fn() under the store's rules: a RegisterError with a status in statuses becomes that HTTP answer (else a 500). */
 function underRules(statuses, fn) {
@@ -141,6 +143,16 @@ function createCompany(source, body, at) {
   return { company: companySummary(c, store.projects(), itemCounts(source)) };
 }
 
+/**
+ * Removes a company without projects (#24; the rules are the store's removeCompany). Returns the removed company
+ * ({ id, name, created_at }); without maestro.db there is none (404 company_not_found, and nothing is created).
+ */
+function removeCompany(source, companyId) {
+  const store = source.store();
+  if (!store) throw new ProjectsError(REMOVE_STATUS.company_not_found, { code: 'company_not_found', company: companyId });
+  return underRules(REMOVE_STATUS, () => store.transaction(() => store.removeCompany(companyId)));
+}
+
 /** Moves a project to a company. body: the raw JSON body ({ company }). */
 function moveProject(source, projectId, body) {
   const input = jsonObject(body);
@@ -151,8 +163,8 @@ function moveProject(source, projectId, body) {
   return underRules(MOVE_STATUS, () => store.transaction(() => ({ project: projectDetail(store, store.moveProject(projectId, company), itemCounts(source)) })));
 }
 
-/** Route of a project: the decoded id, or null. */
-function parseProjectId(text) {
+/** Id in the route of a project or a company (both share the register's format, RE_ID): the decoded id, or null. */
+function parseRegisterId(text) {
   let id;
   try {
     id = decodeURIComponent(text);
@@ -162,4 +174,4 @@ function parseProjectId(text) {
   return RE_ID.test(id) ? id : null;
 }
 
-module.exports = { listCompanies, listProjects, filterItems, createCompany, moveProject, parseProjectId, ProjectsError };
+module.exports = { listCompanies, listProjects, filterItems, createCompany, removeCompany, moveProject, parseRegisterId, ProjectsError };

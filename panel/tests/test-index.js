@@ -78,6 +78,7 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
     "api(withQuery('/api/pending-decisions', params))", "api(withQuery('/api/items', filters))",
     'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', "api(withQuery('/api/log', params))", 'api(`/api/log/${encodeURIComponent(id)}`)',
     "api('/api/companies')", "api(withQuery('/api/projects', filters))",
+    "api(`/api/companies/${encodeURIComponent(id)}/remove`, { method: 'POST' })",
     "api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } })",
     "api(withQuery('/api/usage', filters))", "api(withQuery('/api/agents', filters))", "api(withQuery('/api/overview', filters))"]) {
     assert.ok(api.includes(route), `the page calls ${route}`);
@@ -88,7 +89,7 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   }
   // Nothing of the old model: no events/flows routes, no Brain.
   for (const old of ['/api/events', '/api/event/', '/api/flow/', '/api/brain']) assert.ok(!js.includes(old), `the build still calls ${old}`);
-  const allowed = /^\/api\/(state|recalculate|pending-decisions|items|items\/|log|log\/|companies|projects|projects\/|usage|agents|overview)$/;
+  const allowed = /^\/api\/(state|recalculate|pending-decisions|items|items\/|log|log\/|companies|companies\/|projects|projects\/|usage|agents|overview)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
   assert.ok(!/new URLSearchParams\(\)/.test(api.replace(/export function withQuery[\s\S]*?\r?\n}\r?\n/, '')), 'every query string goes through withQuery');
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
@@ -210,7 +211,7 @@ suite.test('companies (#6): the demo has two companies and "Pessoal" with GitHub
   assert.ok(js.includes('painel-maestro.company'));
 });
 
-suite.test('Companies screen (#21): in the menu, sharing the project line with "Sem empresa"; the mock refuses "Sem empresa" as a destination', async () => {
+suite.test('Companies screen (#21): in the menu, sharing the project line with "Sem empresa"; the mock refuses "Sem empresa" as a destination and removes only an empty company', async () => {
   const { SCREENS, parseHash } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
   assert.ok(SCREENS.some((s) => s.id === 'companies' && s.group === 'workspace'));
   assert.deepStrictEqual(parseHash('#companies'), { id: 'companies', sub: '' });
@@ -234,6 +235,16 @@ suite.test('Companies screen (#21): in the menu, sharing the project line with "
     const moved = await mockApi(`/api/projects/${p.id}/company`, 'POST', { company: target.id });
     assert.deepStrictEqual(moved.project.company, { id: target.id, name: target.name });
     assert.deepStrictEqual([await count(origin), await count(target.id)], [before[0] - 1, before[1] + 1], 'the counts follow the move');
+    // Removing a company (#24) under the store's rules: "Sem empresa" (400), with projects (409 with the count),
+    // unknown (404); an empty one leaves the list.
+    const remove = (id) => mockApi(`/api/companies/${id}/remove`, 'POST');
+    await assert.rejects(remove('unassigned'), (e) => e.status === 400 && e.error.code === 'company_reserved');
+    await assert.rejects(remove(target.id), (e) => e.status === 409 && e.error.code === 'company_not_empty' && e.error.project_count === before[1] + 1);
+    await assert.rejects(remove('nobody'), (e) => e.status === 404 && e.error.code === 'company_not_found');
+    const created = await mockApi('/api/companies', 'POST', { id: 'tmp-empty', name: 'Vazia de teste' });
+    assert.strictEqual(created.company.project_count, 0);
+    assert.deepStrictEqual(await remove('tmp-empty'), { removed: 'tmp-empty' });
+    assert.ok(!(await mockApi('/api/companies', 'GET')).companies.some((c) => c.id === 'tmp-empty'), 'the removed company leaves the list');
   } finally {
     globalThis.location = saved.location;
     globalThis.fetch = saved.fetch;

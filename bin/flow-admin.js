@@ -5,6 +5,7 @@
 //
 //   flow company list
 //   flow company add <id> --name "<name>"
+//   flow company remove <id>                     (only a company without projects, #24)
 //   flow project list [--company <id>]
 //   flow project add <id> --company <id> [--name "..."] [--tracker github|azure_devops] [--repo <url>]...
 //                    [--stages a,b,...] [--done-state "<state>"] [--workspace "<Maestri workspace>"]
@@ -14,7 +15,8 @@
 //
 // A project may have many repositories (an Azure DevOps project usually does): each one is a remote URL, kept
 // normalized (flow-repo.js), so the flow commands run in any of them resolve the same project. "Pessoal" is a
-// company like the others; "unassigned" (Sem empresa) is where unregistered repositories land, and never a destination.
+// company like the others; "unassigned" (Sem empresa) is where unregistered repositories land, never a destination
+// and never removed.
 // Invalid data throws helpers.InvalidData (exit 2); the messages come from the pt-BR dictionary (admin.*). The rules of the
 // register are the store's (RegisterError, bin/flow-store.js): run() turns its codes into the same kind of message.
 const lib = require('./lib');
@@ -28,12 +30,13 @@ const MAX_REPOS = 50;
 const OPTIONS = {
   'company add': ['name', 'json'],
   'company list': [],
+  'company remove': ['json'],
   'project list': ['company'],
   'project add': ['name', 'company', 'tracker', 'repo', 'stages', 'done-state', 'workspace', 'json'],
   'project edit': ['name', 'company', 'tracker', 'repo', 'remove-repo', 'stages', 'done-state', 'workspace', 'json'],
   'project move': ['json'],
 };
-const POSITIONAL = { 'company add': 1, 'company list': 0, 'project list': 0, 'project add': 1, 'project edit': 1, 'project move': 2 };
+const POSITIONAL = { 'company add': 1, 'company list': 0, 'company remove': 1, 'project list': 0, 'project add': 1, 'project edit': 1, 'project move': 2 };
 const REPEATABLE = ['repo', 'remove-repo'];
 
 const isAdminCommand = (argv) => argv[0] === 'company' || argv[0] === 'project';
@@ -108,6 +111,7 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
       if (companyName === undefined || companyName === null) throw fail('missingCompanyName');
       return { ...cmd, id: id(pick(pos[0], json.id), 'company'), companyName };
     }
+    if (name === 'company remove') return { ...cmd, id: id(pick(pos[0], json.id), 'company') };
     if (name === 'project move') return { ...cmd, id: id(pick(pos[0], json.id), 'project'), company: id(pick(pos[1], json.company), 'company') };
     const fields = {
       ...cmd,
@@ -126,7 +130,8 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
 
   // ---------- commands ----------
 
-  const unknownCompanyError = (store, companyId) => fail('unknownCompany', { company: companyId, known: store.companies().map((x) => x.id).join(', ') || '-' });
+  // key: unknownCompany suggests registering it; companyNotFound (a removal) only lists the companies.
+  const unknownCompanyError = (store, companyId, key = 'unknownCompany') => fail(key, { company: companyId, known: store.companies().map((x) => x.id).join(', ') || '-' });
   const unknownProjectError = (store, projectId) => fail('unknownProject', { project: projectId, known: store.projects().map((x) => x.id).join(', ') || '-' });
 
   function needCompany(store, companyId) {
@@ -141,10 +146,13 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
     return p;
   }
 
-  /** A rule of the store broken (RegisterError) → the InvalidData of exit 2, with the message of the code. */
-  function registerFailure(store, e) {
+  /**
+   * A rule of the store broken (RegisterError) → the InvalidData of exit 2, with the message of the code. An unknown
+   * company in a removal lists the companies without suggesting to register it.
+   */
+  function registerFailure(store, e, cmd) {
     const x = e.error;
-    if (x.code === 'company_not_found') return unknownCompanyError(store, x.company);
+    if (x.code === 'company_not_found') return unknownCompanyError(store, x.company, cmd.name === 'company remove' ? 'companyNotFound' : undefined);
     if (x.code === 'project_not_found') return unknownProjectError(store, x.project);
     return new InvalidData(`admin.codes.${x.code}`, x);
   }
@@ -171,6 +179,11 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
   function companyAdd(store, cmd, at) {
     const c = store.addCompany({ id: cmd.id, name: cmd.companyName, at });
     return [t('admin.done.companyAdded', { company: c.id, name: c.name })];
+  }
+
+  function companyRemove(store, cmd) {
+    const c = store.removeCompany(cmd.id);
+    return [t('admin.done.companyRemoved', { company: c.id, name: c.name })];
   }
 
   function projectAdd(store, cmd, at, cwd) {
@@ -240,13 +253,14 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
         if (cmd.name === 'company list') return listCompanies(store);
         if (cmd.name === 'project list') return listProjects(store, cmd);
         if (cmd.name === 'company add') return companyAdd(store, cmd, at);
+        if (cmd.name === 'company remove') return companyRemove(store, cmd);
         if (cmd.name === 'project add') return projectAdd(store, cmd, at, cwd);
         if (cmd.name === 'project edit') return projectEdit(store, cmd);
         return projectMove(store, cmd);
       });
       for (const l of lines) lib.print(l);
     } catch (e) {
-      throw e instanceof RegisterError ? registerFailure(store, e) : e;
+      throw e instanceof RegisterError ? registerFailure(store, e, cmd) : e;
     } finally {
       store.close();
     }

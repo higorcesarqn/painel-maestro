@@ -271,8 +271,8 @@ export default {
   },
 
   // Companies and projects (#6): the company selector of the header, the projects in "Sem empresa" and the Companies
-  // screen (#21), whose project lines (ProjectRow) are the same as the "Sem empresa" card's, with its modal "Nova
-  // empresa" (#22, CompanyCreateModal).
+  // screen (#21), whose project lines (ProjectRow) are the same as the "Sem empresa" card's, with its modals "Nova
+  // empresa" (#22, CompanyCreateModal) and the confirmation of Excluir (#24, CompanyRemoveModal).
   companies: {
     selectorLabel: 'Empresa',
     selectorTitle: 'Mostra só o que é desta empresa nas telas do fluxo (lembrado neste navegador)',
@@ -312,6 +312,21 @@ export default {
       saving: 'Criando…',
       failed: 'Não consegui criar a empresa: {message}',
       created: 'Empresa {name} criada.',
+    },
+    // #24: removing a company without projects (CompanyRemoveModal); "Sem empresa" has no button.
+    remove: {
+      button: 'Excluir',
+      label: 'Excluir a empresa {name}',
+      blocked: { one: 'mova o projeto antes', other: 'mova os {count} projetos antes' },
+      blockedTitle: { one: 'A empresa {name} tem 1 projeto: mova-o para outra empresa antes de excluí-la.', other: 'A empresa {name} tem {count} projetos: mova-os para outra empresa antes de excluí-la.' },
+      title: 'Excluir empresa',
+      question: 'Excluir a empresa {name} ({id})?',
+      detail: 'Ela não tem projetos. A exclusão não se desfaz, mas uma empresa com o mesmo id e nome pode ser criada de novo.',
+      cancel: 'Cancelar',
+      confirm: 'Excluir empresa',
+      removing: 'Excluindo…',
+      failed: 'Não consegui excluir a empresa: {message}',
+      removed: 'Empresa {name} excluída.',
     },
   },
 
@@ -746,7 +761,9 @@ export default {
         : `Campo "${c.field}" inválido: "${c.value}".`),
     company_not_found: 'Empresa não encontrada: {company}. Cadastre com: node bin/flow.js company add.',
     project_not_found: 'Projeto não encontrado: {project}.',
-    company_reserved: '"Sem empresa" não é destino de mover: escolha uma empresa cadastrada.',
+    // Moving a project to, removing (#24) or renaming (#23) "Sem empresa".
+    company_reserved: '"Sem empresa" é reservada aos repositórios sem cadastro: não é destino de mover, não se renomeia e não se exclui.',
+    company_not_empty: (c) => `A empresa ${c.name || c.company} tem ${c.project_count} projeto${Number(c.project_count) === 1 ? ': mova-o' : 's: mova-os'} para outra empresa antes de excluí-la.`,
     company_exists: (c) => `O id "${c.company}" já é da empresa "${c.name || 'Sem empresa'}": escolha outro.`,
     company_name_taken: 'O nome "{name}" já é da empresa {company_name} ({company}), sem diferenciar maiúsculas: escolha outro.',
     // merge check (#11)

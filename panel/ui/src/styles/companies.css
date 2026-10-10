@@ -32,7 +32,7 @@
 .company-meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .company-meta .mono { color: var(--text-2); }
 
-/* The "Nova empresa" modal (CompanyCreateModal.jsx) */
+/* The "Nova empresa" modal (CompanyCreateModal.jsx), whose form styles the removal modal reuses */
 .company-form .modal-body { display: flex; flex-direction: column; gap: 16px; }
 .company-form .field { gap: 6px; }
 .text-input {
@@ -44,3 +44,9 @@
 .text-input[aria-invalid="true"] { border-color: var(--danger); }
 .company-form-error { color: var(--danger); }
 .company-form-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+
+/* Excluir on a company card (#24): disabled with the projects to move first; the removal modal's red button. */
+.company-remove { display: inline-flex; align-items: center; gap: 8px; }
+.company-remove-button[disabled] { cursor: not-allowed; }
+.button.danger { background: var(--danger-dark); border-color: var(--danger-dark); color: #fff; }
+.button.danger:hover { background: var(--danger); border-color: var(--danger); color: #000; }

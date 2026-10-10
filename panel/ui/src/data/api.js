@@ -61,6 +61,8 @@ export const readCompanies = () => api('/api/companies');
 export const readProjects = (filters) => api(withQuery('/api/projects', filters));
 // Creates a company (#22): { company }, as GET /api/companies lists it.
 export const createCompany = (id, name) => api('/api/companies', { method: 'POST', body: { id, name } });
+// Removes a company without projects (#24): { removed: <id> }.
+export const removeCompany = (id) => api(`/api/companies/${encodeURIComponent(id)}/remove`, { method: 'POST' });
 export const moveProject = (project, company) => api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } });
 
 /**

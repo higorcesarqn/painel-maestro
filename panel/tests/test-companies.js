@@ -210,7 +210,7 @@ suite.test('a repository without register lands in "Sem empresa"; the panel move
 suite.test('"Sem empresa" is never a destination of a move: the API answers 400 company_reserved and the CLI exits 2', async () => {
   const r = buildRoot('reserved');
   const scratch = repo(r, 'scratch', 'https://github.com/higor/scratch.git');
-  const reserved = /"Sem empresa" não é destino de mover/;
+  const reserved = /"Sem empresa" é reservada: .*não é destino de mover/;
   ok(flow(r, ['company', 'add', 'contoso', '--name', 'Contoso']));
   ok(flow(r, ['company', 'add', 'personal', '--name', 'Pessoal']));
   ok(flow(r, ['project', 'add', 'shop', '--company', 'contoso', '--repo', 'https://github.com/contoso/shop']));
@@ -270,7 +270,7 @@ suite.test('invalid company and project data end with a clear message and exit 2
   ok(flow(r, ['project', 'add', 'shop', '--company', 'contoso', '--repo', 'https://github.com/fabrikam/shop']));
   const cases = [
     [['company'], /falta o subcomando/],
-    [['company', 'remove', 'x'], /subcomando desconhecido: "company remove"/],
+    [['company', 'delete', 'x'], /subcomando desconhecido: "company delete"/],
     [['company', 'add', 'contoso', '--name', 'Outra'], /a empresa "contoso" já existe/],
     [['company', 'add', 'Bad Id', '--name', 'x'], /id de empresa inválido: "Bad Id"/],
     [['company', 'add', 'fabrikam'], /falta o nome da empresa/],
@@ -376,10 +376,84 @@ suite.test('the panel creates a company (POST /api/companies) under the name rul
   });
 });
 
+suite.test('the panel and the CLI remove an empty company only (POST /api/companies/<id>/remove, flow company remove)', async () => {
+  const r = buildRoot('remove');
+  const scratch = repo(r, 'scratch', 'https://github.com/higor/scratch.git');
+  // Before maestro.db exists there is no company to remove (and the POST does not create the database).
+  await withServer(r, async ({ port }) => {
+    const x = await request(port, '/api/companies/contoso/remove', { method: 'POST', headers: { 'X-Panel': '1' } });
+    assert.deepStrictEqual([x.status, x.json], [404, { error: { code: 'company_not_found', company: 'contoso' } }]);
+  });
+  assert.ok(!fs.existsSync(path.join(r.data, 'maestro.db')), 'a refused removal does not create maestro.db');
+  for (const [id, name] of [['contoso', 'Contoso'], ['fabrikam', 'Fabrikam'], ['personal', 'Pessoal'], ['northwind', 'Northwind']]) {
+    ok(flow(r, ['company', 'add', id, '--name', name]));
+  }
+  ok(flow(r, ['project', 'add', 'shop', '--company', 'contoso', '--repo', 'https://github.com/contoso/shop']));
+  ok(flow(r, ['project', 'add', 'site', '--company', 'contoso', '--repo', 'https://github.com/contoso/site']));
+  ok(flow(r, ['item', 'start', '3', '--title', 'Rascunho'], { cwd: scratch }));
+  await withServer(r, async ({ port, get }) => {
+    const remove = (id, headers = { 'X-Panel': '1' }, method = 'POST') => request(port, `/api/companies/${id}/remove`, { method, headers });
+    const ids = async () => (await get('/api/companies')).companies.map((c) => c.id);
+    const all = ['contoso', 'fabrikam', 'northwind', 'personal', 'unassigned'];
+    assert.deepStrictEqual(await ids(), all);
+    // Security: X-Panel and Origin, exactly as every POST of the server; only POST.
+    const without = await remove('fabrikam', {});
+    assert.deepStrictEqual([without.status, without.json], [403, { error: { code: 'missing_panel_header', header: 'X-Panel' } }]);
+    const foreign = await remove('fabrikam', { 'X-Panel': '1', Origin: 'http://evil.example' });
+    assert.deepStrictEqual([foreign.status, foreign.json.error.code], [403, 'origin_not_allowed']);
+    const get405 = await remove('fabrikam', {}, 'GET');
+    assert.deepStrictEqual([get405.status, get405.json.error.code, get405.json.error.allowed], [405, 'method_not_allowed', ['POST']]);
+    // The rules of the store: with projects (409 with the count), "Sem empresa" (400), unknown (404); an id outside the
+    // format is no route at all.
+    const cases = [
+      ['contoso', 409, { code: 'company_not_empty', company: 'contoso', name: 'Contoso', project_count: 2 }],
+      ['unassigned', 400, { code: 'company_reserved', company: 'unassigned' }],
+      ['nobody', 404, { code: 'company_not_found', company: 'nobody' }],
+    ];
+    for (const [id, status, error] of cases) {
+      const x = await remove(id);
+      assert.deepStrictEqual([id, x.status, x.json], [id, status, { error }]);
+    }
+    assert.strictEqual((await remove('Bad%20Id')).status, 404);
+    assert.deepStrictEqual(await ids(), all, 'nothing removed by a refused POST');
+    // The removal, from the page's origin: 200 { removed }, and the company leaves the lists.
+    const removed = await remove('fabrikam', { 'X-Panel': '1', Origin: `http://127.0.0.1:${port}` });
+    assert.deepStrictEqual([removed.status, removed.json], [200, { removed: 'fabrikam' }], removed.text);
+    assert.deepStrictEqual(await ids(), ['contoso', 'northwind', 'personal', 'unassigned']);
+    const again = await remove('fabrikam');
+    assert.deepStrictEqual([again.status, again.json.error.code], [404, 'company_not_found']);
+    // A screen out of date: a project moved to "Pessoal" by the CLI while the page still shows it empty is refused.
+    ok(flow(r, ['project', 'move', 'site', 'personal']));
+    const stale = await remove('personal');
+    assert.deepStrictEqual([stale.status, stale.json.error], [409, { code: 'company_not_empty', company: 'personal', name: 'Pessoal', project_count: 1 }]);
+    // A removed company frees its id and its name.
+    const created = await request(port, '/api/companies', {
+      method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 'fabrikam', name: 'Fabrikam' }),
+    });
+    assert.strictEqual(created.status, 201, created.text);
+  });
+  // The CLI applies the same rules: exit 2 with a Portuguese message (with the count of projects when not empty).
+  invalid(flow(r, ['company', 'remove', 'contoso']), /a empresa "contoso" \(Contoso\) tem 1 projeto: mova-o antes/);
+  invalid(flow(r, ['company', 'remove', 'personal']), /a empresa "personal" \(Pessoal\) tem 1 projeto/);
+  ok(flow(r, ['project', 'move', 'site', 'contoso']));
+  invalid(flow(r, ['company', 'remove', 'contoso']), /a empresa "contoso" \(Contoso\) tem 2 projetos: mova-os antes/);
+  invalid(flow(r, ['company', 'remove', '--json', '-'], { input: JSON.stringify({ id: 'contoso' }) }), /tem 2 projetos/);
+  invalid(flow(r, ['company', 'remove', 'unassigned']), /"Sem empresa" é reservada: .*não se exclui/);
+  invalid(flow(r, ['company', 'remove', 'nobody']), /a empresa "nobody" não existe \(empresas: contoso, fabrikam, northwind, personal, unassigned\)\.\s*$/);
+  invalid(flow(r, ['company', 'remove', 'Bad Id']), /id de empresa inválido: "Bad Id"/);
+  invalid(flow(r, ['company', 'remove'], { input: '' }), /falta o id da empresa/);
+  assert.ok(/Empresa "personal" \(Pessoal\) excluída\./.test(ok(flow(r, ['company', 'remove', 'personal']))));
+  assert.ok(/Empresa "northwind" \(Northwind\) excluída\./.test(ok(flow(r, ['company', 'remove', '--json', '-'], { input: JSON.stringify({ id: 'northwind' }) }))));
+  await withServer(r, async ({ get }) => {
+    assert.deepStrictEqual((await get('/api/companies')).companies.map((c) => [c.id, c.project_count]), [['contoso', 2], ['fabrikam', 0], ['unassigned', 1]]);
+    assert.deepStrictEqual((await get('/api/projects')).projects.map((p) => [p.id, p.company.id]), [['scratch', 'unassigned'], ['shop', 'contoso'], ['site', 'contoso']]);
+  });
+});
+
 suite.test('help lists the company and project subcommands', () => {
   const r = buildRoot('help');
   const out = ok(flow(r, ['--help']));
-  assert.ok(/company add <id> --name/.test(out) && /project add <id>/.test(out) && /project move <id> <empresa>/.test(out), out);
+  assert.ok(/company add <id> --name/.test(out) && /company remove <id>/.test(out) && /project add <id>/.test(out) && /project move <id> <empresa>/.test(out), out);
 });
 
 suite.run().finally(() => {

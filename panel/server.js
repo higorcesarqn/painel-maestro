@@ -20,7 +20,8 @@
 //   POST /api/items/<project>/<number>/merged "mark as merged" (merge-check.js)
 //   GET  /api/pending-decisions               pending decisions, read only (api-pending-decisions.js)
 //   GET  /api/log, GET /api/log/<id>, GET /api/raw   the Log and the raw log (api-log.js)
-//   GET  /api/companies, POST /api/companies, GET /api/projects, POST /api/projects/<id>/company
+//   GET  /api/companies, POST /api/companies, POST /api/companies/<id>/remove, GET /api/projects,
+//   POST /api/projects/<id>/company
 //                                             companies and projects (api-projects.js)
 //   GET  /api/usage, GET /api/agents          usage and agents per item (api-usage.js)
 // The raw log older than 90 days is deleted on startup and once a day.
@@ -382,9 +383,14 @@ const FIXED_ROUTES = {
 
 function findRoute(urlPath) {
   if (Object.prototype.hasOwnProperty.call(FIXED_ROUTES, urlPath)) return FIXED_ROUTES[urlPath];
+  const rc = /^\/api\/companies\/([^/]+)\/remove$/.exec(urlPath);
+  if (rc) {
+    const id = projectsApi.parseRegisterId(rc[1]);
+    return id ? { name: 'company-remove', methods: ['POST'], company: id } : null;
+  }
   const mc = /^\/api\/projects\/([^/]+)\/company$/.exec(urlPath);
   if (mc) {
-    const id = projectsApi.parseProjectId(mc[1]);
+    const id = projectsApi.parseRegisterId(mc[1]);
     return id ? { name: 'project-company', methods: ['POST'], project: id } : null;
   }
   const mi = /^\/api\/items\/([^/]+)\/([^/]+)$/.exec(urlPath);
@@ -472,6 +478,11 @@ async function route(ctx, req, res) {
     }
     case 'projects':
       return respondJson(req, res, 200, projectsApi.listProjects(ctx.items, query));
+    case 'company-remove': {
+      const c = projectsApi.removeCompany(ctx.items, r.company);
+      ctx.log(t('server.log.companyRemoved', { company: c.id, name: c.name }));
+      return respondJson(req, res, 200, { removed: c.id });
+    }
     case 'project-company': {
       const buf = await body;
       if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });

@@ -2,8 +2,10 @@
 // top says (a note tells so: a move's destination is never hidden). The cards come in the order of GET /api/companies
 // (alphabetical, "Sem empresa" last); "Sem empresa" shows only when it has projects. Each project is a ProjectRow,
 // shared with the "Sem empresa" card of the Items screen. The "Nova empresa" button opens CompanyCreateModal (#22);
-// with no company yet, the screen points to it. Reads GET /api/companies and GET /api/projects every 20 s; after a
-// move or a creation it reads both again, reloads the company selector and shows a status notice.
+// with no company yet, the screen points to it. Each company but "Sem empresa" has Excluir (#24): disabled with the
+// number of projects to move first, otherwise it opens CompanyRemoveModal. Reads GET /api/companies and
+// GET /api/projects every 20 s; after a move, a creation or a removal it reads both again, reloads the company selector
+// and shows a status notice; removing the company of the selector sets it back to all.
 import { useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
 import { readCompanies, readProjects } from '../data/api.js';
@@ -11,9 +13,10 @@ import { usePolling } from '../data/polling.js';
 import { obj, objs, txt } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Empty, Skeleton } from '../components/base.jsx';
-import { Icon, Building, Info, Plus } from '../components/Icon.jsx';
+import { Icon, Building, Info, Plus, Trash2 } from '../components/Icon.jsx';
 import { ProjectRow } from './ProjectRow.jsx';
 import { CompanyCreateModal } from './CompanyCreateModal.jsx';
+import { CompanyRemoveModal } from './CompanyRemoveModal.jsx';
 import '../styles/companies.css';
 
 async function readRegister() {
@@ -22,9 +25,10 @@ async function readRegister() {
 }
 
 export function Companies() {
-  const { reloadCompanies, setActionStatus } = usePanel();
+  const { company: selected, setCompany, reloadCompanies, setActionStatus } = usePanel();
   const { answer, error, reload } = usePolling(readRegister, []);
   const [creating, setCreating] = useState(false);
+  const [removing, setRemoving] = useState(null);
   const companies = answer ? answer.companies : [];
   const projects = answer ? answer.projects : [];
   const projectsOf = (c) => projects.filter((p) => (obj(p.company) || {}).id === c.id);
@@ -38,6 +42,11 @@ export function Companies() {
     setCreating(false);
     changed(t('companies.create.created', { name: txt(company.name) }));
   };
+  const removed = (company) => {
+    setRemoving(null);
+    if (selected === company.id) setCompany('');
+    changed(t('companies.remove.removed', { name: txt(company.name) }));
+  };
   return (
     <div class="screen screen-companies">
       <div class="companies-top">
@@ -50,19 +59,21 @@ export function Companies() {
       {shown.length > 0 && (
         <div class="companies-grid">
           {shown.map((c) => (
-            <CompanyCard key={c.id} company={c} projects={projectsOf(c)} companies={companies} onMoved={changed} />
+            <CompanyCard key={c.id} company={c} projects={projectsOf(c)} companies={companies} onMoved={changed} onRemove={setRemoving} />
           ))}
         </div>
       )}
       {creating && <CompanyCreateModal onCreated={created} onClose={() => setCreating(false)} />}
+      {removing && <CompanyRemoveModal company={removing} onRemoved={removed} onFailed={() => { reload(); reloadCompanies(); }} onClose={() => setRemoving(null)} />}
     </div>
   );
 }
 
-function CompanyCard({ company: c, projects, companies, onMoved }) {
+function CompanyCard({ company: c, projects, companies, onMoved, onRemove }) {
   return (
     <Card class={`company-card${c.unassigned ? ' unassigned' : ''}`} label={txt(c.name)}
       info={c.unassigned ? t('companies.unassignedInfo') : undefined}
+      actions={c.unassigned ? undefined : <RemoveButton company={c} count={projects.length} onRemove={onRemove} />}
       extra={(
         <span class="company-meta">
           <span class="mono">{txt(c.id)}</span>
@@ -75,5 +86,25 @@ function CompanyCard({ company: c, projects, companies, onMoved }) {
         ? <ul class="project-list">{projects.map((p) => <ProjectRow key={p.id} project={p} companies={companies} onMoved={onMoved} />)}</ul>
         : <p class="muted small">{t('companies.noProjects')}</p>}
     </Card>
+  );
+}
+
+/**
+ * Excluir of a company card: disabled while the company has projects (count: the projects listed on the card, so the
+ * button agrees with the list next to it), saying how many to move first.
+ */
+function RemoveButton({ company: c, count, onRemove }) {
+  const name = txt(c.name);
+  const hint = `company-remove-hint-${c.id}`;
+  return (
+    <span class="company-remove">
+      {count > 0 && <span id={hint} class="muted small">{t('companies.remove.blocked', { count })}</span>}
+      <button type="button" class="button small company-remove-button" disabled={count > 0} aria-describedby={count > 0 ? hint : undefined}
+        aria-label={t('companies.remove.label', { name })}
+        title={count > 0 ? t('companies.remove.blockedTitle', { count, name }) : t('companies.remove.label', { name })}
+        onClick={() => onRemove(c)}>
+        <Icon of={Trash2} size={14} />{t('companies.remove.button')}
+      </button>
+    </span>
   );
 }

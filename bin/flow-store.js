@@ -334,6 +334,21 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
       db.prepare('INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)').run(companyId, companyName, at);
       return store.company(companyId);
     },
+    /**
+     * Removes a company without projects (#24) and returns it as it was. "Sem empresa" is never removed
+     * (company_reserved, even before a repository lands there); an unknown company is company_not_found; a company
+     * with projects is company_not_empty (with project_count), checked here on the register as it is now, so a screen
+     * out of date never leaves a project without its company.
+     */
+    removeCompany(id) {
+      if (id === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_reserved', company: id });
+      const c = store.company(id);
+      if (!c) throw new RegisterError({ code: 'company_not_found', company: id });
+      const { n } = db.prepare('SELECT COUNT(*) AS n FROM projects WHERE company_id = ?').get(id);
+      if (n > 0) throw new RegisterError({ code: 'company_not_empty', company: id, name: c.name, project_count: Number(n) });
+      db.prepare('DELETE FROM companies WHERE id = ?').run(id);
+      return c;
+    },
     /** Normalized remotes of a project, in alphabetical order. */
     projectRepos(projectId) {
       return db.prepare('SELECT remote FROM project_repos WHERE project_id = ? ORDER BY remote').all(projectId).map((r) => r.remote);

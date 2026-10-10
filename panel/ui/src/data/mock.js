@@ -1,7 +1,7 @@
 // Test mode (?mock=1): reads tests/mock-items.json (written by tests/generate-mock-items.js with the server's own code:
 // the projection, the APIs, the usage collector and the health) and imitates every route the page calls: /api/state
-// and POST /api/recalculate, the companies and projects routes (#6, POST /api/companies and POST /api/projects/<id>/company
-// in memory),
+// and POST /api/recalculate, the companies and projects routes (#6, POST /api/companies, POST /api/companies/<id>/remove
+// and POST /api/projects/<id>/company in memory),
 // /api/items, /api/items/<project>/<number> (and POST .../merged in memory), /api/pending-decisions, /api/log,
 // /api/log/<id> (the raw commands are made up on the spot), /api/overview, /api/usage and /api/agents, answering in the
 // API shape (English fields and codes), as the real server does. Items, pending decisions, the Log, the Overview, usage
@@ -72,14 +72,31 @@ function mockCreateCompany(companies, body, summary) {
 }
 
 /**
+ * POST /api/companies/<id>/remove (#24): removes the company only in this page's memory, under the store's rules
+ * (removeCompany in bin/flow-store.js): "Sem empresa" is reserved (400), an unknown company is 404 and a company with
+ * projects is 409 company_not_empty, with project_count.
+ */
+function mockRemoveCompany(companies, projects, id) {
+  if (id === UNASSIGNED) throw error('company_reserved', 400, { company: id });
+  const at = companies.findIndex((c) => c.id === id);
+  if (at < 0) throw error('company_not_found', 404, { company: id });
+  const count = projects.filter((x) => x.company.id === id).length;
+  if (count > 0) throw error('company_not_empty', 409, { company: id, name: companies[at].name, project_count: count });
+  companies.splice(at, 1);
+  return { removed: id };
+}
+
+/**
  * Companies and projects (#6) from tests/mock-items.json: GET /api/companies, POST /api/companies (mockCreateCompany),
- * GET /api/projects[?company=] and POST /api/projects/<id>/company, which moves the project only in this page's memory
- * and, like the store, refuses "Sem empresa" as a destination (400 company_reserved, #21). null for any other path.
+ * POST /api/companies/<id>/remove (mockRemoveCompany), GET /api/projects[?company=] and POST /api/projects/<id>/company,
+ * which moves the project only in this page's memory and, like the store, refuses "Sem empresa" as a destination
+ * (400 company_reserved, #21). null for any other path.
  */
 async function mockCompanies(u, method, body) {
   const p = u.pathname;
   const move = /^\/api\/projects\/([^/]+)\/company$/.exec(p);
-  if (p !== '/api/companies' && p !== '/api/projects' && !move) return null;
+  const remove = /^\/api\/companies\/([^/]+)\/remove$/.exec(p);
+  if (p !== '/api/companies' && p !== '/api/projects' && !move && !remove) return null;
   const m = await loadMockItems();
   if (!Array.isArray(m.companies)) m.companies = [];
   const companies = m.companies;
@@ -97,6 +114,7 @@ async function mockCompanies(u, method, body) {
     return { projects: projects.filter((x) => !company || x.company.id === company) };
   }
   if (method !== 'POST') throw error('method_not_allowed', 405, { method, allowed: ['POST'] });
+  if (remove) return mockRemoveCompany(companies, projects, decodeURIComponent(remove[1]));
   const id = decodeURIComponent(move[1]);
   const project = projects.find((x) => x.id === id);
   if (!project) throw error('project_not_found', 404, { project: id });
