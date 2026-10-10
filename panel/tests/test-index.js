@@ -506,6 +506,17 @@ suite.test('browser notification (#45): the bell\'s states, the notification\'s 
   assert.ok(/setRead\(\{ answer, error: null, seq: mine \}\)/.test(pendingScreen), 'each read keeps its number');
   assert.ok(/if \(!pendingTarget\) return;\s+load\(\);\s+targetRead\.current = \{ target: pendingTarget, seq: seq\.current \};/.test(pendingScreen), 'the link reads the list again');
   assert.ok(/read\.seq >= wait\.seq/.test(pendingScreen) && /\}, \[read\]\);/.test(pendingScreen), 'the lookup waits for that read');
+  // Out of the list (the selector's organization or the screen's filters, P-440): read without them, every status, and
+  // shown anyway, kept like one closed meanwhile; "not in the list" only when it does not exist. The link never touches
+  // the selector nor the filters.
+  assert.ok(/readPendingDecisions\(params\(\{ status: 'all', severity: null \}, null\)\)/.test(pendingScreen), 'the read without the selector nor the filters');
+  const link = /useEffect\(\(\) => \{\s+const wait = targetRead\.current;[\s\S]*?\}, \[read\]\);/.exec(pendingScreen);
+  assert.ok(link, 'the link\'s lookup');
+  assert.ok(/readAnywhere\(id\)\.then\(\(p\) => \{[\s\S]*if \(!p\) \{ setActionStatus\(t\('pending\.notInList'/.test(link[0]) && /setKept\(p\);\s+show\(p, false\);/.test(link[0]),
+    'out of the list it is read without filters and kept; not in the list only when it does not exist');
+  assert.ok(!/setFilters|setOrganization|organizationFilter|change\(/.test(link[0]), 'the link changes neither the selector nor the filters');
+  assert.ok(/if \(!now && open\.outside\) onOutside\.current\(open\.id\);/.test(pendingScreen), 'an open one outside the list is read again by itself, never taken for closed');
+  assert.ok(/const now = await readAnywhere\(id\);\s+if \(now\) \{ setKept\(now\); setChosen\(id\); \}/.test(pendingScreen), 'closed meanwhile is read without filters too');
   assert.ok(/Notification\.requestPermission/.test(app) && /onClick=\{toggleBell\}/.test(source['app/Header.jsx']), 'the permission comes only from the bell\'s click');
   const storage = source['data/notification.js'];
   assert.ok(/localStorage\.getItem/.test(storage) && /localStorage\.setItem/.test(storage) && (storage.match(/try \{/g) || []).length >= 2, 'the choice is remembered, in a try/catch');

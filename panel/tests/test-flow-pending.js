@@ -346,6 +346,27 @@ suite.test('the API filters by organization, project, severity and status; each 
   });
 });
 
+suite.test('the read of a linked pending decision (no organization, no filter) finds one that the selector and the screen\'s filters leave out', async () => {
+  // P-440: the browser notification covers every organization; the Pendências screen shows the linked one anyway, read
+  // with GET /api/pending-decisions and no parameter (every organization, every status).
+  const r = buildRoot('linked');
+  ok(flow(r, ['org', 'add', 'contoso', '--name', 'Contoso']));
+  ok(flow(r, ['project', 'add', 'widgets', '--org', 'contoso', '--repo', 'https://github.com/acme/widgets.git']));
+  startItem(r);
+  ok(flow(r, ['item', 'start', '7', '--title', 'Outro projeto', '--stage', 'implementation'], { cwd: r.repo2 }));
+  const here = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--severity', 'high', '--title', 'Da Contoso']));
+  const elsewhere = openedId(flow(r, ['pending', 'open', '7', '--kind', 'decision', '--severity', 'low', '--title', 'De outra organização'], { cwd: r.repo2 }));
+  await withServer(r, async (get) => {
+    const ids = async (q) => (await list(get, q)).map((p) => p.id);
+    assert.deepStrictEqual(await ids('?organization=contoso&status=open'), [here], 'the selector on Contoso leaves it out');
+    assert.deepStrictEqual(await ids('?organization=unassigned&status=open&severity=high'), [], 'and so does a severity filter');
+    const linked = (await list(get, '')).find((p) => p.id === elsewhere);
+    assert.deepStrictEqual([linked.status, linked.title, linked.item.project.organization.id], ['open', 'De outra organização', 'unassigned']);
+    ok(flow(r, ['pending', 'resolve', String(elsewhere), '--decision', 'Feito'], { cwd: r.repo2 }));
+    assert.strictEqual((await list(get, '')).find((p) => p.id === elsewhere).status, 'resolved', 'closed, it is still found, as it is now');
+  });
+});
+
 suite.test('without maestro.db the list is empty and nothing is created', async () => {
   const r = buildRoot('empty');
   await withServer(r, async (get) => {
