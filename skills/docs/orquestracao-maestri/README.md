@@ -29,6 +29,13 @@ Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel]
 - **Códigos de saída**: 0 ok; **2** dado inválido, a mensagem diz o que corrigir (corrija e rode de novo); **1** falha do painel: não pare o fluxo, anote e avise o usuário no relatório final com a mensagem.
 - **Chave do item**: `<projeto>/<número>`, impressa pelo `flow item start` (ou pela recusa "já foi iniciado"). A página do item é `http://127.0.0.1:4777/#items/<projeto>/<número>`; ela se atualiza sozinha a cada 20 s. O que o painel calcula (estado de cada task, relatórios, pendências) também sai em `curl -s http://127.0.0.1:4777/api/items/<projeto>/<número>`.
 - **Pendência** é tudo o que espera o usuário. Ao levar uma escolha a ele, abra-a com `flow pending open <n> --kind <tipo> --title ... --context ... --option "A: ..." --option "B: ..." --recommendation ...` (imprime `P-<id>`); quando ele responder no seu terminal, `flow pending resolve P-<id> --decision "<o que ele decidiu>"`; se ela deixar de valer, `flow pending cancel P-<id> --reason ...`. Os tipos estão nos passos: `parallelize` (5), `worker_blocked` (6), `task_review` e `decision` (7), `finding` (10), `hml` (11).
+- **Esperar a pendência.** O usuário pode responder no seu terminal ou no painel (tela Pendências), e o painel não te avisa: logo depois de **cada** `pending open`, deixe `node "$PAINEL_MAESTRO/bin/flow.js" pending wait P-<id>` rodando em segundo plano (Bash com `run_in_background: true`, de dentro do repositório), um por pendência. Ele só lê o painel, não tem prazo e termina, com código 0, quando a pendência fecha por qualquer caminho; o Claude Code te acorda com a saída, que diz como ela fechou, a decisão ou o motivo e quem fechou. Ao terminar, guie-se pela primeira linha, que diz como ela fechou:
+  - **resolvida com a decisão do dono** e a linha **"A decisão veio do painel"**: a decisão já está gravada; siga com ela e **não** rode `pending resolve` (ele sairia com código 2, "já está resolvida");
+  - **resolvida com a decisão do dono**, sem essa linha: foi você quem gravou a resposta (`pending resolve`, "Fechada por: maestro"); o aviso repete o que você fez; ignore;
+  - **cancelada** ou **resolvida pela integração da task** (ou pela HML aprovada, pela substituição, pelo item concluído): siga como hoje (se foi você quem cancelou, o aviso só repete o que fez);
+  - código 2 (id errado ou de outro projeto): corrija e rode de novo; código 1 (falha do painel): ninguém está esperando essa pendência, então peça a resposta no seu terminal e cite a mensagem no relatório final.
+
+  Numa sessão nova sobre um item já em andamento, confira as pendências dele na página do item: uma respondida pelo painel enquanto ninguém esperava já tem a decisão gravada; para cada uma ainda aberta, deixe o `wait` rodando de novo.
 
 ## Fatos do Maestri (verificados; não repita o erro)
 
@@ -74,14 +81,14 @@ Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel]
    ```
    O script cria o floor (esperando o timeout), recruta o trabalhador sem role e manda o briefing em segundo plano. Dê codinomes curtos e distintos aos trabalhadores (sem acento).
 
-6. **Esperar o relatório.** Não fique consultando. O relatório chega no seu terminal. Antes de pedir qualquer OK ao usuário, rode `maestri floor status --floor "<floor>"` em **todos** os floors ativos: um floor em `review` sem relatório recebido é relatório perdido (leia-o na linha do tempo do item, pela API do [Painel](#painel), ou com `maestri check "<trabalhador>"`). Trabalhador em `blocked` que precisa do usuário: abra uma pendência `worker_blocked` com `--task <task>` e resolva-a com a resposta.
+6. **Esperar o relatório.** Não fique consultando. O relatório chega no seu terminal. Antes de pedir qualquer OK ao usuário, rode `maestri floor status --floor "<floor>"` em **todos** os floors ativos: um floor em `review` sem relatório recebido é relatório perdido (leia-o na linha do tempo do item, pela API do [Painel](#painel), ou com `maestri check "<trabalhador>"`). Trabalhador em `blocked` que precisa do usuário: abra uma pendência `worker_blocked` com `--task <task>`, deixe o `wait` dela rodando e resolva-a com a resposta, se ela vier pelo seu terminal.
 
 7. **Revisar.** Para cada relatório: leia o diff (`git log` / `git diff <integradora>...task/<id>`), confira que a branch está sobre a integradora (`git merge-base --is-ancestor <integradora> task/<id>`) e leve ao usuário, com a sua recomendação para cada uma:
    - o que a task entregou e os testes (com o banco/ambiente usado);
    - as decisões que o trabalhador tomou;
    - os achados da sua revisão.
 
-   Ao levar, abra a pendência `task_review` da task (`--task <task>`, opções como "A: Integrar", "B: Pedir ajuste"): ela se resolve sozinha quando a task é integrada; se o usuário pedir ajuste, resolva-a com a decisão e abra outra no próximo relatório. Cada decisão do trabalhador que o usuário precisa escolher vira uma pendência `decision`. Achado da sua revisão: `flow finding add <n> --title ... --classification defect|owner_decision|discarded --task <task>` (descrição pelo JSON).
+   Ao levar, abra a pendência `task_review` da task (`--task <task>`, opções como "A: Integrar", "B: Pedir ajuste"): ela se resolve sozinha quando a task é integrada; se o usuário pedir ajuste, resolva-a com a decisão (a resposta pelo painel já chega resolvida) e abra outra no próximo relatório. Cada decisão do trabalhador que o usuário precisa escolher vira uma pendência `decision`. Achado da sua revisão: `flow finding add <n> --title ... --classification defect|owner_decision|discarded --task <task>` (descrição pelo JSON).
 
    **Mudança de regra no meio do caminho**: antes de mandar implementar uma regra nova aprovada pelo usuário, teste-a contra os estados do item (ex.: em supervisão, rejeitado, corrigido) e diga ao usuário os casos de borda. Uma regra aprovada às pressas foi a origem do achado mais sério do PBI #3100.
 

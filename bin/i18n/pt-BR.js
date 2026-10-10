@@ -33,6 +33,15 @@ const PENDING_KINDS = {
   hml: 'Validação HML',
 };
 const PENDING_SEVERITIES = { critical: 'crítica', high: 'alta', normal: 'normal', low: 'baixa' };
+// How a resolved pending decision closed (its resolution) and who closed it, as "flow pending wait" says it.
+const PENDING_RESOLUTIONS = {
+  decision: 'resolvida com a decisão do dono',
+  task_integrated: 'resolvida pela integração da task',
+  hml_approved: 'resolvida porque uma Validação HML seguinte passou em tudo',
+  replaced: 'resolvida porque o maestro abriu outra pendência de HML no lugar dela',
+  item_done: 'resolvida porque o item foi concluído',
+};
+const PENDING_ROLES = { maestro: 'maestro', worker: 'trabalhador', owner: 'dono' };
 
 const PENDING = {
   kinds: PENDING_KINDS,
@@ -56,6 +65,21 @@ const PENDING = {
     missingDecision: 'falta a decisão do dono (--decision "..." ou "decision" no JSON).',
     notFound: 'a pendência P-{id} não existe no projeto "{project}". Rode o comando no repositório do projeto da pendência.',
     notOpen: (p) => `a pendência P-${p.id} já está ${p.status === 'canceled' ? 'cancelada' : 'resolvida'}${p.at ? ` (desde ${p.at})` : ''}.`,
+    noDatabase: 'a pendência P-{id} não existe: ainda não há banco do painel em {file} (confira MAESTRO_DIR).',
+    noProject: 'a pendência P-{id} não existe: o repositório {remote} não tem projeto no painel. Rode o comando no repositório do projeto da pendência.',
+  },
+  // flow pending wait (#33): what the maestro reads when the pending decision closes.
+  wait: {
+    waiting: 'Esperando a pendência P-{id} do item {key} ({ref}); o comando termina quando ela fechar.',
+    closed: (p) => `Pendência P-${p.id} do item ${p.key} (${p.ref})${p.task ? `, task ${p.task}` : ''}, fechou: `
+      + `${p.status === 'canceled' ? 'cancelada' : PENDING_RESOLUTIONS[p.resolution] || 'resolvida'}.`,
+    title: 'Título: {title}',
+    decision: 'Decisão: {decision}',
+    reason: 'Motivo: {reason}',
+    noReason: 'Motivo: não informado.',
+    closedBy: (p) => `Fechada por: ${PENDING_ROLES[p.role] || 'papel não registrado'}${p.name ? ` (${p.name})` : ''}`
+      + `${p.panel ? ', pelo painel' : ''}${p.at ? `, em ${p.at}` : ''}.`,
+    fromPanel: 'A decisão veio do painel e já está gravada: siga com ela; não rode flow pending resolve.',
   },
 };
 
@@ -485,6 +509,12 @@ PENDÊNCIAS (maestro)
       Resolve a pendência com o que o dono decidiu; a decisão fica na linha do tempo do item.
   node bin/flow.js pending cancel <id> [--reason "..."]
       Cancela a pendência.
+  node bin/flow.js pending wait <id>
+      Espera a pendência fechar, por qualquer caminho (resposta pelo painel, pending resolve, cancelamento,
+      integração da task, HML aprovada, substituição, item concluído), e sai com 0 mostrando como ela fechou, a
+      decisão ou o motivo e quem fechou. Só lê o maestro.db, a cada poucos segundos, sem prazo e sem depender do
+      servidor do painel; se ela já estava fechada, termina na hora. O maestro o deixa rodando em segundo plano
+      depois de cada pending open. Decisão que veio do painel já está gravada: não rode pending resolve.
 
 RELATÓRIO (trabalhador, antes de enviá-lo ao maestro)
   node bin/flow.js report [--item <número>] [--task <task>] [--status ok|blocked] [--reason "..."] [--branch <b>] [--sha <sha>] --json - < relatorio.json
@@ -527,5 +557,6 @@ VARIÁVEIS
   MAESTRO_DIR           pasta dos dados (padrão: ~/.painel-maestro)
   MAESTRI_TERMINAL_ID   presente num terminal do Maestri: o status também roda "maestri floor status"
   FLOW_MAESTRI_CLI      executável do maestri usado pelo status (padrão: MAESTRI_CLI ou "maestri")
+  FLOW_WAIT_INTERVAL_MS intervalo entre as leituras do pending wait, em ms (padrão: 3000)
 `,
 };

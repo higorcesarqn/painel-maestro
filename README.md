@@ -77,6 +77,7 @@ node bin/install-skills.js --help
 - **Backups:** o que já existir no destino e não for um link deste repositório (por exemplo, uma versão antiga de `implementar-issue-maestri`) vai para `~/.claude/backups/painel-maestro/<destino>` (fora de `skills/`, para o Claude Code não carregar duas skills com o mesmo nome). O `--undo` remove só os links deste repositório (nunca o conteúdo deles) e devolve os backups.
 - **Conflitos:** a instalação planeja tudo antes de mexer em qualquer coisa. Se um backup já ocupar o lugar, ou se no `--undo` o destino não for mais um link deste repositório e houver backup, o comando sai com **código 2** e nada é alterado; a mensagem diz o que mover.
 - **Pasta do Claude:** `--claude-dir <pasta>`, senão `CLAUDE_CONFIG_DIR`, senão `~/.claude`.
+- **Depois de atualizar o painel-maestro**, rode `node bin/install-skills.js` de novo (é seguro repetir): ele confere que `~/.claude` aponta para as skills desta versão e põe no backup uma cópia antiga que não seja link. Mudanças de comportamento das skills, como esperar cada pendência com `flow pending wait` (#33), só valem para o maestro com as skills desta versão instaladas.
 
 As skills:
 
@@ -202,9 +203,20 @@ flow pending open 12 --kind task_review --task 13 --severity high --title "Revis
 flow pending open --json - < pendencia.json
 flow pending resolve P-7 --decision "A, com a ressalva X"     # a decisão fica na linha do tempo do item
 flow pending cancel P-7 --reason "Entrou na especificação"
+flow pending wait P-7                                         # espera ela fechar (o maestro o deixa em segundo plano)
 ```
 
 Uma pendência que o dono já respondeu pelo painel não aceita outra resolução: o `pending resolve` sai com o "não está aberta" de sempre (código 2).
+
+O `pending wait` é como o maestro fica sabendo da resposta (ADR 0005): as skills de orquestração o deixam rodando em segundo plano depois de cada `pending open`. Ele só lê o `maestro.db`, a cada poucos segundos (`FLOW_WAIT_INTERVAL_MS`, padrão 3000), sem prazo e sem depender do servidor do painel, e não cadastra o projeto. Termina com **código 0** quando a pendência fecha por qualquer caminho (resposta pelo painel, `pending resolve`, cancelamento, integração da task, HML aprovada, substituição, item concluído) ou na hora, se ela já estava fechada, e imprime a chave do item e o id, como ela fechou, a decisão ou o motivo e quem fechou (papel e nome). Quando a decisão veio do painel, uma linha a mais diz que ela já está gravada e que não é para rodar `pending resolve`. Sai com **2** para id inválido ou pendência que o projeto não tem e com **1** numa falha do banco (inclusive banco mais novo que o código). Aceita `--json -` com `{"id": "P-7"}`.
+
+```
+Pendência P-7 do item painel-maestro/31 (#31), task 33, fechou: resolvida com a decisão do dono.
+Título: Revisar a task 33
+Decisão: B: Pedir ajuste — mantenha o nome antigo
+Fechada por: dono, pelo painel, em 2026-10-10T14:05:12-03:00.
+A decisão veio do painel e já está gravada: siga com ela; não rode flow pending resolve.
+```
 
 Tipos (`--kind`): `task_review` (exige `--task`; resolvida sozinha pela integração da task), `worker_blocked`, `decision`, `finding`, `parallelize`, `hml` (um `flow hml` com falha ou bloqueio já abre uma sozinho, que fecha quando uma HML seguinte passar em tudo ou o item for concluído; abrir uma `hml` à mão a substitui). Severidades: `critical`, `high`, `normal` (padrão), `low`. Onde responder: `--workspace`/`--terminal`, senão o terminal do Maestri onde o comando roda (`MAESTRI_WORKSPACE_NAME`/`_ID`, `MAESTRI_TERMINAL_NAME`/`_ID`) e o workspace do projeto.
 
@@ -261,6 +273,7 @@ O merge do PR costuma acontecer na interface do tracker, sem agente presente (a 
 | `PANEL_GH_CLI`, `PANEL_AZ_CLI` | `gh`, `az` | executáveis do verificador de merge (os testes usam scripts falsos) |
 | `PANEL_AZURE_DEVOPS_URL` | `https://dev.azure.com` | base da REST do Azure DevOps |
 | `FLOW_MAESTRI_CLI` | `MAESTRI_CLI` ou `maestri` | executável do `maestri` usado pelo `flow status` (um caminho `.js` roda com o `node`) |
+| `FLOW_WAIT_INTERVAL_MS` | `3000` | intervalo entre as leituras do `flow pending wait`, em ms (os testes usam 50) |
 | `MAESTRI_CLI` | `maestri` | executável do Maestri usado pelos scripts das skills (o Maestri define nos terminais dele) |
 | `MAESTRI_TERMINAL_ID`, `MAESTRI_TERMINAL_NAME`, `MAESTRI_WORKSPACE_ID`, `MAESTRI_WORKSPACE_NAME` | (do Maestri) | terminal e workspace onde o comando roda: o `flow status` chama o `maestri floor status` e a pendência diz onde responder |
 | `MAESTRI_DATA_DIR` | `~/.maestri` | onde está o `usage/providers/.status.json` do plano Claude |

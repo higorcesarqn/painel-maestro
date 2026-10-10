@@ -6,7 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const { assert, REPO, createSuite, tmpDir, remove, freePort, request } = require('./util');
 
 const FLOW = path.join(REPO, 'bin', 'flow.js');
@@ -447,10 +447,182 @@ suite.test('the menu counter (/api/state) counts the open pending decisions of e
   });
 });
 
+// ---------- the maestro waits for the pending decision (#33): flow pending wait <id> ----------
+
+const WAITING = /^Esperando a pendência P-\d+/m;
+const FROM_PANEL = 'A decisão veio do painel e já está gravada: siga com ela; não rode flow pending resolve.';
+
+/**
+ * flow pending wait as a real process, polling every 50 ms (FLOW_WAIT_INTERVAL_MS). started(): resolves once it said it
+ * is waiting (so whatever closes the pending decision afterwards happens while it runs); done: { status, stdout, stderr }.
+ */
+function startWait(r, args, { cwd = r.repo, input } = {}) {
+  const env = Object.assign({}, process.env, { MAESTRO_DIR: r.data, MAESTRO_NOW: '', NODE_OPTIONS: '', FLOW_WAIT_INTERVAL_MS: '50' });
+  for (const k of ['MAESTRI_TERMINAL_ID', 'MAESTRI_TERMINAL_NAME', 'MAESTRI_WORKSPACE_ID', 'MAESTRI_WORKSPACE_NAME']) delete env[k];
+  const child = spawn(process.execPath, [FLOW, 'pending', 'wait', ...args], { cwd, env, windowsHide: true });
+  let stdout = '';
+  let stderr = '';
+  let onOut = () => {};
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (s) => { stdout += s; onOut(); });
+  child.stderr.on('data', (s) => { stderr += s; });
+  child.stdin.end(input === undefined ? '' : input);
+  const timer = setTimeout(() => child.kill(), 30000);
+  const done = new Promise((resolve) => child.on('close', (status) => {
+    clearTimeout(timer);
+    resolve({ status, stdout, stderr });
+  }));
+  const started = () => new Promise((resolve, reject) => {
+    const check = () => { if (WAITING.test(stdout)) resolve(); };
+    onOut = check;
+    check();
+    done.then((x) => reject(new Error(`the wait ended before waiting: exit ${x.status}\nstdout: ${x.stdout}\nstderr: ${x.stderr}`)));
+  });
+  return { started, done, running: () => child.exitCode === null };
+}
+
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** The lines the wait printed when it ended, without the "Esperando…" one. */
+async function ended(w) {
+  const x = ok(await w.done);
+  return x.stdout.split(/\r?\n/).filter((l) => l && !WAITING.test(l));
+}
+
+suite.test('pending wait, started while the pending decision is open, ends with exit 0 when the owner answers from the panel and says the decision came from it', async () => {
+  const r = buildRoot('wait-panel');
+  startItem(r);
+  const id = openedId(flow(r, ['pending', 'open', '12', '--task', '13', '--kind', 'task_review', '--title', 'Revisar a task 13', '--option', 'A: Integrar', '--option', 'B: Pedir ajuste']));
+  const w = startWait(r, [`P-${id}`]);
+  await w.started();
+  await pause(300);
+  assert.ok(w.running(), 'no timeout: it keeps waiting while the pending decision is open');
+  let closedAt;
+  await withServer(r, async (get, port) => {
+    const x = await answer(port, `P-${id}`, { option: 'B', text: 'mantenha o nome antigo' });
+    assert.strictEqual(x.status, 200, x.text);
+    closedAt = x.json.closed_at;
+  });
+  assert.deepStrictEqual(await ended(w), [
+    `Pendência P-${id} do item widgets/12 (#12), task 13, fechou: resolvida com a decisão do dono.`,
+    'Título: Revisar a task 13',
+    'Decisão: B: Pedir ajuste — mantenha o nome antigo',
+    `Fechada por: dono, pelo painel, em ${closedAt}.`,
+    FROM_PANEL,
+  ]);
+});
+
+suite.test('pending wait also ends when the maestro resolves, cancels, integrates the task, replaces the HML one, the HML passes or the item is done, with how it closed, the decision or the reason and who closed it', async () => {
+  const r = buildRoot('wait-other');
+  startItem(r);
+  ok(flow(r, ['item', 'start', '20', '--title', 'Com HML reprovada', '--stage', 'hml_validation']));
+  ok(flow(r, ['hml', '20', '--passed', '3', '--failed', '1']));
+  ok(flow(r, ['item', 'start', '30', '--title', 'HML substituída', '--stage', 'hml_validation']));
+  ok(flow(r, ['hml', '30', '--passed', '3', '--blocked', '1']));
+  ok(flow(r, ['item', 'start', '40', '--title', 'HML aprovada depois', '--stage', 'hml_validation']));
+  ok(flow(r, ['hml', '40', '--passed', '3', '--failed', '2']));
+  const resolved = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Fila ou cron?']));
+  const canceled = openedId(flow(r, ['pending', 'open', '12', '--kind', 'parallelize', '--title', 'Paralelizar 13 e 14?']));
+  const silent = openedId(flow(r, ['pending', 'open', '12', '--kind', 'finding', '--title', 'Cancelada sem motivo']));
+  const review = openedId(flow(r, ['pending', 'open', '12', '--task', '13', '--kind', 'task_review', '--title', 'Revisar a task 13']));
+  let hml;
+  let replaced;
+  let approved;
+  await withServer(r, async (get) => {
+    const all0 = await list(get);
+    const derived = (n) => all0.find((p) => p.item.number === n).id;
+    [hml, replaced, approved] = [derived(20), derived(30), derived(40)];
+  });
+  const waits = {};
+  for (const [name, id] of Object.entries({ resolved, canceled, silent, review, hml, replaced, approved })) waits[name] = startWait(r, [String(id)]);
+  await Promise.all(Object.values(waits).map((w) => w.started()));
+  ok(flow(r, ['pending', 'resolve', `P-${resolved}`, '--decision', 'Fila, com retentativa.\nSem cron.', '--agent', 'Maestro widgets']));
+  ok(flow(r, ['pending', 'cancel', `P-${canceled}`, '--reason', 'O grafo mudou']));
+  ok(flow(r, ['pending', 'cancel', `P-${silent}`]));
+  ok(flow(r, ['task', 'integrate', '12', '13', '--sha', 'a1b2c3d4e5f6', '--agent', 'Bento']));
+  ok(flow(r, ['item', 'done', '20', '--role', 'owner']));
+  ok(flow(r, ['pending', 'open', '30', '--kind', 'hml', '--title', 'Cenário 4 bloqueado: seguir?', '--agent', 'Maestro widgets']));
+  ok(flow(r, ['hml', '40', '--passed', '5', '--role', 'owner']));
+  const out = {};
+  for (const [name, w] of Object.entries(waits)) out[name] = await ended(w);
+  let all;
+  await withServer(r, async (get) => {
+    all = await list(get);
+  });
+  const at = (id) => all.find((p) => p.id === id).closed_at;
+  assert.deepStrictEqual(out.resolved, [
+    `Pendência P-${resolved} do item widgets/12 (#12), fechou: resolvida com a decisão do dono.`,
+    'Título: Fila ou cron?',
+    'Decisão: Fila, com retentativa.',
+    'Sem cron.',
+    `Fechada por: maestro (Maestro widgets), em ${at(resolved)}.`,
+  ]);
+  assert.deepStrictEqual(out.canceled, [
+    `Pendência P-${canceled} do item widgets/12 (#12), fechou: cancelada.`,
+    'Título: Paralelizar 13 e 14?',
+    'Motivo: O grafo mudou',
+    `Fechada por: maestro, em ${at(canceled)}.`,
+  ]);
+  assert.deepStrictEqual(out.silent.slice(2, 3), ['Motivo: não informado.']);
+  assert.deepStrictEqual(out.review, [
+    `Pendência P-${review} do item widgets/12 (#12), task 13, fechou: resolvida pela integração da task.`,
+    'Título: Revisar a task 13',
+    `Fechada por: maestro (Bento), em ${at(review)}.`,
+  ]);
+  // The HML pending decision derived from the result has no title.
+  assert.deepStrictEqual(out.hml, [
+    `Pendência P-${hml} do item widgets/20 (#20), fechou: resolvida porque o item foi concluído.`,
+    `Fechada por: dono, em ${at(hml)}.`,
+  ]);
+  assert.deepStrictEqual(out.replaced, [
+    `Pendência P-${replaced} do item widgets/30 (#30), fechou: resolvida porque o maestro abriu outra pendência de HML no lugar dela.`,
+    `Fechada por: maestro (Maestro widgets), em ${at(replaced)}.`,
+  ]);
+  assert.deepStrictEqual(out.approved, [
+    `Pendência P-${approved} do item widgets/40 (#40), fechou: resolvida porque uma Validação HML seguinte passou em tudo.`,
+    `Fechada por: dono, em ${at(approved)}.`,
+  ]);
+});
+
+suite.test('pending wait ends at once when the pending decision was already closed, and takes the id by --json -', async () => {
+  const r = buildRoot('wait-closed');
+  startItem(r);
+  const id = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Já decidida', '--option', 'A: Sim', '--option', 'B: Não']));
+  await withServer(r, async (get, port) => {
+    assert.strictEqual((await answer(port, `P-${id}`, { option: 'A' })).status, 200);
+  });
+  const t0 = Date.now();
+  const x = ok(await startWait(r, ['--json', '-'], { input: JSON.stringify({ id: `P-${id}` }) }).done);
+  assert.ok(Date.now() - t0 < 15000);
+  assert.ok(!WAITING.test(x.stdout), x.stdout);
+  assert.ok(x.stdout.startsWith(`Pendência P-${id} do item widgets/12 (#12), fechou: resolvida com a decisão do dono.\n`), x.stdout);
+  assert.ok(x.stdout.includes('Decisão: A: Sim\n') && x.stdout.includes(FROM_PANEL), x.stdout);
+});
+
+suite.test('pending wait exits 2 with a clear message for an invalid id or a pending decision the project does not have, and records nothing', async () => {
+  const r = buildRoot('wait-invalid');
+  const waitSync = (args, cwd = r.repo) => flow(r, ['pending', 'wait', ...args], { cwd, extra: { FLOW_WAIT_INTERVAL_MS: '50' } });
+  // Before any maestro.db: nothing is created.
+  invalid(waitSync(['P-1']), /a pendência P-1 não existe: ainda não há banco do painel em .*\/data\/maestro\.db/);
+  assert.ok(!fs.existsSync(path.join(r.data, 'maestro.db')));
+  startItem(r);
+  invalid(waitSync([]), /falta o id da pendência/);
+  invalid(waitSync(['xyz']), /id de pendência inválido: "xyz"/);
+  invalid(waitSync(['P-999']), /a pendência P-999 não existe no projeto "widgets"/);
+  invalid(waitSync(['P-1', '--decision', 'a']), /opção desconhecida: --decision/);
+  const id = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'De widgets']));
+  // From another repository (not registered): the wait only reads, so it does not register it.
+  invalid(waitSync([String(id)], r.repo2), /não existe: o repositório github\.com\/acme\/gadgets não tem projeto no painel/);
+  await withServer(r, async (get) => {
+    assert.deepStrictEqual((await get('/api/projects')).projects.map((p) => p.id), ['widgets']);
+  });
+});
+
 suite.test('help lists the pending subcommands, kinds and where the owner answers', () => {
   const r = buildRoot('help');
   const x = ok(flow(r, ['--help']));
-  for (const s of ['pending open <número>', 'pending resolve <id>', 'pending cancel <id>', 'task_review', 'worker_blocked', 'parallelize', 'MAESTRI_WORKSPACE_NAME', 'MAESTRI_TERMINAL_NAME']) {
+  for (const s of ['pending open <número>', 'pending resolve <id>', 'pending cancel <id>', 'pending wait <id>', 'FLOW_WAIT_INTERVAL_MS', 'task_review', 'worker_blocked', 'parallelize', 'MAESTRI_WORKSPACE_NAME', 'MAESTRI_TERMINAL_NAME']) {
     assert.ok(x.stdout.includes(s), `${s} in:\n${x.stdout}`);
   }
 });

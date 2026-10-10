@@ -779,14 +779,19 @@ function recordStatus(store, cmd, origin, at, branch) {
 //        [--recommendation "..."] [--workspace W] [--terminal T]   → pending-decision-opened (its id is the event id)
 //   flow pending resolve <id> --decision "..."                     → pending-decision-resolved
 //   flow pending cancel <id> [--reason "..."]                      → pending-decision-canceled
+//   flow pending wait <id>                                         → nothing: waits for it to close (#33, ADR 0005)
 // Where the owner answers: --workspace/--terminal, else the Maestri terminal this runs in (MAESTRI_WORKSPACE_NAME or
 // MAESTRI_WORKSPACE_ID, MAESTRI_TERMINAL_NAME or MAESTRI_TERMINAL_ID), else the project's Maestri workspace.
+// wait only reads maestro.db (readOnly, a fresh connection each FLOW_WAIT_INTERVAL_MS, default 3 s), with no time
+// limit and no panel server, and never registers the project; it ends when the pending decision closes in any way.
 
 const PENDING_OPTIONS = {
   open: ['task', 'kind', 'severity', 'title', 'context', 'option', 'recommendation', 'workspace', 'terminal', ...AGENT],
   resolve: ['decision', ...AGENT],
   cancel: ['reason', ...AGENT],
+  wait: ['json'],
 };
+const WAIT_INTERVAL_MS = 3000;
 const PENDING_TEXT = ['kind', 'severity', 'title', 'context', 'recommendation', 'workspace', 'terminal', 'decision', 'reason'];
 const MAX_CONTEXT = 4000;
 const MAX_OPTION = 300;
@@ -852,6 +857,7 @@ function parsePending(rest) {
     };
   }
   const id = pendingId(pick(pos[0], json.id));
+  if (sub === 'wait') return { kind: 'pending-wait', id };
   if (sub === 'resolve') {
     const decision = longText(pick(opts.decision, json.decision), 'decision', MAX_DECISION);
     if (!decision) throw new InvalidData('pending.errors.missingDecision');
@@ -910,6 +916,69 @@ function recordPending(store, cmd, { project, at }) {
   return [t('pending.done.canceled', { id: cmd.id, key })];
 }
 
+/**
+ * One read-only look at the pending decision of the project of origin: { project, item, pending, fromPanel }, where
+ * fromPanel says the owner's decision was recorded by the panel (#32). itemNumber: where it was found the last time
+ * (only that item is projected again). InvalidData when the project or the pending decision does not exist.
+ */
+function lookAtPending(origin, id, itemNumber = null) {
+  const { remote } = describeRemote(origin);
+  const store = openStore({ dir: flowDir(), readOnly: true });
+  if (!store) throw new InvalidData('pending.errors.noDatabase', { id, file: lib.slashes(path.join(flowDir(), 'maestro.db')) });
+  try {
+    const project = store.projectByRemote(remote);
+    if (!project) throw new InvalidData('pending.errors.noProject', { id, remote });
+    let found = null;
+    if (itemNumber !== null) {
+      const item = projectItem(store.itemEvents(project.id, itemNumber), project);
+      const pending = item && item.pending_decisions.find((p) => p.id === id);
+      if (pending) found = { item, pending };
+    }
+    found = found || findPending(store, project, id);
+    let fromPanel = false;
+    if (found.pending.resolution === 'decision') {
+      // The first resolution of an open pending decision is the one that closed it (the projection ignores the others).
+      const closing = store.itemEvents(project.id, found.item.number)
+        .find((e) => e.type === EVENT_TYPES.pendingDecisionResolved && e.payload.pending_decision === id);
+      fromPanel = !!closing && closing.source === 'panel';
+    }
+    return { project, ...found, fromPanel };
+  } finally {
+    store.close();
+  }
+}
+
+/** What the wait prints when the pending decision closed: how, the decision or the reason, who closed it and when. */
+function closedLines({ project, item, pending, fromPanel }) {
+  const lines = [t('pending.wait.closed', {
+    id: pending.id, key: `${project.id}/${item.number}`, ref: trackerRef(project.tracker, item.number), task: pending.task_number,
+    status: pending.status, resolution: pending.resolution,
+  })];
+  if (pending.title) lines.push(t('pending.wait.title', { title: pending.title }));
+  if (pending.status === 'canceled') lines.push(t(pending.reason ? 'pending.wait.reason' : 'pending.wait.noReason', { reason: pending.reason }));
+  else if (pending.decision) lines.push(t('pending.wait.decision', { decision: pending.decision }));
+  lines.push(t('pending.wait.closedBy', { ...(pending.closed_by || {}), panel: fromPanel, at: pending.closed_at }));
+  if (fromPanel) lines.push(t('pending.wait.fromPanel'));
+  return lines;
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** flow pending wait: polls maestro.db until the pending decision closes, then prints how it closed. */
+async function waitPending(cmd, origin, env = process.env) {
+  const ms = Number(env.FLOW_WAIT_INTERVAL_MS);
+  const interval = Number.isInteger(ms) && ms >= 10 ? ms : WAIT_INTERVAL_MS;
+  let seen = lookAtPending(origin, cmd.id);
+  if (seen.pending.status === 'open') {
+    lib.print(t('pending.wait.waiting', { id: cmd.id, key: `${seen.project.id}/${seen.item.number}`, ref: trackerRef(seen.project.tracker, seen.item.number) }));
+    while (seen.pending.status === 'open') {
+      await sleep(interval);
+      seen = lookAtPending(origin, cmd.id, seen.item.number);
+    }
+  }
+  for (const l of closedLines(seen)) lib.print(l);
+}
+
 function run(argv, cwd) {
   if (argv.includes('--help') || argv.includes('-h') || argv[0] === 'help') {
     lib.print(t('help', { db: lib.slashes(path.join(flowDir(), 'maestro.db')) }));
@@ -922,6 +991,7 @@ function run(argv, cwd) {
   const cmd = parseCommand(argv);
   const origin = originOf(cwd);
   if (!origin) throw new InvalidData('errors.notARepository', { cwd: lib.slashes(cwd) });
+  if (cmd.kind === 'pending-wait') return waitPending(cmd, origin);
   const at = lib.isoSP(lib.now());
   const store = openStore({ dir: flowDir() });
   try {
@@ -941,17 +1011,23 @@ function run(argv, cwd) {
   }
 }
 
+function fail(e) {
+  const invalid = e instanceof InvalidData;
+  let message;
+  if (invalid || e instanceof Failed) message = e.message;
+  else if (e instanceof SchemaTooNew) message = t('errors.schemaTooNew', { ...e.error, file: lib.slashes(path.join(flowDir(), e.error.file)) });
+  else message = t('errors.unexpected', { detail: e && e.message ? e.message : String(e) });
+  process.stderr.write(`${t('errors.prefix', { message })}\n`);
+  process.exitCode = invalid ? 2 : 1;
+}
+
 if (require.main === module) {
   try {
-    run(process.argv.slice(2), process.cwd());
+    // Only pending wait returns a promise.
+    const waiting = run(process.argv.slice(2), process.cwd());
+    if (waiting) waiting.catch(fail);
   } catch (e) {
-    const invalid = e instanceof InvalidData;
-    let message;
-    if (invalid || e instanceof Failed) message = e.message;
-    else if (e instanceof SchemaTooNew) message = t('errors.schemaTooNew', { ...e.error, file: lib.slashes(path.join(flowDir(), e.error.file)) });
-    else message = t('errors.unexpected', { detail: e && e.message ? e.message : String(e) });
-    process.stderr.write(`${t('errors.prefix', { message })}\n`);
-    process.exitCode = invalid ? 2 : 1;
+    fail(e);
   }
 }
 
