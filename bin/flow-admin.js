@@ -14,11 +14,12 @@
 //
 // A project may have many repositories (an Azure DevOps project usually does): each one is a remote URL, kept
 // normalized (flow-repo.js), so the flow commands run in any of them resolve the same project. "Pessoal" is a
-// company like the others; "unassigned" (Sem empresa) is where unregistered repositories land.
-// Invalid data throws helpers.InvalidData (exit 2); the messages come from the pt-BR dictionary (admin.*).
+// company like the others; "unassigned" (Sem empresa) is where unregistered repositories land, and never a destination.
+// Invalid data throws helpers.InvalidData (exit 2); the messages come from the pt-BR dictionary (admin.*). The rules of the
+// register are the store's (RegisterError, bin/flow-store.js): run() turns its codes into the same kind of message.
 const lib = require('./lib');
 const { t } = require('./i18n');
-const { openStore, flowDir, STAGES, TRACKERS } = require('./flow-store');
+const { openStore, flowDir, RegisterError, STAGES, TRACKERS } = require('./flow-store');
 const { originOf, describeRemote } = require('./flow-repo');
 
 const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
@@ -125,16 +126,27 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
 
   // ---------- commands ----------
 
+  const unknownCompanyError = (store, companyId) => fail('unknownCompany', { company: companyId, known: store.companies().map((x) => x.id).join(', ') || '-' });
+  const unknownProjectError = (store, projectId) => fail('unknownProject', { project: projectId, known: store.projects().map((x) => x.id).join(', ') || '-' });
+
   function needCompany(store, companyId) {
     const c = store.company(companyId);
-    if (!c) throw fail('unknownCompany', { company: companyId, known: store.companies().map((x) => x.id).join(', ') || '-' });
+    if (!c) throw unknownCompanyError(store, companyId);
     return c;
   }
 
   function needProject(store, projectId) {
     const p = store.project(projectId);
-    if (!p) throw fail('unknownProject', { project: projectId, known: store.projects().map((x) => x.id).join(', ') || '-' });
+    if (!p) throw unknownProjectError(store, projectId);
     return p;
+  }
+
+  /** A rule of the store broken (RegisterError) → the InvalidData of exit 2, with the message of the code. */
+  function registerFailure(store, e) {
+    const x = e.error;
+    if (x.code === 'company_not_found') return unknownCompanyError(store, x.company);
+    if (x.code === 'project_not_found') return unknownProjectError(store, x.project);
+    return new InvalidData(`admin.codes.${x.code}`, x);
   }
 
   /** The new repositories must be free (or already this project's) and of the project's tracker. */
@@ -184,7 +196,6 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
 
   function projectEdit(store, cmd) {
     const p = needProject(store, cmd.id);
-    if (cmd.company !== undefined) needCompany(store, cmd.company);
     const projectTracker = cmd.tracker || p.tracker;
     const current = store.projectRepos(p.id);
     const remaining = current.filter((r) => !cmd.removeRepos.includes(r));
@@ -202,9 +213,8 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
 
   function projectMove(store, cmd) {
     const p = needProject(store, cmd.id);
-    const c = needCompany(store, cmd.company);
-    store.updateProject(p.id, { companyId: c.id });
-    return [t('admin.done.projectMoved', { project: p.id, from: p.company_name, to: c.name })];
+    const moved = store.moveProject(p.id, cmd.company);
+    return [t('admin.done.projectMoved', { project: p.id, from: p.company_name, to: moved.company_name })];
   }
 
   function listCompanies(store) {
@@ -236,6 +246,8 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
         return projectMove(store, cmd);
       });
       for (const l of lines) lib.print(l);
+    } catch (e) {
+      throw e instanceof RegisterError ? registerFailure(store, e) : e;
     } finally {
       store.close();
     }

@@ -9,6 +9,8 @@
 import { t } from '../i18n/index.js';
 import { arr, obj, spDay, txt, now } from './format.js';
 
+const UNASSIGNED = 'unassigned';
+
 let loadItems = null;
 function loadMockItems() {
   if (!loadItems) {
@@ -44,7 +46,8 @@ function mockPendingDecisions(m, sp) {
 
 /**
  * Companies and projects (#6) from tests/mock-items.json: GET /api/companies, GET /api/projects[?company=] and
- * POST /api/projects/<id>/company, which moves the project only in this page's memory. null for any other path.
+ * POST /api/projects/<id>/company, which moves the project only in this page's memory and, like the store, refuses
+ * "Sem empresa" as a destination (400 company_reserved, #21). null for any other path.
  */
 async function mockCompanies(u, method, body) {
   const p = u.pathname;
@@ -67,7 +70,9 @@ async function mockCompanies(u, method, body) {
   const id = decodeURIComponent(move[1]);
   const project = projects.find((x) => x.id === id);
   if (!project) throw error('project_not_found', 404, { project: id });
-  const target = companies.find((c) => c.id === (obj(body) && body.company));
+  const wanted = obj(body) && body.company;
+  if (wanted === UNASSIGNED) throw error('company_reserved', 400, { company: wanted });
+  const target = companies.find((c) => c.id === wanted);
   if (!target) throw error('company_not_found', 400, { company: txt(obj(body) && body.company) });
   project.company = { id: target.id, name: target.name };
   project.unassigned = !!target.unassigned;

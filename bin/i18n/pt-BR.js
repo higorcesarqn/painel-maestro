@@ -75,7 +75,8 @@ const ADMIN_HELP = `EMPRESAS E PROJETOS (dono; não precisam rodar dentro de um 
         [--stages] [--done-state] [--workspace]
       Muda o cadastro (um --done-state ou --workspace vazio apaga o valor). O id não muda.
   node bin/flow.js project move <id> <empresa>
-      Move o projeto para outra empresa (o painel também faz isso, para os projetos em "Sem empresa").
+      Move o projeto para outra empresa (o painel também faz isso, na tela Empresas e no card "Sem empresa" da
+      tela Itens). "Sem empresa" (unassigned) não é destino: ela só recebe os repositórios sem cadastro.
   JSON (--json -): id, name, company, tracker, repos, remove_repos, stages, done_state, maestri_workspace.
 `;
 
@@ -235,6 +236,11 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       repoNotInProject: 'o repositório {remote} não é do projeto "{project}".',
       lastRepo: 'o projeto "{project}" precisa de ao menos um repositório.',
       nothingToChange: 'nada para mudar: informe ao menos uma opção (veja flow --help).',
+    },
+    // Codes of the rules of the register (RegisterError, bin/flow-store.js); company_not_found and project_not_found
+    // reuse unknownCompany and unknownProject above.
+    codes: {
+      company_reserved: '"Sem empresa" não é destino de mover: ela só recebe os repositórios sem cadastro. Escolha uma empresa cadastrada (flow company list).',
     },
   },
   // bin/install-skills.js (#15)

@@ -207,6 +207,41 @@ suite.test('a repository without register lands in "Sem empresa"; the panel move
   assert.ok(/scratch\s+scratch · Pessoal · GitHub/.test(ok(flow(r, ['project', 'list']))));
 });
 
+suite.test('"Sem empresa" is never a destination of a move: the API answers 400 company_reserved and the CLI exits 2', async () => {
+  const r = buildRoot('reserved');
+  const scratch = repo(r, 'scratch', 'https://github.com/higor/scratch.git');
+  const reserved = /"Sem empresa" não é destino de mover/;
+  ok(flow(r, ['company', 'add', 'contoso', '--name', 'Contoso']));
+  ok(flow(r, ['company', 'add', 'personal', '--name', 'Pessoal']));
+  ok(flow(r, ['project', 'add', 'shop', '--company', 'contoso', '--repo', 'https://github.com/contoso/shop']));
+  // Refused before "Sem empresa" exists in the register and after a repository lands there.
+  invalid(flow(r, ['project', 'move', 'shop', 'unassigned']), reserved);
+  ok(flow(r, ['item', 'start', '3', '--title', 'Rascunho'], { cwd: scratch }));
+  invalid(flow(r, ['project', 'move', 'shop', 'unassigned']), reserved);
+  invalid(flow(r, ['project', 'move', '--json', '-'], { input: JSON.stringify({ id: 'shop', company: 'unassigned' }) }), reserved);
+  invalid(flow(r, ['project', 'edit', 'shop', '--company', 'unassigned']), reserved);
+  invalid(flow(r, ['project', 'move', 'scratch', 'unassigned']), reserved);
+  invalid(flow(r, ['project', 'move', 'shop', 'nobody']), /a empresa "nobody" não existe \(empresas: contoso, personal, unassigned\)/);
+  await withServer(r, async ({ port, get }) => {
+    const move = (id, company) => request(port, `/api/projects/${id}/company`, {
+      method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ company }),
+    });
+    const where = async () => (await get('/api/projects')).projects.map((p) => [p.id, p.company.id]);
+    for (const id of ['shop', 'scratch']) {
+      const x = await move(id, 'unassigned');
+      assert.deepStrictEqual([id, x.status, x.json.error], [id, 400, { code: 'company_reserved', company: 'unassigned' }]);
+    }
+    assert.deepStrictEqual(await where(), [['scratch', 'unassigned'], ['shop', 'contoso']], 'nothing moved by a refused move');
+    // Moving between companies keeps working, by the panel and by the CLI.
+    const moved = await move('shop', 'personal');
+    assert.deepStrictEqual([moved.status, moved.json.project.company], [200, { id: 'personal', name: 'Pessoal' }], moved.text);
+    assert.ok(/Projeto "scratch" movido de "Sem empresa" para "Contoso"/.test(ok(flow(r, ['project', 'move', 'scratch', 'contoso']))));
+    assert.deepStrictEqual(await where(), [['scratch', 'contoso'], ['shop', 'personal']]);
+    assert.deepStrictEqual((await get('/api/companies')).companies.map((c) => [c.id, c.project_count, c.item_count]),
+      [['contoso', 1, 1], ['personal', 1, 0], ['unassigned', 0, 0]]);
+  });
+});
+
 suite.test('the CLI lists companies and projects, moves a project and edits its register', async () => {
   const r = buildRoot('cli');
   ok(flow(r, ['company', 'add', 'contoso', '--name', 'Contoso']));

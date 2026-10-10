@@ -1,15 +1,31 @@
-/* Companies and projects (#6): the company selector of the header and the highlighted projects in "Sem empresa". */
+/* Companies and projects (#6): the company selector of the header and the highlighted projects in "Sem empresa";
+   the Companies screen (#21) and the project line both share (ProjectRow.jsx). */
 .company-select { display: inline-flex; align-items: center; gap: 8px; margin-left: 18px; color: var(--muted); }
 .company-select .label { white-space: nowrap; }
 .company-select .select { min-width: 150px; }
 
 .screen-items:has(> .unassigned-projects) { grid-template-rows: auto minmax(0, 1fr); }
-.unassigned-projects { border-color: var(--warning); box-shadow: inset 3px 0 0 var(--warning); }
-.unassigned-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-.unassigned-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 10px; border-radius: 10px; }
-.unassigned-row:hover { background: var(--row-hover); }
-.unassigned-name { display: flex; flex-direction: column; gap: 2px; min-width: 200px; flex: 1; }
-.unassigned-move { display: inline-flex; align-items: center; gap: 8px; }
-.unassigned-error { flex-basis: 100%; color: var(--danger); }
+/* "Sem empresa" stands out in amber: the card of the Items screen and its card on the Companies screen. */
+.unassigned-projects, .company-card.unassigned { border-color: var(--warning); box-shadow: inset 3px 0 0 var(--warning); }
 .items-filtered { padding: 0 18px 10px; display: flex; align-items: center; gap: 10px; }
 .topbar-title .label { white-space: nowrap; }
+
+/* The project line (ProjectRow.jsx) */
+.project-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.project-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 10px; border-radius: 10px; }
+.project-row:hover { background: var(--row-hover); }
+.project-row-name { display: flex; flex-direction: column; gap: 2px; min-width: 200px; flex: 1; }
+.project-row-move { display: inline-flex; align-items: center; gap: 8px; }
+.project-row-error { flex-basis: 100%; color: var(--danger); }
+
+/* The Companies screen: the note on top and the cards, which scroll inside the screen when they do not fit. */
+.screen-companies { grid-template-rows: auto minmax(0, 1fr); }
+.screen-companies:has(> .companies-error) { grid-template-rows: auto auto minmax(0, 1fr); }
+.companies-note { display: flex; align-items: center; gap: 7px; }
+.companies-error { color: var(--danger); }
+.companies-grid {
+  min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: var(--gap); align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 620px), 1fr));
+}
+.company-meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.company-meta .mono { color: var(--text-2); }

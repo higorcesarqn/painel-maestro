@@ -3,12 +3,13 @@
 //   GET  /api/companies                    → { companies: [{ id, name, unassigned, project_count, item_count }] }
 //   GET  /api/projects[?company=<id>]      → { projects: [{ id, name, tracker, company: {id, name}, unassigned, repos,
 //                                                           stages, done_state, maestri_workspace, created_at, item_count }] }
-//   POST /api/projects/<id>/company {company} → { project } (moves the project to another company)
+//   POST /api/projects/<id>/company {company} → { project } (moves the project to another company, never to "Sem empresa")
 // The register itself is written by the CLI (flow company / flow project); the panel only moves a project, which is
-// how a repository that landed in "Sem empresa" gets its company. No sentences: errors are codes (ADR 0004).
+// how a repository that landed in "Sem empresa" gets its company. The rules are the store's (RegisterError,
+// bin/flow-store.js): this file only gives each code its HTTP status. No sentences: errors are codes (ADR 0004).
 const path = require('path');
 
-const { UNASSIGNED_COMPANY, STAGES, TRACKERS } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { UNASSIGNED_COMPANY, STAGES, TRACKERS, RegisterError } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 const { listItems, projectInfo } = require(path.join(__dirname, 'api-items.js'));
 
 const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
@@ -20,6 +21,9 @@ class ProjectsError extends Error {
     this.error = error;
   }
 }
+
+// HTTP status of each code of the store's register rules, in a move (the company comes in the body: 400).
+const MOVE_STATUS = { project_not_found: 404, company_not_found: 400, company_reserved: 400 };
 
 /** Number of items per project id. */
 function itemCounts(source) {
@@ -111,11 +115,12 @@ function moveProject(source, projectId, body) {
   if (!RE_ID.test(company)) throw new ProjectsError(400, { code: 'invalid_field', field: 'company', value: String(input.company ?? '').slice(0, 100) });
   const store = source.store();
   if (!store || !store.project(projectId)) throw new ProjectsError(404, { code: 'project_not_found', project: projectId });
-  return store.transaction(() => {
-    if (!store.company(company)) throw new ProjectsError(400, { code: 'company_not_found', company });
-    store.updateProject(projectId, { companyId: company });
-    return { project: projectDetail(store, store.project(projectId), itemCounts(source)) };
-  });
+  try {
+    return store.transaction(() => ({ project: projectDetail(store, store.moveProject(projectId, company), itemCounts(source)) }));
+  } catch (e) {
+    if (e instanceof RegisterError && MOVE_STATUS[e.code]) throw new ProjectsError(MOVE_STATUS[e.code], e.error);
+    throw e;
+  }
 }
 
 /** Route of a project: the decoded id, or null. */

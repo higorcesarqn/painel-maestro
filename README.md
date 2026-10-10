@@ -8,7 +8,7 @@ O vocabulário (Empresa, Projeto, Item, Task, Achado, Pendência, Fluxo, Etapa, 
 
 ## Como funciona
 
-- **Empresas e projetos.** Cada **projeto** é um projeto do tracker (um repositório do GitHub ou um projeto do Azure DevOps, que pode ter vários repositórios) e pertence a uma **empresa**; o trabalho pessoal é a empresa "Pessoal", uma empresa como as outras. Cada projeto declara o tracker, as **etapas** que usa (por exemplo, sem Validação HML), o estado do tracker que significa "concluído" (no CIDAX é `Committed`) e o workspace do Maestri. O projeto é reconhecido sozinho pelo `git remote origin` da pasta onde o comando roda (também dentro do worktree de um floor); um repositório sem cadastro entra sozinho em **"Sem empresa"** e o dono o move para a empresa certa pelo painel.
+- **Empresas e projetos.** Cada **projeto** é um projeto do tracker (um repositório do GitHub ou um projeto do Azure DevOps, que pode ter vários repositórios) e pertence a uma **empresa**; o trabalho pessoal é a empresa "Pessoal", uma empresa como as outras. Cada projeto declara o tracker, as **etapas** que usa (por exemplo, sem Validação HML), o estado do tracker que significa "concluído" (no CIDAX é `Committed`) e o workspace do Maestri. O projeto é reconhecido sozinho pelo `git remote origin` da pasta onde o comando roda (também dentro do worktree de um floor); um repositório sem cadastro entra sozinho em **"Sem empresa"** e o dono o move para a empresa certa pelo painel ("Sem empresa" nunca é destino de mover).
 - **Item.** Uma Issue pai do GitHub ou um PBI do Azure DevOps, identificado por projeto e número (`cidax/3100`) e mostrado como no tracker (`PBI 3100`, `#12`). O item percorre as **etapas** do fluxo: Especificação → Implementação → Ajuste final → PR pronto → Merge → Validação HML → Concluído (só as que o projeto usa).
 - **Tasks.** As filhas do item (sub-issues ou cards filhos), com os bloqueios entre elas, formam um **grafo**. Cada task tem um estado: aguardando, trabalhando, revisão, bloqueada, integrada ou fora. O maestro despacha cada task para um **trabalhador** (um floor do Maestri, com codinome, ou um subagente) numa branch `task/<id>-…` e a integra na branch integradora do item. Uma issue sem filhas é um item com uma task, ele mesmo.
 - **Relatórios.** O trabalhador grava o relatório completo (status, testes, o que mudou, decisões, riscos, arquivos compartilhados, o texto inteiro) **antes** de enviá-lo ao maestro, para ele não se perder no terminal.
@@ -29,6 +29,7 @@ No topo, o **seletor de empresa** (Todas ou uma empresa, lembrado neste navegado
 - **Log:** os eventos de todos os itens, com filtros por período, projeto, item e tipo; abrir um evento mostra o que foi gravado e os comandos brutos das sessões do Claude Code ligadas a ele.
 - **Agentes:** os maestros e trabalhadores ativos, sem cadastro fixo: o maestro de cada item ainda não concluído e o trabalhador de cada task em andamento, com o último evento, a última atividade vista pelo hook e o consumo da janela de 5 h.
 - **Uso:** o plano Claude (5 h e semanal, com o reinício), o consumo de cada item em cada período e os tokens de cada agente.
+- **Empresas:** o cadastro inteiro, qualquer que seja o seletor do topo: um card por empresa (nome, id, projetos e itens), em ordem alfabética, com "Sem empresa" por último e só quando tem projetos; dentro de cada card, os projetos (nome, tracker, repositórios, itens) com **Mover para** outra empresa, a mesma linha do card "Sem empresa" da tela Itens.
 
 A página se atualiza sozinha a cada 20 segundos.
 
@@ -232,7 +233,7 @@ flow company add <id> --name "<nome>"
 flow project list [--company <id>]
 flow project add <id> --company <id> [--name] [--tracker github|azure_devops] [--repo <url>]... [--stages a,b,...] [--done-state "..."] [--workspace "..."]
 flow project edit <id> [--name] [--company] [--tracker] [--repo <url>]... [--remove-repo <url>]... [--stages] [--done-state] [--workspace]
-flow project move <id> <empresa>
+flow project move <id> <empresa>        # "Sem empresa" (unassigned) não é destino: código 2
 ```
 
 Um projeto do Azure DevOps com vários repositórios é um projeto só: o CLI rodado em qualquer um deles (ou num worktree deles) resolve o mesmo projeto. As formas SSH e HTTPS do mesmo remote são iguais.

@@ -210,6 +210,36 @@ suite.test('companies (#6): the demo has two companies and "Pessoal" with GitHub
   assert.ok(js.includes('painel-maestro.company'));
 });
 
+suite.test('Companies screen (#21): in the menu, sharing the project line with "Sem empresa"; the mock refuses "Sem empresa" as a destination', async () => {
+  const { SCREENS, parseHash } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
+  assert.ok(SCREENS.some((s) => s.id === 'companies' && s.group === 'workspace'));
+  assert.deepStrictEqual(parseHash('#companies'), { id: 'companies', sub: '' });
+  for (const f of ['screens/Companies.jsx', 'screens/UnassignedProjects.jsx']) assert.ok(/import \{ ProjectRow \} from '\.\/ProjectRow\.jsx'/.test(source[f]), f);
+  // Exception to the seam rule (panel/README.md, Testes): the mock lives only in the page (?mock=1), with no server or
+  // process to drive, so its refusal of "Sem empresa" is checked by calling mockApi() with the page's address and its
+  // one file (tests/mock-items.json), without a browser.
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const saved = { location: globalThis.location, fetch: globalThis.fetch };
+  globalThis.location = new URL('http://127.0.0.1:4795/?mock=1');
+  globalThis.fetch = async () => ({ ok: true, json: async () => m });
+  try {
+    const { mockApi } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'mock.js')).href);
+    const p = m.projects.find((x) => !x.unassigned);
+    await assert.rejects(mockApi(`/api/projects/${p.id}/company`, 'POST', { company: 'unassigned' }),
+      (e) => e.status === 400 && e.error.code === 'company_reserved' && e.error.company === 'unassigned');
+    const target = m.companies.find((c) => !c.unassigned && c.id !== p.company.id);
+    const count = async (id) => (await mockApi('/api/companies', 'GET')).companies.find((c) => c.id === id).project_count;
+    const origin = p.company.id;
+    const before = [await count(origin), await count(target.id)];
+    const moved = await mockApi(`/api/projects/${p.id}/company`, 'POST', { company: target.id });
+    assert.deepStrictEqual(moved.project.company, { id: target.id, name: target.name });
+    assert.deepStrictEqual([await count(origin), await count(target.id)], [before[0] - 1, before[1] + 1], 'the counts follow the move');
+  } finally {
+    globalThis.location = saved.location;
+    globalThis.fetch = saved.fetch;
+  }
+});
+
 suite.test('mock-items.json: reports by task (ok and blocked) and findings of every classification, one of them an "out" task', () => {
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const details = Object.values(m.details);

@@ -88,9 +88,9 @@ export default {
 
   groups: { workspace: 'Workspace' },
   // Name of each screen in the menu (and in the browser tab title).
-  nav: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso' },
+  nav: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso', companies: 'Empresas' },
   // Title of each screen in the header.
-  screens: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude' },
+  screens: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude', companies: 'Empresas' },
 
   sidebar: {
     brand: 'painel',
@@ -270,7 +270,8 @@ export default {
     },
   },
 
-  // Companies and projects (#6): the company selector of the header and the projects in "Sem empresa".
+  // Companies and projects (#6): the company selector of the header, the projects in "Sem empresa" and the Companies
+  // screen (#21), whose project lines (ProjectRow) are the same as the "Sem empresa" card's.
   companies: {
     selectorLabel: 'Empresa',
     selectorTitle: 'Mostra só o que é desta empresa nas telas do fluxo (lembrado neste navegador)',
@@ -278,7 +279,7 @@ export default {
     option: '{name} ({count})',
     unassignedTitle: 'Projetos sem empresa',
     unassignedInfo: 'Repositórios onde o comando flow rodou sem cadastro entram em "Sem empresa". Escolha a empresa de cada um; o cadastro completo (etapas, repositórios, estado de concluído) é feito com node bin/flow.js project edit.',
-    unassignedCount: { one: '{count} projeto', other: '{count} projetos' },
+    projectCount: { one: '{count} projeto', other: '{count} projetos' },
     projectItems: { one: '{count} item', other: '{count} itens' },
     moveTo: 'Mover para',
     moveLabel: 'Empresa para o projeto {project}',
@@ -288,6 +289,10 @@ export default {
     moved: 'Projeto {project} movido para {company}.',
     moveFailed: 'Não consegui mover {project}: {message}',
     noTarget: 'Nenhuma empresa cadastrada. Cadastre com: node bin/flow.js company add <id> --name "<nome>".',
+    screenNote: 'Esta tela mostra todas as empresas, qualquer que seja a escolha do seletor do topo.',
+    none: 'Nenhuma empresa cadastrada. Cadastre com: node bin/flow.js company add <id> --name "<nome>".',
+    noProjects: 'Nenhum projeto nesta empresa.',
+    readFailed: 'Não consegui ler as empresas: {message}',
     filtered: 'Mostrando só {company}.',
     showAll: 'Ver todas',
   },
@@ -718,6 +723,7 @@ export default {
     invalid_field: 'Campo "{field}" inválido: "{value}".',
     company_not_found: 'Empresa não encontrada: {company}. Cadastre com: node bin/flow.js company add.',
     project_not_found: 'Projeto não encontrado: {project}.',
+    company_reserved: '"Sem empresa" não é destino de mover: escolha uma empresa cadastrada.',
     // merge check (#11)
     merge_check_failed: (c, h) => `Consulta do merge de ${c.tracker_ref || c.item || '?'}${c.item ? ` (${c.item})` : ''} falhou: ${h.display(c.error) || '?'}`,
     merge_check_cli_missing: (c) => `não achei o ${c.cli || toolName(c)} (instalado e no PATH?)`,

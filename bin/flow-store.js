@@ -14,7 +14,9 @@
  *   project_repos(remote, project_id)            normalized remote URL → project (a project may have many repos)
  *   events(id, at, type, project_id, item_number, task_number, agent_role, agent_name, source, payload JSON)
  * Companies and projects are the owner's register (flow company / flow project, bin/flow-admin.js; the panel only
- * moves a project to another company): they may change, unlike the events.
+ * moves a project to another company): they may change, unlike the events. Its rules live here, once: a write that
+ * breaks one throws RegisterError with a code ({ code, ...params }), which the CLI turns into a message (exit 2) and
+ * the API into an HTTP answer; neither repeats the rule.
  * The events table is append-only (triggers refuse UPDATE and DELETE) and is the only source of the state of
  * items: nothing derived is stored (the projection is computed by flow-projection.js).
  *
@@ -100,6 +102,15 @@ const MIGRATIONS = [
     CREATE TRIGGER events_no_delete BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;
   `),
 ];
+
+/** A rule of the register broken by a write: error is { code, ...params } (ADR 0004), translated by the CLI and the API. */
+class RegisterError extends Error {
+  constructor(error) {
+    super(error.code);
+    this.code = error.code;
+    this.error = error;
+  }
+}
 
 const isBusy = (e) => e && (e.errcode === 5 || e.errcode === 6 || /database is locked|SQLITE_BUSY/i.test(String(e.message)));
 
@@ -294,8 +305,16 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     removeRepo(projectId, remote) {
       db.prepare('DELETE FROM project_repos WHERE remote = ? AND project_id = ?').run(remote, projectId);
     },
-    /** Changes the given fields of a project (name, companyId, tracker, stages, doneState, maestriWorkspace). */
+    /**
+     * Changes the given fields of a project (name, companyId, tracker, stages, doneState, maestriWorkspace). A new
+     * companyId must be a registered company other than "Sem empresa", which only receives unregistered repositories
+     * (company_reserved; an unknown one is company_not_found).
+     */
     updateProject(id, change) {
+      if (change.companyId !== undefined) {
+        if (change.companyId === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_reserved', company: change.companyId });
+        if (!store.company(change.companyId)) throw new RegisterError({ code: 'company_not_found', company: change.companyId });
+      }
       const columns = { name: 'name', companyId: 'company_id', tracker: 'tracker', stages: 'stages', doneState: 'done_state', maestriWorkspace: 'maestri_workspace' };
       for (const [key, column] of Object.entries(columns)) {
         if (change[key] === undefined) continue;
@@ -303,6 +322,11 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
         db.prepare(`UPDATE projects SET ${column} = ? WHERE id = ?`).run(value, id);
       }
       return store.project(id);
+    },
+    /** Moves a project to another company (the rules of updateProject); an unknown project is project_not_found. */
+    moveProject(id, companyId) {
+      if (!store.project(id)) throw new RegisterError({ code: 'project_not_found', project: id });
+      return store.updateProject(id, { companyId });
     },
 
     appendEvent({ at, type, projectId, itemNumber, taskNumber = null, agentRole = null, agentName = null, source, payload = {} }) {
@@ -383,5 +407,5 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
 }
 
 module.exports = {
-  openStore, projectEventsByItem, flowDir, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite, retryBusy, transaction,
+  openStore, projectEventsByItem, flowDir, RegisterError, DB_FILE, SCHEMA_VERSION, UNASSIGNED_COMPANY, TRACKERS, STAGES, loadSqlite, retryBusy, transaction,
 };
