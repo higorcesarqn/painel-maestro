@@ -1,4 +1,5 @@
-// Header: screen title, organization selector, time of the last read, health badge (with details) and Recalculate.
+// Header: screen title, organization selector, time of the last read, the browser notification's bell (#45), health
+// badge (with details) and Recalculate.
 import { useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
 import { time, elapsedText, dateTime, age, arr, obj, txt } from '../data/format.js';
@@ -6,12 +7,13 @@ import { t } from '../i18n/index.js';
 import { Popover } from '../components/Modal.jsx';
 import { OrganizationSelect } from './OrganizationSelect.jsx';
 import { Dot } from '../components/base.jsx';
-import { Icon, RefreshCw, Clock, TriangleAlert, CircleCheck, CircleAlert } from '../components/Icon.jsx';
+import { Icon, RefreshCw, Clock, TriangleAlert, CircleCheck, CircleAlert, Bell, BellRing, BellOff } from '../components/Icon.jsx';
 
 const LEVEL_COLORS = { green: 'var(--ok)', yellow: 'var(--warning)', red: 'var(--danger)', gray: 'var(--faint)' };
+const BELL_ICONS = { off: Bell, on: BellRing, blocked: BellOff, demo: BellOff };
 
 export function Header() {
-  const { state, connectionError, failingSince, screen, actionStatus, recalculate, recalculating } = usePanel();
+  const { state, connectionError, failingSince, screen, actionStatus, recalculate, recalculating, bell, toggleBell } = usePanel();
   const [pop, setPop] = useState(null);
   const h = (state && obj(state.health)) || {};
   const level = LEVEL_COLORS[h.level] ? h.level : 'gray';
@@ -34,6 +36,12 @@ export function Header() {
       <span class="spacer" />
       {actionStatus && <span class="action-status truncate" aria-live="polite" title={actionStatus}>{actionStatus}</span>}
       <span class={`updated${connectionError ? ' error' : ''}`} aria-live="polite"><Icon of={Clock} size={14} />{updated}</span>
+      {bell && (
+        <button type="button" class={`button icon-only bell is-${bell}`} disabled={bell === 'demo'} aria-pressed={bell === 'on' ? 'true' : 'false'}
+          title={t(`notification.bell.${bell}`)} aria-label={t(`notification.bell.${bell}`)} onClick={toggleBell}>
+          <Icon of={BELL_ICONS[bell]} size={16} />
+        </button>
+      )}
       <button type="button" class="button" data-opens-popover aria-expanded={pop === 'health' ? 'true' : 'false'} aria-controls="pop-health"
         title={reasons.length ? reasons.join('\n') : noProblem}
         aria-label={t('health.ariaLabel', { level: levelName, reasons: reasons.length ? reasons.join('. ') : noProblem })}

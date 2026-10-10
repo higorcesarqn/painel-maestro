@@ -525,7 +525,7 @@ suite.test('POST on the list of pending decisions is still 405', async () => {
 suite.test('the menu counter (/api/state) counts the open pending decisions of every organization, by severity', async () => {
   const r = buildRoot('counter');
   await withServer(r, async (get) => {
-    assert.deepStrictEqual((await get('/api/state')).kpis.pending_decisions, { total: 0, by_severity: { critical: 0, high: 0, normal: 0, low: 0 } });
+    assert.deepStrictEqual((await get('/api/state')).kpis.pending_decisions, { total: 0, by_severity: { critical: 0, high: 0, normal: 0, low: 0 }, open: [] });
   });
   startItem(r);
   ok(flow(r, ['item', 'start', '7', '--title', 'Outro', '--stage', 'implementation'], { cwd: r.repo2 }));
@@ -537,7 +537,9 @@ suite.test('the menu counter (/api/state) counts the open pending decisions of e
   const canceled = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--severity', 'low', '--title', 'Cancelada']));
   ok(flow(r, ['pending', 'cancel', String(canceled)]));
   await withServer(r, async (get) => {
-    assert.deepStrictEqual((await get('/api/state')).kpis.pending_decisions, { total: 3, by_severity: { critical: 1, high: 1, normal: 1, low: 0 } });
+    const { open, ...counter } = (await get('/api/state')).kpis.pending_decisions;
+    assert.deepStrictEqual(counter, { total: 3, by_severity: { critical: 1, high: 1, normal: 1, low: 0 } });
+    assert.strictEqual(open.length, 3, 'the open ones are listed too (#45, test-state-open.js)');
   });
 });
 

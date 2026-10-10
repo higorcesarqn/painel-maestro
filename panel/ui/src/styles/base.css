@@ -163,6 +163,10 @@ a.nav-item:hover { text-decoration: none; }
 .button.small { height: 28px; padding: 0 10px; font-size: 12.5px; border-radius: 8px; }
 .button.icon-only { width: 34px; padding: 0; }
 .button.small.icon-only { width: 28px; }
+/* The browser notification's bell (#45): blue when on, dashed when the browser blocked it, unavailable in the demo. */
+.button.bell.is-on { color: var(--blue-text); }
+.button.bell.is-blocked { color: var(--muted); border-style: dashed; }
+.button.bell.is-demo[disabled] { cursor: not-allowed; }
 .link {
   border: 0; background: none; padding: 0; color: var(--blue-text); font-size: inherit; text-align: left;
   display: inline; white-space: normal; cursor: pointer;

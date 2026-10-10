@@ -214,6 +214,7 @@ async function mockAnswerPending(idText, body) {
   if (counter) {
     counter.total = Math.max(0, counter.total - 1);
     if (obj(counter.by_severity) && counter.by_severity[p.severity] > 0) counter.by_severity[p.severity]--;
+    counter.open = arr(counter.open).filter((x) => !obj(x) || x.id !== p.id);
   }
   const item = obj(m.details) && m.details[p.item.key];
   if (item) {

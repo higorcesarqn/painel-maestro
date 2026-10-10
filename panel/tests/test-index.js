@@ -437,6 +437,89 @@ suite.test('Pendências (#44): the demo has an open pending decision whose Maest
   assert.strictEqual(screen.match(/notificationFailed/g).length, 1, 'and nowhere else');
 });
 
+suite.test('browser notification (#45): the notice rule, imported from the page\'s source, notifies only the new pending decisions with the tab hidden', async () => {
+  const href = (rel) => require('url').pathToFileURL(path.join(SOURCE, ...rel.split('/'))).href;
+  const { pendingNotice } = await import(href('data/notification.js'));
+  const p = (id, severity = 'normal') => ({ id, kind: 'decision', severity, title: `Pendência ${id}`, derived_from: null, opened_at: '2026-10-09T10:00:00-03:00', item: { key: 'widgets/12' }, task: null });
+  const open = [p(1, 'high'), p(2)];
+  // The first read never notifies: what was open when the page loaded is not news.
+  assert.strictEqual(pendingNotice(null, open, false), null, 'first read');
+  assert.strictEqual(pendingNotice(undefined, [p(9)], false), null, 'first read');
+  // A visible tab never notifies: the counter and the list already show it.
+  assert.strictEqual(pendingNotice([1], open, true), null, 'visible tab');
+  // One new: that one; several new in the same read: a group with the count.
+  assert.deepStrictEqual(pendingNotice([1], open, false), { pending: open[1] });
+  assert.deepStrictEqual(pendingNotice([], [p(5, 'critical'), p(6), p(7, 'low')], false), { count: 3 });
+  // One closed and another opened in the same read: only the new one counts.
+  assert.deepStrictEqual(pendingNotice([1, 2], [p(1), p(3, 'low')], false), { pending: p(3, 'low') });
+  // No change, fewer open ones, or none at all: nothing.
+  assert.strictEqual(pendingNotice([1, 2], open, false), null, 'no change');
+  assert.strictEqual(pendingNotice([1, 2], [p(2)], false), null, 'one closed');
+  assert.strictEqual(pendingNotice([1, 2], [], false), null, 'all closed');
+  // Every severity and kind warns, the HML one derived from flow hml included.
+  const hml = { ...p(8, 'high'), kind: 'hml', title: null, derived_from: { type: 'hml-recorded', passed: 7, failed: 1, blocked: 0 } };
+  assert.deepStrictEqual(pendingNotice([1], [p(1), hml], false), { pending: hml });
+  assert.deepStrictEqual(pendingNotice([], [p(4, 'low')], false), { pending: p(4, 'low') });
+  // A read without the list (an older server) says nothing; the ids come in any iterable.
+  assert.strictEqual(pendingNotice([1], undefined, false), null);
+  assert.strictEqual(pendingNotice([1], 'x', false), null);
+  assert.deepStrictEqual(pendingNotice(new Set([1]), open, false), { pending: open[1] });
+});
+
+suite.test('browser notification (#45): the bell\'s states, the notification\'s texts and tag, the click; the shell is the only one touching the Notification API', async () => {
+  const href = (rel) => require('url').pathToFileURL(path.join(SOURCE, ...rel.split('/'))).href;
+  const n = await import(href('data/notification.js'));
+  const dictionary = (await import(href('i18n/pt-BR.js'))).default;
+  // The bell: not shown without the Notification API; disabled in the demo, whatever the browser says; blocked when the
+  // browser denied it; on only when the owner chose it and the browser granted it.
+  const bell = (o) => n.bellState({ supported: true, mock: false, permission: 'default', wanted: false, ...o });
+  assert.strictEqual(bell({ supported: false, mock: true }), null);
+  assert.strictEqual(bell({ mock: true, permission: 'granted', wanted: true }), 'demo');
+  assert.strictEqual(bell({ permission: 'denied', wanted: true }), 'blocked');
+  assert.strictEqual(bell({ permission: 'granted', wanted: true }), 'on');
+  assert.strictEqual(bell({ permission: 'granted', wanted: false }), 'off');
+  assert.strictEqual(bell({ permission: 'default', wanted: true }), 'off', 'the permission was reset in the browser');
+  for (const state of ['off', 'on', 'blocked', 'demo']) {
+    assert.ok(typeof dictionary.notification.bell[state] === 'string' && dictionary.notification.bell[state], `notification.bell.${state} in pt-BR`);
+  }
+  assert.ok(/indisponível na demonstração/i.test(dictionary.notification.bell.demo));
+  // The notification: one pending decision shows its title, severity and item, tagged with its id; the group, the
+  // count with a fixed tag. The texts come from the pt-BR dictionary.
+  const item = { key: 'widgets/12', tracker_ref: '#12', title: 'Exportar relatório', project: { id: 'widgets', name: 'Widgets' } };
+  const one = n.noticeContent({ pending: { id: 7, kind: 'decision', severity: 'critical', title: 'Qual formato?', derived_from: null, item, task: null } });
+  assert.deepStrictEqual(one, { title: 'Qual formato?', body: 'Severidade crítica · Widgets #12 · Exportar relatório', tag: 'P-7', target: 'P-7' });
+  const hml = n.noticeContent({ pending: { id: 8, kind: 'hml', severity: 'high', title: null, derived_from: { type: 'hml-recorded', passed: 7, failed: 1, blocked: 2 }, item, task: null } });
+  assert.strictEqual(hml.tag, 'P-8');
+  assert.ok(hml.title && hml.title !== 'null' && !/^pending\./.test(hml.title), 'the derived HML title, as the screen shows it');
+  assert.deepStrictEqual(n.noticeContent({ count: 3 }), { title: '3 pendências novas', body: dictionary.notification.groupBody, tag: n.GROUP_TAG, target: null });
+  assert.ok(n.GROUP_TAG && !/^P-\d/.test(n.GROUP_TAG), 'the group\'s tag never collides with a pending decision\'s');
+  // The shell (App) is the only one touching the Notification API; the choice is remembered in localStorage (with try/catch).
+  const touching = Object.entries(source).filter(([, text]) => /\bnew Notification\(|Notification\.requestPermission|Notification\.permission/.test(text)).map(([f]) => f);
+  assert.deepStrictEqual(touching, ['app/App.jsx']);
+  const app = source['app/App.jsx'];
+  assert.ok(/pendingNotice\(/.test(app) && /document\.visibilityState === 'visible'/.test(app), 'the shell asks the rule at each read, with the tab\'s visibility');
+  assert.ok(/tag: content\.tag/.test(app), 'the tag goes to the notification');
+  assert.ok(/window\.focus\(\)/.test(app) && /goToPendingDecision\(content\.target\)/.test(app) && /goTo\('pending'\)/.test(app), 'the click focuses the tab and opens the pending decision (or the list)');
+  assert.ok(/Notification\.requestPermission/.test(app) && /onClick=\{toggleBell\}/.test(source['app/Header.jsx']), 'the permission comes only from the bell\'s click');
+  const storage = source['data/notification.js'];
+  assert.ok(/localStorage\.getItem/.test(storage) && /localStorage\.setItem/.test(storage) && (storage.match(/try \{/g) || []).length >= 2, 'the choice is remembered, in a try/catch');
+  assert.ok(/mock: MOCK/.test(app), 'the demo state comes from MOCK');
+  // The bell sits in the header, beside the health badge, and is not drawn without the Notification API.
+  const header = source['app/Header.jsx'];
+  assert.ok(/BellRing/.test(header) && /BellOff/.test(header), 'the bell icons');
+  assert.ok(/bell &&/.test(header), 'no bell without the Notification API');
+  assert.ok(/disabled=\{bell === 'demo'\}/.test(header), 'disabled in the demo');
+  // The demo has the open list on /api/state, with a critical one, by the generator (the server's function).
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const kp = m.state.kpis.pending_decisions;
+  const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
+  assert.deepStrictEqual(kp.open.map((p) => p.id), open.map((p) => p.id), 'every open pending decision of the demo, in the server\'s order');
+  assert.deepStrictEqual(Object.keys(kp.open[0]), ['id', 'kind', 'severity', 'title', 'derived_from', 'opened_at', 'item', 'task']);
+  assert.ok(kp.open.some((p) => p.severity === 'critical'));
+  // Answering in the demo takes the pending decision out of the list too.
+  assert.ok(/counter\.open = arr\(counter\.open\)\.filter/.test(source['data/mock.js']), 'the demo\'s answer drops it from open');
+});
+
 let port = null;
 let pid = null;
 let root = null;
@@ -474,7 +557,10 @@ suite.test('the real server on a fake root (the demo in a real maestro.db + a ho
   // The shell: the demo's counter plus the hostile critical pending decision; the health by the same rules.
   const st = await get('/api/state');
   const kp = mock.state.kpis.pending_decisions;
-  assert.deepStrictEqual(st.kpis.pending_decisions, { total: kp.total + 1, by_severity: { ...kp.by_severity, critical: kp.by_severity.critical + 1 } });
+  const { open: stOpen, ...counter } = st.kpis.pending_decisions;
+  assert.deepStrictEqual(counter, { total: kp.total + 1, by_severity: { ...kp.by_severity, critical: kp.by_severity.critical + 1 } });
+  assert.strictEqual(stOpen.length, kp.total + 1, 'the open list (#45) has the hostile one too');
+  assert.ok(stOpen[0].title.includes('onerror'), 'the hostile critical one arrives raw, first (the notification shows it as text)');
   // This root has no bruto.db: besides the projects in "Sem organização", the badge says the hook never wrote.
   assert.deepStrictEqual(st.health.reasons.map((r) => r.code).sort(), ['hook_never', 'projects_unassigned']);
 

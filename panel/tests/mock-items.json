@@ -26,7 +26,171 @@
           "high": 3,
           "normal": 2,
           "low": 0
-        }
+        },
+        "open": [
+          {
+            "id": 92,
+            "kind": "worker_blocked",
+            "severity": "critical",
+            "title": "Falta o certificado de homologação para assinar o PDF",
+            "derived_from": null,
+            "opened_at": "2026-10-09T10:06:00-03:00",
+            "item": {
+              "key": "portal/3112",
+              "number": 3112,
+              "tracker_ref": "PBI 3112",
+              "title": "Exportar o extrato em PDF",
+              "stage": "implementation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "organization": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": {
+              "number": 3116,
+              "title": "Assinatura digital do PDF",
+              "state": "blocked"
+            }
+          },
+          {
+            "id": 66,
+            "kind": "hml",
+            "severity": "high",
+            "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
+            "derived_from": null,
+            "opened_at": "2026-10-08T16:30:00-03:00",
+            "item": {
+              "key": "portal/3100",
+              "number": 3100,
+              "tracker_ref": "PBI 3100",
+              "title": "Conciliação de boletos com o extrato do banco",
+              "stage": "hml_validation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "organization": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": null
+          },
+          {
+            "id": 78,
+            "kind": "task_review",
+            "severity": "high",
+            "title": "Revisar e integrar a task 3115 (botão de exportar)",
+            "derived_from": null,
+            "opened_at": "2026-10-09T08:42:00-03:00",
+            "item": {
+              "key": "portal/3112",
+              "number": 3112,
+              "tracker_ref": "PBI 3112",
+              "title": "Exportar o extrato em PDF",
+              "stage": "implementation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "organization": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": {
+              "number": 3115,
+              "title": "Botão de exportar na tela do extrato",
+              "state": "review"
+            }
+          },
+          {
+            "id": 83,
+            "kind": "worker_blocked",
+            "severity": "high",
+            "title": "Em que formato sai o extrato exportado?",
+            "derived_from": null,
+            "opened_at": "2026-10-09T09:20:00-03:00",
+            "item": {
+              "key": "portal/3112",
+              "number": 3112,
+              "tracker_ref": "PBI 3112",
+              "title": "Exportar o extrato em PDF",
+              "stage": "implementation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "organization": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": {
+              "number": 3114,
+              "title": "Gerar o PDF no servidor",
+              "state": "working"
+            }
+          },
+          {
+            "id": 86,
+            "kind": "finding",
+            "severity": "normal",
+            "title": "Achado: o carrinho anônimo expira em 24 h",
+            "derived_from": null,
+            "opened_at": "2026-10-09T09:45:00-03:00",
+            "item": {
+              "key": "storefront/48",
+              "number": 48,
+              "tracker_ref": "#48",
+              "title": "Carrinho salvo entre dispositivos",
+              "stage": "final_adjustment",
+              "project": {
+                "id": "storefront",
+                "name": "Loja",
+                "tracker": "github",
+                "organization": {
+                  "id": "fabrikam",
+                  "name": "Fabrikam"
+                }
+              }
+            },
+            "task": null
+          },
+          {
+            "id": 90,
+            "kind": "decision",
+            "severity": "normal",
+            "title": "Como chamar o carrinho juntado na tela?",
+            "derived_from": null,
+            "opened_at": "2026-10-09T10:05:00-03:00",
+            "item": {
+              "key": "storefront/48",
+              "number": 48,
+              "tracker_ref": "#48",
+              "title": "Carrinho salvo entre dispositivos",
+              "stage": "final_adjustment",
+              "project": {
+                "id": "storefront",
+                "name": "Loja",
+                "tracker": "github",
+                "organization": {
+                  "id": "fabrikam",
+                  "name": "Fabrikam"
+                }
+              }
+            },
+            "task": null
+          }
+        ]
       },
       "usage": {
         "available": true,

@@ -133,6 +133,19 @@ export default {
     readWarnings: 'Avisos de leitura ({count})',
   },
 
+  // The browser notification of a new pending decision (#45): the bell in the header and the notification itself.
+  notification: {
+    bell: {
+      off: 'Notificação do navegador desligada. Clique para ser avisado de pendência nova com a aba escondida.',
+      on: 'Notificação do navegador ligada: avisa pendência nova com a aba escondida. Clique para desligar.',
+      blocked: 'Notificação bloqueada pelo navegador. Libere as notificações deste site nas configurações do navegador e clique de novo.',
+      demo: 'Notificação do navegador indisponível na demonstração.',
+    },
+    pendingBody: 'Severidade {severity} · {project} {ref} · {item}',
+    groupTitle: { one: '{count} pendência nova', other: '{count} pendências novas' },
+    groupBody: 'Abra a tela Pendências para ver todas.',
+  },
+
   charts: { total: 'Total' },
 
   // New model: items and the stages of their flow (maestro.db, written by bin/flow.js).
