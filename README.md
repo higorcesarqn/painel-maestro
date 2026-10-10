@@ -280,7 +280,9 @@ O merge do PR costuma acontecer na interface do tracker, sem agente presente (um
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | pasta do Claude Code (transcrições e o destino do `install-skills.js`) |
 | `PANEL_INDEX`, `PANEL_NOW`, `MAESTRO_NOW` | | só para testes: outro `index.html` e relógio fixo |
 | `PANEL_REPO_DIR` | a pasta do código | só para testes: o repositório de onde o servidor lê a versão e confere se o código dele mudou (`server_outdated`) |
+| `PANEL_OUTDATED_CACHE_MS` | `5000` | só para testes: o cache da checagem do `server_outdated`, em ms (os testes usam 200) |
 | `MOCK_PORT` | `4795` | porta da demonstração |
+| `PANEL_TEST_PORTS` | `4790-4799` | testes: a faixa de portas dos servidores de teste, para dois floors rodarem a suíte ao mesmo tempo |
 | `KEEP_TMP`, `HEAVY_TEST` | | testes: `1` guarda as pastas temporárias; `1` aumenta o teste de desempenho |
 
 Detalhes de cada uma em [`panel/README.md`](panel/README.md#variáveis-de-ambiente).

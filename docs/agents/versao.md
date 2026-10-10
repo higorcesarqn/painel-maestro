@@ -1,6 +1,6 @@
 # Versão
 
-O painel-maestro tem uma versão só: o semver do `package.json` da raiz. O pacote da UI (`panel/ui/package.json`, privado e só de build) não tem `version`, e a versão do schema do banco (`PRAGMA user_version` do `maestro.db`, #28) é outra coisa, que não acompanha esta.
+O painel-maestro tem uma versão só: o semver do `package.json` da raiz. A primeira versionada foi a `1.1.0`, do ajuste final da #35. O pacote da UI (`panel/ui/package.json`, privado e só de build) não tem `version`, e a versão do schema do banco (`PRAGMA user_version` do `maestro.db`, #28) é outra coisa, que não acompanha esta.
 
 ## Quando subir
 

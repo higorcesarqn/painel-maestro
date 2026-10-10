@@ -38,8 +38,9 @@
 //   MAESTRI_DATA_DIR and CLAUDE_CONFIG_DIR (passed to the collector), PANEL_COLLECTOR=0 (does not run
 //   the collector by itself), PANEL_STALE_HOURS (default 48: hours on the same stage that make an active item
 //   "stale" in the Overview) and, for tests only, PANEL_INDEX (another index.html), PANEL_NOW
-//   (fixed clock; MAESTRO_NOW also works) and PANEL_REPO_DIR (the repository whose version and commits the server
-//   reads, #38; default: the folder of the code).
+//   (fixed clock; MAESTRO_NOW also works), PANEL_REPO_DIR (the repository whose version and commits the server
+//   reads, #38; default: the folder of the code) and PANEL_OUTDATED_CACHE_MS (the cache of the server_outdated check,
+//   in ms: an integer from 10 up; any other value → the default, 5000).
 //   Merge check (merge-check.js): PANEL_MERGE_CHECK=0|1, PANEL_MERGE_CHECK_SECONDS, PANEL_GH_CLI, PANEL_AZ_CLI,
 //   PANEL_AZURE_DEVOPS_URL.
 
@@ -63,7 +64,7 @@ const overviewApi = require(path.join(__dirname, 'api-overview.js'));
 const { evaluateHealth } = require(path.join(__dirname, 'health.js'));
 const { asDate, isoSP, InvalidData, parseOptions } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
 const { readVersion } = require(path.join(__dirname, '..', 'bin', 'version.js'));
-const { createServerOutdatedCheck } = require(path.join(__dirname, 'server-outdated.js'));
+const { createServerOutdatedCheck, CACHE_MS: OUTDATED_CACHE_MS } = require(path.join(__dirname, 'server-outdated.js'));
 const { readJson, readText, withRetries, writeAtomic } = collector.util;
 
 const MIN_MS = 60 * 1000;
@@ -98,6 +99,7 @@ function parseConfig(argv = [], env = process.env) {
   const staleHours = staleText === undefined || staleText === '' ? DEFAULT_STALE_HOURS : Number(staleText);
   if (!(Number.isFinite(staleHours) && staleHours > 0)) throw new InvalidData('server.errors.invalidStaleHours', { value: staleText });
   const mergeCheckConfig = mergeCheck.parseConfig(env, { collectorActive: env.PANEL_COLLECTOR !== '0', fixedNow });
+  const outdatedMs = Number(env.PANEL_OUTDATED_CACHE_MS);
   return {
     mergeCheck: mergeCheckConfig,
     staleHours,
@@ -105,6 +107,7 @@ function parseConfig(argv = [], env = process.env) {
     dataDir: flowDir(env),
     indexPath: path.resolve(env.PANEL_INDEX || path.join(__dirname, 'index.html')),
     repoDir: path.resolve(env.PANEL_REPO_DIR || path.join(__dirname, '..')),
+    outdatedCacheMs: Number.isInteger(outdatedMs) && outdatedMs >= 10 ? outdatedMs : OUTDATED_CACHE_MS,
     fixedNow,
     collectorActive: env.PANEL_COLLECTOR !== '0',
     env,
@@ -302,7 +305,7 @@ function createContext(cfg) {
   };
   ctx.setPort(cfg.port);
   // server_outdated (#38): the code the server runs changed in git since the commit it started on.
-  ctx.serverOutdated = createServerOutdatedCheck({ repoDir: cfg.repoDir, startedCommit: ctx.version.commit });
+  ctx.serverOutdated = createServerOutdatedCheck({ repoDir: cfg.repoDir, startedCommit: ctx.version.commit, cacheMs: cfg.outdatedCacheMs });
   ctx.mergeCheck = mergeCheck.createMergeCheck({ config: cfg.mergeCheck, env: cfg.env, items: ctx.items, now: ctx.now, log: ctx.log, logError: ctx.logError });
   /** Runs the usage collector; calls during a collection wait for the same collection. */
   ctx.runCollector = (trigger) => {

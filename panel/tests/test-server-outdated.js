@@ -14,7 +14,10 @@ const { assert, REPO, createSuite, tmpDir, remove, freePort, request, waitFor, k
 const suite = createSuite('server_outdated (the code the server runs changed in git)');
 const roots = [];
 const SERVER = path.join(REPO, 'panel', 'server.js');
-const CACHE_MS = 5000; // panel/server-outdated.js: git runs at most once in this time
+const CACHE_MS = 200; // PANEL_OUTDATED_CACHE_MS: git runs at most once in this time (5 s outside the tests)
+// The waits for a change stay under the 5 s default, so a server that ignored PANEL_OUTDATED_CACHE_MS fails here instead
+// of passing the "no reason" reads on a stale cache.
+const CHANGE_MS = CACHE_MS + 2500;
 const PRODUCT = '1.2.3';
 
 function git(dir, ...args) {
@@ -58,7 +61,7 @@ function buildRoot(name) {
 function environment(r, extra = {}) {
   return Object.assign({}, process.env, {
     MAESTRO_DIR: r.data, MAESTRI_DATA_DIR: path.join(r.root, 'maestri'), CLAUDE_CONFIG_DIR: path.join(r.root, 'claude'),
-    PANEL_INDEX: r.index, PANEL_REPO_DIR: r.repo, PANEL_COLLECTOR: '0', PANEL_MERGE_CHECK: '0', PANEL_PORT: '',
+    PANEL_INDEX: r.index, PANEL_REPO_DIR: r.repo, PANEL_OUTDATED_CACHE_MS: String(CACHE_MS), PANEL_COLLECTOR: '0', PANEL_MERGE_CHECK: '0', PANEL_PORT: '',
     PANEL_NOW: '', MAESTRO_NOW: '', NODE_OPTIONS: '',
   }, extra);
 }
@@ -98,16 +101,16 @@ const outdatedOf = (st) => st.health.reasons.filter((x) => x.code === 'server_ou
 const untilOutdated = (s) => waitFor(async () => {
   const st = await state(s);
   return outdatedOf(st).length ? st : null;
-}, CACHE_MS + 5000, 250);
+}, CHANGE_MS, 50);
 
 /** Reads the state for longer than the cache and asserts no server_outdated came; returns the last state. */
 async function neverOutdated(s) {
-  const end = Date.now() + CACHE_MS + 1500;
+  const end = Date.now() + CACHE_MS + 800;
   let st;
   do {
     st = await state(s);
     assert.deepStrictEqual(outdatedOf(st), []);
-    await new Promise((x) => setTimeout(x, 500));
+    await new Promise((x) => setTimeout(x, 100));
   } while (Date.now() < end);
   return st;
 }
@@ -159,14 +162,14 @@ suite.test('a top-level .js of panel/ counts (a new one too); HEAD back on the s
   const c3 = commit(R.repo, { 'panel/api-new.js': '// new route\n' }, 'new route');
   assert.deepStrictEqual(outdatedOf(await untilOutdated(S)), [{ code: 'server_outdated', started_commit: R.c2, head_commit: c3 }]);
   git(R.repo, 'reset', '-q', '--hard', R.c2);
-  await waitFor(async () => !outdatedOf(await state(S)).length, CACHE_MS + 5000, 250);
+  await waitFor(async () => !outdatedOf(await state(S)).length, CHANGE_MS, 50);
 });
 
 suite.test('package.json counts, and so does a switch to a branch whose server code differs', async () => {
   const c4 = commit(R.repo, { 'package.json': `{ "name": "painel-maestro", "version": "1.3.0" }\n` }, 'version');
   assert.deepStrictEqual(outdatedOf(await untilOutdated(S)), [{ code: 'server_outdated', started_commit: R.c2, head_commit: c4 }]);
   git(R.repo, 'checkout', '-q', '-b', 'other', R.c2);
-  await waitFor(async () => !outdatedOf(await state(S)).length, CACHE_MS + 5000, 250);
+  await waitFor(async () => !outdatedOf(await state(S)).length, CHANGE_MS, 50);
   const c5 = commit(R.repo, { 'bin/i18n/pt-BR.js': '// cli 2\n' }, 'cli text');
   git(R.repo, 'checkout', '-q', 'main');
   git(R.repo, 'merge', '-q', '--no-edit', 'other');

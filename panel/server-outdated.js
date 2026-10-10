@@ -2,13 +2,14 @@
 // server-outdated.js · the health badge's server_outdated reason (#38): the code the server runs changed in git since
 // it started (a git pull, or the Ground switching branches while an item of the painel-maestro itself is implemented).
 //
-//   createServerOutdatedCheck({ repoDir, startedCommit }) → { healthReasons() → Promise<[{code: 'server_outdated', ...}] | []> }
+//   createServerOutdatedCheck({ repoDir, startedCommit, cacheMs }) → { healthReasons() → Promise<[{code: 'server_outdated', ...}] | []> }
 //
 // What counts is a commit between the commit the server started on (bin/version.js, #36) and HEAD that touches a file
 // the server runs: anything under bin/, the top-level .js files of panel/ and package.json. The UI source, the built
 // index.html (read again on every request), tests, docs, ADRs and uncommitted edits do not count. Without git, or
 // without the commit the server started on (a folder outside a clone), the check does not run and never warns.
-// git runs at most once every CACHE_MS (the page reads the state every 20 s), and the diff once per new HEAD.
+// git runs at most once every cacheMs (default CACHE_MS; the page reads the state every 20 s), and the diff once per
+// new HEAD. The tests shorten the cache with PANEL_OUTDATED_CACHE_MS (server.js).
 
 const { execFile } = require('child_process');
 
@@ -43,7 +44,7 @@ async function outdatedReason(dir, started, head) {
   return changed ? { code: 'server_outdated', started_commit: started, head_commit: head.short } : null;
 }
 
-function createServerOutdatedCheck({ repoDir, startedCommit }) {
+function createServerOutdatedCheck({ repoDir, startedCommit, cacheMs = CACHE_MS }) {
   let checkedAt = -Infinity;
   let cachedReasons = [];
   let running = null;
@@ -63,10 +64,10 @@ function createServerOutdatedCheck({ repoDir, startedCommit }) {
   }
 
   return {
-    /** The reasons for the health badge now (from a cache of up to CACHE_MS); never rejects. */
+    /** The reasons for the health badge now (from a cache of up to cacheMs); never rejects. */
     async healthReasons() {
       if (!startedCommit) return [];
-      if (Date.now() - checkedAt < CACHE_MS) return cachedReasons;
+      if (Date.now() - checkedAt < cacheMs) return cachedReasons;
       if (!running) {
         running = refresh().catch(() => []).then((r) => {
           cachedReasons = r;
@@ -80,4 +81,4 @@ function createServerOutdatedCheck({ repoDir, startedCommit }) {
   };
 }
 
-module.exports = { createServerOutdatedCheck };
+module.exports = { createServerOutdatedCheck, CACHE_MS };
