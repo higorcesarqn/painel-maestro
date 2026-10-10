@@ -279,6 +279,7 @@ O merge do PR costuma acontecer na interface do tracker, sem agente presente (um
 | `MAESTRI_DATA_DIR` | `~/.maestri` | onde está o `usage/providers/.status.json` do plano Claude |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | pasta do Claude Code (transcrições e o destino do `install-skills.js`) |
 | `PANEL_INDEX`, `PANEL_NOW`, `MAESTRO_NOW` | | só para testes: outro `index.html` e relógio fixo |
+| `PANEL_REPO_DIR` | a pasta do código | só para testes: o repositório de onde o servidor lê a versão e confere se o código dele mudou (`server_outdated`) |
 | `MOCK_PORT` | `4795` | porta da demonstração |
 | `KEEP_TMP`, `HEAVY_TEST` | | testes: `1` guarda as pastas temporárias; `1` aumenta o teste de desempenho |
 
@@ -345,7 +346,7 @@ Da raiz, `npm run build` faz o mesmo. Como acrescentar uma tela nova está em [`
 
 ## Versão
 
-O painel-maestro tem uma versão só, o semver do `package.json` da raiz, mostrada com o commit do código: `v1.1.0 · a5c2e21` no rodapé do menu, junto de "Painel local", e `painel-maestro 1.1.0 (a5c2e21)` no `node bin/flow.js --version` (ou `-v`, em qualquer pasta). O commit do painel é o da hora em que o servidor subiu (o rodapé só muda quando ele reinicia); rodando de uma pasta sem git, ou sem git no `PATH`, o commit some e fica só o semver. A versão do schema do banco (#28) é outra, separada.
+O painel-maestro tem uma versão só, o semver do `package.json` da raiz, mostrada com o commit do código: `v1.1.0 · a5c2e21` no rodapé do menu, junto de "Painel local", e `painel-maestro 1.1.0 (a5c2e21)` no `node bin/flow.js --version` (ou `-v`, em qualquer pasta). O commit do painel é o da hora em que o servidor subiu (o rodapé só muda quando ele reinicia); rodando de uma pasta sem git, ou sem git no `PATH`, o commit some e fica só o semver. Quando um commit posterior muda o que o servidor executa (`bin/`, os `.js` de primeiro nível de `panel/` ou o `package.json`), depois de um `git pull` ou de uma troca de branch, o selo de saúde fica amarelo com "O código do servidor mudou desde que ele subiu" (`server_outdated`): reinicie o servidor. Commits só de docs, testes, fonte da UI ou da página compilada e edições não commitadas não acendem o aviso; sem git, a checagem fica desligada. A versão do schema do banco (#28) é outra, separada.
 
 A convenção: o ajuste final de cada item sobe o minor; uma correção avulsa fora de item sobe o patch; a tag `vX.Y.Z` no merge é opcional, do dono. Os detalhes estão em [`docs/agents/versao.md`](docs/agents/versao.md).
 
@@ -372,6 +373,7 @@ painel-maestro/
 │   ├── server.js                servidor HTTP e API (em inglês, devolve códigos)
 │   ├── api-*.js                 itens, projetos, pendências, log, uso, Visão geral
 │   ├── health.js                selo de saúde
+│   ├── server-outdated.js       aviso de servidor desatualizado (código mudou no git desde a subida)
 │   ├── merge-check.js           verificador de merge e "marcar como mergeado"
 │   ├── index.html               a página compilada (não edite à mão)
 │   ├── README.md                documentação técnica do servidor e da página

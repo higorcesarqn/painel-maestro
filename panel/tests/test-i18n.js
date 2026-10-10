@@ -41,7 +41,7 @@ function leafKeys(o, prefix = '', acc = []) {
 
 /** Codes the server writes ({code: '...'}) in the API (pending decisions included) and the usage collector. */
 function serverCodes() {
-  const files = ['panel/server.js', 'bin/flow-store.js', 'panel/api-pending-decisions.js', 'panel/api-log.js', 'panel/api-projects.js', 'panel/api-usage.js', 'panel/api-overview.js', 'panel/health.js', 'bin/collect-usage.js', 'panel/merge-check.js', 'bin/hook-log.js'];
+  const files = ['panel/server.js', 'bin/flow-store.js', 'panel/api-pending-decisions.js', 'panel/api-log.js', 'panel/api-projects.js', 'panel/api-usage.js', 'panel/api-overview.js', 'panel/health.js', 'panel/server-outdated.js', 'bin/collect-usage.js', 'panel/merge-check.js', 'bin/hook-log.js'];
   const codes = new Set();
   for (const f of files) {
     for (const m of fs.readFileSync(path.join(REPO, f), 'utf8').matchAll(/\bcode: '([a-z][a-z0-9_]*)'/g)) codes.add(m[1]);
@@ -148,6 +148,9 @@ suite.test('server codes keep the texts the page showed before', () => {
     'O maestro.db foi atualizado por uma versão mais nova do painel-maestro (schema v3; este código lê até a v2): atualize o código.');
   assert.strictEqual(c({ code: 'hook_failed', at: '2026-10-08T09:20:00-03:00', error: tooNew }),
     'Hook parado desde 08/10 09:20: nenhuma sessão foi gravada no log bruto. O maestro.db foi atualizado por uma versão mais nova do painel-maestro (schema v3; este código lê até a v2): atualize o código.');
+  // #38: the code the server runs changed in git since it started
+  assert.strictEqual(c({ code: 'server_outdated', started_commit: 'a5c2e21', head_commit: '3149085' }),
+    'O código do servidor mudou desde que ele subiu (commit a5c2e21 → 3149085): reinicie o servidor.');
   assert.strictEqual(c({ code: 'file_unreadable', file: 'state/usage.json', error: { code: 'invalid_json', detail: 'x' } }),
     'state/usage.json ilegível (JSON inválido (x))');
   assert.strictEqual(c({ code: 'invalid_param', param: 'since', value: 'lixo', expected: 'date' }), 'Parâmetro "desde" inválido: "lixo" (use AAAA-MM-DD).');

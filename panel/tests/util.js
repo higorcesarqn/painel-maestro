@@ -89,9 +89,9 @@ function userLine(text) {
   return JSON.stringify({ type: 'user', message: { role: 'user', content: text }, timestamp: new Date().toISOString(), usage_hint: 'none' });
 }
 
-/** A free port between 4790 and 4799 (never 4777). */
-async function freePort() {
-  const order = PORTS.slice().sort(() => Math.random() - 0.5);
+/** A free port among ports (default: 4790 to 4799; never 4777). */
+async function freePort(ports = PORTS) {
+  const order = ports.slice().sort(() => Math.random() - 0.5);
   for (const p of order) {
     const free = await new Promise((resolve) => {
       const s = net.createServer();
@@ -100,7 +100,7 @@ async function freePort() {
     });
     if (free) return p;
   }
-  throw new Error('No free port between 4790 and 4799');
+  throw new Error(`No free port among ${ports.join(', ')}`);
 }
 
 /** Raw HTTP request (no gzip), with Host and headers of choice. */

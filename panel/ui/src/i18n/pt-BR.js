@@ -747,6 +747,8 @@ export default {
     // #28: a maestro.db written by a newer painel-maestro (health badge, API answers and usage warnings)
     schema_too_new: (c) => `O ${c.file || 'maestro.db'} foi atualizado por uma versão mais nova do painel-maestro (schema v${c.db_version}; este código lê até a v${c.code_version}): atualize o código.`,
     hook_failed: (c, h) => `Hook parado desde ${dayTime(c.at)}: nenhuma sessão foi gravada no log bruto. ${h.display(c.error)}`,
+    // #38: the code the server runs changed in git since it started
+    server_outdated: (c) => `O código do servidor mudou desde que ele subiu (commit ${c.started_commit} → ${c.head_commit}): reinicie o servidor.`,
     file_unreadable: (c, h) => `${c.file} ilegível (${h.display(c.error)})`,
     read_failed: 'não consegui ler ({detail})',
     empty_file: 'arquivo vazio',

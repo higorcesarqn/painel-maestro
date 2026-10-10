@@ -36,8 +36,9 @@
 // Variables: PANEL_PORT (default 4777; --port wins), MAESTRO_DIR (default ~/.painel-maestro),
 //   MAESTRI_DATA_DIR and CLAUDE_CONFIG_DIR (passed to the collector), PANEL_COLLECTOR=0 (does not run
 //   the collector by itself), PANEL_STALE_HOURS (default 48: hours on the same stage that make an active item
-//   "stale" in the Overview) and, for tests only, PANEL_INDEX (another index.html) and PANEL_NOW
-//   (fixed clock; MAESTRO_NOW also works).
+//   "stale" in the Overview) and, for tests only, PANEL_INDEX (another index.html), PANEL_NOW
+//   (fixed clock; MAESTRO_NOW also works) and PANEL_REPO_DIR (the repository whose version and commits the server
+//   reads, #38; default: the folder of the code).
 //   Merge check (merge-check.js): PANEL_MERGE_CHECK=0|1, PANEL_MERGE_CHECK_SECONDS, PANEL_GH_CLI, PANEL_AZ_CLI,
 //   PANEL_AZURE_DEVOPS_URL.
 
@@ -61,6 +62,7 @@ const overviewApi = require(path.join(__dirname, 'api-overview.js'));
 const { evaluateHealth } = require(path.join(__dirname, 'health.js'));
 const { asDate, isoSP, InvalidData, parseOptions } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
 const { readVersion } = require(path.join(__dirname, '..', 'bin', 'version.js'));
+const { createServerOutdatedCheck } = require(path.join(__dirname, 'server-outdated.js'));
 const { readJson, readText, withRetries, writeAtomic } = collector.util;
 
 const MIN_MS = 60 * 1000;
@@ -101,6 +103,7 @@ function parseConfig(argv = [], env = process.env) {
     port: p,
     dataDir: flowDir(env),
     indexPath: path.resolve(env.PANEL_INDEX || path.join(__dirname, 'index.html')),
+    repoDir: path.resolve(env.PANEL_REPO_DIR || path.join(__dirname, '..')),
     fixedNow,
     collectorActive: env.PANEL_COLLECTOR !== '0',
     env,
@@ -231,7 +234,7 @@ function pendingKpi(items) {
  * GET /api/state, from its parts (the demo's generator builds it with the same function):
  * { generated_at, health, kpis: { pending_decisions, usage }, collector, warnings, version }.
  * items: the items source (api-items.js); raw: the raw log source (api-log.js); usageFile: the read of
- * state/usage.json ({exists, data, error}); problems: health codes other checks add (the merge check, #11);
+ * state/usage.json ({exists, data, error}); problems: health codes other checks add (the merge check, #11; server_outdated, #38);
  * hookFailure: the hook's last failure (bin/hook-failure.js, #28) or null.
  * version: { product, commit } read when the server started (bin/version.js, #36); commit is null without git.
  */
@@ -255,7 +258,7 @@ function createContext(cfg) {
     cfg,
     files: new FileCache(),
     // The semver and the commit the server started on (#36): the code only changes on a restart.
-    version: readVersion(),
+    version: readVersion(cfg.repoDir),
     items: itemsApi.createItemsSource(cfg.env),
     raw: logApi.createRawSource(cfg.env),
     usageFile: path.join(cfg.dataDir, ...USAGE_FILE.split('/')),
@@ -286,6 +289,8 @@ function createContext(cfg) {
     ctx.allowedOrigins = new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
   };
   ctx.setPort(cfg.port);
+  // server_outdated (#38): the code the server runs changed in git since the commit it started on.
+  ctx.serverOutdated = createServerOutdatedCheck({ repoDir: cfg.repoDir, startedCommit: ctx.version.commit });
   ctx.mergeCheck = mergeCheck.createMergeCheck({ config: cfg.mergeCheck, env: cfg.env, items: ctx.items, now: ctx.now, log: ctx.log, logError: ctx.logError });
   /** Runs the usage collector; calls during a collection wait for the same collection. */
   ctx.runCollector = (trigger) => {
@@ -329,7 +334,7 @@ function collectorState(ctx) {
 async function buildState(ctx) {
   return stateAnswer({
     items: ctx.items, raw: ctx.raw, usageFile: await ctx.files.json(ctx.usageFile), nowMs: ctx.now().getTime(),
-    problems: ctx.mergeCheck.healthReasons(), collector: collectorState(ctx), version: ctx.version,
+    problems: [...ctx.mergeCheck.healthReasons(), ...await ctx.serverOutdated.healthReasons()], collector: collectorState(ctx), version: ctx.version,
     hookFailure: hookFailureOf(await ctx.files.json(path.join(ctx.cfg.dataDir, HOOK_FAILURE_FILE))),
   });
 }
