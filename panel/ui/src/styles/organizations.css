@@ -1,0 +1,52 @@
+/* Organizations and projects (#6): the organization selector of the header and the highlighted projects in "Sem organização";
+   the Organizations screen (#21) and the project line both share (ProjectRow.jsx). */
+.organization-select { display: inline-flex; align-items: center; gap: 8px; margin-left: 18px; color: var(--muted); }
+.organization-select .label { white-space: nowrap; }
+.organization-select .select { min-width: 150px; }
+
+.screen-items:has(> .unassigned-projects) { grid-template-rows: auto minmax(0, 1fr); }
+/* "Sem organização" stands out in amber: the card of the Items screen and its card on the Organizations screen. */
+.unassigned-projects, .organization-card.unassigned { border-color: var(--warning); box-shadow: inset 3px 0 0 var(--warning); }
+.items-filtered { padding: 0 18px 10px; display: flex; align-items: center; gap: 10px; }
+.topbar-title .label { white-space: nowrap; }
+
+/* The project line (ProjectRow.jsx) */
+.project-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.project-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 10px; border-radius: 10px; }
+.project-row:hover { background: var(--row-hover); }
+.project-row-name { display: flex; flex-direction: column; gap: 2px; min-width: 200px; flex: 1; }
+.project-row-move { display: inline-flex; align-items: center; gap: 8px; }
+.project-row-error { flex-basis: 100%; color: var(--danger); }
+
+/* The Organizations screen: the note and the "Nova organização" button on top, and the cards, which scroll inside the screen
+   when they do not fit. */
+.screen-organizations { grid-template-rows: auto minmax(0, 1fr); }
+.screen-organizations:has(> .organizations-error) { grid-template-rows: auto auto minmax(0, 1fr); }
+.organizations-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.organizations-note { display: flex; align-items: center; gap: 7px; }
+.organizations-error { color: var(--danger); }
+.organizations-grid {
+  min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: var(--gap); align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 620px), 1fr));
+}
+.organization-meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.organization-meta .mono { color: var(--text-2); }
+
+/* The "Nova organização" modal (OrganizationCreateModal.jsx), whose form styles the removal modal reuses */
+.organization-form .modal-body { display: flex; flex-direction: column; gap: 16px; }
+.organization-form .field { gap: 6px; }
+.text-input {
+  height: 36px; border: 1px solid var(--border); border-radius: 9px; background: #0b0b0b; color: var(--text);
+  padding: 0 10px; font-size: 13.5px; width: 100%;
+}
+.text-input:hover { border-color: var(--border-strong); }
+.text-input:focus-visible { outline: 1px solid var(--blue-text); outline-offset: 1px; border-color: var(--blue); }
+.text-input[aria-invalid="true"] { border-color: var(--danger); }
+.organization-form-error { color: var(--danger); }
+.organization-form-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+
+/* Excluir on an organization card (#24): disabled with the projects to move first; the removal modal's red button. */
+.organization-remove { display: inline-flex; align-items: center; gap: 8px; }
+.organization-remove-button[disabled] { cursor: not-allowed; }
+.button.danger { background: var(--danger-dark); border-color: var(--danger-dark); color: #fff; }
+.button.danger:hover { background: var(--danger); border-color: var(--danger); color: #000; }

@@ -1,14 +1,14 @@
 # painel-maestro
 
-Painel web local do **fluxo dos itens** que eu implemento com agentes Claude Code: Issues do GitHub e PBIs do Azure DevOps, organizados por **empresa** e **projeto**. As skills de implementação (com floors do Maestri ou com subagentes) gravam cada passo do fluxo por um CLI deste repositório (`flow`) num banco SQLite fora do repositório; um servidor Node.js sem dependências calcula o estado de cada item a partir desses eventos e mostra tudo numa página só, em `http://127.0.0.1:4777`.
+Painel web local do **fluxo dos itens** que eu implemento com agentes Claude Code: Issues do GitHub e PBIs do Azure DevOps, organizados por **organização** e **projeto**. As skills de implementação (com floors do Maestri ou com subagentes) gravam cada passo do fluxo por um CLI deste repositório (`flow`) num banco SQLite fora do repositório; um servidor Node.js sem dependências calcula o estado de cada item a partir desses eventos e mostra tudo numa página só, em `http://127.0.0.1:4777`.
 
 O painel não usa IA nem gasta tokens: ele só lê o que os agentes gravaram. Nesta fase ele só **mostra** as pendências: o dono responde no terminal do maestro.
 
-O vocabulário (Empresa, Projeto, Item, Task, Achado, Pendência, Fluxo, Etapa, Maestro, Trabalhador) está em [`CONTEXT.md`](CONTEXT.md); as decisões de arquitetura, em [`docs/adr/`](docs/adr/).
+O vocabulário (Organização, Projeto, Item, Task, Achado, Pendência, Fluxo, Etapa, Maestro, Trabalhador) está em [`CONTEXT.md`](CONTEXT.md); as decisões de arquitetura, em [`docs/adr/`](docs/adr/).
 
 ## Como funciona
 
-- **Empresas e projetos.** Cada **projeto** é um projeto do tracker (um repositório do GitHub ou um projeto do Azure DevOps, que pode ter vários repositórios) e pertence a uma **empresa**; o trabalho pessoal é a empresa "Pessoal", uma empresa como as outras. Cada projeto declara o tracker, as **etapas** que usa (por exemplo, sem Validação HML), o estado do tracker que significa "concluído" (no CIDAX é `Committed`) e o workspace do Maestri. O projeto é reconhecido sozinho pelo `git remote origin` da pasta onde o comando roda (também dentro do worktree de um floor); um repositório sem cadastro entra sozinho em **"Sem empresa"** e o dono o move para a empresa certa pelo painel ("Sem empresa" nunca é destino de mover).
+- **Organizações e projetos.** Cada **projeto** é um projeto do tracker (um repositório do GitHub ou um projeto do Azure DevOps, que pode ter vários repositórios) e pertence a uma **organização**; o trabalho pessoal é a organização "Pessoal", uma organização como as outras. Cada projeto declara o tracker, as **etapas** que usa (por exemplo, sem Validação HML), o estado do tracker que significa "concluído" (no CIDAX é `Committed`) e o workspace do Maestri. O projeto é reconhecido sozinho pelo `git remote origin` da pasta onde o comando roda (também dentro do worktree de um floor); um repositório sem cadastro entra sozinho em **"Sem organização"** e o dono o move para a organização certa pelo painel ("Sem organização" nunca é destino de mover).
 - **Item.** Uma Issue pai do GitHub ou um PBI do Azure DevOps, identificado por projeto e número (`cidax/3100`) e mostrado como no tracker (`PBI 3100`, `#12`). O item percorre as **etapas** do fluxo: Especificação → Implementação → Ajuste final → PR pronto → Merge → Validação HML → Concluído (só as que o projeto usa).
 - **Tasks.** As filhas do item (sub-issues ou cards filhos), com os bloqueios entre elas, formam um **grafo**. Cada task tem um estado: aguardando, trabalhando, revisão, bloqueada, integrada ou fora. O maestro despacha cada task para um **trabalhador** (um floor do Maestri, com codinome, ou um subagente) numa branch `task/<id>-…` e a integra na branch integradora do item. Uma issue sem filhas é um item com uma task, ele mesmo.
 - **Relatórios.** O trabalhador grava o relatório completo (status, testes, o que mudou, decisões, riscos, arquivos compartilhados, o texto inteiro) **antes** de enviá-lo ao maestro, para ele não se perder no terminal.
@@ -21,15 +21,15 @@ Tudo que acontece num item é um **evento** guardado para sempre (ADR 0002); o e
 
 ## Telas
 
-No topo, o **seletor de empresa** (Todas ou uma empresa, lembrado neste navegador) filtra todas as telas. O cabeçalho tem o **selo de saúde** (verde, amarelo ou vermelho, com os motivos: hook parado, banco ilegível, projetos em "Sem empresa", falha do verificador de merge) e o botão **Recalcular** (roda o coletor de uso na hora).
+No topo, o **seletor de organização** (Todas ou uma organização, lembrado neste navegador) filtra todas as telas. O cabeçalho tem o **selo de saúde** (verde, amarelo ou vermelho, com os motivos: hook parado, banco ilegível, projetos em "Sem organização", falha do verificador de merge) e o botão **Recalcular** (roda o coletor de uso na hora).
 
-- **Visão geral:** o retrato do dia: itens ativos por empresa, projeto e etapa, pendências abertas por severidade, itens parados há muito tempo na mesma etapa (`PANEL_STALE_HOURS`, padrão 48 h), eventos de hoje, atividade recente e o uso do plano.
-- **Itens:** a lista (ativos, concluídos ou todos; filtros de projeto, etapa e tracker, além do seletor de empresa do topo), os projetos em "Sem empresa" em destaque para mover, e a **página do item**, com endereço fixo `http://127.0.0.1:4777/#items/<projeto>/<número>` (é o que o portal do Maestri abre): etapa atual e desde quando, a Entrega (PR, ajuste final, Validação HML, conclusão, o estado do verificador de merge), o grafo de tasks com bloqueios e quem está em cada task (floor, trabalhador, branch, SHA, último status), os relatórios, os achados, as etapas do fluxo e a linha do tempo com todos os eventos e quem gravou cada um.
+- **Visão geral:** o retrato do dia: itens ativos por organização, projeto e etapa, pendências abertas por severidade, itens parados há muito tempo na mesma etapa (`PANEL_STALE_HOURS`, padrão 48 h), eventos de hoje, atividade recente e o uso do plano.
+- **Itens:** a lista (ativos, concluídos ou todos; filtros de projeto, etapa e tracker, além do seletor de organização do topo), os projetos em "Sem organização" em destaque para mover, e a **página do item**, com endereço fixo `http://127.0.0.1:4777/#items/<projeto>/<número>` (é o que o portal do Maestri abre): etapa atual e desde quando, a Entrega (PR, ajuste final, Validação HML, conclusão, o estado do verificador de merge), o grafo de tasks com bloqueios e quem está em cada task (floor, trabalhador, branch, SHA, último status), os relatórios, os achados, as etapas do fluxo e a linha do tempo com todos os eventos e quem gravou cada um.
 - **Pendências:** as pendências abertas, resolvidas e canceladas, com filtros por severidade e status, cada uma com o item, a task, contexto, opções, recomendação, onde responder e, depois de fechada, a decisão.
 - **Log:** os eventos de todos os itens, com filtros por período, projeto, item e tipo; abrir um evento mostra o que foi gravado e os comandos brutos das sessões do Claude Code ligadas a ele.
 - **Agentes:** os maestros e trabalhadores ativos, sem cadastro fixo: o maestro de cada item ainda não concluído e o trabalhador de cada task em andamento, com o último evento, a última atividade vista pelo hook e o consumo da janela de 5 h.
 - **Uso:** o plano Claude (5 h e semanal, com o reinício), o consumo de cada item em cada período e os tokens de cada agente.
-- **Empresas:** o cadastro inteiro, qualquer que seja o seletor do topo: um card por empresa (nome, id, projetos e itens), em ordem alfabética, com "Sem empresa" por último e só quando tem projetos; o botão **Nova empresa** cria uma (nome até 80 caracteres, único sem diferenciar maiúsculas, e o id sugerido a partir do nome, editável antes de salvar e fixo depois); **Renomear**, no card, abre um modal com o nome atual preenchido (mesma regra de nome, e o próprio nome com outras maiúsculas é aceito; o id não muda; o seletor do topo e as outras telas passam a mostrar o nome novo; "Sem empresa" não tem o botão); **Excluir**, no card, exclui uma empresa sem projetos depois de confirmar num modal com o nome dela (com projetos o botão fica desabilitado com "mova os N projetos antes"; "Sem empresa" não tem o botão; se ela era a do seletor do topo, ele volta para Todas); dentro de cada card, os projetos (nome, tracker, repositórios, itens) com **Mover para** outra empresa, a mesma linha do card "Sem empresa" da tela Itens.
+- **Organizações:** o cadastro inteiro, qualquer que seja o seletor do topo: um card por organização (nome, id, projetos e itens), em ordem alfabética, com "Sem organização" por último e só quando tem projetos; o botão **Nova organização** cria uma (nome até 80 caracteres, único sem diferenciar maiúsculas, e o id sugerido a partir do nome, editável antes de salvar e fixo depois); **Renomear**, no card, abre um modal com o nome atual preenchido (mesma regra de nome, e o próprio nome com outras maiúsculas é aceito; o id não muda; o seletor do topo e as outras telas passam a mostrar o nome novo; "Sem organização" não tem o botão); **Excluir**, no card, exclui uma organização sem projetos depois de confirmar num modal com o nome dela (com projetos o botão fica desabilitado com "mova os N projetos antes"; "Sem organização" não tem o botão; se ela era a do seletor do topo, ele volta para Todas); dentro de cada card, os projetos (nome, tracker, repositórios, itens) com **Mover para** outra organização, a mesma linha do card "Sem organização" da tela Itens.
 
 A página se atualiza sozinha a cada 20 segundos.
 
@@ -111,17 +111,17 @@ O `bin/hook-log.js` grava o log bruto (prompts, comandos, ferramentas) de cada s
 - **Retenção:** o servidor apaga do `bruto.db` o que tem mais de 90 dias, ao subir e uma vez por dia.
 - O hook entende esses sete eventos; se a sua versão do Claude Code não tiver algum deles, deixe-o de fora. O hook e o servidor precisam ver o mesmo `MAESTRO_DIR` (ou nenhum).
 
-### 5. Cadastrar empresas e projetos
+### 5. Cadastrar organizações e projetos
 
-Opcional (um repositório sem cadastro entra sozinho em "Sem empresa"), mas é o que deixa o painel organizado. Estes comandos não precisam rodar dentro de um repositório:
+Opcional (um repositório sem cadastro entra sozinho em "Sem organização"), mas é o que deixa o painel organizado. Estes comandos não precisam rodar dentro de um repositório:
 
 ```
-node bin/flow.js company add contoso --name "Contoso"
-node bin/flow.js company add personal --name "Pessoal"
-node bin/flow.js project add cidax --name "CIDAX" --company contoso --tracker azure_devops \
+node bin/flow.js org add contoso --name "Contoso"
+node bin/flow.js org add personal --name "Pessoal"
+node bin/flow.js project add cidax --name "CIDAX" --org contoso --tracker azure_devops \
   --repo https://dev.azure.com/contoso/CIDAX/_git/cidax-api --repo https://dev.azure.com/contoso/CIDAX/_git/cidax-web \
   --stages specification,implementation,final_adjustment,pr_ready,merge,hml_validation,done --done-state Committed --workspace "CIDAX"
-node bin/flow.js project add painel-maestro --company personal --repo https://github.com/higorcesarqn/painel-maestro \
+node bin/flow.js project add painel-maestro --org personal --repo https://github.com/higorcesarqn/painel-maestro \
   --stages specification,implementation,final_adjustment,pr_ready,merge,done
 ```
 
@@ -148,7 +148,7 @@ Os nomes mudaram (código em inglês, ADR 0004) e não há apelidos para os anti
 
 ## O CLI `flow`
 
-`bin/flow.js` grava cada passo do fluxo como um evento no `maestro.db`. Ele roda **dentro do repositório do projeto** (o projeto sai do `git remote origin` da pasta atual, também no worktree de um floor); só `company` e `project` rodam em qualquer pasta. Nas skills ele é sempre `node "$PAINEL_MAESTRO/bin/flow.js" ...`; abaixo, `flow` abrevia isso. A ajuda completa: `node bin/flow.js --help`.
+`bin/flow.js` grava cada passo do fluxo como um evento no `maestro.db`. Ele roda **dentro do repositório do projeto** (o projeto sai do `git remote origin` da pasta atual, também no worktree de um floor); só `org` e `project` rodam em qualquer pasta. Nas skills ele é sempre `node "$PAINEL_MAESTRO/bin/flow.js" ...`; abaixo, `flow` abrevia isso. A ajuda completa: `node bin/flow.js --help`.
 
 **Regras comuns:**
 
@@ -225,17 +225,17 @@ flow hml 3100 --passed 7 --failed 1 --blocked 0 --card https://dev.azure.com/org
 flow item done 12                                                                   # → Concluído
 ```
 
-**Empresas e projetos (dono, em qualquer pasta):**
+**Organizações e projetos (dono, em qualquer pasta):**
 
 ```
-flow company list
-flow company add <id> --name "<nome>"   # nome até 80, único sem diferenciar maiúsculas, nunca o de "Sem empresa" (a tela Empresas também cria)
-flow company rename <id> --name "<nome>" # o id não muda; "Sem empresa" não se renomeia (a tela Empresas também renomeia)
-flow company remove <id>                # só empresa sem projetos; "Sem empresa" não se exclui (a tela Empresas também exclui)
-flow project list [--company <id>]
-flow project add <id> --company <id> [--name] [--tracker github|azure_devops] [--repo <url>]... [--stages a,b,...] [--done-state "..."] [--workspace "..."]
-flow project edit <id> [--name] [--company] [--tracker] [--repo <url>]... [--remove-repo <url>]... [--stages] [--done-state] [--workspace]
-flow project move <id> <empresa>        # "Sem empresa" (unassigned) não é destino (nem em project add/edit): código 2
+flow org list
+flow org add <id> --name "<nome>"   # nome até 80, único sem diferenciar maiúsculas, nunca o de "Sem organização" (a tela Organizações também cria)
+flow org rename <id> --name "<nome>" # o id não muda; "Sem organização" não se renomeia (a tela Organizações também renomeia)
+flow org remove <id>                # só organização sem projetos; "Sem organização" não se exclui (a tela Organizações também exclui)
+flow project list [--org <id>]
+flow project add <id> --org <id> [--name] [--tracker github|azure_devops] [--repo <url>]... [--stages a,b,...] [--done-state "..."] [--workspace "..."]
+flow project edit <id> [--name] [--org] [--tracker] [--repo <url>]... [--remove-repo <url>]... [--stages] [--done-state] [--workspace]
+flow project move <id> <organização> # "Sem organização" (unassigned) não é destino (nem em project add/edit): código 2
 ```
 
 Um projeto do Azure DevOps com vários repositórios é um projeto só: o CLI rodado em qualquer um deles (ou num worktree deles) resolve o mesmo projeto. As formas SSH e HTTPS do mesmo remote são iguais.
@@ -276,7 +276,7 @@ Precisa só do Node.js:
 npm run demo                 # ou: npm run demo -- 4794 (portas 4790 a 4799)
 ```
 
-Abra **http://127.0.0.1:4795/?mock=1**. A página lê dados fictícios de `panel/tests/mock-items.json`: as empresas Contoso, Fabrikam e Pessoal e dois projetos em "Sem empresa", projetos do GitHub e do Azure DevOps (um com vários repositórios), itens em todas as etapas, o PBI 3112 com tasks nos seis estados e bloqueios, relatórios e achados, pendências abertas e fechadas dos seis tipos, itens parados, uso por item e por agente e os agentes ativos. Uma faixa azul avisa que são dados de teste. Ctrl+C para parar.
+Abra **http://127.0.0.1:4795/?mock=1**. A página lê dados fictícios de `panel/tests/mock-items.json`: as organizações Contoso, Fabrikam e Pessoal e dois projetos em "Sem organização", projetos do GitHub e do Azure DevOps (um com vários repositórios), itens em todas as etapas, o PBI 3112 com tasks nos seis estados e bloqueios, relatórios e achados, pendências abertas e fechadas dos seis tipos, itens parados, uso por item e por agente e os agentes ativos. Uma faixa azul avisa que são dados de teste. Ctrl+C para parar.
 
 O `mock-items.json` é gerado por `node panel/tests/generate-mock-items.js`, que passa eventos fictícios pelo próprio código do servidor (a projeção, as APIs, o coletor de uso, a saúde): a demonstração nunca se afasta do formato da API.
 
@@ -333,7 +333,7 @@ Da raiz, `npm run build` faz o mesmo. Como acrescentar uma tela nova está em [`
 painel-maestro/
 ├── bin/                         CLI, hook e coletor (só biblioteca padrão do Node)
 │   ├── flow.js                  CLI flow: grava os eventos de cada item no maestro.db
-│   ├── flow-admin.js            flow company / flow project: cadastro de empresas e projetos
+│   ├── flow-admin.js            flow org / flow project: cadastro de organizações e projetos
 │   ├── flow-store.js            maestro.db (node:sqlite, WAL, esquema e migrações)
 │   ├── flow-projection.js       estado do item calculado dos eventos (função pura)
 │   ├── flow-repo.js             projeto pelo git remote origin (também em worktrees)

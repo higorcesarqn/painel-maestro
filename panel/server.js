@@ -3,7 +3,7 @@
 // server.js · local panel of the item flows (Maestri + Claude Code)
 //
 // HTTP server with Node's standard library only, bound to 127.0.0.1. Serves index.html and a JSON API over the
-// data of the new model in MAESTRO_DIR (default ~/.painel-maestro): maestro.db (companies, projects and the events
+// data of the new model in MAESTRO_DIR (default ~/.painel-maestro): maestro.db (organizations, projects and the events
 // the flow CLI writes; ADRs 0002 and 0003), bruto.db (the hook's raw log) and state/usage.json (the usage
 // collector). No AI and no tokens: it only reads. Runs the usage collector (bin/collect-usage.js) on startup and
 // every 5 min, and the merge check (merge-check.js) of the items with a ready PR, in the same process.
@@ -15,14 +15,14 @@
 //   GET  /                                    the page (index.html, a single file)
 //   GET  /api/state                           health badge, menu counter of open pending decisions, plan usage, collector
 //   POST /api/recalculate                     runs the usage collector now and returns /api/state
-//   GET  /api/overview[?company=]             Overview (api-overview.js)
-//   GET  /api/items[?active=&company=&project=], GET /api/items/<project>/<number>   items (api-items.js)
+//   GET  /api/overview[?organization=]        Overview (api-overview.js)
+//   GET  /api/items[?active=&organization=&project=], GET /api/items/<project>/<number>   items (api-items.js)
 //   POST /api/items/<project>/<number>/merged "mark as merged" (merge-check.js)
 //   GET  /api/pending-decisions               pending decisions, read only (api-pending-decisions.js)
 //   GET  /api/log, GET /api/log/<id>, GET /api/raw   the Log and the raw log (api-log.js)
-//   GET  /api/companies, POST /api/companies, POST /api/companies/<id>/rename, POST /api/companies/<id>/remove,
-//   GET  /api/projects, POST /api/projects/<id>/company
-//                                             companies and projects (api-projects.js)
+//   GET  /api/organizations, POST /api/organizations, POST /api/organizations/<id>/rename, POST /api/organizations/<id>/remove,
+//   GET  /api/projects, POST /api/projects/<id>/organization
+//                                             organizations and projects (api-projects.js)
 //   GET  /api/usage, GET /api/agents          usage and agents per item (api-usage.js)
 // The raw log older than 90 days is deleted on startup and once a day.
 // The API never returns sentences: reasons, warnings and errors are codes with parameters ({code, ...params})
@@ -68,7 +68,7 @@ const DEFAULT_STALE_HOURS = 48;               // Overview (#14): PANEL_STALE_HOU
 const RAW_PURGE_INTERVAL_MS = DAY_MS;          // bruto.db: entries older than 90 days leave once a day
 // index.html is a single file (embedded CSS and JS); nothing external is loaded.
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (POST /api/companies, .../<id>/rename, POST /api/projects/<id>/company)
+const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (POST /api/organizations, .../<id>/rename, POST /api/projects/<id>/organization)
 const JSON_TYPE = 'application/json; charset=utf-8';
 const HTML_TYPE = 'text/html; charset=utf-8';
 const USAGE_FILE = 'state/usage.json';         // written by the usage collector, relative to MAESTRO_DIR
@@ -209,7 +209,7 @@ function usageKpi(usageFile, t, warnings) {
 }
 
 /**
- * The menu counter: open pending decisions of every company, by severity (computed from the events, #10). An
+ * The menu counter: open pending decisions of every organization, by severity (computed from the events, #10). An
  * unreadable maestro.db counts nothing: the health badge already says why (database_unreadable).
  */
 function pendingKpi(items) {
@@ -374,7 +374,7 @@ const FIXED_ROUTES = {
   '/api/pending-decisions': { name: 'pending-decisions', methods: ['GET', 'HEAD'] },
   '/api/log': { name: 'log', methods: ['GET', 'HEAD'] },
   '/api/raw': { name: 'raw', methods: ['GET', 'HEAD'] },
-  '/api/companies': { name: 'companies', methods: ['GET', 'HEAD', 'POST'] },
+  '/api/organizations': { name: 'organizations', methods: ['GET', 'HEAD', 'POST'] },
   '/api/projects': { name: 'projects', methods: ['GET', 'HEAD'] },
   '/api/usage': { name: 'usage', methods: ['GET', 'HEAD'] },
   '/api/agents': { name: 'agents', methods: ['GET', 'HEAD'] },
@@ -383,15 +383,15 @@ const FIXED_ROUTES = {
 
 function findRoute(urlPath) {
   if (Object.prototype.hasOwnProperty.call(FIXED_ROUTES, urlPath)) return FIXED_ROUTES[urlPath];
-  const rc = /^\/api\/companies\/([^/]+)\/(rename|remove)$/.exec(urlPath);
+  const rc = /^\/api\/organizations\/([^/]+)\/(rename|remove)$/.exec(urlPath);
   if (rc) {
     const id = projectsApi.parseRegisterId(rc[1]);
-    return id ? { name: `company-${rc[2]}`, methods: ['POST'], company: id } : null;
+    return id ? { name: `organization-${rc[2]}`, methods: ['POST'], organization: id } : null;
   }
-  const mc = /^\/api\/projects\/([^/]+)\/company$/.exec(urlPath);
+  const mc = /^\/api\/projects\/([^/]+)\/organization$/.exec(urlPath);
   if (mc) {
     const id = projectsApi.parseRegisterId(mc[1]);
-    return id ? { name: 'project-company', methods: ['POST'], project: id } : null;
+    return id ? { name: 'project-organization', methods: ['POST'], project: id } : null;
   }
   const mi = /^\/api\/items\/([^/]+)\/([^/]+)$/.exec(urlPath);
   if (mi) {
@@ -412,7 +412,7 @@ function findRoute(urlPath) {
 }
 
 async function route(ctx, req, res) {
-  // Only POST /api/companies, POST /api/companies/<id>/rename and POST /api/projects/<id>/company read the body (a POST
+  // Only POST /api/organizations, POST /api/organizations/<id>/rename and POST /api/projects/<id>/organization read the body (a POST
   // that reads JSON gets up to 16 KB); the rest is discarded, capped at 1 MB.
   let received = 0;
   const parts = [];
@@ -468,33 +468,33 @@ async function route(ctx, req, res) {
       if (active === undefined) return respondError(req, res, 400, { code: 'invalid_param', param: 'active', value: truncate(query.get('active'), 20), expected: 'flag' });
       return respondJson(req, res, 200, projectsApi.filterItems(itemsApi.listItems(ctx.items, { active }), query));
     }
-    case 'companies': {
-      if (req.method !== 'POST') return respondJson(req, res, 200, projectsApi.listCompanies(ctx.items));
+    case 'organizations': {
+      if (req.method !== 'POST') return respondJson(req, res, 200, projectsApi.listOrganizations(ctx.items));
       const buf = await body;
       if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });
-      const x = projectsApi.createCompany(ctx.items, buf, isoSP(ctx.now()));
-      ctx.log(t('server.log.companyCreated', { company: x.company.id, name: x.company.name }));
+      const x = projectsApi.createOrganization(ctx.items, buf, isoSP(ctx.now()));
+      ctx.log(t('server.log.organizationCreated', { organization: x.organization.id, name: x.organization.name }));
       return respondJson(req, res, 201, x);
     }
     case 'projects':
       return respondJson(req, res, 200, projectsApi.listProjects(ctx.items, query));
-    case 'company-rename': {
+    case 'organization-rename': {
       const buf = await body;
       if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });
-      const x = projectsApi.renameCompany(ctx.items, r.company, buf);
-      ctx.log(t('server.log.companyRenamed', { company: x.company.id, from: x.from, name: x.company.name }));
-      return respondJson(req, res, 200, { company: x.company });
+      const x = projectsApi.renameOrganization(ctx.items, r.organization, buf);
+      ctx.log(t('server.log.organizationRenamed', { organization: x.organization.id, from: x.from, name: x.organization.name }));
+      return respondJson(req, res, 200, { organization: x.organization });
     }
-    case 'company-remove': {
-      const c = projectsApi.removeCompany(ctx.items, r.company);
-      ctx.log(t('server.log.companyRemoved', { company: c.id, name: c.name }));
+    case 'organization-remove': {
+      const c = projectsApi.removeOrganization(ctx.items, r.organization);
+      ctx.log(t('server.log.organizationRemoved', { organization: c.id, name: c.name }));
       return respondJson(req, res, 200, { removed: c.id });
     }
-    case 'project-company': {
+    case 'project-organization': {
       const buf = await body;
       if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });
       const x = projectsApi.moveProject(ctx.items, r.project, buf);
-      ctx.log(t('server.log.projectMoved', { project: r.project, company: x.project.company.id }));
+      ctx.log(t('server.log.projectMoved', { project: r.project, organization: x.project.organization.id }));
       return respondJson(req, res, 200, x);
     }
     case 'item': {

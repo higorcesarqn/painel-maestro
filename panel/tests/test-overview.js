@@ -59,11 +59,11 @@ function hook(r, cwd, now, session = 'sess-1') {
   assert.deepStrictEqual([x.status, x.stdout, x.stderr], [0, '', ''], 'the hook exits 0 in silence');
 }
 
-/** Contoso with the widgets (GitHub) and cidax (Azure DevOps) projects; scratch lands in "Sem empresa" on its first item. */
+/** Contoso with the widgets (GitHub) and cidax (Azure DevOps) projects; scratch lands in "Sem organização" on its first item. */
 function registerContoso(r) {
-  flow(r, r.root, sp('08:00:00', '2026-10-01'), 'company', 'add', 'contoso', '--name', 'Contoso');
-  flow(r, r.widgets, sp('08:00:00', '2026-10-01'), 'project', 'add', 'widgets', '--name', 'Widgets', '--company', 'contoso');
-  flow(r, r.cidax, sp('08:00:00', '2026-10-01'), 'project', 'add', 'cidax', '--name', 'CIDAX', '--company', 'contoso', '--tracker', 'azure_devops');
+  flow(r, r.root, sp('08:00:00', '2026-10-01'), 'org', 'add', 'contoso', '--name', 'Contoso');
+  flow(r, r.widgets, sp('08:00:00', '2026-10-01'), 'project', 'add', 'widgets', '--name', 'Widgets', '--org', 'contoso');
+  flow(r, r.cidax, sp('08:00:00', '2026-10-01'), 'project', 'add', 'cidax', '--name', 'CIDAX', '--org', 'contoso', '--tracker', 'azure_devops');
 }
 
 async function withServer(r, fn, env = {}) {
@@ -83,7 +83,7 @@ async function withServer(r, fn, env = {}) {
   }
 }
 
-suite.test('the active items are counted by company, project and stage; done items stay out', async () => {
+suite.test('the active items are counted by organization, project and stage; done items stay out', async () => {
   const r = buildRoot('active');
   registerContoso(r);
   flow(r, r.widgets, sp('09:00:00', '2026-10-08'), 'item', 'start', '12', '--title', 'Exportar PDF');
@@ -96,11 +96,11 @@ suite.test('the active items are counted by company, project and stage; done ite
   await withServer(r, async (get) => {
     const o = await get('/api/overview');
     assert.strictEqual(o.generated_at, NOW);
-    assert.strictEqual(o.company, null);
+    assert.strictEqual(o.organization, null);
     assert.strictEqual(o.active.total, 4);
     assert.deepStrictEqual(o.active.by_stage, { implementation: 2, specification: 2 });
-    assert.deepStrictEqual(o.active.companies.map((c) => [c.id, c.name, c.unassigned, c.total]), [['contoso', 'Contoso', false, 3], ['unassigned', 'Sem empresa', true, 1]]);
-    const contoso = o.active.companies[0];
+    assert.deepStrictEqual(o.active.organizations.map((c) => [c.id, c.name, c.unassigned, c.total]), [['contoso', 'Contoso', false, 3], ['unassigned', 'Sem organização', true, 1]]);
+    const contoso = o.active.organizations[0];
     assert.deepStrictEqual(contoso.projects.map((p) => [p.id, p.name, p.tracker, p.total, p.by_stage]), [
       ['cidax', 'CIDAX', 'azure_devops', 1, { specification: 1 }],
       ['widgets', 'Widgets', 'github', 2, { implementation: 2 }],
@@ -123,7 +123,7 @@ suite.test('items parked on the same stage for longer than PANEL_STALE_HOURS (de
   await withServer(r, async (get) => {
     const o = await get('/api/overview');
     assert.strictEqual(o.stale_hours, 48);
-    assert.deepStrictEqual(o.stale_items.map((it) => [it.key, it.tracker_ref, it.title, it.stage, it.stage_since, it.hours, it.project.company.id]), [
+    assert.deepStrictEqual(o.stale_items.map((it) => [it.key, it.tracker_ref, it.title, it.stage, it.stage_since, it.hours, it.project.organization.id]), [
       ['widgets/12', '#12', 'Parado na especificação', 'specification', sp('09:00:00', '2026-10-01'), 195, 'contoso'],
       ['cidax/3100', 'PBI 3100', 'Três dias em implementação', 'implementation', sp('11:00:00', '2026-10-06'), 73, 'contoso'],
     ]);
@@ -140,23 +140,23 @@ suite.test('items parked on the same stage for longer than PANEL_STALE_HOURS (de
   assert.ok(bad.stderr.includes('PANEL_STALE_HOURS'), bad.stderr);
 });
 
-suite.test('the company of the selector narrows the whole Overview; another value is refused with a code', async () => {
-  const r = buildRoot('company');
+suite.test('the organization of the selector narrows the whole Overview; another value is refused with a code', async () => {
+  const r = buildRoot('organization');
   registerContoso(r);
   flow(r, r.widgets, sp('09:00:00', '2026-10-01'), 'item', 'start', '12', '--title', 'Da Contoso');
-  flow(r, r.scratch, sp('09:00:00', '2026-10-01'), 'item', 'start', '3', '--title', 'Sem empresa');
+  flow(r, r.scratch, sp('09:00:00', '2026-10-01'), 'item', 'start', '3', '--title', 'Sem organização');
   flow(r, r.scratch, sp('09:10:00', '2026-10-01'), 'pending', 'open', '3', '--kind', 'decision', '--title', 'Qual layout?');
   await withServer(r, async (get, raw) => {
-    const o = await get('/api/overview?company=contoso');
-    assert.strictEqual(o.company, 'contoso');
-    assert.deepStrictEqual([o.active.total, o.active.companies.map((c) => c.id)], [1, ['contoso']]);
+    const o = await get('/api/overview?organization=contoso');
+    assert.strictEqual(o.organization, 'contoso');
+    assert.deepStrictEqual([o.active.total, o.active.organizations.map((c) => c.id)], [1, ['contoso']]);
     assert.deepStrictEqual(o.stale_items.map((it) => it.key), ['widgets/12']);
     assert.deepStrictEqual([o.pending_decisions.total, o.pending_decisions.open], [0, []]);
     assert.deepStrictEqual(o.recent_events.map((e) => e.item_key), ['widgets/12']);
-    const u = await get('/api/overview?company=unassigned');
+    const u = await get('/api/overview?organization=unassigned');
     assert.deepStrictEqual([u.active.total, u.pending_decisions.total, u.recent_events.length], [1, 1, 2]);
-    const x = await raw('/api/overview?company=Contoso!');
-    assert.deepStrictEqual([x.status, x.json.error.code, x.json.error.param], [400, 'invalid_filter', 'company']);
+    const x = await raw('/api/overview?organization=Contoso!');
+    assert.deepStrictEqual([x.status, x.json.error.code, x.json.error.param], [400, 'invalid_filter', 'organization']);
   });
 });
 
@@ -187,7 +187,7 @@ suite.test('open pending decisions (the most urgent first, counted by severity) 
       [sp('09:00:00', '2026-10-08'), 'item-started', 'widgets/12'],
     ]);
     const last = o.recent_events[0];
-    assert.deepStrictEqual([last.agent, last.item_title, last.project.company.id, last.payload.stage], [{ role: 'worker', name: 'Ária' }, 'Exportar PDF', 'contoso', 'implementation']);
+    assert.deepStrictEqual([last.agent, last.item_title, last.project.organization.id, last.payload.stage], [{ role: 'worker', name: 'Ária' }, 'Exportar PDF', 'contoso', 'implementation']);
     assert.strictEqual(o.events_today, 4);
   });
 });
@@ -197,7 +197,7 @@ suite.test('without maestro.db the Overview is empty (and the database is not cr
   await withServer(r, async (get) => {
     const o = await get('/api/overview');
     assert.deepStrictEqual([o.active, o.pending_decisions.total, o.pending_decisions.open, o.stale_items, o.events_today, o.recent_events],
-      [{ total: 0, by_stage: {}, companies: [] }, 0, [], [], 0, []]);
+      [{ total: 0, by_stage: {}, organizations: [] }, 0, [], [], 0, []]);
   });
   assert.ok(!fs.existsSync(path.join(r.data, 'maestro.db')));
 });
@@ -243,16 +243,16 @@ suite.test('health: the hook is stopped when the agents recorded work after its 
   assert.deepStrictEqual((await health(r)).reasons, []);
 });
 
-suite.test('health: projects in "Sem empresa" turn it yellow until they get a company', async () => {
+suite.test('health: projects in "Sem organização" turn it yellow until they get an organization', async () => {
   const r = buildRoot('unassigned');
   flow(r, r.scratch, sp('09:00:00'), 'item', 'start', '3', '--title', 'Rascunho', '--role', 'owner');
   flow(r, r.widgets, sp('09:05:00'), 'item', 'start', '12', '--title', 'Outro', '--role', 'owner');
   const h = await health(r);
   assert.strictEqual(h.level, 'yellow');
   assert.deepStrictEqual(h.reasons, [{ code: 'projects_unassigned', count: 2, projects: ['scratch', 'widgets'] }]);
-  flow(r, r.root, sp('09:10:00'), 'company', 'add', 'acme', '--name', 'Acme');
-  flow(r, r.root, sp('09:10:00'), 'project', 'edit', 'scratch', '--company', 'acme');
-  flow(r, r.root, sp('09:10:00'), 'project', 'edit', 'widgets', '--company', 'acme');
+  flow(r, r.root, sp('09:10:00'), 'org', 'add', 'acme', '--name', 'Acme');
+  flow(r, r.root, sp('09:10:00'), 'project', 'edit', 'scratch', '--org', 'acme');
+  flow(r, r.root, sp('09:10:00'), 'project', 'edit', 'widgets', '--org', 'acme');
   assert.deepStrictEqual((await health(r)).reasons, []);
 });
 

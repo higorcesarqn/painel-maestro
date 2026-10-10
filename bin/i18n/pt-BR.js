@@ -59,33 +59,35 @@ const PENDING = {
   },
 };
 
-// Help of "flow company" and "flow project" (#6), a section of the flow help.
-const ADMIN_HELP = `EMPRESAS E PROJETOS (dono; não precisam rodar dentro de um repositório)
-  node bin/flow.js company list
-  node bin/flow.js company add <id> --name "<nome>"
-      Cadastra uma empresa. O trabalho pessoal é uma empresa como as outras (ex.: personal, "Pessoal"). O nome
-      tem até 80 caracteres e não repete o de outra empresa nem o de "Sem empresa", mesmo com outras maiúsculas (a
-      tela Empresas do painel cria com a mesma regra). O id não muda depois.
-  node bin/flow.js company rename <id> --name "<nome>"
-      Renomeia uma empresa; o id continua o mesmo (a tela Empresas do painel também renomeia). O nome novo segue a
-      regra do cadastro, e o próprio nome com outras maiúsculas é aceito. "Sem empresa" (unassigned) não se renomeia.
-  node bin/flow.js company remove <id>
-      Exclui uma empresa sem projetos (a tela Empresas do painel também exclui). Com projetos, mova-os antes
-      (flow project move); "Sem empresa" (unassigned) não se exclui.
-  node bin/flow.js project list [--company <id>]
-  node bin/flow.js project add <id> --company <id> [--name "<nome>"] [--tracker github|azure_devops]
+// Help of "flow org" and "flow project" (#6), a section of the flow help.
+const ADMIN_HELP = `ORGANIZAÇÕES E PROJETOS (dono; não precisam rodar dentro de um repositório)
+  node bin/flow.js org list
+  node bin/flow.js org add <id> --name "<nome>"
+      Cadastra uma organização. O trabalho pessoal é uma organização como as outras (ex.: personal, "Pessoal").
+      O nome tem até 80 caracteres e não repete o de outra organização nem o de "Sem organização", mesmo com outras
+      maiúsculas (a tela Organizações do painel cria com a mesma regra). O id não muda depois.
+  node bin/flow.js org rename <id> --name "<nome>"
+      Renomeia uma organização; o id continua o mesmo (a tela Organizações do painel também renomeia). O nome novo
+      segue a regra do cadastro, e o próprio nome com outras maiúsculas é aceito. "Sem organização" (unassigned) não
+      se renomeia.
+  node bin/flow.js org remove <id>
+      Exclui uma organização sem projetos (a tela Organizações do painel também exclui). Com projetos, mova-os antes
+      (flow project move); "Sem organização" (unassigned) não se exclui.
+  node bin/flow.js project list [--org <id>]
+  node bin/flow.js project add <id> --org <id> [--name "<nome>"] [--tracker github|azure_devops]
         [--repo <url do remote>]... [--stages <etapa,...>] [--done-state "<estado>"] [--workspace "<workspace>"]
-      Cadastra um projeto ("Sem empresa", unassigned, não vale como --company). Repita --repo para cada repositório (um projeto do Azure DevOps costuma ter vários);
+      Cadastra um projeto ("Sem organização", unassigned, não vale como --org). Repita --repo para cada repositório (um projeto do Azure DevOps costuma ter vários);
       sem --repo, vale o remote da pasta atual. O tracker vem do remote quando não é informado. --stages: as
       etapas que o projeto usa (padrão: todas); --done-state: o estado do tracker que significa concluído (ex.:
       Committed); --workspace: o workspace do Maestri do projeto.
-  node bin/flow.js project edit <id> [--name] [--company] [--tracker] [--repo <url>]... [--remove-repo <url>]...
+  node bin/flow.js project edit <id> [--name] [--org] [--tracker] [--repo <url>]... [--remove-repo <url>]...
         [--stages] [--done-state] [--workspace]
       Muda o cadastro (um --done-state ou --workspace vazio apaga o valor). O id não muda.
-  node bin/flow.js project move <id> <empresa>
-      Move o projeto para outra empresa (o painel também faz isso, na tela Empresas e no card "Sem empresa" da
-      tela Itens). "Sem empresa" (unassigned) não é destino: ela só recebe os repositórios sem cadastro.
-  JSON (--json -): id, name, company, tracker, repos, remove_repos, stages, done_state, maestri_workspace.
+  node bin/flow.js project move <id> <organização>
+      Move o projeto para outra organização (o painel também faz isso, na tela Organizações e no card
+      "Sem organização" da tela Itens). "Sem organização" (unassigned) não é destino: ela só recebe os repositórios
+      sem cadastro.
+  JSON (--json -): id, name, organization, tracker, repos, remove_repos, stages, done_state, maestri_workspace.
 `;
 
 const FINDING_CLASSES = { defect: 'defeito claro', owner_decision: 'depende do dono', discarded: 'descartado' };
@@ -94,8 +96,8 @@ module.exports = {
   stages: STAGES,
   workerStates: WORKER_STATES,
   pending: PENDING,
-  companies: {
-    unassigned: 'Sem empresa',
+  organizations: {
+    unassigned: 'Sem organização',
   },
   // bin/collect-usage.js: help, errors and the readable summary (the codes of usage.json, in Portuguese for the CLI)
   usage: {
@@ -195,10 +197,10 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       usageCollected: 'Uso coletado ({trigger}): {plan} · {sessions} sessão(ões) · {ms} ms',
       usagePlan: (c) => (c.available ? `plano 5 h ${c.pct5}% · semanal ${c.pct7}%` : 'plano indisponível'),
       collectorFailed: 'Falha no coletor de uso ({trigger}): {detail}',
-      projectMoved: 'Projeto {project} movido pelo painel para a empresa {company}',
-      companyCreated: 'Empresa {company} ({name}) criada pelo painel',
-      companyRenamed: 'Empresa {company} renomeada pelo painel de {from} para {name}',
-      companyRemoved: 'Empresa {company} ({name}) excluída pelo painel',
+      projectMoved: 'Projeto {project} movido pelo painel para a organização {organization}',
+      organizationCreated: 'Organização {organization} ({name}) criada pelo painel',
+      organizationRenamed: 'Organização {organization} renomeada pelo painel de {from} para {name}',
+      organizationRemoved: 'Organização {organization} ({name}) excluída pelo painel',
       requestFailed: 'Erro em {method} {url}: {detail}',
       serverError: 'Erro no servidor: {detail}',
       rawPurged: 'Log bruto: {entries} registro(s) e {sessions} sessão(ões) com mais de 90 dias apagados',
@@ -209,27 +211,27 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       markedMerged: 'PR de {key} marcado como mergeado pelo painel',
     },
   },
-  // flow company / flow project (bin/flow-admin.js, #6)
+  // flow org / flow project (bin/flow-admin.js, #6)
   admin: {
-    kinds: { company: 'empresa', project: 'projeto' },
+    kinds: { organization: 'organização', project: 'projeto' },
     trackers: { github: 'GitHub', azure_devops: 'Azure DevOps' },
     done: {
-      companyAdded: 'Empresa "{company}" ({name}) cadastrada.',
-      companyRenamed: 'Empresa "{company}" renomeada de "{from}" para "{name}".',
-      companyRemoved: 'Empresa "{company}" ({name}) excluída.',
-      companyLine: (p) => `${p.id.padEnd(20)} ${p.name} · ${p.count} projeto${p.count === 1 ? '' : 's'}`,
-      noCompanies: 'Nenhuma empresa cadastrada. Cadastre com: flow company add <id> --name "<nome>".',
+      organizationAdded: 'Organização "{organization}" ({name}) cadastrada.',
+      organizationRenamed: 'Organização "{organization}" renomeada de "{from}" para "{name}".',
+      organizationRemoved: 'Organização "{organization}" ({name}) excluída.',
+      organizationLine: (p) => `${p.id.padEnd(20)} ${p.name} · ${p.count} projeto${p.count === 1 ? '' : 's'}`,
+      noOrganizations: 'Nenhuma organização cadastrada. Cadastre com: flow org add <id> --name "<nome>".',
       projectAdded: 'Projeto "{project}" cadastrado.',
       projectEdited: 'Projeto "{project}" alterado.',
       projectMoved: 'Projeto "{project}" movido de "{from}" para "{to}".',
-      projectLine: (p) => `${p.id.padEnd(20)} ${p.name} · ${p.company} · ${p.tracker} · etapas: ${p.stages}`
+      projectLine: (p) => `${p.id.padEnd(20)} ${p.name} · ${p.organization} · ${p.tracker} · etapas: ${p.stages}`
         + `${p.doneState ? ` · concluído no tracker: ${p.doneState}` : ''}${p.workspace ? ` · workspace do Maestri: ${p.workspace}` : ''}`,
       repoLine: '    repositório: {remote}',
       noProjects: 'Nenhum projeto cadastrado.',
     },
     errors: {
-      missingCompanyId: 'falta o id da empresa (ex.: flow company add contoso --name "Contoso").',
-      missingProjectId: 'falta o id do projeto (ex.: flow project add cidax --company contoso --repo <url>).',
+      missingOrganizationId: 'falta o id da organização (ex.: flow org add contoso --name "Contoso").',
+      missingProjectId: 'falta o id do projeto (ex.: flow project add cidax --org contoso --repo <url>).',
       invalidId: 'id de {kind} inválido: "{value}" (use letras minúsculas, números e "-", começando por letra ou número).',
       emptyText: 'o campo --{field} não pode ficar vazio.',
       invalidText: 'o campo --{field} precisa ter até {max} caracteres, numa linha só.',
@@ -237,12 +239,12 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       missingStages: 'informe ao menos uma etapa em --stages (separadas por vírgula).',
       tooManyRepos: 'repositórios demais (máximo {max}).',
       invalidRepo: 'URL de repositório inválida: "{value}" (use a URL do "git remote", HTTPS ou SSH).',
-      missingCompanyName: 'falta o nome da empresa (--name "<nome>").',
-      unknownCompany: 'a empresa "{company}" não existe (empresas: {known}). Cadastre com: flow company add {company} --name "<nome>".',
-      companyNotFound: 'a empresa "{company}" não existe (empresas: {known}).',
+      missingOrganizationName: 'falta o nome da organização (--name "<nome>").',
+      unknownOrganization: 'a organização "{organization}" não existe (organizações: {known}). Cadastre com: flow org add {organization} --name "<nome>".',
+      organizationNotFound: 'a organização "{organization}" não existe (organizações: {known}).',
       unknownProject: 'o projeto "{project}" não existe (projetos: {known}).',
       projectExists: 'o projeto "{project}" já existe. Para mudá-lo, use: flow project edit {project} ...',
-      missingCompany: 'falta a empresa do projeto (--company <id>; o trabalho pessoal é uma empresa como as outras).',
+      missingOrganization: 'falta a organização do projeto (--org <id>; o trabalho pessoal é uma organização como as outras).',
       missingRepo: 'falta o repositório do projeto: use --repo <url do remote> ou rode o comando dentro do repositório.',
       repoTaken: 'o repositório {remote} já é do projeto "{project}". Para juntá-lo a outro, remova-o antes com: flow project edit {project} --remove-repo <url>.',
       repoTracker: 'o repositório {remote} é do {repoTracker}, mas o projeto usa o {tracker}.',
@@ -250,19 +252,19 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       lastRepo: 'o projeto "{project}" precisa de ao menos um repositório.',
       nothingToChange: 'nada para mudar: informe ao menos uma opção (veja flow --help).',
     },
-    // Codes of the rules of the register (RegisterError, bin/flow-store.js); company_not_found and project_not_found
-    // reuse unknownCompany (companyNotFound in a rename or a removal) and unknownProject above.
+    // Codes of the rules of the register (RegisterError, bin/flow-store.js); organization_not_found and project_not_found
+    // reuse unknownOrganization (organizationNotFound in a rename or a removal) and unknownProject above.
     codes: {
-      // Moving a project to, adding a project to, removing (#24) or renaming (#23) "Sem empresa".
-      company_reserved: '"Sem empresa" é reservada: ela só recebe os repositórios sem cadastro, então não é destino de mover nem empresa de um projeto cadastrado, não se renomeia e não se exclui (empresas cadastradas: flow company list).',
-      // #24: removing a company that still has projects.
-      company_not_empty: (p) => `a empresa "${p.company}" (${p.name}) tem ${p.project_count} projeto${p.project_count === 1 ? ': mova-o' : 's: mova-os'} antes para outra empresa (flow project list --company ${p.company} e flow project move <projeto> <empresa>).`,
-      // #22 and #23: creating or renaming a company under the name rule of the store.
-      company_exists: (p) => `a empresa "${p.company}" já existe (${p.name || 'reservada para "Sem empresa"'}).`,
-      company_name_taken: 'o nome "{name}" já é da empresa "{company}" ({company_name}): escolha outro nome (sem diferenciar maiúsculas).',
+      // Moving a project to, adding a project to, removing (#24) or renaming (#23) "Sem organização".
+      organization_reserved: '"Sem organização" é reservada: ela só recebe os repositórios sem cadastro, então não é destino de mover nem organização de um projeto cadastrado, não se renomeia e não se exclui (organizações cadastradas: flow org list).',
+      // #24: removing an organization that still has projects.
+      organization_not_empty: (p) => `a organização "${p.organization}" (${p.name}) tem ${p.project_count} projeto${p.project_count === 1 ? ': mova-o' : 's: mova-os'} antes para outra organização (flow project list --org ${p.organization} e flow project move <projeto> <organização>).`,
+      // #22 and #23: creating or renaming an organization under the name rule of the store.
+      organization_exists: (p) => `a organização "${p.organization}" já existe (${p.name || 'reservada para "Sem organização"'}).`,
+      organization_name_taken: 'o nome "{name}" já é da organização "{organization}" ({organization_name}): escolha outro nome (sem diferenciar maiúsculas).',
       invalid_field: (p) => (p.field === 'name'
-        ? `o nome da empresa precisa ter de 1 a ${p.max} caracteres, numa linha só (os espaços das pontas não contam).`
-        : `id de empresa inválido: "${p.value}" (use letras minúsculas, números e "-", começando por letra ou número, até 80 caracteres).`),
+        ? `o nome da organização precisa ter de 1 a ${p.max} caracteres, numa linha só (os espaços das pontas não contam).`
+        : `id de organização inválido: "${p.value}" (use letras minúsculas, números e "-", começando por letra ou número, até 80 caracteres).`),
     },
   },
   // bin/install-skills.js (#15)
@@ -310,7 +312,7 @@ CÓDIGOS DE SAÍDA
   done: {
     itemStarted: (p) => `Item ${p.key} (${p.ref}) iniciado em ${STAGES[p.stage] || p.stage}.`,
     stageChanged: (p) => `Item ${p.key} (${p.ref}) agora em ${STAGES[p.stage] || p.stage}.`,
-    projectRegistered: 'Projeto "{project}" cadastrado em "{company}" a partir de {remote}. Mova-o para a empresa certa pelo painel.',
+    projectRegistered: 'Projeto "{project}" cadastrado em "{organization}" a partir de {remote}. Mova-o para a organização certa pelo painel.',
     taskGraph: (p) => `Grafo de tasks do item ${p.key} (${p.ref}) registrado: ${p.count} task${p.count === 1 ? '' : 's'}.`,
     taskDispatched: (p) => `Task ${p.task} do item ${p.key} (${p.ref}) despachada${p.floor ? ` no floor "${p.floor}"` : ''}${p.worker ? ` para ${p.worker}` : ''}${p.branch ? ` (branch ${p.branch})` : ''}.`,
     taskIntegrated: 'Task {task} do item {key} ({ref}) integrada em {sha}.',
@@ -425,7 +427,7 @@ CÓDIGOS DE SAÍDA
   help: (p) => `flow · registra o fluxo dos itens no painel (eventos em ${p.db})
 
 O projeto é reconhecido pelo "git remote origin" da pasta atual (vale dentro do worktree de um floor).
-Um repositório sem cadastro entra na empresa "Sem empresa" e o comando segue.
+Um repositório sem cadastro entra na organização "Sem organização" e o comando segue.
 
 USO
   node bin/flow.js item start <número> --title "..." [--stage <etapa>] [opções do agente]

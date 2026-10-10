@@ -23,7 +23,7 @@ export function logParams(f, page) {
     since, until,
     // 24 h: the exact last 24 hours (since yesterday plus hours)
     hours: f.period === '24h' ? '24' : '',
-    company: f.company, project: f.project, item: f.item, type: f.type,
+    organization: f.organization, project: f.project, item: f.item, type: f.type,
     page: String(page), per_page: String(PAGE_SIZE),
   };
 }

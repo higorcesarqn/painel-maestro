@@ -1,22 +1,22 @@
 'use strict';
 // api-usage.js · usage and agents per item (#13).
 //
-//   GET /api/usage?company=&project=
+//   GET /api/usage?organization=&project=
 //     → { collected_at, reason, plan, periods, totals, note, formula, source, collection, warnings, collector,
 //         by_item:  { window_5h | today | 7d: [ItemUsage] },
 //         by_agent: { window_5h | today | 7d: [AgentUsage] } }
-//     ItemUsage  = { key: '<project>/<n>' | '<project>/-', project: {id, name, tracker, company: {id, name}},
+//     ItemUsage  = { key: '<project>/<n>' | '<project>/-', project: {id, name, tracker, organization: {id, name}},
 //                    item: {key, number, tracker_ref, title, stage, active} | null (sessions without item), ...Sums }
 //     AgentUsage = { key: '<project>/<n>/maestro' | '<project>/<n>/task-<t>' | '<project>/-/other',
 //                    role: 'maestro' | 'worker' | 'other', name, project, item, task: {number, title, state, floor} | null,
 //                    ...Sums }
 //     Sums = { input, output, cache_write, cache_read, messages, relative_consumption, consumption_pct,
 //              estimated_plan_pct, plan_week_consumption_pct? (7d) }
-//     The sums come from state/usage.json (bin/collect-usage.js); the names, titles and companies from maestro.db
-//     (the projection, on every request). The percentages are always of the whole account: the company and project
+//     The sums come from state/usage.json (bin/collect-usage.js); the names, titles and organizations from maestro.db
+//     (the projection, on every request). The percentages are always of the whole account: the organization and project
 //     filters only choose the lines. reason: null, {code: 'collector_not_run'} or {code: 'usage_unreadable', ...}.
 //
-//   GET /api/agents?company=&project=
+//   GET /api/agents?organization=&project=
 //     → { agents: [Agent], counts: { maestro, worker } }
 //     Agent = { key, role: 'maestro' | 'worker', name, project, item, task: TaskInfo | null, active_tasks (maestro),
 //               last_event: {id, at, type, task_number, agent, payload} | null, last_activity_at, usage }
@@ -44,10 +44,10 @@ class UsageApiError extends Error {
 
 const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : null);
 
-/** { company, project }: Sets of ids (comma-separated in the query) or null. */
+/** { organization, project }: Sets of ids (comma-separated in the query) or null. */
 function filtersOf(query) {
   const out = {};
-  for (const param of ['company', 'project']) {
+  for (const param of ['organization', 'project']) {
     const raw = (query && typeof query.get === 'function' ? query.get(param) : null) || '';
     const values = [...new Set(raw.split(',').map((v) => v.trim()).filter(Boolean))];
     for (const value of values) if (!RE_ID.test(value)) throw new UsageApiError(400, { code: 'invalid_param', param, value: value.slice(0, 40), expected: 'id' });
@@ -56,7 +56,7 @@ function filtersOf(query) {
   return out;
 }
 
-const passes = (f, project) => (!f.company || (project.company && f.company.has(project.company.id))) && (!f.project || f.project.has(project.id));
+const passes = (f, project) => (!f.organization || (project.organization && f.organization.has(project.organization.id))) && (!f.project || f.project.has(project.id));
 
 /** Every item of maestro.db with its state and events: { projects: Map, items: Map('<project>/<n>' → {...}) }. */
 function itemsOf(source) {
@@ -93,7 +93,7 @@ function maestroName(events) {
 /** Project, item and task of a usage line (the item may be gone from maestro.db: then only its number). */
 function lineContext(line, ctx) {
   const p = ctx.projects.get(line.project_id);
-  const project = p ? projectInfo(p) : { id: String(line.project_id), name: String(line.project_id), tracker: null, company: null };
+  const project = p ? projectInfo(p) : { id: String(line.project_id), name: String(line.project_id), tracker: null, organization: null };
   const number = Number.isInteger(line.item_number) ? line.item_number : null;
   const it = number === null ? null : ctx.items.get(`${line.project_id}/${number}`);
   let item = null;

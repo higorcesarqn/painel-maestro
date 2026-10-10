@@ -6,7 +6,7 @@ import { PanelContext, SCREENS, parseHash, newFilter } from '../data/context.js'
 import { REFRESH_MS, MOCK, readState, recalculateUsage, readLog } from '../data/api.js';
 import { syncClock, time, txt, obj } from '../data/format.js';
 import { logParams } from '../data/queries.js';
-import { useCompanies } from '../data/companies.js';
+import { useOrganizations } from '../data/organizations.js';
 import { t } from '../i18n/index.js';
 import { Sidebar } from './Sidebar.jsx';
 import { Header } from './Header.jsx';
@@ -16,11 +16,11 @@ import { PendingDecisions } from '../screens/PendingDecisions.jsx';
 import { Log } from '../screens/Log.jsx';
 import { Agents } from '../screens/Agents.jsx';
 import { Usage } from '../screens/Usage.jsx';
-import { Companies } from '../screens/Companies.jsx';
+import { Organizations } from '../screens/Organizations.jsx';
 import { Icon, TriangleAlert, Info } from '../components/Icon.jsx';
 
 // One screen per item of SCREENS (data/screens.js). A new screen goes here and there.
-const SCREEN_COMPONENTS = { overview: Overview, items: Items, pending: PendingDecisions, log: Log, agents: Agents, usage: Usage, companies: Companies };
+const SCREEN_COMPONENTS = { overview: Overview, items: Items, pending: PendingDecisions, log: Log, agents: Agents, usage: Usage, organizations: Organizations };
 // URL: #<screen> or #<screen>/<sub-tab> (data/screens.js); a malformed address opens the Overview.
 const hashParts = () => parseHash(location.hash);
 const screenFromHash = () => hashParts().id;
@@ -87,23 +87,23 @@ export function App() {
     document.title = t('app.documentTitle', { screen: t(`nav.${screen}`), panel: t('app.panel') });
   }, [screen]);
 
-  // ---------- company selector (#6) ----------
-  const companySelector = useCompanies();
-  const { company, companyFilter } = companySelector;
+  // ---------- organization selector (#6) ----------
+  const organizationSelector = useOrganizations();
+  const { organization, organizationFilter } = organizationSelector;
 
-  // ---------- Log: filters, page and reading (the company comes from the selector) ----------
+  // ---------- Log: filters, page and reading (the organization comes from the selector) ----------
   const [filters, setRawFilters] = useState(newFilter);
   const [page, setPage] = useState(1);
   const [log, setLog] = useState({ answer: null, error: null, loading: false });
   const logSeq = useRef(0);
   const filtersRef = useRef(filters); filtersRef.current = filters;
   const pageRef = useRef(page); pageRef.current = page;
-  const companyFilterRef = useRef(companyFilter); companyFilterRef.current = companyFilter;
+  const organizationFilterRef = useRef(organizationFilter); organizationFilterRef.current = organizationFilter;
   const loadLog = useCallback(async (silent) => {
     const seq = ++logSeq.current;
     if (!silent) setLog((l) => ({ ...l, loading: true }));
     try {
-      const r = await readLog(logParams({ ...filtersRef.current, ...companyFilterRef.current }, pageRef.current));
+      const r = await readLog(logParams({ ...filtersRef.current, ...organizationFilterRef.current }, pageRef.current));
       if (seq !== logSeq.current) return;
       const pages = r.pages || Math.max(1, Math.ceil((r.total || 0) / (r.per_page || 50)));
       // the page may be gone (fewer events with the filter): back to the last one that exists
@@ -115,15 +115,15 @@ export function App() {
     }
   }, []);
   const loadLogRef = useRef(loadLog);
-  useEffect(() => { if (screen === 'log' || log.answer) loadLog(false); }, [filters, page, companyFilter]);
-  // Another company: the project and item of the Log may belong to the previous one, so they go, and back to page 1.
-  const previousCompany = useRef(company);
+  useEffect(() => { if (screen === 'log' || log.answer) loadLog(false); }, [filters, page, organizationFilter]);
+  // Another organization: the project and item of the Log may belong to the previous one, so they go, and back to page 1.
+  const previousOrganization = useRef(organization);
   useEffect(() => {
-    if (previousCompany.current === company) return;
-    previousCompany.current = company;
+    if (previousOrganization.current === organization) return;
+    previousOrganization.current = organization;
     setRawFilters((f) => (f.project || f.item ? { ...f, project: '', item: '' } : f));
     setPage(1);
-  }, [company]);
+  }, [organization]);
   useEffect(() => { if (screen === 'log' && !log.answer) loadLog(false); }, [screen]);
   const setFilters = useCallback((change) => {
     setRawFilters((f) => (typeof change === 'function' ? change(f) : { ...f, ...change }));
@@ -157,7 +157,7 @@ export function App() {
   }, []);
 
   const ctx = {
-    ...companySelector,
+    ...organizationSelector,
     state, connectionError, failingSince, screen, goTo, actionStatus, setActionStatus, recalculating, recalculate,
     goToPendingDecision, pendingTarget,
     filters, setFilters, setRawFilters, page, setPage, log, loadLog,

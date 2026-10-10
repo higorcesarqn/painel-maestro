@@ -1,20 +1,20 @@
 # Painel Maestro
 
-Painel local que acompanha itens de trabalho sendo especificados, implementados e validados por agentes Claude Code (no Maestri ou por subagentes), organizados por empresa e projeto.
+Painel local que acompanha itens de trabalho sendo especificados, implementados e validados por agentes Claude Code (no Maestri ou por subagentes), organizados por organização e projeto.
 
 O código é em inglês e a interface em português: cada termo traz o nome usado no código. O _Avoid_ vale para o texto em português.
 
 ## Organização
 
-**Empresa**:
-Um agrupamento de projetos de um mesmo contratante; o trabalho pessoal é a empresa "Pessoal".
-Em código: `Company`.
-_Avoid_: cliente, organização
+**Organização**:
+Um agrupamento de projetos de um mesmo dono do trabalho (um contratante, o trabalho pessoal, uma comunidade), montado à mão pelo dono do painel; o trabalho pessoal é a organização "Pessoal". Não é a organização do GitHub nem a do Azure DevOps.
+Em código: `Organization`.
+_Avoid_: empresa, cliente, org
 
-**Sem empresa**:
-A empresa reservada onde cai o projeto de um repositório sem cadastro, até o dono movê-lo; não é destino de mover, nem se renomeia ou exclui.
-Em código: `UNASSIGNED_COMPANY`.
-_Avoid_: empresa padrão, sem cadastro
+**Sem organização**:
+A organização reservada onde cai o projeto de um repositório sem cadastro, até o dono movê-lo; não é destino de mover, nem se renomeia ou exclui.
+Em código: `UNASSIGNED_ORGANIZATION`.
+_Avoid_: sem empresa, organização padrão, sem cadastro
 
 **Projeto**:
 Um projeto do tracker (um repositório no GitHub, um projeto no Azure DevOps), com os repositórios e pastas locais que pertencem a ele.

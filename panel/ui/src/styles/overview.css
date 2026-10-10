@@ -19,14 +19,14 @@
 /* Links "Open" in the corner of the cards */
 .go-link { display: inline-flex; align-items: center; gap: 4px; }
 
-/* Active items: one row per project under its company, one column per stage */
+/* Active items: one row per project under its organization, one column per stage */
 table.table.overview-stages { table-layout: auto; }
 .overview-stages th.num, .overview-stages td.num { text-align: right; font-variant-numeric: tabular-nums; width: 66px; max-width: 66px; white-space: nowrap; }
 .overview-stages thead th.num { overflow: hidden; text-overflow: ellipsis; letter-spacing: .02em; }
 .overview-stages td.off { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(255, 255, 255, .03) 4px 8px); }
 .overview-stages td.strong, .overview-stages tfoot td { font-weight: 600; }
-.overview-stages .company-row th, .overview-stages .company-row td { padding-top: 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); }
-.overview-stages .company-row.unassigned th { color: var(--warning); }
+.overview-stages .organization-row th, .overview-stages .organization-row td { padding-top: 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); }
+.overview-stages .organization-row.unassigned th { color: var(--warning); }
 .overview-stages .project-cell { padding-left: 22px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .overview-stages tfoot th, .overview-stages tfoot td { border-top: 1px solid var(--border); }
 

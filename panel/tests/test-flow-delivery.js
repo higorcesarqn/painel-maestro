@@ -143,8 +143,8 @@ suite.test('the whole end of the flow: Final adjustment → PR ready → Merge �
 suite.test('a project without HML validation skips that stage: Merge → Done, and an HML result is refused', async () => {
   const r = buildRoot('no-hml');
   // The project declares its stages (no HML) and the state its tracker uses for done items.
-  ok(flow(r, ['company', 'add', 'personal', '--name', 'Pessoal']));
-  ok(flow(r, ['project', 'add', 'widgets', '--name', 'Widgets', '--company', 'personal', '--done-state', 'Committed',
+  ok(flow(r, ['org', 'add', 'personal', '--name', 'Pessoal']));
+  ok(flow(r, ['project', 'add', 'widgets', '--name', 'Widgets', '--org', 'personal', '--done-state', 'Committed',
     '--stages', 'specification,implementation,final_adjustment,pr_ready,merge,done']));
   ok(flow(r, ['item', 'start', '40', '--title', 'Sem HML', '--stage', 'implementation']));
   ok(flow(r, ['pr', '40', 'ready', '--url', 'https://github.com/acme/widgets/pull/41']));
@@ -153,7 +153,7 @@ suite.test('a project without HML validation skips that stage: Merge → Done, a
   ok(flow(r, ['item', 'done', '40']));
   await withServer(r, async (get) => {
     const item = (await get('/api/items/widgets/40')).item;
-    assert.strictEqual(item.project.company.name, 'Pessoal', 'the registered project was used');
+    assert.strictEqual(item.project.organization.name, 'Pessoal', 'the registered project was used');
     assert.strictEqual(item.done_state, 'Committed', 'the page shows the tracker state the project declared, never "Done"');
     assert.deepStrictEqual((await get('/api/items')).items.map((i) => [i.key, i.stage, i.done_state]), [['widgets/40', 'done', 'Committed']]);
     assert.strictEqual(item.stage, 'done');

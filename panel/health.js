@@ -12,12 +12,12 @@
 //                                        entry is older than HOOK_STALE_MS. Only the work of agents (maestro, worker)
 //                                        expects the hook: the owner's own records may come from any terminal; and
 //                                        without active items nothing is expected (an old raw entry is no problem).
-//   projects_unassigned {count, projects} repositories that landed in "Sem empresa" and wait for a company (#6)
+//   projects_unassigned {count, projects} repositories that landed in "Sem organização" and wait for an organization (#6)
 //   problems                             codes other parts of the server add (yellow), kept in the order given
 // last_event_at is the agents' last record on an active item; last_raw_at, the hook's last entry.
 const path = require('path');
 
-const { UNASSIGNED_COMPANY } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { UNASSIGNED_ORGANIZATION } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 
 const MIN_MS = 60 * 1000;
 const HOOK_STALE_MS = 60 * MIN_MS;
@@ -60,7 +60,7 @@ function evaluateHealth({ items, raw, nowMs, problems = [] }) {
   const flow = attempt(() => {
     const store = items.store();
     if (!store) return { event: null, unassigned: [] };
-    return { event: lastAgentEvent(store), unassigned: store.projects().filter((p) => p.company_id === UNASSIGNED_COMPANY).map((p) => p.id) };
+    return { event: lastAgentEvent(store), unassigned: store.projects().filter((p) => p.organization_id === UNASSIGNED_ORGANIZATION).map((p) => p.id) };
   });
   if (flow.error) raise(2, { code: 'database_unreadable', file: 'maestro.db', detail: flow.error });
   const rawRead = attempt(() => {

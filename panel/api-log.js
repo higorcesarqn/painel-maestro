@@ -2,8 +2,8 @@
 // api-log.js · the Log of the new model (#12): the events of maestro.db with filters and, for one event, the raw
 // commands of bruto.db linked to it. Also the raw log itself and its daily cleanup (90 days, ADR 0003).
 //
-//   GET /api/log?company=&project=&item=<project>/<n>&type=&since=&until=&hours=&page=&per_page=
-//       → { total, page, per_page, pages, events: [LogEvent], counts: { company, project, type }, raw_last_at }
+//   GET /api/log?organization=&project=&item=<project>/<n>&type=&since=&until=&hours=&page=&per_page=
+//       → { total, page, per_page, pages, events: [LogEvent], counts: { organization, project, type }, raw_last_at }
 //   GET /api/log/<id>  → { event: LogEvent, item, raw_commands: [RawEntry], raw_commands_total, raw_commands_truncated,
 //                          raw_link: { by: 'item' | 'task', item_number, task_number, start, end } }
 //   GET /api/raw?project=&item=&task=&session=&limit=  → { total, entries: [RawEntry] }
@@ -125,7 +125,7 @@ function logFilters(sp, nowMs) {
     if (!sinceAt || h > sinceAt) sinceAt = h;
   }
   return {
-    companies: list(sp, 'company', RE_KEY), projects: list(sp, 'project', RE_KEY), types: list(sp, 'type', RE_TYPE),
+    organizations: list(sp, 'organization', RE_KEY), projects: list(sp, 'project', RE_KEY), types: list(sp, 'type', RE_TYPE),
     item, since: sinceAt, until: until ? addDays(until, 1) : null,
     page: integer(sp, 'page', 1, 1e6), perPage: integer(sp, 'per_page', 50, 500),
   };
@@ -152,14 +152,14 @@ function logEvent(e, projects, items) {
   const item = items.get(key);
   return {
     id: e.id, at: e.at, type: e.type,
-    project: project ? projectInfo(project) : { id: e.project_id, name: e.project_id, tracker: null, company: null },
+    project: project ? projectInfo(project) : { id: e.project_id, name: e.project_id, tracker: null, organization: null },
     item_number: e.item_number, item_key: key, item_title: item ? item.title : null,
     tracker_ref: project ? trackerRef(project.tracker, e.item_number) : `#${e.item_number}`,
     task_number: e.task_number, agent: e.agent, source: e.source, payload: e.payload,
   };
 }
 
-const EMPTY_COUNTS = { company: {}, project: {}, type: {} };
+const EMPTY_COUNTS = { organization: {}, project: {}, type: {} };
 
 function listLog(source, raw, sp, nowMs) {
   const f = logFilters(sp, nowMs);

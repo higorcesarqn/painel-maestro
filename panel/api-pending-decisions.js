@@ -4,10 +4,10 @@
 // maestro's Maestri terminal (maestri.workspace / maestri.terminal). Each pending decision is computed from the
 // events of its item by the pure projection (bin/flow-projection.js); nothing derived is stored (ADR 0002).
 //
-// Filters (query string, each one a value or a comma-separated list): company, project, severity, status.
+// Filters (query string, each one a value or a comma-separated list): organization, project, severity, status.
 // Answer: {
 //   pending_decisions: [{ id, kind, severity, status, title, context, options, recommendation,
-//     item: { key, number, tracker_ref, title, stage, project: { id, name, tracker, company: { id, name } } },
+//     item: { key, number, tracker_ref, title, stage, project: { id, name, tracker, organization: { id, name } } },
 //     task: { number, title, state } | null, maestri: { workspace, terminal },
 //     opened_at, opened_by, closed_at, closed_by, resolution, decision, reason,
 //     derived_from: null | { type: 'hml-recorded', passed, failed, blocked, card_url } }]  (derived: opened by a failing
@@ -15,7 +15,7 @@
 //     open ones first (by severity, then the oldest), then the closed ones (the most recently closed first)
 //   counts: { status: {open, resolved, canceled}, severity: {critical, high, normal, low} }
 //     each facet counts with the other filters applied but not its own
-//   companies: [{ id, name }]   every company with a project (for the screen's filter)
+//   organizations: [{ id, name }]   every organization with a project (for the screen's filter)
 // }
 // No sentences: an invalid filter is {code: 'invalid_filter', param, value, allowed} (ADR 0004).
 const path = require('path');
@@ -86,19 +86,19 @@ function allPendingDecisions(store) {
       out.push({ ...rest, item: itemInfo(project, state), task: taskInfo(state, taskNumber) });
     }
   }
-  return { list: out, companies: companiesOf([...projects.values()]) };
+  return { list: out, organizations: organizationsOf([...projects.values()]) };
 }
 
-function companiesOf(projects) {
+function organizationsOf(projects) {
   const seen = new Map();
-  for (const p of projects) if (!seen.has(p.company_id)) seen.set(p.company_id, { id: p.company_id, name: p.company_name });
+  for (const p of projects) if (!seen.has(p.organization_id)) seen.set(p.organization_id, { id: p.organization_id, name: p.organization_name });
   return [...seen.values()].sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
 }
 
 /** GET /api/pending-decisions. source: the items source of api-items.js (lazily opened maestro.db). */
 function listPendingDecisions(source, query = new URLSearchParams()) {
   const filters = {
-    company: filterValues(query, 'company'),
+    organization: filterValues(query, 'organization'),
     project: filterValues(query, 'project'),
     severity: filterValues(query, 'severity', PENDING_DECISION_SEVERITIES),
     status: filterValues(query, 'status', PENDING_DECISION_STATUSES),
@@ -108,9 +108,9 @@ function listPendingDecisions(source, query = new URLSearchParams()) {
     severity: Object.fromEntries(PENDING_DECISION_SEVERITIES.map((s) => [s, 0])),
   };
   const store = source.store();
-  if (!store) return { pending_decisions: [], counts, companies: [] };
-  const { list, companies } = allPendingDecisions(store);
-  const passes = (p, skip) => (!filters.company || filters.company.has(p.item.project.company.id))
+  if (!store) return { pending_decisions: [], counts, organizations: [] };
+  const { list, organizations } = allPendingDecisions(store);
+  const passes = (p, skip) => (!filters.organization || filters.organization.has(p.item.project.organization.id))
     && (!filters.project || filters.project.has(p.item.project.id))
     && (skip === 'severity' || !filters.severity || filters.severity.has(p.severity))
     && (skip === 'status' || !filters.status || filters.status.has(p.status));
@@ -118,7 +118,7 @@ function listPendingDecisions(source, query = new URLSearchParams()) {
     if (passes(p, 'status')) counts.status[p.status]++;
     if (passes(p, 'severity')) counts.severity[p.severity]++;
   }
-  return { pending_decisions: list.filter((p) => passes(p)).sort(order), counts, companies };
+  return { pending_decisions: list.filter((p) => passes(p)).sort(order), counts, organizations };
 }
 
 module.exports = { listPendingDecisions, PendingFilterError };

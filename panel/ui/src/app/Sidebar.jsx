@@ -7,13 +7,13 @@ import { t } from '../i18n/index.js';
 import { Icon, LayoutDashboard, Inbox, ScrollText, Bot, Gauge, Workflow, Building } from '../components/Icon.jsx';
 
 // Icon of each screen (new screen: add it here).
-const ICONS = { overview: LayoutDashboard, items: Workflow, pending: Inbox, log: ScrollText, agents: Bot, usage: Gauge, companies: Building };
+const ICONS = { overview: LayoutDashboard, items: Workflow, pending: Inbox, log: ScrollText, agents: Bot, usage: Gauge, organizations: Building };
 
 export function Sidebar() {
   const { state, screen, goTo } = usePanel();
   const kp = (state && obj(state.kpis) && obj(state.kpis.pending_decisions)) || {};
   const bySeverity = obj(kp.by_severity) || {};
-  // Counter next to the name: { n, tone, label }. The open pending decisions of every company (GET /api/state).
+  // Counter next to the name: { n, tone, label }. The open pending decisions of every organization (GET /api/state).
   const counters = {
     pending: kp.total ? { n: kp.total, tone: bySeverity.critical ? 'strong' : 'blue', label: t('sidebar.pendingCounter', { count: kp.total }) } : null,
   };

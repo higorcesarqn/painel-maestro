@@ -73,7 +73,7 @@ Nos passos abaixo, `flow <comando>` abrevia essa linha. `node "$PAINEL_MAESTRO/b
 
 8. **Finalizar.** Tire o PR do rascunho pelo adaptador e grave `flow pr <n> ready`.
 
-9. **Limpar.** Remova todas as worktrees e branches `task/*` locais criadas nesta execução (`git worktree list` para conferir; `git worktree prune`). Reporte ao usuário: link do PR, tasks integradas, tasks bloqueadas, a página do item no painel (`http://127.0.0.1:4777/#items/<chave>`, com a chave que o `flow` imprime, ex.: `painel-maestro/10`; se ele disse que cadastrou o projeto em "Sem empresa", diga que o projeto se move pelo painel) e cada comando `flow` que falhou, com a mensagem.
+9. **Limpar.** Remova todas as worktrees e branches `task/*` locais criadas nesta execução (`git worktree list` para conferir; `git worktree prune`). Reporte ao usuário: link do PR, tasks integradas, tasks bloqueadas, a página do item no painel (`http://127.0.0.1:4777/#items/<chave>`, com a chave que o `flow` imprime, ex.: `painel-maestro/10`; se ele disse que cadastrou o projeto em "Sem organização", diga que o projeto se move pelo painel) e cada comando `flow` que falhou, com a mensagem.
 
 ## Depois do PR pronto
 

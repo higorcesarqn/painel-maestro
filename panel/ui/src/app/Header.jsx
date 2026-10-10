@@ -1,10 +1,10 @@
-// Header: screen title, company selector, time of the last read, health badge (with details) and Recalculate.
+// Header: screen title, organization selector, time of the last read, health badge (with details) and Recalculate.
 import { useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
 import { time, elapsedText, dateTime, age, arr, obj, txt } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Popover } from '../components/Modal.jsx';
-import { CompanySelect } from './CompanySelect.jsx';
+import { OrganizationSelect } from './OrganizationSelect.jsx';
 import { Dot } from '../components/base.jsx';
 import { Icon, RefreshCw, Clock, TriangleAlert, CircleCheck, CircleAlert } from '../components/Icon.jsx';
 
@@ -30,7 +30,7 @@ export function Header() {
         <span class="label">{t('header.panel')}</span>
         <h1>{t(`screens.${screen}`)}</h1>
       </div>
-      <CompanySelect />
+      <OrganizationSelect />
       <span class="spacer" />
       {actionStatus && <span class="action-status truncate" aria-live="polite" title={actionStatus}>{actionStatus}</span>}
       <span class={`updated${connectionError ? ' error' : ''}`} aria-live="polite"><Icon of={Clock} size={14} />{updated}</span>

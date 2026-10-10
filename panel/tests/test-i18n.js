@@ -129,8 +129,8 @@ suite.test('server codes keep the texts the page showed before', () => {
     'Hook parado: nenhum registro no log bruto há 3 dias, mas os agentes registraram trabalho em 05/10 09:00');
   assert.strictEqual(c({ code: 'hook_never', last_event_at: '2026-10-05T09:00:00-03:00' }),
     'O hook nunca gravou no log bruto, mas os agentes registraram trabalho em 05/10 09:00 (hooks instalados?)');
-  assert.strictEqual(c({ code: 'projects_unassigned', count: 1, projects: ['scratch'] }), '1 projeto em "Sem empresa" (scratch): escolha a empresa na tela Itens');
-  assert.strictEqual(c({ code: 'projects_unassigned', count: 2, projects: ['scratch', 'bi'] }), '2 projetos em "Sem empresa" (scratch, bi): escolha a empresa na tela Itens');
+  assert.strictEqual(c({ code: 'projects_unassigned', count: 1, projects: ['scratch'] }), '1 projeto em "Sem organização" (scratch): escolha a organização na tela Itens');
+  assert.strictEqual(c({ code: 'projects_unassigned', count: 2, projects: ['scratch', 'bi'] }), '2 projetos em "Sem organização" (scratch, bi): escolha a organização na tela Itens');
   assert.strictEqual(c({ code: 'database_unreadable', file: 'bruto.db', detail: 'file is not a database' }), 'Não consegui ler o bruto.db (file is not a database)');
   assert.strictEqual(c({ code: 'file_unreadable', file: 'state/usage.json', error: { code: 'invalid_json', detail: 'x' } }),
     'state/usage.json ilegível (JSON inválido (x))');
@@ -144,9 +144,9 @@ suite.test('server codes keep the texts the page showed before', () => {
   assert.strictEqual(c({ code: 'maestri_claude_provider' }), 'provedor Claude do Maestri');
   assert.strictEqual(c({ code: 'invalid_filter', param: 'severity', value: 'alta', allowed: ['critical', 'high', 'normal', 'low'] }),
     'Filtro "severity" inválido: "alta" (use critical, high, normal ou low).');
-  // company and project (#6) by the names the person knows; the others (#10) as they are
+  // organization and project (#6) by the names the person knows; the others (#10) as they are
   assert.strictEqual(c({ code: 'invalid_filter', param: 'project', value: 'X Y', allowed: null }), 'Filtro "projeto" inválido: "X Y".');
-  assert.strictEqual(c({ code: 'invalid_filter', param: 'company', value: 'X Y' }), 'Filtro "empresa" inválido: "X Y".');
+  assert.strictEqual(c({ code: 'invalid_filter', param: 'organization', value: 'X Y' }), 'Filtro "organizacao" inválido: "X Y".');
   assert.ok(/^Host não permitido\. Abra o painel em http:\/\/127\.0\.0\.1:4777\.$/.test(c({ code: 'host_not_allowed', port: 4777 })));
 });
 
@@ -189,6 +189,13 @@ suite.test('no visible text is written straight into a component or screen', () 
     }
   }
   assert.deepStrictEqual(problems, [], `\n${problems.join('\n')}`);
+});
+
+suite.test('no pt-BR text of the page or of the CLI says "empresa": the term is Organização (#26)', () => {
+  for (const f of [path.join(I18N, 'pt-BR.js'), path.join(REPO, 'bin', 'i18n', 'pt-BR.js')]) {
+    const hits = fs.readFileSync(f, 'utf8').split('\n').filter((line) => /empresa/i.test(line));
+    assert.deepStrictEqual(hits, [], `${path.relative(REPO, f)}:\n${hits.join('\n')}`);
+  }
 });
 
 suite.test('the provisional bridge (compat.js) is gone and the old folders were renamed', () => {

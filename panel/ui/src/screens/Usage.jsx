@@ -1,6 +1,6 @@
 // Claude usage (#13): the account plan (5 h and weekly, from Maestri), the consumption of each item in each period and
-// the tokens of each agent (the item's maestro, a task's worker). Everything comes from GET /api/usage; the company
-// chosen at the top of the panel (companyFilter) reaches it as ?company= and only chooses the lines: the shares are
+// the tokens of each agent (the item's maestro, a task's worker). Everything comes from GET /api/usage; the organization
+// chosen at the top of the panel (organizationFilter) reaches it as ?organization= and only chooses the lines: the shares are
 // always of the whole account. The explanations (formula, where each number comes from) sit in the (i) icons.
 import '../styles/usage.css';
 import { useState } from 'preact/hooks';
@@ -40,8 +40,8 @@ function agentName(line) {
 }
 
 export function Usage() {
-  const { recalculate, recalculating, companyFilter } = usePanel();
-  const { answer, error, reload } = usePolling(() => readUsage(companyFilter), [companyFilter]);
+  const { recalculate, recalculating, organizationFilter } = usePanel();
+  const { answer, error, reload } = usePolling(() => readUsage(organizationFilter), [organizationFilter]);
   const [tokensPeriod, setTokensPeriod] = useState('window_5h');
   const usage = obj(answer);
   const ku = (usage && obj(usage.plan)) || {};
@@ -181,7 +181,7 @@ function PlanCard({ title, weekly, value, reset, reason, ku }) {
   );
 }
 
-/** Tokens of each agent in the chosen period; the last row sums the lines shown (the chosen company's). */
+/** Tokens of each agent in the chosen period; the last row sums the lines shown (the chosen organization's). */
 function TokensTable({ period, setPeriod, list, note, warnings }) {
   const sum = (k) => list.reduce((s, l) => s + (Number(l[k]) || 0), 0);
   const tot = list.length ? { input: sum('input'), output: sum('output'), cache_write: sum('cache_write'), cache_read: sum('cache_read'), messages: sum('messages'), relative_consumption: sum('relative_consumption') } : null;

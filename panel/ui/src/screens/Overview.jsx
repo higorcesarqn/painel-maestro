@@ -1,6 +1,6 @@
-// Overview (new model, #14): the picture of the day from maestro.db (GET /api/overview): active items by company,
+// Overview (new model, #14): the picture of the day from maestro.db (GET /api/overview): active items by organization,
 // project and stage, the owner's open pending decisions, items parked on the same stage for too long and the recent
-// activity. The company of the selector at the top (companyFilter) narrows all of it. Reads again every 20 s.
+// activity. The organization of the selector at the top (organizationFilter) narrows all of it. Reads again every 20 s.
 // The plan cards read the usage collector (/api/state), as before.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import '../styles/overview.css';
@@ -16,18 +16,18 @@ import { LogEventModal, eventTypeName, eventDetail, agentText } from './LogEvent
 const stageName = (id) => t(`items.stages.${id}`);
 
 export function Overview() {
-  const { companyFilter } = usePanel();
+  const { organizationFilter } = usePanel();
   const [read, setRead] = useState({ answer: null, error: null });
   const seq = useRef(0);
   const load = useCallback(async () => {
     const mine = ++seq.current;
     try {
-      const answer = await readOverview(companyFilter);
+      const answer = await readOverview(organizationFilter);
       if (mine === seq.current) setRead({ answer, error: null });
     } catch (error) {
       if (mine === seq.current) setRead((r) => ({ answer: r.answer, error }));
     }
-  }, [companyFilter]);
+  }, [organizationFilter]);
   useEffect(() => {
     load();
     const timer = setInterval(load, REFRESH_MS);
@@ -77,11 +77,11 @@ function OverviewSkeleton({ error }) {
 function ActiveKpi({ o }) {
   const { goTo } = usePanel();
   const a = obj(o.active) || {};
-  const companies = objs(a.companies);
-  const projects = companies.reduce((n, c) => n + objs(c.projects).length, 0);
+  const organizations = objs(a.organizations);
+  const projects = organizations.reduce((n, c) => n + objs(c.projects).length, 0);
   return (
     <Kpi label={t('overview.activeItems')} value={number(a.total || 0)} onClick={() => goTo('items')}
-      detail={t('overview.activeDetail', { projects: t('overview.projectCount', { count: projects }), companies: t('overview.companyCount', { count: companies.length }) })}
+      detail={t('overview.activeDetail', { projects: t('overview.projectCount', { count: projects }), organizations: t('overview.organizationCount', { count: organizations.length }) })}
       info={t('overview.activeInfo')} />
   );
 }
@@ -170,13 +170,13 @@ function PlanKpi({ kind }) {
   );
 }
 
-// ---------- active items by company, project and stage ----------
+// ---------- active items by organization, project and stage ----------
 
 function ActiveItems({ o, error }) {
   const { goTo } = usePanel();
   const a = obj(o.active) || {};
-  const companies = objs(a.companies);
-  const used = new Set(companies.flatMap((c) => objs(c.projects).flatMap((p) => arr(p.stages))));
+  const organizations = objs(a.organizations);
+  const used = new Set(organizations.flatMap((c) => objs(c.projects).flatMap((p) => arr(p.stages))));
   const stages = ACTIVE_STAGES.filter((s) => used.has(s)); // only active items are counted: never "done"
   const byStage = obj(a.by_stage) || {};
   const cell = (p, s) => {
@@ -188,8 +188,8 @@ function ActiveItems({ o, error }) {
     <Card label={t('overview.activeTitle')} info={t('overview.activeTableInfo')} extra={t('overview.itemCount', { count: a.total || 0 })} scroll flush
       actions={<button type="button" class="link small go-link" onClick={() => goTo('items')}>{t('overview.openItems')} <Icon of={ArrowRight} size={13} /></button>}>
       {error && <p class="overview-error" role="alert">{t('overview.readFailed', { message: error.message })}</p>}
-      {!companies.length && <Empty icon={Workflow} center>{t('overview.noActive')}</Empty>}
-      {companies.length > 0 && (
+      {!organizations.length && <Empty icon={Workflow} center>{t('overview.noActive')}</Empty>}
+      {organizations.length > 0 && (
         <div class="table-box">
           <table class="table overview-stages">
             <thead>
@@ -200,8 +200,8 @@ function ActiveItems({ o, error }) {
               </tr>
             </thead>
             <tbody>
-              {companies.map((c) => [
-                <tr key={`c-${c.id}`} class={`company-row${c.unassigned ? ' unassigned' : ''}`}>
+              {organizations.map((c) => [
+                <tr key={`c-${c.id}`} class={`organization-row${c.unassigned ? ' unassigned' : ''}`}>
                   <th scope="rowgroup" colSpan={stages.length + 1}>{txt(c.name)}</th>
                   <td class="num">{number(c.total || 0)}</td>
                 </tr>,
@@ -271,14 +271,14 @@ function StaleItems({ o }) {
       <div class="list overview-stale">
         {list.map((it) => {
           const project = obj(it.project) || {};
-          const company = obj(project.company) || {};
+          const organization = obj(project.organization) || {};
           return (
             <button type="button" key={it.key} class="list-item" onClick={() => goTo('items', it.key)}
               aria-label={t('overview.staleAria', { ref: txt(it.tracker_ref), title: txt(it.title), stage: stageName(it.stage), age: age(it.stage_since) })}>
               <span class="mono">{txt(it.tracker_ref)}</span>
               <span class="overview-pending-main">
                 <span class="truncate" title={txt(it.title)}>{txt(it.title)}</span>
-                <span class="muted tiny">{[txt(project.name), txt(company.name)].filter(Boolean).join(' · ')}</span>
+                <span class="muted tiny">{[txt(project.name), txt(organization.name)].filter(Boolean).join(' · ')}</span>
               </span>
               <Badge tone="warning">{stageName(it.stage)}</Badge>
               <span class="muted small" title={dateTime(it.stage_since)}>{age(it.stage_since)}</span>

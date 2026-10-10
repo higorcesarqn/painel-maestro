@@ -17,7 +17,7 @@ export const SCREENS = [
   { id: 'log', group: 'workspace' },
   { id: 'agents', group: 'workspace' },
   { id: 'usage', group: 'workspace' },
-  { id: 'companies', group: 'workspace' },
+  { id: 'organizations', group: 'workspace' },
 ];
 
 // Addresses of before the screens were in English (#visao, #pendencias...): still open the right screen.

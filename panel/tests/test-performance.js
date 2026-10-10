@@ -35,9 +35,9 @@ function build() {
   const store = openStore({ dir: data });
   const at0 = isoSP(new Date(NOW_MS - 120 * DAY_MS));
   store.transaction(() => {
-    store.ensureCompany('contoso', 'Contoso', at0);
+    store.ensureOrganization('contoso', 'Contoso', at0);
     PROJECTS.forEach((id, i) => store.addProject({
-      id, name: id, companyId: i === 2 ? 'contoso' : 'contoso', tracker: i === 2 ? 'azure_devops' : 'github',
+      id, name: id, organizationId: i === 2 ? 'contoso' : 'contoso', tracker: i === 2 ? 'azure_devops' : 'github',
       remote: `github.com/acme/${id}`, at: at0,
     }));
     const stages = ['implementation', 'final_adjustment', 'pr_ready', 'merge'];
@@ -129,14 +129,14 @@ suite.test(`generates ${N_EVENTS} events and ${N_RAW} raw entries and starts the
   assert.ok(purged && Number(purged[1]) > N_RAW / 5, `the cleanup deleted the entries older than 90 days: ${out}`);
 });
 
-suite.test('/api/log: first page < 2 s, filters (item, type, period, company) < 1 s each', async () => {
+suite.test('/api/log: first page < 2 s, filters (item, type, period, organization) < 1 s each', async () => {
   const cold = await time(() => request(S.port, '/api/log'));
   assert.strictEqual(cold.r.status, 200);
   assert.strictEqual(cold.r.json.total, N_EVENTS);
   assert.strictEqual(cold.r.json.events.length, 50);
   const warm = await time(() => request(S.port, '/api/log?page=200'));
   const queries = [
-    `item=${hot.project}/${hot.number}`, 'type=item-started&project=gadgets', 'since=2026-09-20&until=2026-09-30&per_page=500', 'company=contoso&hours=48',
+    `item=${hot.project}/${hot.number}`, 'type=item-started&project=gadgets', 'since=2026-09-20&until=2026-09-30&per_page=500', 'organization=contoso&hours=48',
   ];
   const times = [];
   for (const q of queries) {
@@ -166,8 +166,8 @@ suite.test('/api/log/<id> with thousands of linked raw commands < 1.5 s, limited
   if (mb !== null) assert.ok(mb < 400, `high memory: ${mb} MB`);
 });
 
-suite.test('a poll round (state, overview, items, pending decisions, usage, agents, companies) reuses one projection while no event arrives', async () => {
-  const round = ['/api/state', '/api/overview', '/api/items', '/api/pending-decisions', '/api/usage', '/api/agents', '/api/companies', '/api/projects'];
+suite.test('a poll round (state, overview, items, pending decisions, usage, agents, organizations) reuses one projection while no event arrives', async () => {
+  const round = ['/api/state', '/api/overview', '/api/items', '/api/pending-decisions', '/api/usage', '/api/agents', '/api/organizations', '/api/projects'];
   const once = async () => {
     for (const p of round) {
       const x = await request(S.port, p);

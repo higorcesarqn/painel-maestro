@@ -2,7 +2,7 @@
 // Tests for panel/server.js itself (the rules every route shares): startup and PID, the page, GET /api/state,
 // POST /api/recalculate, security (Host, X-Panel, Origin, odd paths, methods), gzip, the data folder and the old
 // routes that no longer exist. The routes of each part of the model have their own tests (test-flow*.js,
-// test-companies.js, test-log.js, test-overview.js, test-usage-agents.js, test-merge-check.js).
+// test-organizations.js, test-log.js, test-overview.js, test-usage-agents.js, test-merge-check.js).
 // Fake root under tests/tmp/, server on a port between 4790 and 4799.
 
 const fs = require('fs');

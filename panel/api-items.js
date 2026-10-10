@@ -13,7 +13,7 @@ const RE_NUMBER = /^[1-9]\d{0,8}$/;
 
 /**
  * Lazily opened store (null while maestro.db does not exist: the panel shows no item, without creating it). Only a
- * write that starts the register (creating the first company, #22) asks for store({ create: true }).
+ * write that starts the register (creating the first organization, #22) asks for store({ create: true }).
  */
 function createItemsSource(env) {
   const dir = flowDir(env);
@@ -31,9 +31,9 @@ function createItemsSource(env) {
   };
 }
 
-/** The project as every answer of the API shows it: { id, name, tracker, company: { id, name } }. */
+/** The project as every answer of the API shows it: { id, name, tracker, organization: { id, name } }. */
 function projectInfo(p) {
-  return { id: p.id, name: p.name, tracker: p.tracker, company: { id: p.company_id, name: p.company_name } };
+  return { id: p.id, name: p.name, tracker: p.tracker, organization: { id: p.organization_id, name: p.organization_name } };
 }
 
 function summary(project, state) {
