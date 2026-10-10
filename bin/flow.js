@@ -35,6 +35,7 @@ const { originOf, branchOf, describeRemote, parseBranch } = require('./flow-repo
 const { projectItem, trackerRef, EVENT_TYPES, WORKER_STATES } = require('./flow-projection');
 const { PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES, MAX_PENDING_DECISION } = require('./flow-projection');
 const { createAdmin, isAdminCommand } = require('./flow-admin');
+const { readVersion } = require('./version');
 
 const ROLES = ['maestro', 'worker', 'owner'];
 const MAX_TITLE = 300;
@@ -982,6 +983,10 @@ async function waitPending(cmd, origin, env = process.env) {
 function run(argv, cwd) {
   if (argv.includes('--help') || argv.includes('-h') || argv[0] === 'help') {
     lib.print(t('help', { db: lib.slashes(path.join(flowDir(), 'maestro.db')) }));
+    return;
+  }
+  if (argv[0] === '--version' || argv[0] === '-v') {
+    lib.print(t('version', readVersion()));
     return;
   }
   if (isAdminCommand(argv)) {

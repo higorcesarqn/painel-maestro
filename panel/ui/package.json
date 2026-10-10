@@ -1,7 +1,6 @@
 {
   "name": "painel-ui",
   "private": true,
-  "version": "1.0.0",
   "description": "Fonte do painel do workspace (Preact + componentes próprios). O build gera ../index.html, um arquivo único.",
   "type": "module",
   "scripts": {

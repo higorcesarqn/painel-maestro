@@ -115,6 +115,7 @@ a.nav-item:hover { text-decoration: none; }
 .nav-sep { height: 1px; background: var(--border); margin: 6px 10px; }
 .nav-item.external { color: var(--muted); }
 .sidebar-foot { margin-top: auto; padding: 0 10px; display: flex; flex-direction: column; gap: 6px; }
+.sidebar-version { font-size: 11px; margin-top: -2px; }
 
 .main { display: grid; grid-template-rows: var(--topbar) auto minmax(0, 1fr); min-width: 0; min-height: 0; }
 .topbar {

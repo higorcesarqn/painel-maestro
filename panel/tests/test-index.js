@@ -105,13 +105,16 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
 suite.test('the demo is only the new model: mock-items.json answers /api/state too, and the old mocks are gone', () => {
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const e = m.state;
-  assert.deepStrictEqual(Object.keys(e).sort(), ['collector', 'generated_at', 'health', 'kpis', 'warnings']);
+  assert.deepStrictEqual(Object.keys(e).sort(), ['collector', 'generated_at', 'health', 'kpis', 'version', 'warnings']);
   assert.deepStrictEqual(Object.keys(e.health).sort(), ['last_event_at', 'last_raw_at', 'level', 'reasons', 'usage_age_min']);
   assert.deepStrictEqual(Object.keys(e.kpis).sort(), ['pending_decisions', 'usage']);
   const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
   assert.strictEqual(e.kpis.pending_decisions.total, open.length, 'the menu counter counts the open pending decisions of the demo');
   assert.ok(e.kpis.pending_decisions.by_severity.critical > 0, 'a critical one turns the counter strong');
   assert.deepStrictEqual([e.kpis.usage.window_5h_pct, e.kpis.usage.weekly_pct, e.generated_at], [37, 22, m.generated_at]);
+  // The menu footer's version (#36): fixed and fictitious in the demo; the footer reads it from /api/state.
+  assert.deepStrictEqual(e.version, { product: '1.1.0', commit: 'a5c2e21' });
+  assert.ok(/state\.version/.test(source['app/Sidebar.jsx']) && /sidebar\.versionNoCommit/.test(source['app/Sidebar.jsx']), 'the footer shows the version');
   // No sentence from the server: reasons and sources are codes.
   assert.ok(e.health.reasons.every((r) => typeof r.code === 'string'));
   assert.strictEqual(e.kpis.usage.source.code, 'maestri_claude_provider');

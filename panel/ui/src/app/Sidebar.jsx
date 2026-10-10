@@ -1,5 +1,6 @@
 // Side menu: brand and the screens, in blocks by group (GROUPS in data/context.js).
 // Arrows ↑ ↓ ← → go through every screen, from one group to the other, with the focus on the menu.
+// The footer shows the panel's version (GET /api/state version, #36): v<semver> · <commit>, or v<semver> without git.
 import '../styles/menu.css';
 import { usePanel, SCREENS, GROUPS } from '../data/context.js';
 import { obj } from '../data/format.js';
@@ -17,6 +18,9 @@ export function Sidebar() {
   const counters = {
     pending: kp.total ? { n: kp.total, tone: bySeverity.critical ? 'strong' : 'blue', label: t('sidebar.pendingCounter', { count: kp.total }) } : null,
   };
+  const v = (state && obj(state.version)) || {};
+  const version = !v.product ? null
+    : v.commit ? t('sidebar.version', { product: v.product, commit: v.commit }) : t('sidebar.versionNoCommit', { product: v.product });
   const key = (ev) => {
     const delta = ev.key === 'ArrowDown' || ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' ? -1 : 0;
     if (!delta) return;
@@ -59,6 +63,7 @@ export function Sidebar() {
       </nav>
       <div class="sidebar-foot">
         <span class="label">{t('sidebar.localPanel')}</span>
+        {version ? <span class="sidebar-version mono faint">{version}</span> : null}
         <span class="tiny faint">{t('sidebar.refreshNote')}</span>
       </div>
     </aside>

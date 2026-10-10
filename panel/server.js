@@ -13,7 +13,8 @@
 //
 // Routes (details in panel/README.md):
 //   GET  /                                    the page (index.html, a single file)
-//   GET  /api/state                           health badge, menu counter of open pending decisions, plan usage, collector
+//   GET  /api/state                           health badge, menu counter of open pending decisions, plan usage, collector,
+//                                             the panel's version (semver and the commit the server started on)
 //   POST /api/recalculate                     runs the usage collector now and returns /api/state
 //   GET  /api/overview[?organization=]        Overview (api-overview.js)
 //   GET  /api/items[?active=&organization=&project=], GET /api/items/<project>/<number>   items (api-items.js)
@@ -59,6 +60,7 @@ const usageApi = require(path.join(__dirname, 'api-usage.js'));
 const overviewApi = require(path.join(__dirname, 'api-overview.js'));
 const { evaluateHealth } = require(path.join(__dirname, 'health.js'));
 const { asDate, isoSP, InvalidData, parseOptions } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
+const { readVersion } = require(path.join(__dirname, '..', 'bin', 'version.js'));
 const { readJson, readText, withRetries, writeAtomic } = collector.util;
 
 const MIN_MS = 60 * 1000;
@@ -227,12 +229,13 @@ function pendingKpi(items) {
 
 /**
  * GET /api/state, from its parts (the demo's generator builds it with the same function):
- * { generated_at, health, kpis: { pending_decisions, usage }, collector, warnings }.
+ * { generated_at, health, kpis: { pending_decisions, usage }, collector, warnings, version }.
  * items: the items source (api-items.js); raw: the raw log source (api-log.js); usageFile: the read of
  * state/usage.json ({exists, data, error}); problems: health codes other checks add (the merge check, #11);
  * hookFailure: the hook's last failure (bin/hook-failure.js, #28) or null.
+ * version: { product, commit } read when the server started (bin/version.js, #36); commit is null without git.
  */
-function stateAnswer({ items, raw, usageFile, nowMs, problems = [], hookFailure = null, collector: collectorInfo }) {
+function stateAnswer({ items, raw, usageFile, nowMs, problems = [], hookFailure = null, collector: collectorInfo, version = { product: null, commit: null } }) {
   const warnings = [];
   const usage = usageKpi(usageFile, nowMs, warnings);
   return {
@@ -241,6 +244,7 @@ function stateAnswer({ items, raw, usageFile, nowMs, problems = [], hookFailure 
     kpis: { pending_decisions: pendingKpi(items), usage },
     collector: collectorInfo,
     warnings,
+    version: { product: version.product, commit: version.commit },
   };
 }
 
@@ -250,6 +254,8 @@ function createContext(cfg) {
   const ctx = {
     cfg,
     files: new FileCache(),
+    // The semver and the commit the server started on (#36): the code only changes on a restart.
+    version: readVersion(),
     items: itemsApi.createItemsSource(cfg.env),
     raw: logApi.createRawSource(cfg.env),
     usageFile: path.join(cfg.dataDir, ...USAGE_FILE.split('/')),
@@ -323,7 +329,7 @@ function collectorState(ctx) {
 async function buildState(ctx) {
   return stateAnswer({
     items: ctx.items, raw: ctx.raw, usageFile: await ctx.files.json(ctx.usageFile), nowMs: ctx.now().getTime(),
-    problems: ctx.mergeCheck.healthReasons(), collector: collectorState(ctx),
+    problems: ctx.mergeCheck.healthReasons(), collector: collectorState(ctx), version: ctx.version,
     hookFailure: hookFailureOf(await ctx.files.json(path.join(ctx.cfg.dataDir, HOOK_FAILURE_FILE))),
   });
 }

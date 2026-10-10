@@ -31,7 +31,7 @@ No topo, o **seletor de organização** (Todas ou uma organização, lembrado ne
 - **Uso:** o plano Claude (5 h e semanal, com o reinício), o consumo de cada item em cada período e os tokens de cada agente.
 - **Organizações:** o cadastro inteiro, qualquer que seja o seletor do topo: um card por organização (nome, id, projetos e itens), em ordem alfabética, com "Sem organização" por último e só quando tem projetos; o botão **Nova organização** cria uma (nome até 80 caracteres, único sem diferenciar maiúsculas, e o id sugerido a partir do nome, editável antes de salvar e fixo depois); **Renomear**, no card, abre um modal com o nome atual preenchido (mesma regra de nome, e o próprio nome com outras maiúsculas é aceito; o id não muda; o seletor do topo e as outras telas passam a mostrar o nome novo; "Sem organização" não tem o botão); **Excluir**, no card, exclui uma organização sem projetos depois de confirmar num modal com o nome dela (com projetos o botão fica desabilitado com "mova os N projetos antes"; "Sem organização" não tem o botão; se ela era a do seletor do topo, ele volta para Todas); dentro de cada card, os projetos (nome, tracker, repositórios, itens) com **Mover para** outra organização, a mesma linha do card "Sem organização" da tela Itens.
 
-A página se atualiza sozinha a cada 20 segundos.
+A página se atualiza sozinha a cada 20 segundos. O rodapé do menu mostra a versão do painel-maestro (veja [Versão](#versão)).
 
 ## Instalar do zero
 
@@ -343,6 +343,12 @@ npm run dev        # http://127.0.0.1:5173, com /api apontando para o painel em 
 
 Da raiz, `npm run build` faz o mesmo. Como acrescentar uma tela nova está em [`panel/README.md`](panel/README.md#a-página-indexhtml-fonte-em-ui).
 
+## Versão
+
+O painel-maestro tem uma versão só, o semver do `package.json` da raiz, mostrada com o commit do código: `v1.1.0 · a5c2e21` no rodapé do menu, junto de "Painel local", e `painel-maestro 1.1.0 (a5c2e21)` no `node bin/flow.js --version` (ou `-v`, em qualquer pasta). O commit do painel é o da hora em que o servidor subiu (o rodapé só muda quando ele reinicia); rodando de uma pasta sem git, ou sem git no `PATH`, o commit some e fica só o semver. A versão do schema do banco (#28) é outra, separada.
+
+A convenção: o ajuste final de cada item sobe o minor; uma correção avulsa fora de item sobe o patch; a tag `vX.Y.Z` no merge é opcional, do dono. Os detalhes estão em [`docs/agents/versao.md`](docs/agents/versao.md).
+
 ## Estrutura
 
 ```
@@ -359,6 +365,7 @@ painel-maestro/
 │   ├── collect-usage.js         uso do plano e tokens por item e por agente
 │   ├── install-skills.js        liga as skills ao ~/.claude (backup e --undo)
 │   ├── time-window.js           filtro de horário (pré-condição de rotinas agendadas do Maestri)
+│   ├── version.js               versão do painel-maestro (semver do package.json e commit do código)
 │   ├── lib.js                   datas no fuso de São Paulo, entrada padrão, redação de segredos
 │   └── i18n/                    dicionário pt-BR das mensagens do CLI
 ├── panel/
@@ -378,7 +385,7 @@ painel-maestro/
 │   ├── trabalhador-floor/       protocolo do trabalhador num floor
 │   └── docs/                    orquestracao-subagentes/ e orquestracao-maestri/ (com open-floor.sh e integrate.sh)
 ├── docs/adr/                    decisões de arquitetura
-├── docs/agents/                 configuração das skills de engenharia neste repositório (tracker, rótulos, domínio)
+├── docs/agents/                 configuração das skills de engenharia neste repositório (tracker, rótulos, domínio, versão)
 ├── CONTEXT.md                   vocabulário do domínio
 ├── package.json
 ├── LICENSE

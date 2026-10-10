@@ -28,6 +28,8 @@ const { collect } = require('../../bin/collect-usage.js');
 
 const OUT = path.join(__dirname, 'mock-items.json');
 const GENERATED_AT = '2026-10-09T10:24:30-03:00';
+// The version the demo shows in the menu footer (#36): fictitious and fixed, so the mock does not change with each commit.
+const DEMO_VERSION = { product: '1.1.0', commit: 'a5c2e21' };
 const NO_HML = STAGES.filter((s) => s !== 'hml_validation');
 // The Claude plan the Maestri reports at the mock's moment (read 3 minutes before it).
 const PLAN = {
@@ -389,7 +391,7 @@ async function main() {
     overview[id] = overviewOf(source, new URLSearchParams(id ? { organization: id } : {}), { nowMs, staleHours: 48 });
   }
   const { file, collector, usage, agents } = await usageAndAgents(source);
-  const state = stateAnswer({ items: source, raw, usageFile: file, nowMs, collector });
+  const state = stateAnswer({ items: source, raw, usageFile: file, nowMs, collector, version: DEMO_VERSION });
   fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, state, organizations: organizationList, projects: projectList, items, details, pending_decisions: pending, overview, usage, agents }, null, 2)}
 `);
   const taskStates = new Set(Object.values(details).flatMap((d) => d.tasks.map((x) => x.state)));

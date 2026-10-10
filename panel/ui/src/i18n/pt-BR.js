@@ -99,6 +99,9 @@ export default {
     screens: 'Telas do painel',
     pendingCounter: '{count} pendência(s) aberta(s)',
     localPanel: 'Painel local',
+    // The panel's version (#36): the semver of package.json and the commit the server started on.
+    version: 'v{product} · {commit}',
+    versionNoCommit: 'v{product}',
     refreshNote: '127.0.0.1 · atualiza a cada 20 s',
   },
 
