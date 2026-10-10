@@ -82,7 +82,7 @@ Com `taskkill /F` o processo morre sem chance de limpar, então o `panel.pid` an
 
 ## Verificador de merge (#11)
 
-A única exceção do ADR 0001: o merge do PR costuma acontecer na interface do tracker, sem agente presente. Então o servidor, na subida e depois a cada `PANEL_MERGE_CHECK_SECONDS` (padrão 600), consulta **só os itens com PR pronto e não mergeado** (`pr.state = "ready"`), só leitura (`panel/merge-check.js`), até 4 PRs ao mesmo tempo (o token do `az` é um só por rodada, dividido entre as consultas); parar o servidor encerra as consultas em andamento em vez de esperar o tracker:
+Uma exceção do ADR 0001: o merge do PR costuma acontecer na interface do tracker, sem agente presente. Então o servidor, na subida e depois a cada `PANEL_MERGE_CHECK_SECONDS` (padrão 600), consulta **só os itens com PR pronto e não mergeado** (`pr.state = "ready"`), só leitura (`panel/merge-check.js`), até 4 PRs ao mesmo tempo (o token do `az` é um só por rodada, dividido entre as consultas); parar o servidor encerra as consultas em andamento em vez de esperar o tracker:
 
 - **GitHub:** `gh pr view <url do PR> --json state,mergedAt` (executável em `PANEL_GH_CLI`, padrão `gh`); mergeado quando `state` é `MERGED` ou há `mergedAt`.
 - **Azure DevOps:** o token sai de `az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798 --query accessToken -o tsv` (executável em `PANEL_AZ_CLI`, padrão `az`; um token por rodada) e o PR de `GET <PANEL_AZURE_DEVOPS_URL>/<org>/<projeto>/_apis/git/repositories/<repo>/pullrequests/<id>?api-version=7.1` (padrão `https://dev.azure.com`; org, projeto e repo vêm da URL do PR, `dev.azure.com` ou `*.visualstudio.com`); mergeado quando `status` é `completed`.

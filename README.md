@@ -257,7 +257,7 @@ Um projeto do Azure DevOps com vários repositórios é um projeto só: o CLI ro
 
 ## Verificador de merge
 
-O merge do PR costuma acontecer na interface do tracker, sem agente presente (a única exceção do ADR 0001). Então o servidor consulta, na subida e a cada `PANEL_MERGE_CHECK_SECONDS` (padrão 600), **só os itens com PR pronto e ainda não mergeado**, só leitura: GitHub pelo `gh pr view`, Azure DevOps pela REST com o token do `az account get-access-token`. Merge confirmado vira o evento `pr-changed` (origem "painel") e leva o item para Merge. Uma falha (por exemplo, `az` sem login) aparece com o motivo na página do item e no selo de saúde; o botão **Marcar como mergeado**, no cartão Entrega da página do item, grava o merge à mão. Com `PANEL_COLLECTOR=0` ou relógio fixo (`PANEL_NOW`) ele fica desligado, a não ser que `PANEL_MERGE_CHECK=1`.
+O merge do PR costuma acontecer na interface do tracker, sem agente presente (uma exceção do ADR 0001). Então o servidor consulta, na subida e a cada `PANEL_MERGE_CHECK_SECONDS` (padrão 600), **só os itens com PR pronto e ainda não mergeado**, só leitura: GitHub pelo `gh pr view`, Azure DevOps pela REST com o token do `az account get-access-token`. Merge confirmado vira o evento `pr-changed` (origem "painel") e leva o item para Merge. Uma falha (por exemplo, `az` sem login) aparece com o motivo na página do item e no selo de saúde; o botão **Marcar como mergeado**, no cartão Entrega da página do item, grava o merge à mão. Com `PANEL_COLLECTOR=0` ou relógio fixo (`PANEL_NOW`) ele fica desligado, a não ser que `PANEL_MERGE_CHECK=1`.
 
 ## Variáveis de ambiente
 
