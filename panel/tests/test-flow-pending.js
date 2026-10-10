@@ -1,8 +1,9 @@
 'use strict';
 // Tests for the pending decisions of the new model (#10) through the agreed seam only: the bin/flow.js CLI runs as a
 // process inside a temporary git repository (with a fictitious remote origin) → temporary maestro.db (MAESTRO_DIR)
-// → the server's HTTP API (GET /api/pending-decisions and the item's timeline). No test reads the database or calls
-// internal functions.
+// → the server's HTTP API (GET /api/pending-decisions and the item's timeline). The "maestri" is a fake script
+// (FLOW_MAESTRI_CLI) that only records its arguments (#44: pending open inside Maestri runs "maestri notify"). No test
+// reads the database or calls internal functions.
 
 const fs = require('fs');
 const path = require('path');
@@ -20,7 +21,7 @@ function git(cwd, ...args) {
   return r.stdout.trim();
 }
 
-/** Temporary root: data folder and git repositories with fictitious origins. */
+/** Temporary root: data folder, git repositories with fictitious origins and a fake maestri that writes argv-<n>.json. */
 function buildRoot(name) {
   const root = tmpDir(`pending-${name}`);
   roots.push(root);
@@ -33,12 +34,22 @@ function buildRoot(name) {
     git(dir, 'commit', '-q', '--allow-empty', '-m', 'inicio');
     return dir;
   };
-  return { root, data, repo: repo('repo', 'https://github.com/acme/widgets.git'), repo2: repo('repo2', 'https://github.com/acme/gadgets.git') };
+  const fake = path.join(root, 'fake-maestri.js');
+  fs.writeFileSync(fake, `require('fs').writeFileSync(require('path').join(__dirname, 'argv-' + process.hrtime.bigint() + '.json'), JSON.stringify(process.argv.slice(2)));\n`);
+  return { root, data, fake, repo: repo('repo', 'https://github.com/acme/widgets.git'), repo2: repo('repo2', 'https://github.com/acme/gadgets.git') };
 }
 
-/** Runs the CLI outside of Maestri, unless extra sets the Maestri variables of a terminal. */
+/** Arguments the fake maestri received, in call order. */
+const maestriCalls = (r) => fs.readdirSync(r.root).filter((n) => /^argv-\d+\.json$/.test(n))
+  .sort((a, b) => (BigInt(a.slice(5, -5)) < BigInt(b.slice(5, -5)) ? -1 : 1))
+  .map((n) => JSON.parse(fs.readFileSync(path.join(r.root, n), 'utf8')));
+
+/**
+ * Runs the CLI outside of Maestri, unless extra sets the Maestri variables of a terminal. The maestri it calls is the
+ * fake one, unless extra sets FLOW_MAESTRI_CLI: never the real one.
+ */
 function flow(r, args, { cwd = r.repo, input, extra = {} } = {}) {
-  const env = Object.assign({}, process.env, { MAESTRO_DIR: r.data, MAESTRO_NOW: '', NODE_OPTIONS: '' }, extra);
+  const env = Object.assign({}, process.env, { MAESTRO_DIR: r.data, MAESTRO_NOW: '', NODE_OPTIONS: '', FLOW_MAESTRI_CLI: r.fake }, extra);
   for (const k of ['MAESTRI_TERMINAL_ID', 'MAESTRI_TERMINAL_NAME', 'MAESTRI_WORKSPACE_ID', 'MAESTRI_WORKSPACE_NAME']) if (!(k in extra)) delete env[k];
   return spawnSync(process.execPath, [FLOW, ...args], { cwd, env, input, encoding: 'utf8', windowsHide: true, timeout: 30000 });
 }
@@ -106,11 +117,94 @@ suite.test('the maestro opens a pending decision on a task; the API shows it wit
         project: { id: 'widgets', name: 'widgets', tracker: 'github', organization: { id: 'unassigned', name: 'Sem organização' } },
       },
       task: { number: 13, title: 'Gerar o PDF', state: 'waiting' },
-      maestri: { workspace: 'Contoso', terminal: 'Maestro 12' },
+      maestri: { workspace: 'Contoso', terminal: 'Maestro 12' }, notification: 'sent',
       opened_at: p.opened_at, opened_by: { role: 'maestro', name: null },
       closed_at: null, closed_by: null, resolution: null, decision: null, reason: null, derived_from: null,
     });
     assert.ok(Date.parse(p.opened_at) > 0, p.opened_at);
+  });
+});
+
+// ---------- the owner is told by the Maestri (#44): pending open runs "maestri notify" inside a Maestri terminal ----------
+
+const INSIDE = { MAESTRI_TERMINAL_ID: 'term-1' };
+const NOTIFY_FAILED = /^aviso: a pendência P-(\d+) foi gravada, mas o maestri notify falhou: (.+); o dono pode não ter sido avisado\.\r?\n$/;
+
+suite.test('inside a Maestri terminal, pending open runs "maestri notify" with the pending decision, its severity, the item and the title; the API shows notification sent', async () => {
+  const r = buildRoot('notify');
+  startItem(r);
+  const review = openedId(flow(r, ['pending', 'open', '12', '--task', '13', '--kind', 'task_review', '--severity', 'high', '--title', 'Revisar a task 13'], { extra: INSIDE }));
+  const decision = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--severity', 'low', '--title', 'Qual formato, "PDF" ou CSV?'], { extra: INSIDE }));
+  // The longest title still fits in a notification of up to 500 characters, whole.
+  const long = 'Título longo com acentos: ação, conciliação e exportação. '.repeat(6).slice(0, 300).trim();
+  const longId = openedId(flow(r, ['pending', 'open', '12', '--task', '14', '--kind', 'worker_blocked', '--severity', 'critical', '--title', long], { extra: INSIDE }));
+  // Nothing recorded, no one told.
+  invalid(flow(r, ['pending', 'open', '99', '--kind', 'decision', '--title', 'Item que não existe'], { extra: INSIDE }), /99/);
+  invalid(flow(r, ['pending', 'open', '12', '--task', '77', '--kind', 'decision', '--title', 'Task que não existe'], { extra: INSIDE }), /77/);
+  const calls = maestriCalls(r);
+  assert.deepStrictEqual(calls.slice(0, 2), [
+    ['notify', 'Pendência nova (alta): revisão de task no item widgets/12 (#12), task 13. Revisar a task 13'],
+    ['notify', 'Pendência nova (baixa): decisão no item widgets/12 (#12). Qual formato, "PDF" ou CSV?'],
+  ]);
+  assert.strictEqual(calls.length, 3, 'one notification per pending open');
+  assert.deepStrictEqual(calls[2][0], 'notify');
+  assert.ok(calls[2][1].length <= 500 && calls[2][1].startsWith('Pendência nova (crítica): trabalhador bloqueado no item widgets/12 (#12), task 14. ') && calls[2][1].endsWith(long), calls[2][1]);
+  await withServer(r, async (get) => {
+    const all = await list(get);
+    assert.deepStrictEqual(all.map((p) => [p.id, p.notification]).sort((a, b) => a[0] - b[0]), [[review, 'sent'], [decision, 'sent'], [longId, 'sent']]);
+    const opened = (await get('/api/items/widgets/12')).item.timeline.filter((e) => e.type === 'pending-decision-opened');
+    assert.deepStrictEqual(opened.map((e) => e.payload.notification), ['sent', 'sent', 'sent'], 'the event records it');
+  });
+});
+
+suite.test('outside of Maestri (no MAESTRI_TERMINAL_ID), pending open calls nothing and the API shows notification outside', async () => {
+  const r = buildRoot('notify-outside');
+  startItem(r);
+  const id = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Qual formato?']));
+  const empty = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Outra'], { extra: { MAESTRI_TERMINAL_ID: '' } }));
+  assert.deepStrictEqual(maestriCalls(r), []);
+  await withServer(r, async (get) => {
+    assert.deepStrictEqual((await list(get)).map((p) => [p.id, p.notification]).sort((a, b) => a[0] - b[0]), [[id, 'outside'], [empty, 'outside']]);
+  });
+});
+
+suite.test('when maestri notify fails or does not exist, pending open still records the pending decision, exits 0, prints it and warns on stderr; the API shows notification failed', async () => {
+  const r = buildRoot('notify-fails');
+  startItem(r);
+  const failing = path.join(r.root, 'failing-maestri.js');
+  fs.writeFileSync(failing, `process.stderr.write('Maestro Mode is off\\n'); process.exit(3);\n`);
+  const runs = [
+    flow(r, ['pending', 'open', '12', '--kind', 'decision', '--severity', 'critical', '--title', 'Com o maestri falhando'], { extra: { ...INSIDE, FLOW_MAESTRI_CLI: failing } }),
+    flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Sem o maestri'], { extra: { ...INSIDE, FLOW_MAESTRI_CLI: path.join(r.root, 'nao-existe.exe') } }),
+  ];
+  const ids = runs.map((x) => {
+    assert.strictEqual(x.status, 0, `exit ${x.status}\nstdout: ${x.stdout}\nstderr: ${x.stderr}`);
+    const m = /^Pendência P-(\d+) \(decisão\) aberta no item widgets\/12 \(#12\)\./.exec(x.stdout);
+    assert.ok(m, `prints the pending decision as always: ${x.stdout}`);
+    const warn = NOTIFY_FAILED.exec(x.stderr);
+    assert.ok(warn, `one line on stderr: ${x.stderr}`);
+    assert.strictEqual(warn[1], m[1], 'the warning names the pending decision');
+    return { id: Number(m[1]), detail: warn[2] };
+  });
+  assert.strictEqual(ids[0].detail, 'Maestro Mode is off');
+  assert.ok(/não achei o executável/.test(ids[1].detail), ids[1].detail);
+  assert.deepStrictEqual(maestriCalls(r), []);
+  await withServer(r, async (get) => {
+    const all = await list(get);
+    assert.deepStrictEqual(all.map((p) => [p.id, p.status, p.notification]).sort((a, b) => a[0] - b[0]), [[ids[0].id, 'open', 'failed'], [ids[1].id, 'open', 'failed']]);
+  });
+});
+
+suite.test('the HML pending decision derived from flow hml calls no maestri, even inside Maestri, and has no notification', async () => {
+  const r = buildRoot('notify-hml');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Exportar relatório', '--stage', 'hml_validation']));
+  ok(flow(r, ['hml', '12', '--passed', '7', '--failed', '1'], { extra: INSIDE }));
+  ok(flow(r, ['hml', '12', '--passed', '7', '--blocked', '1'], { extra: INSIDE }));
+  assert.deepStrictEqual(maestriCalls(r), []);
+  await withServer(r, async (get) => {
+    const [p, ...rest] = await list(get, '?status=open');
+    assert.strictEqual(rest.length, 0);
+    assert.deepStrictEqual([p.kind, p.derived_from.type, p.notification], ['hml', 'hml-recorded', null]);
   });
 });
 
@@ -622,7 +716,7 @@ suite.test('pending wait exits 2 with a clear message for an invalid id or a pen
 suite.test('help lists the pending subcommands, kinds and where the owner answers', () => {
   const r = buildRoot('help');
   const x = ok(flow(r, ['--help']));
-  for (const s of ['pending open <número>', 'pending resolve <id>', 'pending cancel <id>', 'pending wait <id>', 'FLOW_WAIT_INTERVAL_MS', 'task_review', 'worker_blocked', 'parallelize', 'MAESTRI_WORKSPACE_NAME', 'MAESTRI_TERMINAL_NAME']) {
+  for (const s of ['pending open <número>', 'pending resolve <id>', 'pending cancel <id>', 'pending wait <id>', 'FLOW_WAIT_INTERVAL_MS', 'task_review', 'worker_blocked', 'parallelize', 'MAESTRI_WORKSPACE_NAME', 'MAESTRI_TERMINAL_NAME', 'maestri notify']) {
     assert.ok(x.stdout.includes(s), `${s} in:\n${x.stdout}`);
   }
 });

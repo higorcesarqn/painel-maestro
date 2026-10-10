@@ -52,6 +52,12 @@ const PENDING = {
     resolved: 'Pendência P-{id} do item {key} resolvida; a decisão ficou na linha do tempo do item.',
     canceled: 'Pendência P-{id} do item {key} cancelada.',
   },
+  // The owner's notification of pending open inside a Maestri terminal (#44): "maestri notify", up to 500 characters.
+  notify: {
+    message: (p) => `Pendência nova (${PENDING_SEVERITIES[p.severity] || p.severity}): ${PENDING_KINDS[p.kind] || p.kind} no item ${p.key} (${p.ref})`
+      + `${p.task ? `, task ${p.task}` : ''}. ${p.title}`,
+    failed: 'aviso: a pendência P-{id} foi gravada, mas o maestri notify falhou: {detail}; o dono pode não ter sido avisado.',
+  },
   errors: {
     missingKind: 'falta o tipo da pendência (--kind): {allowed}.',
     invalidKind: 'tipo de pendência inválido: "{value}" (use {allowed}).',
@@ -507,6 +513,9 @@ PENDÊNCIAS (maestro)
       Onde o dono responde: --workspace/--terminal, senão o terminal do Maestri onde o comando roda
       (MAESTRI_WORKSPACE_NAME ou MAESTRI_WORKSPACE_ID, MAESTRI_TERMINAL_NAME ou MAESTRI_TERMINAL_ID).
       A revisão de uma task (task_review, exige --task) se resolve sozinha quando a task é integrada.
+      Dentro do Maestri (com MAESTRI_TERMINAL_ID), avisa o dono com "maestri notify" (a pendência, a severidade,
+      o item e o título); se o aviso falhar, a pendência é gravada mesmo assim, o comando sai com 0 e uma linha no
+      stderr diz que o dono pode não ter sido avisado. Fora do Maestri, nada é chamado.
   node bin/flow.js pending resolve <id> --decision "..."
       Resolve a pendência com o que o dono decidiu; a decisão fica na linha do tempo do item.
   node bin/flow.js pending cancel <id> [--reason "..."]

@@ -427,6 +427,16 @@ suite.test('browser tab (#43): the title counts the open pending decisions of ev
   assert.ok(/<link rel="icon" href="data:,">/.test(html), 'the build keeps the empty icon until the script swaps it (no /favicon.ico request)');
 });
 
+suite.test('Pendências (#44): the demo has an open pending decision whose Maestri notification failed; the screen shows the line only for failed', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const pd = m.pending_decisions.pending_decisions;
+  assert.ok(pd.some((p) => p.status === 'open' && p.notification === 'failed'), 'an open one with notification failed');
+  assert.ok(pd.some((p) => p.notification === null), 'older ones, without the field, still in the demo');
+  const screen = source['screens/PendingDecisions.jsx'];
+  assert.ok(/p\.notification === 'failed' && <p\b[^>]*>\{t\('pending\.notificationFailed'\)\}<\/p>/.test(screen), 'the line only for failed');
+  assert.strictEqual(screen.match(/notificationFailed/g).length, 1, 'and nowhere else');
+});
+
 let port = null;
 let pid = null;
 let root = null;

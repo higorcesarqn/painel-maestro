@@ -210,6 +210,8 @@ flow pending wait P-7                                         # espera ela fecha
 
 Uma pendência que o dono já respondeu pelo painel não aceita outra resolução: o `pending resolve` sai com o "não está aberta" de sempre (código 2).
 
+O `pending open` rodado num terminal do Maestri (com `MAESTRI_TERMINAL_ID`, o Maestro Mode) avisa o dono com `maestri notify` (#44): uma notificação do sistema, de até 500 caracteres, com a severidade, o tipo, o item, a task e o título da pendência ("Pendência nova (alta): revisão de task no item painel-maestro/40 (#40), task 44. Revisar a task 44"), pelo mesmo executável e prazo do `maestri floor status` (`FLOW_MAESTRI_CLI`). Fora do Maestri (subagentes) nada é chamado. Uma falha do aviso nunca falha o comando: a pendência é gravada, o comando sai com **0** e imprime a pendência como sempre, e uma linha no stderr diz que o dono pode não ter sido avisado. O evento guarda como foi (`notification`: `sent`, `failed` ou `outside`) e a tela Pendências mostra quando falhou. A pendência de HML derivada do `flow hml` não chama o `maestri`.
+
 O `pending wait` é como o maestro fica sabendo da resposta (ADR 0005): as skills de orquestração o deixam rodando em segundo plano depois de cada `pending open`. Ele só lê o `maestro.db`, a cada poucos segundos (`FLOW_WAIT_INTERVAL_MS`, padrão 3000), sem prazo e sem depender do servidor do painel, e não cadastra o projeto. Termina com **código 0** quando a pendência fecha por qualquer caminho (resposta pelo painel, `pending resolve`, cancelamento, integração da task, HML aprovada, substituição, item concluído) ou na hora, se ela já estava fechada, e imprime a chave do item e o id, como ela fechou, a decisão ou o motivo e quem fechou (papel e nome). Quando a decisão veio do painel, uma linha a mais diz que ela já está gravada e que não é para rodar `pending resolve`. Sai com **2** para id inválido ou pendência que o projeto não tem e com **1** numa falha do banco (inclusive banco mais novo que o código). Aceita `--json -` com `{"id": "P-7"}`.
 
 ```
@@ -274,10 +276,10 @@ O merge do PR costuma acontecer na interface do tracker, sem agente presente (um
 | `PANEL_MERGE_CHECK_SECONDS` | `600` | intervalo entre as consultas de merge |
 | `PANEL_GH_CLI`, `PANEL_AZ_CLI` | `gh`, `az` | executáveis do verificador de merge (os testes usam scripts falsos) |
 | `PANEL_AZURE_DEVOPS_URL` | `https://dev.azure.com` | base da REST do Azure DevOps |
-| `FLOW_MAESTRI_CLI` | `MAESTRI_CLI` ou `maestri` | executável do `maestri` usado pelo `flow status` (um caminho `.js` roda com o `node`) |
+| `FLOW_MAESTRI_CLI` | `MAESTRI_CLI` ou `maestri` | executável do `maestri` usado pelo `flow status` e pelo `flow pending open` (um caminho `.js` roda com o `node`) |
 | `FLOW_WAIT_INTERVAL_MS` | `3000` | intervalo entre as leituras do `flow pending wait`, em ms (os testes usam 50) |
 | `MAESTRI_CLI` | `maestri` | executável do Maestri usado pelos scripts das skills (o Maestri define nos terminais dele) |
-| `MAESTRI_TERMINAL_ID`, `MAESTRI_TERMINAL_NAME`, `MAESTRI_WORKSPACE_ID`, `MAESTRI_WORKSPACE_NAME` | (do Maestri) | terminal e workspace onde o comando roda: o `flow status` chama o `maestri floor status` e a pendência diz onde responder |
+| `MAESTRI_TERMINAL_ID`, `MAESTRI_TERMINAL_NAME`, `MAESTRI_WORKSPACE_ID`, `MAESTRI_WORKSPACE_NAME` | (do Maestri) | terminal e workspace onde o comando roda: o `flow status` chama o `maestri floor status`, o `flow pending open` chama o `maestri notify` e a pendência diz onde responder |
 | `MAESTRI_DATA_DIR` | `~/.maestri` | onde está o `usage/providers/.status.json` do plano Claude |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | pasta do Claude Code (transcrições e o destino do `install-skills.js`) |
 | `PANEL_INDEX`, `PANEL_NOW`, `MAESTRO_NOW` | | só para testes: outro `index.html` e relógio fixo |

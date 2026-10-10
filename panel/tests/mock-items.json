@@ -1538,7 +1538,8 @@
             "maestri": {
               "workspace": "Contoso",
               "terminal": "Maestro PBI 3112"
-            }
+            },
+            "notification": "failed"
           }
         },
         {
@@ -1662,7 +1663,8 @@
             "maestri": {
               "workspace": "Contoso",
               "terminal": "Maestro PBI 3112"
-            }
+            },
+            "notification": "sent"
           }
         }
       ]
@@ -3977,6 +3979,7 @@
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3112"
         },
+        "notification": "sent",
         "opened_at": "2026-10-09T10:06:00-03:00",
         "opened_by": {
           "role": "maestro",
@@ -4026,6 +4029,7 @@
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3100"
         },
+        "notification": null,
         "opened_at": "2026-10-08T16:30:00-03:00",
         "opened_by": {
           "role": "owner",
@@ -4072,6 +4076,7 @@
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3112"
         },
+        "notification": "failed",
         "opened_at": "2026-10-09T08:42:00-03:00",
         "opened_by": {
           "role": "maestro",
@@ -4118,6 +4123,7 @@
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3112"
         },
+        "notification": null,
         "opened_at": "2026-10-09T09:20:00-03:00",
         "opened_by": {
           "role": "maestro",
@@ -4167,6 +4173,7 @@
           "workspace": "Fabrikam",
           "terminal": "Maestro #48"
         },
+        "notification": null,
         "opened_at": "2026-10-09T09:45:00-03:00",
         "opened_by": {
           "role": "maestro",
@@ -4209,6 +4216,7 @@
           "workspace": "Fabrikam",
           "terminal": "Maestro #48"
         },
+        "notification": null,
         "opened_at": "2026-10-09T10:05:00-03:00",
         "opened_by": {
           "role": "maestro",
@@ -4254,6 +4262,7 @@
           "workspace": "Contoso",
           "terminal": "Maestro PBI 2901"
         },
+        "notification": null,
         "opened_at": "2026-10-09T09:00:00-03:00",
         "opened_by": {
           "role": "maestro",
@@ -4302,6 +4311,7 @@
           "workspace": "Pessoal",
           "terminal": "Maestro #5"
         },
+        "notification": null,
         "opened_at": "2026-10-09T08:30:00-03:00",
         "opened_by": {
           "role": "maestro",
@@ -4351,6 +4361,7 @@
           "workspace": "Contoso Portal",
           "terminal": null
         },
+        "notification": null,
         "opened_at": "2026-10-08T09:05:00-03:00",
         "opened_by": {
           "role": "owner",
@@ -4405,6 +4416,7 @@
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3112"
         },
+        "notification": null,
         "opened_at": "2026-10-08T14:04:00-03:00",
         "opened_by": {
           "role": "maestro",
@@ -4453,6 +4465,7 @@
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3112"
         },
+        "notification": null,
         "opened_at": "2026-10-08T13:12:00-03:00",
         "opened_by": {
           "role": "maestro",
@@ -4505,6 +4518,7 @@
           "workspace": "Contoso",
           "terminal": "Maestro PBI 2875"
         },
+        "notification": null,
         "opened_at": "2026-10-07T17:00:00-03:00",
         "opened_by": {
           "role": "maestro",
@@ -5049,7 +5063,8 @@
             "maestri": {
               "workspace": "Contoso",
               "terminal": "Maestro PBI 3112"
-            }
+            },
+            "notification": "sent"
           }
         },
         {
@@ -5612,7 +5627,8 @@
             "maestri": {
               "workspace": "Contoso",
               "terminal": "Maestro PBI 3112"
-            }
+            },
+            "notification": "sent"
           }
         },
         {
@@ -5908,7 +5924,8 @@
             "maestri": {
               "workspace": "Contoso",
               "terminal": "Maestro PBI 3112"
-            }
+            },
+            "notification": "failed"
           }
         },
         {
@@ -8607,7 +8624,8 @@
             "maestri": {
               "workspace": "Contoso",
               "terminal": "Maestro PBI 3112"
-            }
+            },
+            "notification": "sent"
           }
         },
         "last_activity_at": "2026-10-09T10:15:00-03:00",
@@ -8762,7 +8780,8 @@
             "maestri": {
               "workspace": "Contoso",
               "terminal": "Maestro PBI 3112"
-            }
+            },
+            "notification": "failed"
           }
         },
         "last_activity_at": "2026-10-09T08:45:00-03:00",
@@ -8838,7 +8857,8 @@
             "maestri": {
               "workspace": "Contoso",
               "terminal": "Maestro PBI 3112"
-            }
+            },
+            "notification": "sent"
           }
         },
         "last_activity_at": "2026-10-09T10:06:00-03:00",

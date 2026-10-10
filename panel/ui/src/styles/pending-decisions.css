@@ -36,6 +36,7 @@
 .pending-detail { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .pending-content { padding: 22px 26px 26px; gap: 16px; }
 .pending-heading { font-size: 23px; }
+.pending-notification { margin-top: -8px; }
 .pending-context { font-size: 14px; }
 .pending-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 13.5px; }
 .pending-facts dt { color: var(--muted); }

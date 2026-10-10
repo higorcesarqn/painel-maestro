@@ -44,6 +44,7 @@ const MAX_FIELD = 200;
 const MAX_STATUS = 300;
 const MAX_TASKS = 200;
 const MAESTRI_TIMEOUT_MS = 15000;
+const MAX_NOTIFICATION = 500; // the longest text of "maestri notify" (#44)
 const SOURCE = 'cli';
 
 const { InvalidData } = lib;
@@ -284,9 +285,14 @@ function locateTask(store, project, cmd, branch) {
 
 /** Runs "maestri floor status" for the floor of this terminal: { ok } or { ok: false, detail }. */
 function postFloorStatus(cmd, env = process.env) {
-  const cli = env.FLOW_MAESTRI_CLI || env.MAESTRI_CLI || 'maestri';
   const args = ['floor', 'status', cmd.text, '--state', cmd.state];
   if (cmd.progress) args.push('--progress', `${cmd.progress.done}/${cmd.progress.total}`);
+  return runMaestri(args, env);
+}
+
+/** Runs the maestri CLI (FLOW_MAESTRI_CLI, else MAESTRI_CLI, else "maestri"; a .js path runs with node): { ok } or { ok: false, detail }. */
+function runMaestri(args, env = process.env) {
+  const cli = env.FLOW_MAESTRI_CLI || env.MAESTRI_CLI || 'maestri';
   const js = /\.[cm]?js$/i.test(cli);
   const r = spawnSync(js ? process.execPath : cli, js ? [cli, ...args] : args, {
     encoding: 'utf8', windowsHide: true, timeout: MAESTRI_TIMEOUT_MS, stdio: ['ignore', 'pipe', 'pipe'],
@@ -294,6 +300,13 @@ function postFloorStatus(cmd, env = process.env) {
   if (r.error) return { ok: false, detail: r.error.code === 'ENOENT' ? t('errors.maestriNotFound', { cli }) : r.error.message };
   if (r.status !== 0) return { ok: false, detail: String(r.stderr || r.stdout || '').trim().split(/\r?\n/)[0] || `exit ${r.status}` };
   return { ok: true };
+}
+
+/** The owner's notification of a new pending decision: its severity, kind, item, task and title, cut to MAX_NOTIFICATION. */
+function notificationText(cmd, key, ref) {
+  const text = t('pending.notify.message', { severity: cmd.severity, kind: cmd.pendingKind, key, ref, task: cmd.task, title: cmd.title });
+  if (text.length <= MAX_NOTIFICATION) return text;
+  return `${text.slice(0, MAX_NOTIFICATION - 1).replace(/[\uD800-\uDBFF]$/, '')}…`;
 }
 
 // ---------- project ----------
@@ -783,6 +796,10 @@ function recordStatus(store, cmd, origin, at, branch) {
 //   flow pending wait <id>                                         → nothing: waits for it to close (#33, ADR 0005)
 // Where the owner answers: --workspace/--terminal, else the Maestri terminal this runs in (MAESTRI_WORKSPACE_NAME or
 // MAESTRI_WORKSPACE_ID, MAESTRI_TERMINAL_NAME or MAESTRI_TERMINAL_ID), else the project's Maestri workspace.
+// open, inside a Maestri terminal (MAESTRI_TERMINAL_ID), tells the owner with "maestri notify" (the same executable and
+// timeout as status) and records how it went in the event (notification: sent | failed | outside); a failure only
+// writes one line on stderr, never changes the exit code (#44). The HML pending decision derived from flow hml has no
+// event of its own and tells no one through the Maestri.
 // wait only reads maestro.db (readOnly, a fresh connection each FLOW_WAIT_INTERVAL_MS, default 3 s), with no time
 // limit and no panel server, and never registers the project; it ends when the pending decision closes in any way.
 
@@ -885,26 +902,51 @@ function findPending(store, project, id) {
   throw new InvalidData('pending.errors.notFound', { id, project: project.id });
 }
 
-function recordPending(store, cmd, { project, at }) {
-  const base = { at, projectId: project.id, agentRole: cmd.agentRole, agentName: cmd.agentName, source: SOURCE };
-  if (cmd.kind === 'pending-open') {
-    const key = `${project.id}/${cmd.number}`;
-    const ref = trackerRef(project.tracker, cmd.number);
-    const item = projectItem(store.itemEvents(project.id, cmd.number), project);
-    if (!item) throw new InvalidData('errors.itemNotStarted', { key, ref, number: cmd.number });
-    if (cmd.task !== null && !item.tasks.some((x) => x.number === cmd.task)) {
-      throw new InvalidData('errors.taskNotInItem', { key, task: cmd.task, tasks: item.tasks.map((x) => x.number).join(', ') });
-    }
+/** The item of a pending open, checked: it was started and has the task. { key, ref } of the item. */
+function checkPendingOpen(store, cmd, project) {
+  const key = `${project.id}/${cmd.number}`;
+  const ref = trackerRef(project.tracker, cmd.number);
+  const item = projectItem(store.itemEvents(project.id, cmd.number), project);
+  if (!item) throw new InvalidData('errors.itemNotStarted', { key, ref, number: cmd.number });
+  if (cmd.task !== null && !item.tasks.some((x) => x.number === cmd.task)) {
+    throw new InvalidData('errors.taskNotInItem', { key, task: cmd.task, tasks: item.tasks.map((x) => x.number).join(', ') });
+  }
+  return { key, ref };
+}
+
+/**
+ * pending open: check the item, tell the owner with "maestri notify" when inside a Maestri terminal (#44), then record
+ * pending-decision-opened with how it went (notification). A failed notification never fails the command: the pending
+ * decision is recorded, printed as always, and one line on stderr says the owner may not have been told.
+ */
+function openPending(store, cmd, origin, at) {
+  let where = null;
+  const lines = withProject(store, origin, at, (project) => {
+    where = checkPendingOpen(store, cmd, project);
+    return [];
+  });
+  const inside = !!process.env.MAESTRI_TERMINAL_ID;
+  const told = inside ? runMaestri(['notify', notificationText(cmd, where.key, where.ref)]) : null;
+  const notification = !inside ? 'outside' : told.ok ? 'sent' : 'failed';
+  let id = null;
+  lines.push(...withProject(store, origin, at, (project) => {
     const maestri = answerIn(cmd, project);
-    const id = store.appendEvent({
-      ...base, itemNumber: cmd.number, taskNumber: cmd.task, type: EVENT_TYPES.pendingDecisionOpened,
+    id = store.appendEvent({
+      at, projectId: project.id, itemNumber: cmd.number, taskNumber: cmd.task, agentRole: cmd.agentRole, agentName: cmd.agentName,
+      source: SOURCE, type: EVENT_TYPES.pendingDecisionOpened,
       payload: {
         kind: cmd.pendingKind, severity: cmd.severity, title: cmd.title, context: cmd.context, options: cmd.options,
-        recommendation: cmd.recommendation, maestri,
+        recommendation: cmd.recommendation, maestri, notification,
       },
     });
-    return [t('pending.done.opened', { id, key, ref, task: cmd.task, kind: cmd.pendingKind, ...maestri })];
-  }
+    return [t('pending.done.opened', { id, ...where, task: cmd.task, kind: cmd.pendingKind, ...maestri })];
+  }));
+  for (const l of lines) lib.print(l);
+  if (told && !told.ok) process.stderr.write(`${t('pending.notify.failed', { id, detail: told.detail })}\n`);
+}
+
+function recordPending(store, cmd, { project, at }) {
+  const base = { at, projectId: project.id, agentRole: cmd.agentRole, agentName: cmd.agentName, source: SOURCE };
   const { item, pending } = findPending(store, project, cmd.id);
   if (pending.status !== 'open') throw new InvalidData('pending.errors.notOpen', { id: cmd.id, status: pending.status, at: pending.closed_at });
   const event = { ...base, itemNumber: item.number, taskNumber: pending.task_number };
@@ -1006,6 +1048,10 @@ function run(argv, cwd) {
     }
     if (cmd.kind === 'report') {
       for (const l of recordReport(store, cmd, origin, at, cwd)) lib.print(l);
+      return;
+    }
+    if (cmd.kind === 'pending-open') {
+      openPending(store, cmd, origin, at);
       return;
     }
     const record = cmd.kind.startsWith('pending-') ? recordPending : recordItemCommand;

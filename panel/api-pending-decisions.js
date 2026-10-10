@@ -10,6 +10,8 @@
 //   pending_decisions: [{ id, kind, severity, status, title, context, options, recommendation,
 //     item: { key, number, tracker_ref, title, stage, project: { id, name, tracker, organization: { id, name } } },
 //     task: { number, title, state } | null, maestri: { workspace, terminal },
+//     notification: 'sent' | 'failed' | 'outside' | null   (the owner's "maestri notify" when it opened, #44; null when
+//     derived or opened before #44)
 //     opened_at, opened_by, closed_at, closed_by, resolution, decision, reason,
 //     derived_from: null | { type: 'hml-recorded', passed, failed, blocked, card_url } }]  (derived: opened by a failing
 //     HML result itself, title null; see bin/flow-projection.js)
