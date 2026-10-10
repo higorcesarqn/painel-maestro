@@ -3,6 +3,9 @@
 // it (the writer that migrates and the readOnly reader) refuse it with schema_too_new before writing anything; the CLI
 // and the API translate it; the hook leaves a visible record for the health badge; the usage collector warns.
 // Every database here is temporary (MAESTRO_DIR under tests/tmp/).
+// Exception to the test rule (panel/README.md, Testes): it sets PRAGMA user_version and checks the file's bytes, journal
+// mode and tables directly (the only way to prove the refusal wrote nothing), calls openStore() on both ways (the
+// readOnly reader of the hook and the collector has no route) and the collector's collect(), as test-collector.js does.
 
 const crypto = require('crypto');
 const fs = require('fs');
