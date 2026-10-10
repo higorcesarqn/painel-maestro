@@ -1,0 +1,47 @@
+/* Tasks of an item: the task graph (own SVG, colors from the state tokens) and the table of tasks. */
+.item-tasks { min-height: 0; }
+.item-tasks .card-body { display: flex; flex-direction: column; gap: 14px; }
+
+.task-graph-box { overflow-x: auto; padding-bottom: 2px; flex-shrink: 0; }
+.task-graph { display: block; max-width: none; }
+.task-node rect { fill: var(--card-2); stroke: var(--border-strong); stroke-width: 1; }
+.task-node .task-node-stripe { stroke: none; fill: var(--muted); }
+.task-node text { font-family: var(--font); fill: var(--text); }
+.task-node .task-node-ref { font-family: var(--mono); font-size: 11.5px; fill: var(--text-2); }
+.task-node .task-node-state { font-size: 11px; fill: var(--muted); }
+.task-node .task-node-title { font-size: 12.5px; }
+
+.task-node.working rect:first-of-type { stroke: var(--blue-border); fill: var(--blue-bg); }
+.task-node.working .task-node-stripe { fill: var(--blue-text); }
+.task-node.working .task-node-state { fill: var(--blue-text); }
+.task-node.review rect:first-of-type { stroke: rgba(232, 176, 75, .45); }
+.task-node.review .task-node-stripe { fill: var(--warning); }
+.task-node.review .task-node-state { fill: var(--warning); }
+.task-node.blocked rect:first-of-type { stroke: rgba(242, 85, 90, .5); fill: var(--danger-bg); }
+.task-node.blocked .task-node-stripe { fill: var(--danger); }
+.task-node.blocked .task-node-state { fill: var(--danger); }
+.task-node.integrated .task-node-stripe { fill: var(--ok); }
+.task-node.integrated .task-node-state { fill: var(--ok); }
+.task-node.out rect:first-of-type { stroke-dasharray: 4 3; fill: none; }
+.task-node.out .task-node-stripe { fill: var(--faint); }
+.task-node.out text { fill: var(--faint); }
+
+.task-edge-line { fill: none; stroke: var(--text-2); stroke-width: 1.25; stroke-dasharray: 5 4; }
+.task-arrow { fill: var(--text-2); }
+.task-edge.done .task-edge-line { stroke: var(--faint); stroke-dasharray: none; }
+.task-edge.done .task-arrow { fill: var(--faint); }
+
+.task-table-box { flex: 0 0 auto; overflow: visible; }
+table.task-table .col-task { width: 72px; }
+table.task-table .col-state { width: 118px; }
+table.task-table .col-blockers { width: 136px; }
+table.task-table .col-worker { width: 128px; }
+table.task-table .col-floor { width: 130px; }
+table.task-table .col-branch { width: 160px; }
+table.task-table .col-sha { width: 82px; }
+table.task-table .col-updated { width: 116px; }
+table.task-table td.wrap { display: table-cell; }
+table.task-table .task-title,
+table.task-table .task-status-text { display: block; }
+table.task-table tr.out td { color: var(--muted); }
+.badge.task-state.out { border-style: dashed; color: var(--faint); }

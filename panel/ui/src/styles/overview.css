@@ -1,0 +1,46 @@
+/* Overview (1520 × 1095, new model #14): KPIs, active items by stage, open pending decisions, stale items and the
+   recent activity. Nothing scrolls the page: each card scrolls inside. */
+.screen-overview { grid-template-rows: 136px minmax(0, 1.15fr) minmax(0, 1fr); }
+.overview-kpis { display: grid; grid-template-columns: 1fr 1.25fr 1fr 1fr 1fr 1fr; gap: var(--gap); min-height: 0; }
+.overview-middle { display: grid; grid-template-columns: 1.55fr 1fr; gap: var(--gap); min-height: 0; }
+.overview-bottom { display: grid; grid-template-columns: 1fr 1.2fr; gap: var(--gap); min-height: 0; }
+.overview-error { color: var(--danger); font-size: 13px; padding: 8px 18px; }
+
+/* KPIs */
+.kpi-owner .value { font-size: 48px; }
+.kpi-owner.critical { border-color: rgba(242, 85, 90, .5); }
+.sev-mini { display: inline-flex; align-items: center; gap: 12px; padding-bottom: 6px; font-size: 13px; color: var(--text-2); }
+.sev-mini span { display: inline-flex; align-items: center; gap: 6px; }
+.sev-mini i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.screen-overview .kpi .detail { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.screen-overview .kpi .detail.reset { display: inline-flex; align-items: center; gap: 5px; }
+.kpi-plan-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+/* Links "Open" in the corner of the cards */
+.go-link { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Active items: one row per project under its company, one column per stage */
+table.table.overview-stages { table-layout: auto; }
+.overview-stages th.num, .overview-stages td.num { text-align: right; font-variant-numeric: tabular-nums; width: 66px; max-width: 66px; white-space: nowrap; }
+.overview-stages thead th.num { overflow: hidden; text-overflow: ellipsis; letter-spacing: .02em; }
+.overview-stages td.off { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(255, 255, 255, .03) 4px 8px); }
+.overview-stages td.strong, .overview-stages tfoot td { font-weight: 600; }
+.overview-stages .company-row th, .overview-stages .company-row td { padding-top: 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); }
+.overview-stages .company-row.unassigned th { color: var(--warning); }
+.overview-stages .project-cell { padding-left: 22px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.overview-stages tfoot th, .overview-stages tfoot td { border-top: 1px solid var(--border); }
+
+/* Open pending decisions and stale items: one line per entry */
+.overview-pending, .overview-stale, .activity { padding: 0 8px; }
+.overview-pending .list-item { grid-template-columns: 4px minmax(0, 1fr) auto; font-size: 13.5px; padding: 8px 10px; }
+.overview-sev { align-self: stretch; width: 4px; border-radius: 2px; background: var(--faint); }
+.overview-sev.is-critical { background: var(--danger); }
+.overview-sev.is-high { background: var(--warning); }
+.overview-sev.is-normal { background: var(--blue-text); }
+.overview-pending-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.overview-stale .list-item { grid-template-columns: 74px minmax(0, 1fr) auto 64px; font-size: 13.5px; padding: 8px 10px; }
+.overview-stale .list-item > :last-child { text-align: right; }
+.overview-more { padding: 8px 10px; }
+
+/* Recent activity */
+.activity .list-item { grid-template-columns: 82px 74px minmax(0, 1fr) 140px; font-size: 13.5px; padding: 8px 10px; }

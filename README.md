@@ -1,292 +1,375 @@
 # painel-maestro
 
-Painel web local para acompanhar um workspace multiagente montado no app Maestri com agentes Claude Code. Um servidor Node.js sem dependências lê os arquivos que os agentes gravam (log de eventos, fila de pendências, estado do Trello, uso do plano, prospecção) e mostra tudo numa página só, em `http://127.0.0.1`.
+Painel web local do **fluxo dos itens** que eu implemento com agentes Claude Code: Issues do GitHub e PBIs do Azure DevOps, organizados por **empresa** e **projeto**. As skills de implementação (com floors do Maestri ou com subagentes) gravam cada passo do fluxo por um CLI deste repositório (`flow`) num banco SQLite fora do repositório; um servidor Node.js sem dependências calcula o estado de cada item a partir desses eventos e mostra tudo numa página só, em `http://127.0.0.1:4777`.
 
-Este repositório traz **só o painel** e os scripts de linha de comando que gravam os dados que ele lê. Os agentes em si (papéis, prompts, rotinas) não estão aqui: cada um monta os seus. O método que eles seguem vem como modelo para adaptar (veja [Skills e protocolos do workspace](#skills-e-protocolos-do-workspace)).
+O painel não usa IA nem gasta tokens: ele só lê o que os agentes gravaram. Nesta fase ele só **mostra** as pendências: o dono responde no terminal do maestro.
 
-## A ideia
+O vocabulário (Empresa, Projeto, Item, Task, Achado, Pendência, Fluxo, Etapa, Maestro, Trabalhador) está em [`CONTEXT.md`](CONTEXT.md); as decisões de arquitetura, em [`docs/adr/`](docs/adr/).
 
-No workspace, um agente principal, o **Cérebro Principal**, recebe os pedidos do dono. Ele não executa trabalho de domínio: entende o pedido, decide quem atende e delega a sub-agentes especializados, cada um com o seu domínio (por exemplo, um **Coordenador do Trello** que lê e organiza o quadro, ou agentes de prospecção como um **Captador** e um **Qualificador**). O Cérebro acompanha até a resposta, valida e devolve o resultado ao dono.
+## Como funciona
 
-Todo pedido abre um **fluxo** (`F-AAAAMMDD-NNNN`), e tudo que acontece nele vira um **evento** num log: quem fez, de onde veio o pedido, o tipo, o resultado e a **direção**, isto é, o caminho que o agente tomou e por quê. Em paralelo, hooks do Claude Code gravam o **log bruto** de cada agente (prompts, comandos, ferramentas usadas), que o painel liga ao evento certo pelo id do fluxo ou pela janela de tempo.
+- **Empresas e projetos.** Cada **projeto** é um projeto do tracker (um repositório do GitHub ou um projeto do Azure DevOps, que pode ter vários repositórios) e pertence a uma **empresa**; o trabalho pessoal é a empresa "Pessoal", uma empresa como as outras. Cada projeto declara o tracker, as **etapas** que usa (por exemplo, sem Validação HML), o estado do tracker que significa "concluído" (no CIDAX é `Committed`) e o workspace do Maestri. O projeto é reconhecido sozinho pelo `git remote origin` da pasta onde o comando roda (também dentro do worktree de um floor); um repositório sem cadastro entra sozinho em **"Sem empresa"** e o dono o move para a empresa certa pelo painel.
+- **Item.** Uma Issue pai do GitHub ou um PBI do Azure DevOps, identificado por projeto e número (`cidax/3100`) e mostrado como no tracker (`PBI 3100`, `#12`). O item percorre as **etapas** do fluxo: Especificação → Implementação → Ajuste final → PR pronto → Merge → Validação HML → Concluído (só as que o projeto usa).
+- **Tasks.** As filhas do item (sub-issues ou cards filhos), com os bloqueios entre elas, formam um **grafo**. Cada task tem um estado: aguardando, trabalhando, revisão, bloqueada, integrada ou fora. O maestro despacha cada task para um **trabalhador** (um floor do Maestri, com codinome, ou um subagente) numa branch `task/<id>-…` e a integra na branch integradora do item. Uma issue sem filhas é um item com uma task, ele mesmo.
+- **Relatórios.** O trabalhador grava o relatório completo (status, testes, o que mudou, decisões, riscos, arquivos compartilhados, o texto inteiro) **antes** de enviá-lo ao maestro, para ele não se perder no terminal.
+- **Achados.** O que o maestro encontra nas revisões, classificado como defeito claro, decisão do dono ou descartado; um achado pode virar uma **task nova para triagem**, que aparece no item com o estado "fora".
+- **Pendências.** O que espera uma decisão do dono (revisar e integrar uma task, trabalhador bloqueado, decisão, achado que depende do dono, paralelizar tasks, cenário de HML reprovado), com contexto, opções, recomendação e **onde responder** (workspace e terminal do maestro no Maestri). A revisão de uma task e o OK para integrá-la são a mesma pendência, que se resolve sozinha quando a task é integrada.
+- **PR, HML e conclusão.** O maestro registra o PR em rascunho, o ajuste final, o PR pronto e, quando ele mesmo faz o merge, o merge; o resultado da Validação HML e a conclusão também viram eventos. O merge feito pela interface do tracker, sem agente presente, é descoberto pelo próprio painel (o **verificador de merge**), com um botão "Marcar como mergeado" para quando a consulta falha.
+- **Log bruto e uso.** Um hook do Claude Code grava os prompts e comandos de cada sessão dos projetos cadastrados, ligada ao item e à task pela branch; um coletor soma o consumo de tokens por item e por agente e lê o uso do plano Claude (janela de 5 h e semanal) que o Maestri grava.
 
-As decisões que só o dono pode tomar entram numa **fila de pendências**, sempre com contexto, opções e uma recomendação. O dono responde pelo próprio painel, e a resposta fica gravada na pendência e vira evento no fluxo de origem.
-
-O painel junta tudo isso num lugar só e não usa IA nem gasta tokens: ele só lê arquivos.
+Tudo que acontece num item é um **evento** guardado para sempre (ADR 0002); o estado do item, das tasks e das pendências é sempre calculado desses eventos, nunca gravado.
 
 ## Telas
 
-O menu tem dois grupos (fonte em `painel/ui/src/dados/contexto.js`):
+No topo, o **seletor de empresa** (Todas ou uma empresa, lembrado neste navegador) filtra todas as telas. O cabeçalho tem o **selo de saúde** (verde, amarelo ou vermelho, com os motivos: hook parado, banco ilegível, projetos em "Sem empresa", falha do verificador de merge) e o botão **Recalcular** (roda o coletor de uso na hora).
 
-**Workspace**
-- **Visão geral:** números do topo (pendências por severidade, Trello, alertas, uso do plano, eventos de hoje), atividade e resultados de 7 dias por agente, resumo da prospecção, último evento de cada agente e atividade recente. O cabeçalho tem um **selo de saúde** (verde, amarelo ou vermelho) com os motivos: Trello sem leitura recente, hooks parados, arquivos ilegíveis.
-- **Pendências:** a fila do dono, com filtros por severidade e status; cada pendência mostra contexto, opções e recomendação, e o dono responde ali mesmo (opção + comentário, Ctrl+Enter envia).
-- **Log:** a tabela de eventos com busca, período, chips de agente e projeto, tipo, resultado e "só o que precisa de mim". Clicar numa linha abre o **modal do evento**: o pedido inicial, a direção, os passos, os comandos brutos ligados a ele e a sequência do fluxo.
-- **Trello:** números do quadro, matriz projeto × status, evolução no tempo, cartões abertos com os problemas encontrados e a consistência do quadro (auditoria e relatório de status).
-- **Agentes:** um cartão por agente (último evento, eventos de hoje, fluxos abertos, consumo) e a ficha completa num modal, com o log bruto de cada um.
-- **Uso:** o plano do Claude (janela de 5 h e semanal, com o horário de reinício) e a participação de cada agente no consumo de tokens.
-
-**Operações**
-- **Prospecção:** funil de leads por WhatsApp em duas sub-abas, Qualificação (kanban por etapa, reuniões, leads quentes, situação de cada chip) e Captação (candidatos, faixas de score, fila, uso do Serper). Um lead aberto mostra o histórico e os botões para o dono assumir a conversa ou devolvê-la ao agente.
+- **Visão geral:** o retrato do dia: itens ativos por empresa, projeto e etapa, pendências abertas por severidade, itens parados há muito tempo na mesma etapa (`PANEL_STALE_HOURS`, padrão 48 h), eventos de hoje, atividade recente e o uso do plano.
+- **Itens:** a lista (ativos, concluídos ou todos; filtros de projeto, etapa e tracker, além do seletor de empresa do topo), os projetos em "Sem empresa" em destaque para mover, e a **página do item**, com endereço fixo `http://127.0.0.1:4777/#items/<projeto>/<número>` (é o que o portal do Maestri abre): etapa atual e desde quando, a Entrega (PR, ajuste final, Validação HML, conclusão, o estado do verificador de merge), o grafo de tasks com bloqueios e quem está em cada task (floor, trabalhador, branch, SHA, último status), os relatórios, os achados, as etapas do fluxo e a linha do tempo com todos os eventos e quem gravou cada um.
+- **Pendências:** as pendências abertas, resolvidas e canceladas, com filtros por severidade e status, cada uma com o item, a task, contexto, opções, recomendação, onde responder e, depois de fechada, a decisão.
+- **Log:** os eventos de todos os itens, com filtros por período, projeto, item e tipo; abrir um evento mostra o que foi gravado e os comandos brutos das sessões do Claude Code ligadas a ele.
+- **Agentes:** os maestros e trabalhadores ativos, sem cadastro fixo: o maestro de cada item ainda não concluído e o trabalhador de cada task em andamento, com o último evento, a última atividade vista pelo hook e o consumo da janela de 5 h.
+- **Uso:** o plano Claude (5 h e semanal, com o reinício), o consumo de cada item em cada período e os tokens de cada agente.
 
 A página se atualiza sozinha a cada 20 segundos.
 
-## Demonstração em 1 minuto
+## Instalar do zero
 
-Precisa só do Node.js. A página compilada (`painel/index.html`) já vem no repositório, então não é preciso instalar nada.
+### Requisitos
 
-```
-git clone <url-do-repositorio> painel-maestro
-cd painel-maestro
-npm run demo
-```
+- **Node.js 22.13 ou mais novo** (o painel usa o SQLite embutido do Node, `node:sqlite`, sem nenhuma dependência npm; desenvolvido e testado no Node 22.23). Compilar a página (só se mudar a fonte dela) pede Node 20.19+ ou 22.12+.
+- **git** no `PATH` (o projeto é reconhecido pelo `git remote origin`).
+- Para o verificador de merge: o **`gh`** autenticado (GitHub) e/ou o **`az`** com `az login` (Azure DevOps). Sem eles o painel funciona; só a consulta automática do merge falha, com o motivo, e o botão "Marcar como mergeado" resolve.
+- Para o uso do plano: o app **Maestri**, com o uso dos agentes ligado (Configurações → Agentes → Uso). Fora dele, o plano aparece como indisponível, com o motivo.
+- Desenvolvido e testado no Windows (os scripts das skills rodam no Git Bash, que vem com o Git for Windows).
 
-Abra **http://127.0.0.1:4795/?mock=1**. O `?mock=1` faz a página ler dados fictícios de `painel/testes/mock-*.json` (um workspace "Exemplo" com dois agentes, pendências, eventos, um quadro do Trello de exemplo e leads de prospecção); uma faixa azul avisa que são dados de teste. Para parar, Ctrl+C.
-
-O servidor da demonstração aceita só as portas 4790 a 4799 (padrão 4795). Outra porta: `npm run demo -- 4794`.
-
-### O servidor de verdade sobre dados de exemplo
-
-Para ver o `servidor.js` real (a API inteira, com os filtros e o modal calculados no servidor) sem dados seus, monte uma raiz falsa a partir dos mesmos mocks. No Git Bash, Linux ou macOS:
+### 1. Clonar
 
 ```
-node painel/testes/montar-raiz-mock.js
-R=painel/testes/tmp/raiz-mock
-MAESTRO_DIR=$R MAESTRI_DATA_DIR=$R/maestri CLAUDE_CONFIG_DIR=$R/claude \
-  PAINEL_AGORA=2026-10-09T10:24:30-03:00 PAINEL_COLETOR=0 PAINEL_AVISAR_CEREBRO=0 \
-  node painel/servidor.js --porta 4793
+git clone <url-do-repositorio> D:\pessoal\git\painel-maestro
+cd D:\pessoal\git\painel-maestro
 ```
 
-Abra **http://127.0.0.1:4793** (sem `?mock=1`). O `PAINEL_AGORA` fixa o relógio no momento do cenário de exemplo e o `PAINEL_COLETOR=0` desliga o coletor de uso. Ctrl+C para parar. A pasta `painel/testes/tmp/` pode ser apagada depois.
+A página compilada (`panel/index.html`) já vem no repositório: não é preciso `npm install` para usar o painel. O código fica no repositório; **os dados ficam fora dele**, em `~/.painel-maestro` (`C:\Users\<você>\.painel-maestro`), ou na pasta de `MAESTRO_DIR`, se você a definir.
 
-## Ligar a dados reais
+### 2. Definir `PAINEL_MAESTRO`
 
-### Onde ficam os dados
-
-Tudo é lido de uma pasta raiz, o `MAESTRO_DIR`. Sem a variável, a raiz é **a própria pasta do repositório** (a pasta acima de `painel/` e de `bin/`). O jeito mais simples é clonar o repositório como `_maestro/` dentro da pasta do seu workspace:
+As skills chamam o CLI pelo caminho absoluto, `node "$PAINEL_MAESTRO/bin/flow.js" ...`. Defina a variável de usuário com a pasta **do código** (este repositório) e reabra o terminal e o Claude Code:
 
 ```
-<seu-workspace>/
-  _maestro/            ← este repositório (MAESTRO_DIR)
-    bin/  painel/
-    registro/agentes.json
-    logs/  estado/     ← criados pelos scripts e pelos hooks
+setx PAINEL_MAESTRO "D:\pessoal\git\painel-maestro"
 ```
 
-Os dados (`registro/`, `logs/`, `estado/`, `.segredos/`) ficam fora do git pelo `.gitignore`. Se preferir os dados em outro lugar, aponte `MAESTRO_DIR` para lá, no servidor e no ambiente dos agentes.
+No Git Bash do Claude Code ela aparece como `$PAINEL_MAESTRO`; caminhos com `\` funcionam no `node`. Confira com `node "$PAINEL_MAESTRO/bin/flow.js" --help`.
 
-| No painel | Arquivo (dentro do `MAESTRO_DIR`) | Quem grava |
-|---|---|---|
-| agentes, cores, modelo, skills | `registro/agentes.json` | você (à mão ou por um agente) |
-| log de eventos, fluxos, modal | `logs/eventos/AAAA-MM.jsonl` | `bin/registrar.js` |
-| títulos dos fluxos | `estado/contador-fluxos.json` | `bin/registrar.js novo-fluxo` |
-| comandos brutos, saúde dos hooks | `logs/bruto/<agente>/AAAA-MM-DD.jsonl` | `bin/hook_log.js` (hook do Claude Code) |
-| pendências do dono | `estado/pendencias.json` | `bin/pendencia.js` (e o painel, ao responder) |
-| Trello | `estado/trello/resumo.json`, `rst.md`, `serie.jsonl` | o seu agente do Trello |
-| uso do Claude | `estado/uso.json` | `bin/coletar_uso.js` (o servidor roda sozinho) |
-| prospecção | `estado/prospeccao/leads.json`, `chips.json`, `operacao.json`, `sinais.json`, `envios.jsonl`, `serper-chamadas.jsonl` | `bin/prospeccao/leads.js`, `serper.js` e os seus agentes de prospecção |
+### 3. Instalar as skills
 
-Arquivo ausente não quebra nada: a parte correspondente aparece vazia, com o motivo. O Trello e a prospecção são opcionais. O formato completo de cada arquivo está nos mocks (`painel/testes/mock-estado.json` e `mock-detalhes.json`) e o `painel/testes/montar-raiz-mock.js` mostra em que arquivo cada parte vai. A documentação técnica do servidor (rotas, filtros, saúde, uso, variáveis) está em [`painel/README.md`](painel/README.md).
-
-### 1. Cadastre os agentes
-
-`registro/agentes.json`, no mínimo:
-
-```json
-{
-  "workspace": { "id": null, "nome": "Meu workspace", "raiz": null },
-  "agentes": [
-    {
-      "slug": "cerebro", "nome": "Cérebro Principal", "tipo": "maestro", "cor": "#E8C547",
-      "responsabilidade": "Recebe os pedidos do dono, roteia e valida",
-      "terminal_id": null, "diretorios": [], "modelo": "claude-opus-5-5", "nivel": "xhigh",
-      "conectado_a": ["coordenador-trello"], "skills": [], "status": "ativo"
-    },
-    {
-      "slug": "coordenador-trello", "nome": "Coordenador do Trello", "tipo": "sub-cerebro", "cor": "#4F6BFF",
-      "responsabilidade": "Lê e organiza o quadro do Trello",
-      "terminal_id": null, "diretorios": [], "modelo": "claude-opus-5-5", "nivel": "high",
-      "conectado_a": ["cerebro"], "skills": [], "status": "ativo"
-    }
-  ]
-}
-```
-
-O hook descobre qual agente está rodando pelo `terminal_id` (o id do terminal no Maestri, que chega na variável `MAESTRI_TERMINAL_ID`) ou pelos `diretorios` (a pasta de trabalho do agente). O `workspace.id` é o id do workspace no Maestri (`MAESTRI_WORKSPACE_ID`); com ele preenchido, sessões de outros workspaces são ignoradas. Um agente com `status: "ativo"` e sem log bruto há mais de 24 h deixa o selo amarelo.
-
-### 2. Registre eventos e pendências
-
-Os agentes chamam estes comandos (as instruções de cada agente devem dizer quando):
+As skills que gravam o fluxo no painel vivem em `skills/` e são ligadas à pasta do Claude (`~/.claude`), para terem versão e diff aqui e serem usadas de lá:
 
 ```
-node bin/registrar.js novo-fluxo --titulo "Organizar o quadro" --agente cerebro
-node bin/registrar.js evento --agente cerebro --fluxo F-20261009-0001 --origem dono-direto \
-  --tipo pedido-recebido --resumo "Pedido para organizar o quadro" --resultado em-andamento
-node bin/registrar.js evento --agente cerebro --fluxo F-20261009-0001 --origem cerebro \
-  --tipo delegacao --resumo "Pedi a leitura ao Coordenador" --direcao "O Trello é do Coordenador" --resultado ok
-node bin/pendencia.js abrir --agente cerebro --fluxo F-20261009-0001 --tipo decisao --severidade alta \
-  --titulo "Arquivar a coluna antiga?" --contexto "..." --opcao "A: arquivar" --opcao "B: manter" \
-  --recomendacao "A: ninguém usa a coluna há 30 dias"
+node bin/install-skills.js           # liga as skills; rodar de novo é seguro
+node bin/install-skills.js --undo    # desfaz: remove os links e devolve o que havia antes
+node bin/install-skills.js --help
 ```
 
-Dentro de uma sessão do Claude Code com o hook instalado, `--agente` e `--fluxo` podem ser omitidos: o agente sai do cadastro e o fluxo, da sessão. Texto com aspas ou acentos vai melhor em JSON pela entrada padrão (`--json -`). Todas as opções: `node bin/registrar.js --help` e `node bin/pendencia.js --help`.
+- **O que é ligado:** só o que `skills/links.json` declara (origem relativa a este repositório, destino relativo à pasta do Claude): as skills `especificar`, `implementar-issue`, `implementar-pbi`, `implementar-issue-maestri`, `implementar-pbi-maestri` e `trabalhador-floor` em `~/.claude/skills/<nome>`, e os documentos de orquestração `skills/docs/orquestracao-subagentes` → `~/.claude/docs/orquestracao-subagentes` e `skills/docs/orquestracao-maestri` → `~/.claude/docs/orquestracao-maestri` (com os scripts `open-floor.sh` e `integrate.sh`).
+- **Como:** cada destino vira uma *junction* de diretório no Windows (não exige administrador; funciona com o repositório e o `~/.claude` em discos diferentes) e um symlink de diretório nos outros sistemas. Editar a skill no repositório já vale no Claude Code.
+- **Backups:** o que já existir no destino e não for um link deste repositório (por exemplo, uma versão antiga de `implementar-issue-maestri`) vai para `~/.claude/backups/painel-maestro/<destino>` (fora de `skills/`, para o Claude Code não carregar duas skills com o mesmo nome). O `--undo` remove só os links deste repositório (nunca o conteúdo deles) e devolve os backups.
+- **Conflitos:** a instalação planeja tudo antes de mexer em qualquer coisa. Se um backup já ocupar o lugar, ou se no `--undo` o destino não for mais um link deste repositório e houver backup, o comando sai com **código 2** e nada é alterado; a mensagem diz o que mover.
+- **Pasta do Claude:** `--claude-dir <pasta>`, senão `CLAUDE_CONFIG_DIR`, senão `~/.claude`.
 
-### 3. Instale o hook do Claude Code
+As skills:
 
-O `bin/hook_log.js` lê o evento do hook pela entrada padrão e grava uma linha no log bruto do agente. Ele nunca escreve no stdout nem no stderr, sai sempre com 0, desiste em cerca de 1,5 s, trunca entradas e saídas e redige segredos. Exemplo para o `settings.json` do Claude Code (troque o caminho):
+- **`/especificar`**: roda `grill-with-docs` → `to-spec` → `to-tickets`; grava o item em **Especificação** assim que o `to-spec` publica a issue ou o PBI, e em **Implementação** quando o `to-tickets` termina.
+- **`/implementar-issue`** e **`/implementar-pbi`**: o maestro (a sessão que roda a skill) implementa o item num PR só, com um **subagente** em worktree por task, sem Maestri; o fluxo comum está em `~/.claude/docs/orquestracao-subagentes/README.md`.
+- **`/implementar-issue-maestri`** e **`/implementar-pbi-maestri`**: o maestro, no Ground de um workspace do Maestri, implementa o item num PR só, com um **floor** e um terminal Claude Code por task; o fluxo comum está em `~/.claude/docs/orquestracao-maestri/README.md`. O portal do canvas abre a página do item no painel.
+- **`trabalhador-floor`**: o protocolo do trabalhador num floor: status pelo `flow status` (que também roda o `maestri floor status`) e relatório gravado com `flow report` antes de ir ao maestro.
+
+Todas funcionam com GitHub e Azure DevOps (o tracker vem do `docs/agents/issue-tracker.md` do repositório onde elas rodam). A `especificacao-atdd-hml` continua sincronizada do claude.ai, sem mudança: as skills lembram de registrar o resultado da HML com `flow hml`.
+
+### 4. Instalar o hook do Claude Code
+
+O `bin/hook-log.js` grava o log bruto (prompts, comandos, ferramentas) de cada sessão no `bruto.db`. Instale-o no `settings.json` do usuário (`~/.claude/settings.json`), para valer em qualquer pasta (troque o caminho):
 
 ```json
 {
   "hooks": {
-    "SessionStart":       [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "UserPromptSubmit":   [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "PostToolUse":        [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "PostToolUseFailure": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "Stop":               [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "SubagentStop":       [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }],
-    "SessionEnd":         [{ "hooks": [{ "type": "command", "command": "node /caminho/para/_maestro/bin/hook_log.js" }] }]
+    "SessionStart":       [{ "hooks": [{ "type": "command", "command": "node \"D:/pessoal/git/painel-maestro/bin/hook-log.js\"" }] }],
+    "UserPromptSubmit":   [{ "hooks": [{ "type": "command", "command": "node \"D:/pessoal/git/painel-maestro/bin/hook-log.js\"" }] }],
+    "PostToolUse":        [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node \"D:/pessoal/git/painel-maestro/bin/hook-log.js\"" }] }],
+    "PostToolUseFailure": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node \"D:/pessoal/git/painel-maestro/bin/hook-log.js\"" }] }],
+    "Stop":               [{ "hooks": [{ "type": "command", "command": "node \"D:/pessoal/git/painel-maestro/bin/hook-log.js\"" }] }],
+    "SubagentStop":       [{ "hooks": [{ "type": "command", "command": "node \"D:/pessoal/git/painel-maestro/bin/hook-log.js\"" }] }],
+    "SessionEnd":         [{ "hooks": [{ "type": "command", "command": "node \"D:/pessoal/git/painel-maestro/bin/hook-log.js\"" }] }]
   }
 }
 ```
 
-O hook entende esses sete eventos; se a sua versão do Claude Code não tiver algum deles, deixe-o de fora. Ele só grava sessões do workspace: as que rodam dentro da pasta que contém o `MAESTRO_DIR` ou num terminal do Maestri com o mesmo `workspace.id`. As outras saem em poucos milissegundos, sem gravar nada. Ele também grava `estado/sessoes/<session_id>.json`, que é o que permite atribuir o consumo de tokens a cada agente.
+- **Só projetos cadastrados:** o hook grava só as sessões cuja pasta pertence a um projeto do `maestro.db` (pelo `git remote origin`, inclusive no worktree de um floor; um repositório entra no cadastro na primeira vez que o `flow` roda nele). As outras sessões da máquina saem em poucos milissegundos, sem gravar nada.
+- **Ligação pela branch:** `task/<id>-…` (ou `task/<id>`) é a task `<id>`; `feature/pbi-<id>` ou `feature/issue-<n>` é o maestro do item; `task/<item>-ajuste-final` (o floor do ajuste final) não é task: conta como o maestro do item; outra branch liga só ao projeto ("sem item" no uso). A convenção vive num lugar só (`parseBranch` em `bin/flow-repo.js`), usado pelo hook e pelo `flow status`/`flow report`; o `integrate.sh` segue a mesma regra.
+- **Garantias:** nunca escreve no stdout nem no stderr, sai sempre com 0, desiste de tudo em cerca de 1,5 s (nunca atrasa nem quebra a sessão), trunca entradas (600 caracteres) e saídas (300) e redige segredos (`«redigido»`).
+- **Retenção:** o servidor apaga do `bruto.db` o que tem mais de 90 dias, ao subir e uma vez por dia.
+- O hook entende esses sete eventos; se a sua versão do Claude Code não tiver algum deles, deixe-o de fora. O hook e o servidor precisam ver o mesmo `MAESTRO_DIR` (ou nenhum).
 
-### 4. Suba o painel
+### 5. Cadastrar empresas e projetos
+
+Opcional (um repositório sem cadastro entra sozinho em "Sem empresa"), mas é o que deixa o painel organizado. Estes comandos não precisam rodar dentro de um repositório:
 
 ```
-node painel/servidor.js            # ou: npm start
+node bin/flow.js company add contoso --name "Contoso"
+node bin/flow.js company add personal --name "Pessoal"
+node bin/flow.js project add cidax --name "CIDAX" --company contoso --tracker azure_devops \
+  --repo https://dev.azure.com/contoso/CIDAX/_git/cidax-api --repo https://dev.azure.com/contoso/CIDAX/_git/cidax-web \
+  --stages specification,implementation,final_adjustment,pr_ready,merge,hml_validation,done --done-state Committed --workspace "CIDAX"
+node bin/flow.js project add painel-maestro --company personal --repo https://github.com/higorcesarqn/painel-maestro \
+  --stages specification,implementation,final_adjustment,pr_ready,merge,done
 ```
 
-Abra **http://127.0.0.1:4777** (use `127.0.0.1`, não `localhost`). Outra porta: `--porta 4780` ou a variável `PAINEL_PORTA`. O servidor grava o PID em `estado/painel.pid` e roda o coletor de uso ao subir e a cada 5 minutos.
+### 6. Subir o painel
 
-Sobre o uso do Claude:
-- a **participação de cada agente** vem das transcrições locais do Claude Code (`~/.claude`, ou `CLAUDE_CONFIG_DIR`), só das sessões que o hook atribuiu a um agente;
-- o **% do plano** (5 h e semanal) vem do arquivo que o Maestri grava em `~/.maestri/usage/providers/.status.json` (ou `MAESTRI_DATA_DIR`). Fora do Maestri, essa parte aparece como indisponível, com o motivo.
+```
+npm start                          # ou: node panel/server.js [--port 4777]
+```
 
-Quando o dono responde uma pendência pelo painel, o servidor pode avisar o Cérebro no terminal dele pela CLI do Maestri (`maestri ask`). Isso liga sozinho só quando o servidor roda dentro de um terminal do Maestri; `PAINEL_AVISAR_CEREBRO=0` desliga e `1` força.
+Abra **http://127.0.0.1:4777** (use `127.0.0.1`, não `localhost`). O servidor grava o PID em `~/.painel-maestro/state/panel.pid`, roda o coletor de uso ao subir e a cada 5 minutos e o verificador de merge a cada 10 minutos. Para parar: Ctrl+C no terminal do servidor (ou `taskkill /PID <pid> /F`). No Maestri, suba-o num terminal shell do canvas (não num agente) e abra-o num portal.
 
-## Scripts de `bin/`
+### 7. Conferir
 
-Todos usam só a biblioteca padrão do Node e respeitam `MAESTRO_DIR`.
+Rode `/especificar` num repositório de teste e acompanhe o item em `http://127.0.0.1:4777/#items/<projeto>/<número>`: ele aparece em Especificação depois da spec e passa para Implementação depois dos tickets. Depois rode `/implementar-issue <número>` (ou `/implementar-pbi <id>`, ou as versões `-maestri` no Ground de um workspace do Maestri): o grafo aparece com as tasks, cada uma com trabalhador, branch, status, relatório e o SHA da integração, seguido do PR em rascunho, dos achados, do ajuste final e do PR pronto. O selo de saúde fica verde quando o hook está gravando as sessões.
 
-| Script | Para que serve |
-|---|---|
-| `registrar.js` | log semântico: `novo-fluxo`, `evento`, `ultimos`, `fluxo` |
-| `pendencia.js` | fila de pendências do dono: `abrir`, `listar`, `mostrar`, `responder`, `resolver`, `cancelar` |
-| `hook_log.js` | hook do Claude Code que grava o log bruto e o estado das sessões |
-| `coletar_uso.js` | coletor de uso do Claude (`--json`, `--sem-gravar`); o servidor já o chama |
-| `janela-horario.js` | sai 0 dentro de uma faixa de horário e 1 fora (`node bin/janela-horario.js 8 22`), útil como pré-condição de rotinas agendadas |
-| `lib_maestro.js` | funções comuns: caminhos, datas no fuso de São Paulo, trava entre processos, gravação atômica de JSON, JSONL, redação de segredos |
-| `prospeccao/leads.js` | banco único de leads: importar, fila, ciclo do qualificador, registrar interação, passar ao humano, devolver, opt-out |
-| `prospeccao/lib_prospeccao.js` | regras da prospecção (etapas, chips, janelas de envio, fila, follow-up) usadas pelo `leads.js` e pela API do painel |
-| `prospeccao/serper.js` | buscas no Serper (Google Maps e Google) com cache de 30 dias e registro de uso; a chave fica em `.segredos/serper.key` e nunca é impressa |
+### Vindo do painel original
 
-Quase todos aceitam `--help` (o `janela-horario.js` não: ele só recebe início e fim). Os horários e datas usam o fuso `America/Sao_Paulo`.
+Os nomes mudaram (código em inglês, ADR 0004) e não há apelidos para os antigos: troque-os onde estiverem configurados.
+
+- Hook: `bin/hook_log.js` → `bin/hook-log.js` (no `~/.claude/settings.json`).
+- Filtro de horário das rotinas do Maestri: `bin/janela-horario.js` → `bin/time-window.js`; `--agora`/`MAESTRO_AGORA` → `--now`/`MAESTRO_NOW`.
+- Servidor: `painel/servidor.js` → `panel/server.js`; `--porta` → `--port`; `PAINEL_PORTA` → `PANEL_PORT`, `PAINEL_COLETOR` → `PANEL_COLLECTOR`, `PAINEL_AGORA` → `PANEL_NOW` (as variáveis do servidor são `PANEL_*`); `PAINEL_AVISAR_CEREBRO` não existe mais.
+- Dados: em `MAESTRO_DIR` (padrão `~/.painel-maestro`); as pastas antigas dentro do repositório (`registro/`, `estado/`) não são lidas.
+
+## O CLI `flow`
+
+`bin/flow.js` grava cada passo do fluxo como um evento no `maestro.db`. Ele roda **dentro do repositório do projeto** (o projeto sai do `git remote origin` da pasta atual, também no worktree de um floor); só `company` e `project` rodam em qualquer pasta. Nas skills ele é sempre `node "$PAINEL_MAESTRO/bin/flow.js" ...`; abaixo, `flow` abrevia isso. A ajuda completa: `node bin/flow.js --help`.
+
+**Regras comuns:**
+
+- **Quem grava:** `--role maestro|worker|owner` (padrão `maestro`; no `status` e no `report`, `worker`) e `--agent "<codinome>"`.
+- **JSON pela entrada padrão:** `--json -` recebe os campos num objeto JSON, o jeito certo para texto com acentos, aspas e várias linhas em qualquer shell do Windows (nas skills: o JSON num arquivo temporário e `--json - < arquivo.json`). O argumento vale mais que o JSON.
+- **Códigos de saída:** `0` ok; `2` dado inválido (a mensagem no stderr começa com `erro:` e diz o que corrigir; nada é gravado); `1` outros erros.
+- **Etapas** (ids em inglês): `specification` Especificação, `implementation` Implementação, `final_adjustment` Ajuste final, `pr_ready` PR pronto, `merge` Merge, `hml_validation` Validação HML, `done` Concluído. Uma etapa que o projeto não usa é recusada.
+- **Links** (`--url`, `--card`): só `https` em `github.com`, `dev.azure.com` ou `*.visualstudio.com`.
+- **Concorrência:** o maestro e vários trabalhadores gravam ao mesmo tempo sem perder nem corromper eventos (WAL e `busy_timeout`, ADR 0003).
+
+**Item e etapas (maestro):**
+
+```
+flow item start 3100 --title "Conciliação de boletos"                  # entra em Especificação (a 1ª etapa do projeto)
+flow item start 12 --title "Exportar PDF" --stage implementation       # sem /especificar: as etapas anteriores contam como concluídas
+flow stage 3100 implementation
+flow item start --json - < item.json                                   # {"number": 12, "title": "...", "stage": "...", "agent": "..."}
+```
+
+**Tasks (maestro):**
+
+```
+flow task graph 12 --task "13|Gerar o PDF" --task "14|Enviar por e-mail|13" [--out 15]   # <task>|<título>[|<bloqueios>]; o último grafo vale
+flow task graph --json - < grafo.json        # {"number": 12, "tasks": [{"number": 13, "title": "...", "blocked_by": [], "out": false}]}
+flow task dispatch 12 13 --floor "Gerar PDF" --worker "Ária" --branch task/13-gerar-pdf   # --worker subagente, sem floor, fora do Maestri
+flow task integrate 12 13 --sha 4be1c2d9 --sha-before 9a01f3c
+```
+
+Ciclo, bloqueio fora do grafo, task repetida ou bloqueando a si mesma são recusados (código 2). Uma task integrada ou fora só muda de estado com um novo despacho (retrabalho).
+
+**Status e relatório (trabalhador, no worktree da task):**
+
+```
+flow status "Testes verdes, ligando a tela" --progress 3/5          # --state working (padrão)
+flow status "Preciso do certificado de HML" --state blocked
+flow status "Pronto para revisar" --state review                    # done também conta como revisão
+flow report --json - < relatorio.json                               # antes de mandar o relatório ao maestro
+flow report --status blocked --reason "Falta o certificado" --json - < relatorio.json
+```
+
+- O `status` é o comando único do trabalhador: dentro de um terminal do Maestri (com `MAESTRI_TERMINAL_ID`) ele também roda `maestri floor status` com os mesmos argumentos; fora do Maestri (subagente) só grava. Se o `maestri` falhar, o evento fica gravado e o comando sai com 1.
+- A task vem de `--item`/`--task` ou, sem eles, da branch atual: a task despachada com essa branch ou `task/<id>-…`.
+- O relatório (`status`, `blocked_reason`, `branch`, `sha`, `tests`, `changes`, `decisions`, `risks`, `shared_files`, `text`) fica exatamente como escrito; branch e SHA, quando não vêm, saem do worktree.
+
+**Pendências (maestro):**
+
+```
+flow pending open 12 --kind task_review --task 13 --severity high --title "Revisar e integrar a task 13" \
+     --context "..." --option "A: Integrar" --option "B: Pedir ajuste" --recommendation "A: testes verdes"   # imprime P-<id>
+flow pending open --json - < pendencia.json
+flow pending resolve P-7 --decision "A, com a ressalva X"     # a decisão fica na linha do tempo do item
+flow pending cancel P-7 --reason "Entrou na especificação"
+```
+
+Tipos (`--kind`): `task_review` (exige `--task`; resolvida sozinha pela integração da task), `worker_blocked`, `decision`, `finding`, `parallelize`, `hml` (um `flow hml` com falha ou bloqueio já abre uma sozinho, que fecha quando uma HML seguinte passar em tudo ou o item for concluído; abrir uma `hml` à mão a substitui). Severidades: `critical`, `high`, `normal` (padrão), `low`. Onde responder: `--workspace`/`--terminal`, senão o terminal do Maestri onde o comando roda (`MAESTRI_WORKSPACE_NAME`/`_ID`, `MAESTRI_TERMINAL_NAME`/`_ID`) e o workspace do projeto.
+
+**Achados (maestro):**
+
+```
+flow finding add 12 --title "Corrida ao juntar carrinhos" --classification defect --task 13 --description "..." --new-task 27
+flow finding add 12 --title "Limite do carrinho" --classification owner_decision
+flow finding link 12 2 --new-task 28 --new-task-title "Limitar o carrinho a 50 itens"
+```
+
+**PR, ajuste final, HML e conclusão:**
+
+```
+flow pr 12 draft --url https://github.com/org/repo/pull/34 --branch feature/issue-12   # PR em rascunho
+flow final-adjustment 12 open                                                       # → Ajuste final
+flow final-adjustment 12 result --outcome passed --summary "Testes e build ok"
+flow pr 12 ready                                                                    # → PR pronto
+flow pr 12 merged                                                                   # quando o maestro faz o merge → Merge
+flow hml 3100 --passed 7 --failed 1 --blocked 0 --card https://dev.azure.com/org/proj/_workitems/edit/3100 --role owner   # → Validação HML
+flow item done 12                                                                   # → Concluído
+```
+
+**Empresas e projetos (dono, em qualquer pasta):**
+
+```
+flow company list
+flow company add <id> --name "<nome>"
+flow project list [--company <id>]
+flow project add <id> --company <id> [--name] [--tracker github|azure_devops] [--repo <url>]... [--stages a,b,...] [--done-state "..."] [--workspace "..."]
+flow project edit <id> [--name] [--company] [--tracker] [--repo <url>]... [--remove-repo <url>]... [--stages] [--done-state] [--workspace]
+flow project move <id> <empresa>
+```
+
+Um projeto do Azure DevOps com vários repositórios é um projeto só: o CLI rodado em qualquer um deles (ou num worktree deles) resolve o mesmo projeto. As formas SSH e HTTPS do mesmo remote são iguais.
+
+## Verificador de merge
+
+O merge do PR costuma acontecer na interface do tracker, sem agente presente (a única exceção do ADR 0001). Então o servidor consulta, na subida e a cada `PANEL_MERGE_CHECK_SECONDS` (padrão 600), **só os itens com PR pronto e ainda não mergeado**, só leitura: GitHub pelo `gh pr view`, Azure DevOps pela REST com o token do `az account get-access-token`. Merge confirmado vira o evento `pr-changed` (origem "painel") e leva o item para Merge. Uma falha (por exemplo, `az` sem login) aparece com o motivo na página do item e no selo de saúde; o botão **Marcar como mergeado**, no cartão Entrega da página do item, grava o merge à mão. Com `PANEL_COLLECTOR=0` ou relógio fixo (`PANEL_NOW`) ele fica desligado, a não ser que `PANEL_MERGE_CHECK=1`.
+
+## Variáveis de ambiente
+
+| Variável | Padrão | Para quê |
+|---|---|---|
+| `MAESTRO_DIR` | `~/.painel-maestro` | pasta dos dados: `maestro.db`, `bruto.db`, `state/usage.json`, `state/panel.pid`. O servidor, o `flow`, o hook e o coletor precisam ver a mesma |
+| `PAINEL_MAESTRO` | | pasta do código (este repositório), usada pelas skills e pelo `integrate.sh` para achar o `bin/flow.js` |
+| `PANEL_PORT` | `4777` | porta do servidor (`--port` vale mais) |
+| `PANEL_COLLECTOR` | ligado | `0` desliga o coletor de uso automático (o Recalcular continua funcionando) |
+| `PANEL_STALE_HOURS` | `48` | horas na mesma etapa para um item ativo contar como parado na Visão geral |
+| `PANEL_MERGE_CHECK` | acompanha o coletor | verificador de merge: `0` desliga, `1` liga |
+| `PANEL_MERGE_CHECK_SECONDS` | `600` | intervalo entre as consultas de merge |
+| `PANEL_GH_CLI`, `PANEL_AZ_CLI` | `gh`, `az` | executáveis do verificador de merge (os testes usam scripts falsos) |
+| `PANEL_AZURE_DEVOPS_URL` | `https://dev.azure.com` | base da REST do Azure DevOps |
+| `FLOW_MAESTRI_CLI` | `MAESTRI_CLI` ou `maestri` | executável do `maestri` usado pelo `flow status` (um caminho `.js` roda com o `node`) |
+| `MAESTRI_CLI` | `maestri` | executável do Maestri usado pelos scripts das skills (o Maestri define nos terminais dele) |
+| `MAESTRI_TERMINAL_ID`, `MAESTRI_TERMINAL_NAME`, `MAESTRI_WORKSPACE_ID`, `MAESTRI_WORKSPACE_NAME` | (do Maestri) | terminal e workspace onde o comando roda: o `flow status` chama o `maestri floor status` e a pendência diz onde responder |
+| `MAESTRI_DATA_DIR` | `~/.maestri` | onde está o `usage/providers/.status.json` do plano Claude |
+| `CLAUDE_CONFIG_DIR` | `~/.claude` | pasta do Claude Code (transcrições e o destino do `install-skills.js`) |
+| `PANEL_INDEX`, `PANEL_NOW`, `MAESTRO_NOW` | | só para testes: outro `index.html` e relógio fixo |
+| `MOCK_PORT` | `4795` | porta da demonstração |
+| `KEEP_TMP`, `HEAVY_TEST` | | testes: `1` guarda as pastas temporárias; `1` aumenta o teste de desempenho |
+
+Detalhes de cada uma em [`panel/README.md`](panel/README.md#variáveis-de-ambiente).
+
+## Demonstração
+
+Precisa só do Node.js:
+
+```
+npm run demo                 # ou: npm run demo -- 4794 (portas 4790 a 4799)
+```
+
+Abra **http://127.0.0.1:4795/?mock=1**. A página lê dados fictícios de `panel/tests/mock-items.json`: as empresas Contoso, Fabrikam e Pessoal e dois projetos em "Sem empresa", projetos do GitHub e do Azure DevOps (um com vários repositórios), itens em todas as etapas, o PBI 3112 com tasks nos seis estados e bloqueios, relatórios e achados, pendências abertas e fechadas dos seis tipos, itens parados, uso por item e por agente e os agentes ativos. Uma faixa azul avisa que são dados de teste. Ctrl+C para parar.
+
+O `mock-items.json` é gerado por `node panel/tests/generate-mock-items.js`, que passa eventos fictícios pelo próprio código do servidor (a projeção, as APIs, o coletor de uso, a saúde): a demonstração nunca se afasta do formato da API.
+
+Para ver o **servidor de verdade** com os mesmos dados, num `maestro.db` real (Git Bash):
+
+```
+node panel/tests/build-mock-root.js [--hostile]
+R=panel/tests/tmp/mock-root
+MAESTRO_DIR=$R PANEL_NOW=2026-10-09T10:24:30-03:00 PANEL_COLLECTOR=0 node panel/server.js --port 4793
+```
+
+Abra **http://127.0.0.1:4793** (sem `?mock=1`). O `--hostile` acrescenta um item com HTML e `javascript:` nos textos, para conferir que tudo aparece como texto. A pasta `panel/tests/tmp/` pode ser apagada depois.
+
+## Testes
+
+```
+npm test                                   # node panel/tests/run-all.js
+node panel/tests/run-all.js flow           # só os arquivos com "flow" no nome
+npm run build                              # compila a página (depois de npm ci em panel/ui)
+npm --prefix panel/ui run check            # confere a página compilada: um único script, nada externo
+```
+
+Os testes não usam framework nem navegador. A regra principal: o CLI `flow` e o hook rodam **como processos** em repositórios git temporários com `remote origin` fictício (e worktrees), gravam num `maestro.db`/`bruto.db` temporário e o resultado é conferido **só pela API do servidor**; nenhum teste lê o banco. O `maestri`, o `gh` e o `az` são scripts falsos apontados por variável de ambiente. Cada arquivo trabalha em `panel/tests/tmp/`, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda). A lista do que cada arquivo cobre está em [`panel/README.md`](panel/README.md#testes).
 
 ## Segurança
 
 - O servidor escuta **só em 127.0.0.1**. O cabeçalho `Host` precisa ser `127.0.0.1:<porta>` ou `localhost:<porta>`; qualquer outro recebe 403 (proteção contra DNS rebinding).
-- Todo `POST` exige o cabeçalho **`X-Painel: 1`** e, se vier `Origin`, ele precisa ser o próprio painel; senão, 403. Outra página aberta no navegador não consegue acionar o servidor. Os corpos JSON vão até 16 KB (acima disso, 413).
-- Nenhum cabeçalho CORS. Só existem `/`, `/prospeccao`, `/prospeccao/antiga` e `/api/*`; nenhum arquivo é servido pelo nome (o resto é 404).
-- Toda resposta leva `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` e `X-Frame-Options: DENY`. A página leva uma **Content-Security-Policy** que bloqueia qualquer recurso externo e impede que outro site a embuta num iframe. A única exceção é a página antiga da prospecção (`/prospeccao/antiga`), cuja CSP libera a fonte do Google.
-- A página é um arquivo único (JS, CSS e fonte embutidos). Todo texto vindo da API entra como texto, nunca como HTML; links só para `https://trello.com/...` e `https://meet.google.com/...`.
-- **Sem dependências** no servidor e nos scripts: só a biblioteca padrão do Node. O servidor não faz nenhuma requisição para fora da máquina. As dependências npm (Preact, Vite, a fonte Manrope e os ícones Lucide) servem só para compilar a página.
-- A API da prospecção não devolve a chave do Serper, o WhatsApp do humano responsável nem os números dos chips ou de teste.
+- Todo `POST` exige o cabeçalho **`X-Panel: 1`** e, se vier `Origin`, ele precisa ser o próprio painel; senão, 403. Outra página aberta no navegador não consegue acionar o servidor. Os corpos JSON vão até 16 KB.
+- Nenhum cabeçalho CORS. Só existem `/` e `/api/*`; nenhum arquivo é servido pelo nome (o resto é 404).
+- Toda resposta leva `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` e `X-Frame-Options: DENY`. A página leva uma **Content-Security-Policy** que bloqueia qualquer recurso externo e impede que outro site a embuta num iframe.
+- A página é um arquivo único (JS, CSS e fonte embutidos). Todo texto vindo da API entra como texto, nunca como HTML; os únicos links para fora são os do PR e do card, e só para `github.com`, `dev.azure.com` e `*.visualstudio.com`.
+- O hook e o log bruto redigem segredos (tokens, senhas, `Authorization`, credenciais em URL, valores de variáveis de ambiente com nome de segredo) antes de gravar.
+- **Sem dependências** no servidor, no CLI e no hook: só a biblioteca padrão do Node. O servidor só sai da máquina pelo verificador de merge (o `gh` e a REST do Azure DevOps, só leitura). As dependências npm (Preact, Vite, a fonte Manrope e os ícones Lucide) servem só para compilar a página.
 
 Não exponha a porta do painel na rede: ele não tem login e foi feito para uso local.
 
 ## Compilar a página
 
-A fonte da página fica em `painel/ui/` (Preact, compilado pelo Vite num HTML único). O resultado, `painel/index.html`, é versionado; só é preciso compilar se você mudar a fonte. O Vite 8 pede Node 20.19+ ou 22.12+.
+A fonte da página fica em `panel/ui/` (Preact, compilado pelo Vite num HTML único). O resultado, `panel/index.html`, é versionado; só é preciso compilar se você mudar a fonte.
 
 ```
-cd painel/ui
+cd panel/ui
 npm ci
-npm run build      # vite build + scripts/publicar.js, que grava ../index.html
+npm run build      # vite build + scripts/publish.js, que grava ../index.html
 npm run check      # confere o index.html: um único script, nada externo
-npm run dev        # http://127.0.0.1:5173, com /api apontando para o painel em 127.0.0.1:4777
+npm run dev        # http://127.0.0.1:5173, com /api apontando para o painel em 127.0.0.1:4777 (?mock=1 usa a demonstração)
 ```
 
-Da raiz do repositório, `npm run build` faz o mesmo que o `npm run build` dentro de `painel/ui` (depois do `npm ci` lá). Com `npm run dev`, abra `http://127.0.0.1:5173/?mock=1` para usar os dados de teste sem servidor. Depois de compilar, rode os testes. Como acrescentar uma tela nova está em [`painel/README.md`](painel/README.md#a-página-indexhtml-fonte-em-ui).
-
-## Testes
-
-```
-npm test                                   # node painel/testes/rodar-todos.js
-node painel/testes/rodar-todos.js servidor # só os arquivos com "servidor" no nome
-```
-
-Os testes não usam framework nem navegador. Cada arquivo monta uma raiz falsa em `painel/testes/tmp/` e aponta `MAESTRO_DIR`, `MAESTRI_DATA_DIR` e `CLAUDE_CONFIG_DIR` para ela, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`MANTER_TMP=1` guarda para inspeção). O teste das pendências usa uma CLI do Maestri falsa, que só grava os argumentos. São 7 arquivos: coletor de uso, desempenho (50 mil eventos e log bruto grande), página compilada, filtro de horário, pendências, prospecção e servidor.
-
-Para regerar os dados da demonstração: `node painel/testes/gerar-mock.js` e `node painel/testes/gerar-mock-prospeccao.js`.
+Da raiz, `npm run build` faz o mesmo. Como acrescentar uma tela nova está em [`panel/README.md`](panel/README.md#a-página-indexhtml-fonte-em-ui).
 
 ## Estrutura
 
 ```
 painel-maestro/
-├── bin/                      scripts de linha de comando (só biblioteca padrão do Node)
-│   ├── registrar.js          log de eventos e fluxos
-│   ├── pendencia.js          fila de pendências do dono
-│   ├── hook_log.js           hook do Claude Code → log bruto
-│   ├── coletar_uso.js        uso do plano e tokens por agente
-│   ├── janela-horario.js     filtro de horário para rotinas
-│   ├── lib_maestro.js        biblioteca comum
-│   └── prospeccao/           leads.js, lib_prospeccao.js, serper.js
-├── painel/
-│   ├── servidor.js           servidor HTTP e API
-│   ├── api-pendencias.js     resposta de pendência pelo painel
-│   ├── api-prospeccao.js     API da prospecção
-│   ├── index.html            a página compilada (não edite à mão)
-│   ├── prospeccao.html       página antiga da prospecção (/prospeccao/antiga)
-│   ├── README.md             documentação técnica do servidor e da página
-│   ├── ui/                   fonte da página (Preact + Vite)
-│   │   ├── src/app/          casca, menu e topo
-│   │   ├── src/telas/        uma tela por arquivo
-│   │   ├── src/componentes/  cartões, KPIs, gráficos em SVG, modal
-│   │   ├── src/dados/        API, modo de teste, consultas e formatação
-│   │   ├── src/estilo/       CSS por tela
-│   │   └── scripts/publicar.js  junta o build num HTML único
-│   └── testes/               testes, mocks e servidores de demonstração
+├── bin/                         CLI, hook e coletor (só biblioteca padrão do Node)
+│   ├── flow.js                  CLI flow: grava os eventos de cada item no maestro.db
+│   ├── flow-admin.js            flow company / flow project: cadastro de empresas e projetos
+│   ├── flow-store.js            maestro.db (node:sqlite, WAL, esquema e migrações)
+│   ├── flow-projection.js       estado do item calculado dos eventos (função pura)
+│   ├── flow-repo.js             projeto pelo git remote origin (também em worktrees)
+│   ├── hook-log.js              hook do Claude Code → log bruto (bruto.db)
+│   ├── raw-store.js             bruto.db (node:sqlite, WAL, retenção de 90 dias)
+│   ├── collect-usage.js         uso do plano e tokens por item e por agente
+│   ├── install-skills.js        liga as skills ao ~/.claude (backup e --undo)
+│   ├── time-window.js           filtro de horário (pré-condição de rotinas agendadas do Maestri)
+│   ├── lib.js                   datas no fuso de São Paulo, entrada padrão, redação de segredos
+│   └── i18n/                    dicionário pt-BR das mensagens do CLI
+├── panel/
+│   ├── server.js                servidor HTTP e API (em inglês, devolve códigos)
+│   ├── api-*.js                 itens, projetos, pendências, log, uso, Visão geral
+│   ├── health.js                selo de saúde
+│   ├── merge-check.js           verificador de merge e "marcar como mergeado"
+│   ├── index.html               a página compilada (não edite à mão)
+│   ├── README.md                documentação técnica do servidor e da página
+│   ├── ui/                      fonte da página (Preact + Vite)
+│   └── tests/                   testes, demonstração (mock-items.json) e geradores
 ├── skills/
-│   ├── cerebro/              orquestracao, pendencias, painel, onboarding-agente
-│   └── compartilhadas/       protocolo-delegacao, registro-eventos
-├── conhecimento/protocolos/  delegação, pendências, registro, autonomia
-├── exemplos/                 CLAUDE.md (regra comum) e responsabilidade-cerebro.md
+│   ├── links.json               o que o install-skills.js liga ao ~/.claude
+│   ├── especificar/             /especificar
+│   ├── implementar-issue/, implementar-pbi/                    fluxo com subagentes (GitHub, Azure DevOps)
+│   ├── implementar-issue-maestri/, implementar-pbi-maestri/    fluxo com floors do Maestri
+│   ├── trabalhador-floor/       protocolo do trabalhador num floor
+│   └── docs/                    orquestracao-subagentes/ e orquestracao-maestri/ (com open-floor.sh e integrate.sh)
+├── docs/adr/                    decisões de arquitetura
+├── docs/agents/                 configuração das skills de engenharia neste repositório (tracker, rótulos, domínio)
+├── CONTEXT.md                   vocabulário do domínio
 ├── package.json
 ├── LICENSE
 └── README.md
 ```
 
-## Requisitos e limites
-
-- Node.js 18 ou mais novo para o servidor e os scripts (desenvolvido e testado no Node 22); Node 20.19+ ou 22.12+ para compilar a página.
-- Desenvolvido e testado no Windows. Os caminhos e a trava entre processos têm tratamento para outros sistemas, mas eles não foram testados.
-- O painel só lê arquivos: quem mantém os dados em dia são os seus agentes (o Trello, por exemplo, só aparece se algum agente gravar `estado/trello/resumo.json`).
-- O botão de conversar com o Cérebro pelo painel ainda não existe (`POST /api/cerebro` responde 501).
-- O painel saiu de um workspace maior. Alguns comentários do código citam scripts e documentos desse workspace que não vêm neste repositório (por exemplo, o vigia do WhatsApp e o captador de leads): eles só produzem os arquivos que o painel lê, e o formato desses arquivos está descrito acima.
-
-## Skills e protocolos do workspace
-
-Além do painel, o repositório traz o método que os agentes seguem, em texto. São **modelos para adaptar**: copie, troque nomes, projetos e regras pelos do seu workspace e mantenha o que servir. Os caminhos citados são relativos à raiz do repositório (o `MAESTRO_DIR`); arquivos como `registro/agentes.md` e `registro/roteamento.md` são do workspace de quem usar e não vêm aqui.
-
-- **`skills/cerebro/`**, skills do agente principal (Cérebro):
-  - `orquestracao`: classificar cada pedido do dono, achar quem responde por ele, delegar, acompanhar, validar e responder (resultado, o que precisa do dono, detalhes);
-  - `pendencias`: a fila de decisões do dono, do jeito de escrever (contexto, opções, recomendação) até devolver a decisão a quem pediu e fechar;
-  - `painel`: manter este painel no ar e com dado fresco;
-  - `onboarding-agente`: criar um sub-agente novo para um domínio e ligá-lo ao resto.
-- **`skills/compartilhadas/`**, para todos os agentes:
-  - `protocolo-delegacao`: os envelopes [PEDIDO], [RESPOSTA], [AVISO] e [COBRANÇA], o fluxo `F-AAAAMMDD-NNNN` e como mandar com `maestri ask` sem perder nem duplicar pedido;
-  - `registro-eventos`: como gravar cada evento com `bin/registrar.js` (tipo, resumo, direção, resultado) e quando abrir pendência com `bin/pendencia.js`.
-- **`conhecimento/protocolos/`**: as regras por trás das skills, em quatro arquivos: delegação, pendências, registro e autonomia (o que cada agente faz sozinho, o que propõe e o que é sempre do dono).
-- **`exemplos/`**: `CLAUDE.md`, a regra comum de todos os agentes do workspace, e `responsabilidade-cerebro.md`, o papel do agente principal.
-
-As skills seguem o formato de skill do Claude Code (pasta com `SKILL.md` e cabeçalho `name`/`description`). Para usá-las, copie ou ligue as pastas em `.claude/skills/` do workspace.
-
 ## Licença
 
-[MIT](LICENSE).
+[MIT](LICENSE). Este repositório nasceu de [joaopedrokleinprevidi/painel-maestro](https://github.com/joaopedrokleinprevidi/painel-maestro) (MIT); o `LICENSE` original é mantido.
 
-**Terceiros** (embutidos no `painel/index.html` compilado):
+**Terceiros** (embutidos no `panel/index.html` compilado):
 - [Preact](https://preactjs.com) · licença MIT.
 - [Lucide](https://lucide.dev) (`lucide-preact`, ícones) · licença ISC.
 - Fonte [Manrope](https://github.com/sharanda/manrope) · SIL Open Font License 1.1 (Copyright 2019 The Manrope Project Authors).

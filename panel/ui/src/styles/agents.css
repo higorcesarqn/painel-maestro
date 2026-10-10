@@ -1,0 +1,14 @@
+/* Agents (#13): one table of the active maestros and workers, derived from the items; it scrolls inside the card. */
+.screen-agents { grid-template-rows: minmax(0, 1fr); }
+.screen-agents .card { min-height: 0; }
+.agents-loading { display: flex; flex-direction: column; gap: 10px; padding: 12px 18px; }
+.agents-error { padding: 4px 18px 10px; color: var(--danger); font-size: 13px; }
+table.agents td { white-space: normal; }
+table.agents .block { display: block; margin-top: 3px; }
+table.agents .col-agent { width: 210px; }
+table.agents .col-agent .badge { margin-right: 8px; }
+table.agents .agent-name { color: var(--text); }
+table.agents .col-item { width: 300px; }
+table.agents .col-task { width: 300px; }
+table.agents .col-activity { width: 120px; }
+table.agents .col-usage { width: 140px; font-variant-numeric: tabular-nums; }

@@ -1,0 +1,59 @@
+/* Pending decisions (read only): numbers on top; list | pending decision | where to answer. Each column scrolls inside. */
+.screen-pending {
+  grid-template-columns: 372px minmax(0, 1fr) 340px;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+/* numbers on top */
+.pending-kpis { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); }
+.pending-kpis .kpi { padding: 13px 14px 14px; gap: 10px; }
+.pending-kpis .kpi .label { font-size: 10px; letter-spacing: .18em; }
+.pending-kpis .kpi .value { font-size: 32px; }
+.pending-kpi-sev .label-row::before {
+  content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--sev-color);
+}
+.sev-critical { --sev-color: var(--danger); }
+.sev-high { --sev-color: var(--warning); }
+.sev-normal { --sev-color: var(--blue-text); }
+.sev-low { --sev-color: var(--faint); }
+.pending-kpi-sev.zero .value { color: var(--faint); }
+.pending-bar { background: var(--sev-color); }
+
+/* list */
+.pending-list-col { min-height: 0; }
+.pending-list-col .card-head .actions { margin-left: 0; flex: 1; min-width: 0; }
+.pending-list-col .segmented { width: 100%; }
+.pending-list-col .segmented button { flex: 1 1 auto; justify-content: center; padding-left: 8px; padding-right: 8px; }
+.pending-filter { padding: 0 12px 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chip-filter {
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid var(--blue-border); background: var(--blue-bg); color: var(--text); font: inherit; font-size: 12px; cursor: pointer;
+}
+.chip-filter:hover { border-color: var(--blue-text); }
+.pending-error { padding: 0 12px 8px; color: var(--danger); font-size: 13px; line-height: 1.45; }
+
+/* pending decision */
+.pending-detail { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pending-content { padding: 22px 26px 26px; gap: 16px; }
+.pending-heading { font-size: 23px; }
+.pending-context { font-size: 14px; }
+.pending-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 13.5px; }
+.pending-facts dt { color: var(--muted); }
+.pending-facts dd { margin: 0; min-width: 0; }
+.pending-task-state { margin-left: 8px; }
+.link-button {
+  border: 0; padding: 0; background: none; color: var(--blue-text); font: inherit; text-align: left; cursor: pointer;
+}
+.link-button:hover { text-decoration: underline; }
+.pending-options-read { display: flex; flex-direction: column; gap: 8px; }
+.pending-options-read .pending-options { margin: 0; padding: 0; }
+
+/* where to answer */
+.pending-panel { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pending-form { padding: 16px 20px 18px; display: flex; flex-direction: column; gap: 14px; }
+.pending-form-head { display: flex; align-items: center; gap: 8px; min-height: 22px; }
+.pending-dates { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; margin: 0; }
+.pending-dates dt { color: var(--muted); }
+.pending-dates dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.pending-where { font-size: 14px; }
+.pending-where dd { color: var(--text); }
