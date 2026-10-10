@@ -2,7 +2,8 @@
 // the projection, the APIs, the usage collector and the health) and imitates every route the page calls: /api/state
 // and POST /api/recalculate, the organizations and projects routes (#6, POST /api/organizations, POST /api/organizations/<id>/rename,
 // POST /api/organizations/<id>/remove and POST /api/projects/<id>/organization in memory),
-// /api/items, /api/items/<project>/<number> (and POST .../merged in memory), /api/pending-decisions, /api/log,
+// /api/items, /api/items/<project>/<number> (and POST .../merged in memory), /api/pending-decisions (and POST
+// /api/pending-decisions/<id>/answer in memory, #32), /api/log,
 // /api/log/<id> (the raw commands are made up on the spot), /api/overview, /api/usage and /api/agents, answering in the
 // API shape (English fields and codes), as the real server does. Items, pending decisions, the Log, the Overview, usage
 // and agents take ?organization=<id> (the organization selector of the header) like the server.
@@ -11,6 +12,7 @@ import { t } from '../i18n/index.js';
 import { LOCALE } from '../i18n/locale.js';
 import { arr, obj, spDay, txt, now } from './format.js';
 import { MAX_ORGANIZATION_NAME, RE_ID } from './organizations.js';
+import { MAX_DECISION, optionLetters, decisionText } from './domain.js';
 
 const UNASSIGNED = 'unassigned';
 
@@ -174,14 +176,70 @@ async function mockOrganizations(u, method, body) {
 }
 
 /**
- * /api/items[?organization=&project=&stage=&tracker=], /api/items/<project>/<number>, POST /api/items/<project>/<number>/merged and
- * /api/pending-decisions[?organization=&...] from tests/mock-items.json; null for any other path.
+ * POST /api/pending-decisions/<id>/answer (#32) in the mock: resolves the pending decision only in this page's memory, under
+ * the server's rules (panel/api-pending-decisions.js): the same codes, the decision built the same way, the owner as who
+ * closed it. The pending decision moves to the closed ones, the menu counter drops and the item's timeline gets the event.
  */
-async function mockItems(u, method) {
+async function mockAnswerPending(idText, body) {
+  const m = await loadMockItems();
+  const id = Number((/^(?:p-)?(\d{1,12})$/i.exec(idText) || [])[1]);
+  if (!id) throw error('route_not_found', 404);
+  if (!obj(body)) throw error('invalid_body', 400);
+  const { option, text } = body;
+  if (text !== undefined && text !== null && typeof text !== 'string') throw error('invalid_body', 400, { field: 'text' });
+  let letter = null;
+  if (option !== undefined && option !== null) {
+    if (typeof option !== 'string' || !/^[a-z]$/i.test(option.trim())) throw error('invalid_option', 400, { value: String(option).slice(0, 20) });
+    letter = option.trim().toUpperCase();
+  }
+  const comment = typeof text === 'string' ? text.replace(/\r\n?/g, '\n').trim() : '';
+  if (!letter && !comment) throw error('answer_empty', 400);
+  const list = arr(obj(m.pending_decisions) && m.pending_decisions.pending_decisions);
+  const p = list.find((x) => x.id === id);
+  if (!p) throw error('pending_decision_not_found', 404, { id });
+  if (p.status !== 'open') throw error('pending_decision_not_open', 409, { id, status: p.status, closed_at: p.closed_at, resolution: p.resolution });
+  const options = arr(p.options);
+  const letters = optionLetters(options);
+  if (letter && !letters.includes(letter)) throw error('option_not_found', 400, { id, option: letter, options: letters });
+  const decision = decisionText(letter ? options[letters.indexOf(letter)] : '', comment);
+  if (decision.length > MAX_DECISION) throw error('answer_too_long', 400, { length: decision.length, max: MAX_DECISION });
+  const at = new Date().toISOString();
+  const owner = { role: 'owner', name: null };
+  Object.assign(p, { status: 'resolved', resolution: 'decision', decision, closed_at: at, closed_by: owner });
+  // The server's order: the open ones, then the closed ones, the most recently closed first.
+  list.splice(list.indexOf(p), 1);
+  const firstClosed = list.findIndex((x) => x.status !== 'open');
+  list.splice(firstClosed < 0 ? list.length : firstClosed, 0, p);
+  const counter = obj(m.state) && obj(m.state.kpis) && obj(m.state.kpis.pending_decisions);
+  if (counter) {
+    counter.total = Math.max(0, counter.total - 1);
+    if (obj(counter.by_severity) && counter.by_severity[p.severity] > 0) counter.by_severity[p.severity]--;
+  }
+  const item = obj(m.details) && m.details[p.item.key];
+  if (item) {
+    item.timeline = [...arr(item.timeline), {
+      id: Date.now(), at, type: 'pending-decision-resolved', task_number: p.task ? p.task.number : null, agent: owner, source: 'panel',
+      payload: { pending_decision: id, decision },
+    }];
+  }
+  return JSON.parse(JSON.stringify(p));
+}
+
+/**
+ * /api/items[?organization=&project=&stage=&tracker=], /api/items/<project>/<number>, POST /api/items/<project>/<number>/merged,
+ * /api/pending-decisions[?organization=&...] and POST /api/pending-decisions/<id>/answer from tests/mock-items.json; null for any
+ * other path.
+ */
+async function mockItems(u, method, body) {
   const p = u.pathname;
   const sp = u.searchParams;
   const merged = /^\/api\/items\/([^/]+)\/([^/]+)\/merged$/.exec(p);
   if (merged && method === 'POST') return mockMarkMerged(decodeURIComponent(merged[1]), Number(merged[2]));
+  const answer = /^\/api\/pending-decisions\/([^/]+)\/answer$/.exec(p);
+  if (answer) {
+    if (method !== 'POST') throw error('method_not_allowed', 405, { method, allowed: ['POST'] });
+    return mockAnswerPending(decodeURIComponent(answer[1]), body);
+  }
   if (p === '/api/items') {
     const m = await loadMockItems();
     const [organization, project, stage, tracker] = ['organization', 'project', 'stage', 'tracker'].map((k) => sp.get(k));
@@ -360,7 +418,7 @@ export async function mockApi(urlPath, method, body) {
   if (organizations) return organizations;
   const usage = await mockUsage(p, u.searchParams);
   if (usage) return usage;
-  const items = await mockItems(u, method);
+  const items = await mockItems(u, method, body);
   if (items) return items;
   const log = await mockLog(p, u.searchParams);
   if (log) return log;

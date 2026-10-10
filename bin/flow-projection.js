@@ -325,6 +325,8 @@ function deliveryState() {
 const PENDING_DECISION_KINDS = ['task_review', 'worker_blocked', 'decision', 'finding', 'parallelize', 'hml'];
 const PENDING_DECISION_SEVERITIES = ['critical', 'high', 'normal', 'low'];
 const PENDING_DECISION_STATUSES = ['open', 'resolved', 'canceled'];
+// The longest decision (and cancel reason), in characters: flow pending resolve and the panel's answer (#32).
+const MAX_PENDING_DECISION = 2000;
 
 /** derived_from of the HML pending decision: the numbers of the last failing result. */
 const hmlOrigin = (p, passed, failed, blocked) => ({ type: EVENT_TYPES.hmlRecorded, passed, failed, blocked, card_url: trackerUrl(p.card_url) });
@@ -468,6 +470,6 @@ function reviewState(list, tasks) {
 
 module.exports = {
   projectItem, trackerRef, EVENT_TYPES, TASK_STATES, WORKER_STATES, trackerUrl, PR_STATES, FINAL_ADJUSTMENT_OUTCOMES,
-  PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES, PENDING_DECISION_STATUSES,
+  PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES, PENDING_DECISION_STATUSES, MAX_PENDING_DECISION,
   REPORT_STATUSES, FINDING_CLASSIFICATIONS,
 };

@@ -20,11 +20,11 @@
     },
     "kpis": {
       "pending_decisions": {
-        "total": 4,
+        "total": 6,
         "by_severity": {
           "critical": 1,
-          "high": 2,
-          "normal": 1,
+          "high": 3,
+          "normal": 2,
           "low": 0
         }
       },
@@ -385,7 +385,7 @@
       "done_state": null,
       "stage_since": "2026-10-09T09:40:00-03:00",
       "started_at": "2026-10-02T10:00:00-03:00",
-      "updated_at": "2026-10-09T09:45:00-03:00",
+      "updated_at": "2026-10-09T10:05:00-03:00",
       "active": true
     },
     {
@@ -764,7 +764,7 @@
           }
         },
         {
-          "id": 91,
+          "id": 93,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -1051,7 +1051,7 @@
           "text": "Task 3115, branch task/3115-botao-exportar, SHA final 9c8b7a6. Status: ok.\nTestes: npm test, 0 falhas nas 2 rodadas; teste manual no Chrome e no Edge.\nO que mudou: botão \"Exportar PDF\" na tela do extrato, desabilitado enquanto o PDF é gerado.\nDecisões: 1. adaptador para a rota da 3114, com PDF de exemplo até ela integrar.\nRiscos: depende da 3114. Arquivos compartilhados: src/screens/Statement.tsx."
         },
         {
-          "id": 89,
+          "id": 91,
           "at": "2026-10-09T10:06:00-03:00",
           "task_number": 3116,
           "agent": {
@@ -1557,7 +1557,29 @@
           }
         },
         {
-          "id": 86,
+          "id": 83,
+          "at": "2026-10-09T09:20:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": 3114,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "worker_blocked",
+            "severity": "high",
+            "title": "Em que formato sai o extrato exportado?",
+            "context": "O trabalhador da 3114 parou: a especificação fala em \"arquivo do extrato\" sem dizer se é PDF só, ou PDF e CSV.",
+            "options": [],
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3112"
+            }
+          }
+        },
+        {
+          "id": 87,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "task_number": 3116,
@@ -1573,7 +1595,7 @@
           }
         },
         {
-          "id": 88,
+          "id": 89,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "task_number": 3116,
@@ -1590,7 +1612,7 @@
           }
         },
         {
-          "id": 89,
+          "id": 91,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "task_number": 3116,
@@ -1613,7 +1635,7 @@
           }
         },
         {
-          "id": 90,
+          "id": 92,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -1726,7 +1748,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 87,
+          "id": 88,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1761,7 +1783,7 @@
       "done_state": null,
       "stage_since": "2026-10-09T09:40:00-03:00",
       "started_at": "2026-10-02T10:00:00-03:00",
-      "updated_at": "2026-10-09T09:45:00-03:00",
+      "updated_at": "2026-10-09T10:05:00-03:00",
       "active": true,
       "stages": [
         {
@@ -2139,7 +2161,7 @@
           }
         },
         {
-          "id": 84,
+          "id": 85,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2151,7 +2173,7 @@
           "payload": {}
         },
         {
-          "id": 85,
+          "id": 86,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2170,6 +2192,28 @@
               "B: Estender para 7 dias (task nova)"
             ],
             "recommendation": "B, como task nova para triagem.",
+            "maestri": {
+              "workspace": "Fabrikam",
+              "terminal": "Maestro #48"
+            }
+          }
+        },
+        {
+          "id": 90,
+          "at": "2026-10-09T10:05:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "decision",
+            "severity": "normal",
+            "title": "Como chamar o carrinho juntado na tela?",
+            "context": "O protótipo diz \"Carrinho combinado\"; o time de produto falou em \"Meu carrinho\". Qualquer nome curto serve.",
+            "options": [],
             "maestri": {
               "workspace": "Fabrikam",
               "terminal": "Maestro #48"
@@ -2303,7 +2347,7 @@
           }
         },
         {
-          "id": 83,
+          "id": 84,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "task_number": null,
@@ -3913,7 +3957,7 @@
   "pending_decisions": {
     "pending_decisions": [
       {
-        "id": 90,
+        "id": 92,
         "kind": "worker_blocked",
         "severity": "critical",
         "status": "open",
@@ -4057,7 +4101,53 @@
         }
       },
       {
-        "id": 85,
+        "id": 83,
+        "kind": "worker_blocked",
+        "severity": "high",
+        "status": "open",
+        "title": "Em que formato sai o extrato exportado?",
+        "context": "O trabalhador da 3114 parou: a especificação fala em \"arquivo do extrato\" sem dizer se é PDF só, ou PDF e CSV.",
+        "options": [],
+        "recommendation": null,
+        "maestri": {
+          "workspace": "Contoso",
+          "terminal": "Maestro PBI 3112"
+        },
+        "opened_at": "2026-10-09T09:20:00-03:00",
+        "opened_by": {
+          "role": "maestro",
+          "name": "Bento"
+        },
+        "closed_at": null,
+        "closed_by": null,
+        "resolution": null,
+        "decision": null,
+        "reason": null,
+        "derived_from": null,
+        "item": {
+          "key": "portal/3112",
+          "number": 3112,
+          "tracker_ref": "PBI 3112",
+          "title": "Exportar o extrato em PDF",
+          "stage": "implementation",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "organization": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          }
+        },
+        "task": {
+          "number": 3114,
+          "title": "Gerar o PDF no servidor",
+          "state": "working"
+        }
+      },
+      {
+        "id": 86,
         "kind": "finding",
         "severity": "normal",
         "status": "open",
@@ -4073,6 +4163,48 @@
           "terminal": "Maestro #48"
         },
         "opened_at": "2026-10-09T09:45:00-03:00",
+        "opened_by": {
+          "role": "maestro",
+          "name": "Ária"
+        },
+        "closed_at": null,
+        "closed_by": null,
+        "resolution": null,
+        "decision": null,
+        "reason": null,
+        "derived_from": null,
+        "item": {
+          "key": "storefront/48",
+          "number": 48,
+          "tracker_ref": "#48",
+          "title": "Carrinho salvo entre dispositivos",
+          "stage": "final_adjustment",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "organization": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          }
+        },
+        "task": null
+      },
+      {
+        "id": 90,
+        "kind": "decision",
+        "severity": "normal",
+        "status": "open",
+        "title": "Como chamar o carrinho juntado na tela?",
+        "context": "O protótipo diz \"Carrinho combinado\"; o time de produto falou em \"Meu carrinho\". Qualquer nome curto serve.",
+        "options": [],
+        "recommendation": null,
+        "maestri": {
+          "workspace": "Fabrikam",
+          "terminal": "Maestro #48"
+        },
+        "opened_at": "2026-10-09T10:05:00-03:00",
         "opened_by": {
           "role": "maestro",
           "name": "Ária"
@@ -4403,14 +4535,14 @@
     ],
     "counts": {
       "status": {
-        "open": 4,
+        "open": 6,
         "resolved": 5,
         "canceled": 1
       },
       "severity": {
         "critical": 1,
-        "high": 3,
-        "normal": 4,
+        "high": 4,
+        "normal": 5,
         "low": 2
       }
     },
@@ -4629,16 +4761,16 @@
         ]
       },
       "pending_decisions": {
-        "total": 4,
+        "total": 6,
         "by_severity": {
           "critical": 1,
-          "high": 2,
-          "normal": 1,
+          "high": 3,
+          "normal": 2,
           "low": 0
         },
         "open": [
           {
-            "id": 90,
+            "id": 92,
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
@@ -4721,12 +4853,66 @@
             }
           },
           {
-            "id": 85,
+            "id": 83,
+            "kind": "worker_blocked",
+            "severity": "high",
+            "title": "Em que formato sai o extrato exportado?",
+            "derived_from": null,
+            "opened_at": "2026-10-09T09:20:00-03:00",
+            "item": {
+              "key": "portal/3112",
+              "number": 3112,
+              "tracker_ref": "PBI 3112",
+              "title": "Exportar o extrato em PDF",
+              "stage": "implementation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "organization": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": {
+              "number": 3114,
+              "title": "Gerar o PDF no servidor",
+              "state": "working"
+            }
+          },
+          {
+            "id": 86,
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
             "derived_from": null,
             "opened_at": "2026-10-09T09:45:00-03:00",
+            "item": {
+              "key": "storefront/48",
+              "number": 48,
+              "tracker_ref": "#48",
+              "title": "Carrinho salvo entre dispositivos",
+              "stage": "final_adjustment",
+              "project": {
+                "id": "storefront",
+                "name": "Loja",
+                "tracker": "github",
+                "organization": {
+                  "id": "fabrikam",
+                  "name": "Fabrikam"
+                }
+              }
+            },
+            "task": null
+          },
+          {
+            "id": 90,
+            "kind": "decision",
+            "severity": "normal",
+            "title": "Como chamar o carrinho juntado na tela?",
+            "derived_from": null,
+            "opened_at": "2026-10-09T10:05:00-03:00",
             "item": {
               "key": "storefront/48",
               "number": 48,
@@ -4787,10 +4973,10 @@
           "hours": 72
         }
       ],
-      "events_today": 19,
+      "events_today": 21,
       "recent_events": [
         {
-          "id": 91,
+          "id": 93,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "project": {
@@ -4823,7 +5009,7 @@
           }
         },
         {
-          "id": 90,
+          "id": 92,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -4862,7 +5048,7 @@
           }
         },
         {
-          "id": 89,
+          "id": 91,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "project": {
@@ -4898,7 +5084,42 @@
           }
         },
         {
-          "id": 88,
+          "id": 90,
+          "at": "2026-10-09T10:05:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "organization": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 48,
+          "item_key": "storefront/48",
+          "item_title": "Carrinho salvo entre dispositivos",
+          "tracker_ref": "#48",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "decision",
+            "severity": "normal",
+            "title": "Como chamar o carrinho juntado na tela?",
+            "context": "O protótipo diz \"Carrinho combinado\"; o time de produto falou em \"Meu carrinho\". Qualquer nome curto serve.",
+            "options": [],
+            "maestri": {
+              "workspace": "Fabrikam",
+              "terminal": "Maestro #48"
+            }
+          }
+        },
+        {
+          "id": 89,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "project": {
@@ -4928,7 +5149,7 @@
           }
         },
         {
-          "id": 87,
+          "id": 88,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "project": {
@@ -4956,7 +5177,7 @@
           }
         },
         {
-          "id": 86,
+          "id": 87,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -4985,7 +5206,7 @@
           }
         },
         {
-          "id": 85,
+          "id": 86,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -5024,7 +5245,7 @@
           }
         },
         {
-          "id": 84,
+          "id": 85,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "project": {
@@ -5049,7 +5270,7 @@
           "payload": {}
         },
         {
-          "id": 83,
+          "id": 84,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "project": {
@@ -5074,6 +5295,41 @@
           "payload": {
             "pending_decision": 80,
             "reason": "Entrou na especificação do item."
+          }
+        },
+        {
+          "id": 83,
+          "at": "2026-10-09T09:20:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "organization": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3114,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "worker_blocked",
+            "severity": "high",
+            "title": "Em que formato sai o extrato exportado?",
+            "context": "O trabalhador da 3114 parou: a especificação fala em \"arquivo do extrato\" sem dizer se é PDF só, ou PDF e CSV.",
+            "options": [],
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3112"
+            }
           }
         },
         {
@@ -5107,71 +5363,6 @@
               "total": 5
             },
             "maestri": "posted"
-          }
-        },
-        {
-          "id": 81,
-          "at": "2026-10-09T09:00:00-03:00",
-          "type": "pending-decision-resolved",
-          "project": {
-            "id": "painel-maestro",
-            "name": "painel-maestro",
-            "tracker": "github",
-            "organization": {
-              "id": "personal",
-              "name": "Pessoal"
-            }
-          },
-          "item_number": 5,
-          "item_key": "painel-maestro/5",
-          "item_title": "Item ponta a ponta (tracer bullet)",
-          "tracker_ref": "#5",
-          "task_number": 5,
-          "agent": {
-            "role": "owner",
-            "name": null
-          },
-          "source": "cli",
-          "payload": {
-            "pending_decision": 75,
-            "decision": "B: vira task nova para triagem."
-          }
-        },
-        {
-          "id": 80,
-          "at": "2026-10-09T09:00:00-03:00",
-          "type": "pending-decision-opened",
-          "project": {
-            "id": "billing-api",
-            "name": "Cobrança",
-            "tracker": "azure_devops",
-            "organization": {
-              "id": "contoso",
-              "name": "Contoso"
-            }
-          },
-          "item_number": 2901,
-          "item_key": "billing-api/2901",
-          "item_title": "Limite de tentativas por cartão",
-          "tracker_ref": "PBI 2901",
-          "task_number": null,
-          "agent": {
-            "role": "maestro",
-            "name": "Bento"
-          },
-          "source": "cli",
-          "payload": {
-            "kind": "decision",
-            "severity": "low",
-            "title": "Limite por cartão ou por cliente?",
-            "options": [
-              "A: Por cartão",
-              "B: Por cliente"
-            ],
-            "maestri": {
-              "workspace": "Contoso",
-              "terminal": "Maestro PBI 2901"
-            }
           }
         }
       ]
@@ -5255,16 +5446,16 @@
         ]
       },
       "pending_decisions": {
-        "total": 3,
+        "total": 4,
         "by_severity": {
           "critical": 1,
-          "high": 2,
+          "high": 3,
           "normal": 0,
           "low": 0
         },
         "open": [
           {
-            "id": 90,
+            "id": 92,
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
@@ -5345,14 +5536,43 @@
               "title": "Botão de exportar na tela do extrato",
               "state": "review"
             }
+          },
+          {
+            "id": 83,
+            "kind": "worker_blocked",
+            "severity": "high",
+            "title": "Em que formato sai o extrato exportado?",
+            "derived_from": null,
+            "opened_at": "2026-10-09T09:20:00-03:00",
+            "item": {
+              "key": "portal/3112",
+              "number": 3112,
+              "tracker_ref": "PBI 3112",
+              "title": "Exportar o extrato em PDF",
+              "stage": "implementation",
+              "project": {
+                "id": "portal",
+                "name": "Portal Contoso",
+                "tracker": "azure_devops",
+                "organization": {
+                  "id": "contoso",
+                  "name": "Contoso"
+                }
+              }
+            },
+            "task": {
+              "number": 3114,
+              "title": "Gerar o PDF no servidor",
+              "state": "working"
+            }
           }
         ]
       },
       "stale_items": [],
-      "events_today": 11,
+      "events_today": 12,
       "recent_events": [
         {
-          "id": 90,
+          "id": 92,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -5391,7 +5611,7 @@
           }
         },
         {
-          "id": 89,
+          "id": 91,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "project": {
@@ -5427,7 +5647,7 @@
           }
         },
         {
-          "id": 88,
+          "id": 89,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "project": {
@@ -5457,7 +5677,7 @@
           }
         },
         {
-          "id": 86,
+          "id": 87,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -5486,7 +5706,7 @@
           }
         },
         {
-          "id": 83,
+          "id": 84,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "project": {
@@ -5511,6 +5731,41 @@
           "payload": {
             "pending_decision": 80,
             "reason": "Entrou na especificação do item."
+          }
+        },
+        {
+          "id": 83,
+          "at": "2026-10-09T09:20:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "portal",
+            "name": "Portal Contoso",
+            "tracker": "azure_devops",
+            "organization": {
+              "id": "contoso",
+              "name": "Contoso"
+            }
+          },
+          "item_number": 3112,
+          "item_key": "portal/3112",
+          "item_title": "Exportar o extrato em PDF",
+          "tracker_ref": "PBI 3112",
+          "task_number": 3114,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "worker_blocked",
+            "severity": "high",
+            "title": "Em que formato sai o extrato exportado?",
+            "context": "O trabalhador da 3114 parou: a especificação fala em \"arquivo do extrato\" sem dizer se é PDF só, ou PDF e CSV.",
+            "options": [],
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3112"
+            }
           }
         },
         {
@@ -5723,33 +5978,6 @@
             },
             "maestri": "posted"
           }
-        },
-        {
-          "id": 71,
-          "at": "2026-10-08T18:10:00-03:00",
-          "type": "pr-changed",
-          "project": {
-            "id": "billing-api",
-            "name": "Cobrança",
-            "tracker": "azure_devops",
-            "organization": {
-              "id": "contoso",
-              "name": "Contoso"
-            }
-          },
-          "item_number": 2875,
-          "item_key": "billing-api/2875",
-          "item_title": "Reprocessar cobranças recusadas pelo gateway",
-          "tracker_ref": "PBI 2875",
-          "task_number": null,
-          "agent": {
-            "role": "maestro",
-            "name": "Bento"
-          },
-          "source": "cli",
-          "payload": {
-            "state": "ready"
-          }
         }
       ]
     },
@@ -5814,21 +6042,46 @@
         ]
       },
       "pending_decisions": {
-        "total": 1,
+        "total": 2,
         "by_severity": {
           "critical": 0,
           "high": 0,
-          "normal": 1,
+          "normal": 2,
           "low": 0
         },
         "open": [
           {
-            "id": 85,
+            "id": 86,
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
             "derived_from": null,
             "opened_at": "2026-10-09T09:45:00-03:00",
+            "item": {
+              "key": "storefront/48",
+              "number": 48,
+              "tracker_ref": "#48",
+              "title": "Carrinho salvo entre dispositivos",
+              "stage": "final_adjustment",
+              "project": {
+                "id": "storefront",
+                "name": "Loja",
+                "tracker": "github",
+                "organization": {
+                  "id": "fabrikam",
+                  "name": "Fabrikam"
+                }
+              }
+            },
+            "task": null
+          },
+          {
+            "id": 90,
+            "kind": "decision",
+            "severity": "normal",
+            "title": "Como chamar o carrinho juntado na tela?",
+            "derived_from": null,
+            "opened_at": "2026-10-09T10:05:00-03:00",
             "item": {
               "key": "storefront/48",
               "number": 48,
@@ -5889,10 +6142,45 @@
           "hours": 72
         }
       ],
-      "events_today": 2,
+      "events_today": 3,
       "recent_events": [
         {
-          "id": 85,
+          "id": 90,
+          "at": "2026-10-09T10:05:00-03:00",
+          "type": "pending-decision-opened",
+          "project": {
+            "id": "storefront",
+            "name": "Loja",
+            "tracker": "github",
+            "organization": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 48,
+          "item_key": "storefront/48",
+          "item_title": "Carrinho salvo entre dispositivos",
+          "tracker_ref": "#48",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "decision",
+            "severity": "normal",
+            "title": "Como chamar o carrinho juntado na tela?",
+            "context": "O protótipo diz \"Carrinho combinado\"; o time de produto falou em \"Meu carrinho\". Qualquer nome curto serve.",
+            "options": [],
+            "maestri": {
+              "workspace": "Fabrikam",
+              "terminal": "Maestro #48"
+            }
+          }
+        },
+        {
+          "id": 86,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -5931,7 +6219,7 @@
           }
         },
         {
-          "id": 84,
+          "id": 85,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "project": {
@@ -6231,34 +6519,6 @@
             "shared_files": [],
             "text": "Task 49 pronta: o carrinho fica salvo na conta (30 dias). npm test: 0 falhas."
           }
-        },
-        {
-          "id": 25,
-          "at": "2026-10-05T09:00:00-03:00",
-          "type": "item-started",
-          "project": {
-            "id": "erp",
-            "name": "ERP Fabrikam",
-            "tracker": "azure_devops",
-            "organization": {
-              "id": "fabrikam",
-              "name": "Fabrikam"
-            }
-          },
-          "item_number": 1204,
-          "item_key": "erp/1204",
-          "item_title": "Nota fiscal de serviço eletrônica",
-          "tracker_ref": "PBI 1204",
-          "task_number": null,
-          "agent": {
-            "role": "maestro",
-            "name": "Bento"
-          },
-          "source": "cli",
-          "payload": {
-            "title": "Nota fiscal de serviço eletrônica",
-            "stage": "specification"
-          }
         }
       ]
     },
@@ -6313,7 +6573,7 @@
       "events_today": 5,
       "recent_events": [
         {
-          "id": 91,
+          "id": 93,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "project": {
@@ -6649,7 +6909,7 @@
       "events_today": 1,
       "recent_events": [
         {
-          "id": 87,
+          "id": 88,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "project": {
@@ -8260,7 +8520,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 91,
+          "id": 93,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -8321,7 +8581,7 @@
         "task": null,
         "active_tasks": 3,
         "last_event": {
-          "id": 90,
+          "id": 92,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -8400,22 +8660,24 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 82,
-          "at": "2026-10-09T09:15:00-03:00",
-          "type": "task-status",
+          "id": 83,
+          "at": "2026-10-09T09:20:00-03:00",
+          "type": "pending-decision-opened",
           "task_number": 3114,
           "agent": {
-            "role": "worker",
-            "name": "Caio"
+            "role": "maestro",
+            "name": "Bento"
           },
           "payload": {
-            "state": "working",
-            "text": "Layout gerado, faltam as fontes",
-            "progress": {
-              "done": 2,
-              "total": 5
-            },
-            "maestri": "posted"
+            "kind": "worker_blocked",
+            "severity": "high",
+            "title": "Em que formato sai o extrato exportado?",
+            "context": "O trabalhador da 3114 parou: a especificação fala em \"arquivo do extrato\" sem dizer se é PDF só, ou PDF e CSV.",
+            "options": [],
+            "maestri": {
+              "workspace": "Contoso",
+              "terminal": "Maestro PBI 3112"
+            }
           }
         },
         "last_activity_at": "2026-10-09T10:22:00-03:00",
@@ -8550,7 +8812,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 90,
+          "id": 92,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -8617,7 +8879,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 87,
+          "id": 88,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -8657,8 +8919,8 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 85,
-          "at": "2026-10-09T09:45:00-03:00",
+          "id": 90,
+          "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
           "agent": {
@@ -8666,15 +8928,11 @@
             "name": "Ária"
           },
           "payload": {
-            "kind": "finding",
+            "kind": "decision",
             "severity": "normal",
-            "title": "Achado: o carrinho anônimo expira em 24 h",
-            "context": "Na revisão final apareceu que o carrinho de quem não entrou na conta some em 24 h; ao juntar carrinhos, itens antigos se perdem.",
-            "options": [
-              "A: Manter 24 h",
-              "B: Estender para 7 dias (task nova)"
-            ],
-            "recommendation": "B, como task nova para triagem.",
+            "title": "Como chamar o carrinho juntado na tela?",
+            "context": "O protótipo diz \"Carrinho combinado\"; o time de produto falou em \"Meu carrinho\". Qualquer nome curto serve.",
+            "options": [],
             "maestri": {
               "workspace": "Fabrikam",
               "terminal": "Maestro #48"
@@ -8724,7 +8982,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 83,
+          "id": 84,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "task_number": null,

@@ -396,7 +396,7 @@ export default {
     pendingTitle: 'Pendências do dono',
     pendingAria: 'Pendências do dono: {total} abertas. Abrir a tela Pendências.',
     pendingAriaWithSummary: 'Pendências do dono: {total} abertas ({summary}). Abrir a tela Pendências.',
-    pendingInfo: 'Esperando decisão sua: {summary}. Clique para ver na tela Pendências; você responde no terminal do maestro.',
+    pendingInfo: 'Esperando decisão sua: {summary}. Clique para ver e responder na tela Pendências.',
     pendingNone: 'Nada esperando por você agora.',
     stale: 'Parados',
     staleDetail: 'há mais de {limit} na etapa',
@@ -438,7 +438,7 @@ export default {
     openLog: 'Abrir o log',
   },
 
-  // Pending decisions of the new model (#10), read only: the owner answers in the maestro's Maestri terminal.
+  // Pending decisions of the new model (#10): the owner answers on this screen (#32) or in the maestro's Maestri terminal.
   pending: {
     ref: 'P-{id}',
     kinds: {
@@ -506,12 +506,32 @@ export default {
     cancelReason: 'Motivo do cancelamento',
     noReason: 'Sem motivo registrado.',
     whereTitle: 'Onde responder',
-    whereInfo: 'O painel só mostra as pendências. Responda ao maestro no terminal dele no Maestri; ele registra a sua decisão com flow pending resolve.',
-    whereEmpty: 'Onde responder aparece aqui.',
+    whereInfo: 'O terminal do maestro no Maestri, onde você também pode conversar com ele sobre esta pendência.',
     whereUnknown: 'O maestro não informou o workspace nem o terminal do Maestri.',
     workspace: 'Workspace',
     terminal: 'Terminal',
-    readOnlyNote: 'Responda no terminal do maestro: a decisão volta para cá quando ele a registrar.',
+    // the owner's answer (#32)
+    answerTitle: 'Responder',
+    answerInfo: 'Escolha uma opção, escreva um comentário se quiser e envie. O painel grava a decisão em seu nome e a pendência fica resolvida na hora; clicar numa opção só a seleciona.',
+    answerEmpty: 'A resposta aparece aqui.',
+    recommended: 'recomendada',
+    comment: 'Comentário',
+    commentOptional: 'Comentário (opcional)',
+    commentHintOptions: 'Um complemento para o maestro, como "mas mantenha o nome antigo".',
+    commentHintNoOptions: 'Sem opções: escreva a sua decisão.',
+    answerTooLong: 'A resposta tem {count} caracteres, contando a opção; o limite é {max}.',
+    send: 'Enviar resposta',
+    sending: 'Enviando...',
+    // Some translated codes end without a period (database_unreadable).
+    answerFailed: (c) => {
+      const message = String(c.message || '').trim();
+      const reason = !message ? '.' : `: ${message}${/[.!?…]$/.test(message) ? '' : '.'}`;
+      return `Não consegui enviar a resposta${reason} O que você escreveu continua aqui.`;
+    },
+    answered: 'Pendência P-{id} respondida.',
+    alreadyClosed: 'Esta pendência já foi fechada (P-{id}).',
+    answerNote: 'Se o maestro está esperando esta pendência, ele é acordado com a sua decisão; senão, ele a vê quando retomar o item.',
+    otherWayTitle: 'Ou fale com o maestro',
     openedLabel: 'Aberta',
   },
 
@@ -802,5 +822,15 @@ export default {
     merge_check_fixed_clock: 'desligada com relógio fixo (teste)',
     pr_not_ready: (c) => (c.state === 'merged' ? 'O PR já está mergeado.'
       : c.state === 'draft' ? 'O PR ainda está em rascunho: só um PR pronto pode ser marcado como mergeado.' : 'O item não tem PR registrado.'),
+    // the owner's answer to a pending decision (#32)
+    invalid_body: (c) => (c.field === 'text' ? 'Resposta inválida: o comentário precisa ser texto.' : 'Resposta inválida: envie um objeto JSON com a opção e o comentário.'),
+    invalid_option: 'Opção inválida: "{value}". Use a letra de uma das opções.',
+    answer_empty: 'Escolha uma opção ou escreva um comentário.',
+    answer_too_long: 'Resposta longa demais: {length} caracteres, contando a opção; o limite é {max}.',
+    option_not_found: (c) => (Array.isArray(c.options) && c.options.length
+      ? `A pendência P-${c.id} não tem a opção ${c.option} (as opções são ${c.options.join(', ')}).`
+      : `A pendência P-${c.id} não tem opções: responda só com o comentário.`),
+    pending_decision_not_found: 'Pendência P-{id} não encontrada.',
+    pending_decision_not_open: (c) => `A pendência P-${c.id} já foi fechada (${c.status === 'canceled' ? 'cancelada' : 'resolvida'}${c.closed_at ? ` em ${dayTime(c.closed_at)}` : ''}).`,
   },
 };

@@ -161,13 +161,13 @@ suite.test('a database in WAL (as the writers leave it) is refused the same way,
   assert.deepStrictEqual(main(snapshot(r)), before);
 });
 
-suite.test('the flow CLI (item commands, status and flow-admin) exits 1 with the translated message and writes nothing', () => {
+suite.test('the flow CLI (item commands, status, pending wait and flow-admin) exits 1 with the translated message and writes nothing', () => {
   const r = buildRoot('cli');
   registered(r);
   const before = snapshot(r);
   const message = `${t('errors.prefix', { message: t('errors.schemaTooNew', { ...REFUSAL, file: r.file.replace(/\\/g, '/') }) })}\n`;
   assert.ok(/versão mais nova do painel-maestro/.test(message) && /atualize o código/.test(message), message);
-  for (const args of [['stage', '12', 'implementation'], ['status', 'Testando', '--item', '12', '--task', '12'], ['org', 'list'], ['project', 'list']]) {
+  for (const args of [['stage', '12', 'implementation'], ['status', 'Testando', '--item', '12', '--task', '12'], ['pending', 'wait', 'P-1'], ['org', 'list'], ['project', 'list']]) {
     const x = flow(r, args, sp('10:00:00'));
     assert.deepStrictEqual([args.join(' '), x.status, x.stdout, x.stderr], [args.join(' '), 1, '', message]);
   }
@@ -185,6 +185,8 @@ suite.test('the API answers 503 schema_too_new and the health badge says why (re
     }
     const post = await get('/api/organizations', { method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 'nova', name: 'Nova' }) });
     assert.deepStrictEqual([post.status, post.json], [503, { error: REFUSAL }]);
+    const answer = await get('/api/pending-decisions/P-1/answer', { method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ option: 'A' }) });
+    assert.deepStrictEqual([answer.status, answer.json], [503, { error: REFUSAL }]);
     const st = await get('/api/state');
     assert.strictEqual(st.status, 200, st.text);
     assert.strictEqual(st.json.health.level, 'red');

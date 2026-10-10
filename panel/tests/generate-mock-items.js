@@ -271,6 +271,15 @@ const PENDING = [
     context: 'Na revisão final apareceu que o carrinho de quem não entrou na conta some em 24 h; ao juntar carrinhos, itens antigos se perdem.',
     options: ['A: Manter 24 h', 'B: Estender para 7 dias (task nova)'], recommendation: 'B, como task nova para triagem.',
     maestri: { workspace: 'Fabrikam', terminal: 'Maestro #48' } }],
+  // Open ones without options (#32): the owner answers only with a comment.
+  [null, 'portal', 3112, '2026-10-09T09:20:00', 'pending-decision-opened', 3114, MAESTRO, {
+    kind: 'worker_blocked', severity: 'high', title: 'Em que formato sai o extrato exportado?',
+    context: 'O trabalhador da 3114 parou: a especificação fala em "arquivo do extrato" sem dizer se é PDF só, ou PDF e CSV.',
+    options: [], maestri: CONTOSO }],
+  [null, 'storefront', 48, '2026-10-09T10:05:00', 'pending-decision-opened', null, ['maestro', 'Ária'], {
+    kind: 'decision', severity: 'normal', title: 'Como chamar o carrinho juntado na tela?',
+    context: 'O protótipo diz "Carrinho combinado"; o time de produto falou em "Meu carrinho". Qualquer nome curto serve.',
+    options: [], maestri: { workspace: 'Fabrikam', terminal: 'Maestro #48' } }],
   ['finding-5', 'painel-maestro', 5, '2026-10-09T08:30:00', 'pending-decision-opened', 5, ['maestro', 'Ária'], {
     kind: 'finding', severity: 'low', title: 'Achado: o selo de saúde não conta o maestro.db',
     options: ['A: Corrigir agora', 'B: Task nova para triagem'], maestri: { workspace: 'Pessoal', terminal: 'Maestro #5' } }],

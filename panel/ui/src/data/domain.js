@@ -27,6 +27,34 @@ export function pendingTitle(p) {
   return typeof p.title === 'string' && p.title.trim() ? p.title : t('pending.noTitle');
 }
 
+// The owner's answer to a pending decision (#32): the longest decision, in characters (bin/flow-projection.js
+// MAX_PENDING_DECISION, the CLI's limit), and how the option and the comment become the decision.
+export const MAX_DECISION = 2000;
+export const DECISION_JOINER = ' — ';
+
+/**
+ * The letter of each option: their own ("B: Pedir ajuste" → B) when every option starts with one and no two repeat;
+ * otherwise the letter of each one's position (the first is A). A copy of the server's rule
+ * (panel/api-pending-decisions.js, optionLetters; test-index.js checks that both agree).
+ */
+export function optionLetters(options) {
+  const own = options.map((o) => {
+    const m = /^\s*([a-z])\s*[:)]/i.exec(o);
+    return m ? m[1].toUpperCase() : null;
+  });
+  if (own.every(Boolean) && new Set(own).size === own.length) return own;
+  return options.map((_, i) => String.fromCharCode(65 + i));
+}
+
+/** The option the recommendation starts with ("A: segue o contrato.", "B, e abrir um achado"), when it is one of letters; else null. */
+export function recommendedLetter(recommendation, letters) {
+  const m = /^\s*([A-Z])\s*(?:[:,)]|$)/.exec(typeof recommendation === 'string' ? recommendation : '');
+  return m && letters.includes(m[1]) ? m[1] : null;
+}
+
+/** The decision the panel records: the option as it was opened, the option and the comment, or only the comment. */
+export const decisionText = (option, comment) => [option, comment].filter(Boolean).join(DECISION_JOINER);
+
 export const USAGE_PERIODS = [
   { id: 'window_5h', plan: 'window_5h_pct' },
   { id: 'today', plan: null },
