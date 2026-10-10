@@ -522,7 +522,12 @@ export default {
     answerTooLong: 'A resposta tem {count} caracteres, contando a opção; o limite é {max}.',
     send: 'Enviar resposta',
     sending: 'Enviando...',
-    answerFailed: 'Não consegui enviar a resposta. {message} O que você escreveu continua aqui.',
+    // Some translated codes end without a period (database_unreadable).
+    answerFailed: (c) => {
+      const message = String(c.message || '').trim();
+      const reason = !message ? '.' : `: ${message}${/[.!?…]$/.test(message) ? '' : '.'}`;
+      return `Não consegui enviar a resposta${reason} O que você escreveu continua aqui.`;
+    },
     answered: 'Pendência P-{id} respondida.',
     alreadyClosed: 'Esta pendência já foi fechada (P-{id}).',
     answerNote: 'Se o maestro está esperando esta pendência, ele é acordado com a sua decisão; senão, ele a vê quando retomar o item.',

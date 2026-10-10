@@ -8,3 +8,4 @@ As skills de implementação (maestro e trabalhador, com ou sem Maestri) passam 
 - O relatório do trabalhador, que antes só existia como texto colado no terminal do maestro, passa a ser gravado.
 - Mudar as skills é pré-requisito: sem elas gravarem, o painel fica vazio.
 - Única exceção: o merge do PR, que costuma acontecer na interface do tracker sem nenhum agente presente. Para itens com PR pronto e não mergeado, o painel consulta o PR (`gh pr view` ou a REST do Azure DevOps com o token do `az`), só leitura, e grava o evento; um botão "marcar como mergeado" cobre quando a consulta falha.
+- A resposta da pendência pelo painel também grava em nome do dono (papel `owner`, origem painel), sem agente presente (ADR 0005).

@@ -90,6 +90,16 @@ suite.test('t() interpolates parameters, chooses the plural and keeps a missing 
   assert.strictEqual(i18n.has('no.such.key'), false);
 });
 
+suite.test('Pendências (#32): a failed answer shows the reason as a sentence, with or without a final period', () => {
+  const { t, translateCode } = i18n;
+  const unreadable = translateCode({ code: 'database_unreadable', file: 'maestro.db', detail: 'SQLITE_BUSY' });
+  assert.strictEqual(t('pending.answerFailed', { message: unreadable }),
+    'Não consegui enviar a resposta: Não consegui ler o maestro.db (SQLITE_BUSY). O que você escreveu continua aqui.');
+  assert.strictEqual(t('pending.answerFailed', { message: 'O servidor respondeu 500.' }),
+    'Não consegui enviar a resposta: O servidor respondeu 500. O que você escreveu continua aqui.');
+  assert.strictEqual(t('pending.answerFailed', {}), 'Não consegui enviar a resposta. O que você escreveu continua aqui.');
+});
+
 suite.test('the relative times and durations keep the texts of before', async () => {
   const format = await import(pathToFileURL(path.join(SOURCE, 'data', 'format.js')).href);
   assert.strictEqual(format.elapsedText(0.2), 'agora');
