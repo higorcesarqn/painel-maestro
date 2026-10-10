@@ -1,11 +1,13 @@
 // Panel shell: reads /api/state every 20 s, keeps the current screen in the URL (#overview, #log...),
 // the Log filters and the pending decision to open when the Overview sends the person there. Only the visible
-// screen is drawn.
+// screen is drawn. When a state read says the page changed on disk (version.page, #37), a fixed strip asks for a
+// reload, which is only ever the person's click.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { PanelContext, SCREENS, parseHash, newFilter } from '../data/context.js';
 import { REFRESH_MS, MOCK, readState, recalculateUsage, readLog } from '../data/api.js';
 import { syncClock, time, txt, obj } from '../data/format.js';
 import { logParams } from '../data/queries.js';
+import { pageOutdated } from '../data/page.js';
 import { useOrganizations } from '../data/organizations.js';
 import { t } from '../i18n/index.js';
 import { Sidebar } from './Sidebar.jsx';
@@ -17,7 +19,7 @@ import { Log } from '../screens/Log.jsx';
 import { Agents } from '../screens/Agents.jsx';
 import { Usage } from '../screens/Usage.jsx';
 import { Organizations } from '../screens/Organizations.jsx';
-import { Icon, TriangleAlert, Info } from '../components/Icon.jsx';
+import { Icon, TriangleAlert, Info, RefreshCw } from '../components/Icon.jsx';
 
 // One screen per item of SCREENS (data/screens.js). A new screen goes here and there.
 const SCREEN_COMPONENTS = { overview: Overview, items: Items, pending: PendingDecisions, log: Log, agents: Agents, usage: Usage, organizations: Organizations };
@@ -171,7 +173,13 @@ export function App() {
         <Sidebar />
         <div class="main">
           <Header />
-          <div>
+          <div class="banners">
+            {pageOutdated(state) && (
+              <div class="banner update" role="status"><Icon of={RefreshCw} />
+                <span>{t('app.pageOutdated')}</span>
+                <button type="button" class="button primary small" onClick={() => location.reload()}>{t('app.reload')}</button>
+              </div>
+            )}
             {MOCK && (
               <div class="banner mock"><Icon of={Info} />{t('app.mockBanner')}</div>
             )}

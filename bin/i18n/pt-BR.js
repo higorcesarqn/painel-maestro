@@ -451,6 +451,8 @@ CÓDIGOS DE SAÍDA
       taskAlreadyInItem: 'a task {task} já é do item {key}; o achado vira uma task nova (use outro número).',
     },
   },
+  // flow --version (#36): the semver of the root package.json and the commit of the code (none outside a clone).
+  version: (p) => `painel-maestro${p.product ? ` ${p.product}` : ''}${p.commit ? ` (${p.commit})` : ''}`,
   help: (p) => `flow · registra o fluxo dos itens no painel (eventos em ${p.db})
 
 O projeto é reconhecido pelo "git remote origin" da pasta atual (vale dentro do worktree de um floor).
@@ -532,6 +534,12 @@ ACHADOS (maestro)
       Liga depois um achado já registrado à task nova que ele virou.
 
 ${ADMIN_HELP}
+VERSÃO
+  node bin/flow.js --version  (ou -v)
+      Mostra a versão do painel-maestro: painel-maestro <semver> (<commit>). O semver é o do package.json da
+      raiz; o commit é o do código, e some quando ele roda de uma pasta sem git (ou sem git no PATH).
+      É a mesma versão do rodapé do painel. Não precisa rodar dentro de um repositório.
+
 OPÇÕES DO AGENTE
   --role maestro|worker|owner     quem grava (padrão: maestro; no status, worker)
   --agent "<nome>"                codinome do agente (opcional)

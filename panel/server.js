@@ -13,7 +13,9 @@
 //
 // Routes (details in panel/README.md):
 //   GET  /                                    the page (index.html, a single file)
-//   GET  /api/state                           health badge, menu counter of open pending decisions, plan usage, collector
+//   GET  /api/state                           health badge, menu counter of open pending decisions, plan usage, collector,
+//                                             the panel's version (semver, the commit the server started on and the
+//                                             id of the current index.html)
 //   POST /api/recalculate                     runs the usage collector now and returns /api/state
 //   GET  /api/overview[?organization=]        Overview (api-overview.js)
 //   GET  /api/items[?active=&organization=&project=], GET /api/items/<project>/<number>   items (api-items.js)
@@ -35,8 +37,10 @@
 // Variables: PANEL_PORT (default 4777; --port wins), MAESTRO_DIR (default ~/.painel-maestro),
 //   MAESTRI_DATA_DIR and CLAUDE_CONFIG_DIR (passed to the collector), PANEL_COLLECTOR=0 (does not run
 //   the collector by itself), PANEL_STALE_HOURS (default 48: hours on the same stage that make an active item
-//   "stale" in the Overview) and, for tests only, PANEL_INDEX (another index.html) and PANEL_NOW
-//   (fixed clock; MAESTRO_NOW also works).
+//   "stale" in the Overview) and, for tests only, PANEL_INDEX (another index.html), PANEL_NOW
+//   (fixed clock; MAESTRO_NOW also works), PANEL_REPO_DIR (the repository whose version and commits the server
+//   reads, #38; default: the folder of the code) and PANEL_OUTDATED_CACHE_MS (the cache of the server_outdated check,
+//   in ms: an integer from 10 up; any other value → the default, 5000).
 //   Merge check (merge-check.js): PANEL_MERGE_CHECK=0|1, PANEL_MERGE_CHECK_SECONDS, PANEL_GH_CLI, PANEL_AZ_CLI,
 //   PANEL_AZURE_DEVOPS_URL.
 
@@ -59,6 +63,8 @@ const usageApi = require(path.join(__dirname, 'api-usage.js'));
 const overviewApi = require(path.join(__dirname, 'api-overview.js'));
 const { evaluateHealth } = require(path.join(__dirname, 'health.js'));
 const { asDate, isoSP, InvalidData, parseOptions } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
+const { readVersion } = require(path.join(__dirname, '..', 'bin', 'version.js'));
+const { createServerOutdatedCheck, CACHE_MS: OUTDATED_CACHE_MS } = require(path.join(__dirname, 'server-outdated.js'));
 const { readJson, readText, withRetries, writeAtomic } = collector.util;
 
 const MIN_MS = 60 * 1000;
@@ -93,12 +99,15 @@ function parseConfig(argv = [], env = process.env) {
   const staleHours = staleText === undefined || staleText === '' ? DEFAULT_STALE_HOURS : Number(staleText);
   if (!(Number.isFinite(staleHours) && staleHours > 0)) throw new InvalidData('server.errors.invalidStaleHours', { value: staleText });
   const mergeCheckConfig = mergeCheck.parseConfig(env, { collectorActive: env.PANEL_COLLECTOR !== '0', fixedNow });
+  const outdatedMs = Number(env.PANEL_OUTDATED_CACHE_MS);
   return {
     mergeCheck: mergeCheckConfig,
     staleHours,
     port: p,
     dataDir: flowDir(env),
     indexPath: path.resolve(env.PANEL_INDEX || path.join(__dirname, 'index.html')),
+    repoDir: path.resolve(env.PANEL_REPO_DIR || path.join(__dirname, '..')),
+    outdatedCacheMs: Number.isInteger(outdatedMs) && outdatedMs >= 10 ? outdatedMs : OUTDATED_CACHE_MS,
     fixedNow,
     collectorActive: env.PANEL_COLLECTOR !== '0',
     env,
@@ -168,6 +177,16 @@ class FileCache {
 
 // ---------- building the answers ----------
 
+// The page id (#37): the build (ui/scripts/publish.js) writes a hash of the bundle into index.html; a tab compares
+// its own id with the one of the current file to know the page changed on disk.
+const PAGE_ID = /<meta name="page-id" content="([0-9a-f]{16})">/;
+
+/** The page id of an index.html read ({exists, text}), or null without one. */
+function pageIdOf(read) {
+  const m = read && typeof read.text === 'string' ? PAGE_ID.exec(read.text) : null;
+  return m ? m[1] : null;
+}
+
 /** Plan of usage.json checked against the current clock (age and windows that already reset). */
 function planNow(plan, t) {
   const p = Object.assign({}, plan);
@@ -227,12 +246,14 @@ function pendingKpi(items) {
 
 /**
  * GET /api/state, from its parts (the demo's generator builds it with the same function):
- * { generated_at, health, kpis: { pending_decisions, usage }, collector, warnings }.
+ * { generated_at, health, kpis: { pending_decisions, usage }, collector, warnings, version }.
  * items: the items source (api-items.js); raw: the raw log source (api-log.js); usageFile: the read of
- * state/usage.json ({exists, data, error}); problems: health codes other checks add (the merge check, #11);
+ * state/usage.json ({exists, data, error}); problems: health codes other checks add (the merge check, #11; server_outdated, #38);
  * hookFailure: the hook's last failure (bin/hook-failure.js, #28) or null.
+ * version: { product, commit } read when the server started (bin/version.js, #36), commit null without git, and
+ * page, the id of the current index.html (#37), null when the file has none.
  */
-function stateAnswer({ items, raw, usageFile, nowMs, problems = [], hookFailure = null, collector: collectorInfo }) {
+function stateAnswer({ items, raw, usageFile, nowMs, problems = [], hookFailure = null, collector: collectorInfo, version = { product: null, commit: null } }) {
   const warnings = [];
   const usage = usageKpi(usageFile, nowMs, warnings);
   return {
@@ -241,6 +262,7 @@ function stateAnswer({ items, raw, usageFile, nowMs, problems = [], hookFailure 
     kpis: { pending_decisions: pendingKpi(items), usage },
     collector: collectorInfo,
     warnings,
+    version: { product: version.product, commit: version.commit, page: version.page || null },
   };
 }
 
@@ -250,6 +272,8 @@ function createContext(cfg) {
   const ctx = {
     cfg,
     files: new FileCache(),
+    // The semver and the commit the server started on (#36): the code only changes on a restart.
+    version: readVersion(cfg.repoDir),
     items: itemsApi.createItemsSource(cfg.env),
     raw: logApi.createRawSource(cfg.env),
     usageFile: path.join(cfg.dataDir, ...USAGE_FILE.split('/')),
@@ -280,6 +304,8 @@ function createContext(cfg) {
     ctx.allowedOrigins = new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
   };
   ctx.setPort(cfg.port);
+  // server_outdated (#38): the code the server runs changed in git since the commit it started on.
+  ctx.serverOutdated = createServerOutdatedCheck({ repoDir: cfg.repoDir, startedCommit: ctx.version.commit, cacheMs: cfg.outdatedCacheMs });
   ctx.mergeCheck = mergeCheck.createMergeCheck({ config: cfg.mergeCheck, env: cfg.env, items: ctx.items, now: ctx.now, log: ctx.log, logError: ctx.logError });
   /** Runs the usage collector; calls during a collection wait for the same collection. */
   ctx.runCollector = (trigger) => {
@@ -323,7 +349,8 @@ function collectorState(ctx) {
 async function buildState(ctx) {
   return stateAnswer({
     items: ctx.items, raw: ctx.raw, usageFile: await ctx.files.json(ctx.usageFile), nowMs: ctx.now().getTime(),
-    problems: ctx.mergeCheck.healthReasons(), collector: collectorState(ctx),
+    problems: [...ctx.mergeCheck.healthReasons(), ...await ctx.serverOutdated.healthReasons()], collector: collectorState(ctx),
+    version: { ...ctx.version, page: pageIdOf(await ctx.files.text(ctx.cfg.indexPath)) },
     hookFailure: hookFailureOf(await ctx.files.json(path.join(ctx.cfg.dataDir, HOOK_FAILURE_FILE))),
   });
 }

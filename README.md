@@ -31,7 +31,7 @@ No topo, o **seletor de organização** (Todas ou uma organização, lembrado ne
 - **Uso:** o plano Claude (5 h e semanal, com o reinício), o consumo de cada item em cada período e os tokens de cada agente.
 - **Organizações:** o cadastro inteiro, qualquer que seja o seletor do topo: um card por organização (nome, id, projetos e itens), em ordem alfabética, com "Sem organização" por último e só quando tem projetos; o botão **Nova organização** cria uma (nome até 80 caracteres, único sem diferenciar maiúsculas, e o id sugerido a partir do nome, editável antes de salvar e fixo depois); **Renomear**, no card, abre um modal com o nome atual preenchido (mesma regra de nome, e o próprio nome com outras maiúsculas é aceito; o id não muda; o seletor do topo e as outras telas passam a mostrar o nome novo; "Sem organização" não tem o botão); **Excluir**, no card, exclui uma organização sem projetos depois de confirmar num modal com o nome dela (com projetos o botão fica desabilitado com "mova os N projetos antes"; "Sem organização" não tem o botão; se ela era a do seletor do topo, ele volta para Todas); dentro de cada card, os projetos (nome, tracker, repositórios, itens) com **Mover para** outra organização, a mesma linha do card "Sem organização" da tela Itens.
 
-A página se atualiza sozinha a cada 20 segundos.
+A página se atualiza sozinha a cada 20 segundos. O rodapé do menu mostra a versão do painel-maestro (veja [Versão](#versão)). Quando a página muda no disco (um `npm run build`, um `git pull` que traz outro `index.html`), uma aba aberta antes mostra, em até 20 s, uma faixa fixa no topo: "O painel foi atualizado. Recarregue para usar a versão nova.", com o botão **Recarregar**.
 
 ## Instalar do zero
 
@@ -279,7 +279,10 @@ O merge do PR costuma acontecer na interface do tracker, sem agente presente (um
 | `MAESTRI_DATA_DIR` | `~/.maestri` | onde está o `usage/providers/.status.json` do plano Claude |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | pasta do Claude Code (transcrições e o destino do `install-skills.js`) |
 | `PANEL_INDEX`, `PANEL_NOW`, `MAESTRO_NOW` | | só para testes: outro `index.html` e relógio fixo |
+| `PANEL_REPO_DIR` | a pasta do código | só para testes: o repositório de onde o servidor lê a versão e confere se o código dele mudou (`server_outdated`) |
+| `PANEL_OUTDATED_CACHE_MS` | `5000` | só para testes: o cache da checagem do `server_outdated`, em ms (os testes usam 200) |
 | `MOCK_PORT` | `4795` | porta da demonstração |
+| `PANEL_TEST_PORTS` | `4790-4799` | testes: a faixa de portas dos servidores de teste, para dois floors rodarem a suíte ao mesmo tempo |
 | `KEEP_TMP`, `HEAVY_TEST` | | testes: `1` guarda as pastas temporárias; `1` aumenta o teste de desempenho |
 
 Detalhes de cada uma em [`panel/README.md`](panel/README.md#variáveis-de-ambiente).
@@ -315,7 +318,7 @@ npm run build                              # compila a página (depois de npm ci
 npm --prefix panel/ui run check            # confere a página compilada: um único script, nada externo
 ```
 
-Os testes não usam framework nem navegador. A regra principal: o CLI `flow` e o hook rodam **como processos** em repositórios git temporários com `remote origin` fictício (e worktrees), gravam num `maestro.db`/`bruto.db` temporário e o resultado é conferido **só pela API do servidor**; nenhum teste lê o banco. O `maestri`, o `gh` e o `az` são scripts falsos apontados por variável de ambiente. Cada arquivo trabalha em `panel/tests/tmp/`, sobe servidores só nas portas 4790 a 4799 e apaga tudo no fim (`KEEP_TMP=1` guarda). A lista do que cada arquivo cobre está em [`panel/README.md`](panel/README.md#testes).
+Os testes não usam framework nem navegador. A regra principal: o CLI `flow` e o hook rodam **como processos** em repositórios git temporários com `remote origin` fictício (e worktrees), gravam num `maestro.db`/`bruto.db` temporário e o resultado é conferido **só pela API do servidor**; nenhum teste lê o banco. O `maestri`, o `gh` e o `az` são scripts falsos apontados por variável de ambiente. Cada arquivo trabalha em `panel/tests/tmp/`, sobe servidores só nas portas 4790 a 4799 (`PANEL_TEST_PORTS=4790-4794` restringe a faixa, para dois floors rodarem a suíte ao mesmo tempo) e apaga tudo no fim (`KEEP_TMP=1` guarda). A lista do que cada arquivo cobre está em [`panel/README.md`](panel/README.md#testes).
 
 ## Segurança
 
@@ -343,6 +346,14 @@ npm run dev        # http://127.0.0.1:5173, com /api apontando para o painel em 
 
 Da raiz, `npm run build` faz o mesmo. Como acrescentar uma tela nova está em [`panel/README.md`](panel/README.md#a-página-indexhtml-fonte-em-ui).
 
+## Versão
+
+O painel-maestro tem uma versão só, o semver do `package.json` da raiz, mostrada com o commit do código: `v1.1.0 · a5c2e21` no rodapé do menu, junto de "Painel local", e `painel-maestro 1.1.0 (a5c2e21)` no `node bin/flow.js --version` (ou `-v`, em qualquer pasta). O commit do painel é o da hora em que o servidor subiu (o rodapé só muda quando ele reinicia); rodando de uma pasta sem git, ou sem git no `PATH`, o commit some e fica só o semver. Quando um commit posterior muda o que o servidor executa (`bin/`, os `.js` de primeiro nível de `panel/` ou o `package.json`), depois de um `git pull` ou de uma troca de branch, o selo de saúde fica amarelo com "O código do servidor mudou desde que ele subiu" (`server_outdated`): reinicie o servidor. Commits só de docs, testes, fonte da UI ou da página compilada e edições não commitadas não acendem o aviso; sem git, a checagem fica desligada. A versão do schema do banco (#28) é outra, separada.
+
+A página tem também um **id da página**: o build (`panel/ui/scripts/publish.js`) grava um hash do conteúdo da página num `<meta name="page-id">` do `index.html`. O servidor lê o id do `index.html` atual (com a mesma leitura em cache que serve a página) e o devolve no `/api/state`; a aba compara o id dela com esse a cada leitura e, quando diferem, mostra a faixa "O painel foi atualizado" com **Recarregar**. A faixa não fecha e nunca recarrega sozinha; a demonstração (`?mock=1`) não compara. Como o id é do conteúdo, e não do commit nem do semver, reiniciar o servidor com a mesma página, ou mudar docs, testes e código que não altera a página, não acende a faixa.
+
+A convenção: o ajuste final de cada item sobe o minor; uma correção avulsa fora de item sobe o patch; a tag `vX.Y.Z` no merge é opcional, do dono. Os detalhes estão em [`docs/agents/versao.md`](docs/agents/versao.md).
+
 ## Estrutura
 
 ```
@@ -359,12 +370,14 @@ painel-maestro/
 │   ├── collect-usage.js         uso do plano e tokens por item e por agente
 │   ├── install-skills.js        liga as skills ao ~/.claude (backup e --undo)
 │   ├── time-window.js           filtro de horário (pré-condição de rotinas agendadas do Maestri)
+│   ├── version.js               versão do painel-maestro (semver do package.json e commit do código)
 │   ├── lib.js                   datas no fuso de São Paulo, entrada padrão, redação de segredos
 │   └── i18n/                    dicionário pt-BR das mensagens do CLI
 ├── panel/
 │   ├── server.js                servidor HTTP e API (em inglês, devolve códigos)
 │   ├── api-*.js                 itens, projetos, pendências, log, uso, Visão geral
 │   ├── health.js                selo de saúde
+│   ├── server-outdated.js       aviso de servidor desatualizado (código mudou no git desde a subida)
 │   ├── merge-check.js           verificador de merge e "marcar como mergeado"
 │   ├── index.html               a página compilada (não edite à mão)
 │   ├── README.md                documentação técnica do servidor e da página
@@ -378,7 +391,7 @@ painel-maestro/
 │   ├── trabalhador-floor/       protocolo do trabalhador num floor
 │   └── docs/                    orquestracao-subagentes/ e orquestracao-maestri/ (com open-floor.sh e integrate.sh)
 ├── docs/adr/                    decisões de arquitetura
-├── docs/agents/                 configuração das skills de engenharia neste repositório (tracker, rótulos, domínio)
+├── docs/agents/                 configuração das skills de engenharia neste repositório (tracker, rótulos, domínio, versão)
 ├── CONTEXT.md                   vocabulário do domínio
 ├── package.json
 ├── LICENSE

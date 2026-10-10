@@ -18,7 +18,8 @@
 //                                        expects the hook: the owner's own records may come from any terminal; and
 //                                        without active items nothing is expected (an old raw entry is no problem).
 //   projects_unassigned {count, projects} repositories that landed in "Sem organização" and wait for an organization (#6)
-//   problems                             codes other parts of the server add (yellow), kept in the order given
+//   problems                             codes other parts of the server add (yellow), kept in the order given: the
+//                                        merge check's (merge-check.js, #11) and server_outdated (server-outdated.js, #38)
 // last_event_at is the agents' last record on an active item; last_raw_at, the hook's last entry.
 const path = require('path');
 

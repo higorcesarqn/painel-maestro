@@ -75,7 +75,7 @@ Nos passos abaixo, `flow <comando>` abrevia essa linha. `node "$PAINEL_MAESTRO/b
    - `owner_decision`: depende do usuário; abra `flow pending open <n> --kind finding` e pergunte. Se ele decidir que vira uma task para depois, crie-a pelo adaptador e ligue com `flow finding link <n> <achado> --new-task <número> --new-task-title "..."` (ela aparece no item como "fora", para triagem).
    - `discarded`: o que o desempate ou a análise descartou.
 
-   Abra o ajuste final com `flow final-adjustment <n> open` e despache **um único** implementador (sem worktree, na branch integradora) com a lista de `defect` (e o que o usuário mandou corrigir agora) para corrigir tudo, rode typecheck e testes, e faça push. Grave o resultado com `flow final-adjustment <n> result --outcome passed|failed --json - < ajuste.json` (`{"summary": "..."}`; `passed` quando os testes ficaram verdes). Pronto quando: os testes passaram depois das correções e o resultado está gravado.
+   Abra o ajuste final com `flow final-adjustment <n> open` e despache **um único** implementador (sem worktree, na branch integradora) com a lista de `defect` (e o que o usuário mandou corrigir agora) para corrigir tudo, rode typecheck e testes, e faça push. Se `docs/agents/` do projeto pede subir a versão no ajuste final, o briefing do implementador inclui a subida. Grave o resultado com `flow final-adjustment <n> result --outcome passed|failed --json - < ajuste.json` (`{"summary": "..."}`; `passed` quando os testes ficaram verdes). Pronto quando: os testes passaram depois das correções e o resultado está gravado.
 
 8. **Finalizar.** Tire o PR do rascunho pelo adaptador e grave `flow pr <n> ready`.
 

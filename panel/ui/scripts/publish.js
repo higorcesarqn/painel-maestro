@@ -5,7 +5,12 @@
 //
 //   node scripts/publish.js           joins dist/ and writes ../index.html
 //   node scripts/publish.js --check   checks the current ../index.html (nothing external, a single script)
+// The page id (#37): a hash of the joined page (16 hex characters of its sha256, with the line endings as LF, so a CRLF
+// checkout gives the same id), written as <meta name="page-id"> in its <head>. The server answers the id of the
+// current file in GET /api/state, and an open tab compares it with its own: a different id means a new page.
+// An identical build gives the same id; removing the meta line gives back the hashed text.
 // The messages are for whoever runs the build (CLI), in Portuguese like the other commands of the repository.
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +35,8 @@ const MESSAGES = {
   noCssTag: () => 'não achei o CSS do bundle em dist/index.html',
   scriptEnd: () => 'o bundle contém "</script": não dá para embutir',
   styleEnd: () => 'o CSS contém "</style": não dá para embutir',
+  noHead: () => 'não achei o <head> em dist/index.html',
+  pageId: (n) => `esperava 1 <meta name="page-id">, achei ${n}`,
   ok: (file, kb, jsKb) => `ok: ${file} · ${kb} KB (JS ${jsKb} KB)`,
   published: (file, kb, jsKb, cssKb) => `publicado: ${file} · ${kb} KB (JS ${jsKb} KB, CSS ${cssKb} KB)`,
   banner: () => '<!-- Gerado por panel/ui (npm run build). Não edite aqui: edite panel/ui/src e rode o build. -->',
@@ -49,6 +56,8 @@ function check(html) {
   const urls = (html.match(/https?:\/\/[^\s"'`)<\\]+/g) || []).filter((u) => !ALLOWED_URLS.some((r) => r.test(u)));
   if (urls.length) fail(MESSAGES.urls([...new Set(urls)].join(' ')));
   if (/\beval\s*\(|new\s+Function\s*\(/.test(scripts[0][2])) fail(MESSAGES.evalUse());
+  const ids = html.match(/<meta name="page-id" content="[0-9a-f]{16}">/g) || [];
+  if (ids.length !== 1) fail(MESSAGES.pageId(ids.length));
   return scripts[0][2].length;
 }
 
@@ -79,6 +88,9 @@ html = html
   .replace(cssTag[0], () => `<style>${css}</style>`)
   .replace('</body>', () => `<script type="module">${js}</script>\n</body>`)
   .replace('<!doctype html>', () => `<!doctype html>\n${MESSAGES.banner()}`);
+if (!html.includes('<head>')) fail(MESSAGES.noHead());
+const pageId = crypto.createHash('sha256').update(html.replace(/\r*\n/g, '\n')).digest('hex').slice(0, 16);
+html = html.replace('<head>', () => `<head>\n<meta name="page-id" content="${pageId}">`);
 
 const jsSize = check(html);
 fs.writeFileSync(TARGET, html);

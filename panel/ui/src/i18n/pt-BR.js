@@ -76,6 +76,9 @@ export default {
     mockBanner: 'Modo de teste (?mock=1): dados fictícios de tests/mock-items.json. Nada aqui vem do servidor.',
     connectionError: 'Não consegui ler o painel ({message}). Tento de novo a cada 20 s.',
     connectionErrorWithData: 'Não consegui ler o painel ({message}). Tento de novo a cada 20 s. O que está na tela é a última leitura boa.',
+    // The page changed on disk after this tab loaded it (version.page, #37).
+    pageOutdated: 'O painel foi atualizado. Recarregue para usar a versão nova.',
+    reload: 'Recarregar',
   },
 
   errors: {
@@ -99,6 +102,9 @@ export default {
     screens: 'Telas do painel',
     pendingCounter: '{count} pendência(s) aberta(s)',
     localPanel: 'Painel local',
+    // The panel's version (#36): the semver of package.json and the commit the server started on.
+    version: 'v{product} · {commit}',
+    versionNoCommit: 'v{product}',
     refreshNote: '127.0.0.1 · atualiza a cada 20 s',
   },
 
@@ -744,6 +750,8 @@ export default {
     // #28: a maestro.db written by a newer painel-maestro (health badge, API answers and usage warnings)
     schema_too_new: (c) => `O ${c.file || 'maestro.db'} foi atualizado por uma versão mais nova do painel-maestro (schema v${c.db_version}; este código lê até a v${c.code_version}): atualize o código.`,
     hook_failed: (c, h) => `Hook parado desde ${dayTime(c.at)}: nenhuma sessão foi gravada no log bruto. ${h.display(c.error)}`,
+    // #38: the code the server runs changed in git since it started
+    server_outdated: (c) => `O código do servidor mudou desde que ele subiu (commit ${c.started_commit} → ${c.head_commit}): reinicie o servidor.`,
     file_unreadable: (c, h) => `${c.file} ilegível (${h.display(c.error)})`,
     read_failed: 'não consegui ler ({detail})',
     empty_file: 'arquivo vazio',

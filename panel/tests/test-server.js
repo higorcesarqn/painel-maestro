@@ -106,7 +106,7 @@ suite.test('GET /api/state: health, the menu counter, the plan usage and the col
   assert.strictEqual(r.headers['cache-control'], 'no-store');
   assert.ok(!Object.keys(r.headers).some((h) => h.startsWith('access-control-')));
   const e = r.json;
-  assert.deepStrictEqual(Object.keys(e).sort(), ['collector', 'generated_at', 'health', 'kpis', 'warnings']);
+  assert.deepStrictEqual(Object.keys(e).sort(), ['collector', 'generated_at', 'health', 'kpis', 'version', 'warnings']);
   assert.deepStrictEqual(Object.keys(e.kpis).sort(), ['pending_decisions', 'usage']);
   assert.deepStrictEqual(Object.keys(e.health).sort(), ['last_event_at', 'last_raw_at', 'level', 'reasons', 'usage_age_min']);
   assert.strictEqual(e.generated_at, NOW);

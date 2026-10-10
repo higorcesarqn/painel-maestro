@@ -105,7 +105,8 @@ Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel]
     2. as duas revisões sobre a integradora inteira contra a branch de origem: `mattpocock-skills:code-review` e a `code-review` nativa em nível `medium`. Desempate: quando um achado de simplificação contradiz padrão do repo ou a spec, vence o padrão/spec;
     3. classificar cada achado: **defeito claro sem escolha de desenho** → corrige com teste; **depende do usuário** → não corrige, traz com recomendação; **descartado** → uma linha de porquê;
     4. a suíte completa, comparada com as falhas já conhecidas antes de chamar algo de regressão;
-    5. um commit.
+    5. a subida de versão, se `docs/agents/` do projeto pede subir a versão no ajuste final;
+    6. um commit.
 
     No briefing do ajuste final, diga ao trabalhador que o status vai direto pelo `"$MAESTRI_CLI" floor status` e que ele não grava `flow report` (não há task para recebê-los). Com o relatório: grave cada achado com `flow finding add` (`defect`, `owner_decision` ou `discarded`); um achado que fica para depois vira item novo pelo adaptador, ligado com `--new-task <número do item criado>`. Leve os achados "depende do usuário" ao usuário, cada um com uma pendência `finding`; o que ele aprovar, o mesmo trabalhador aplica num commit a mais. Integre com o `integrate.sh` (na branch do ajuste final ele não grava task e lembra o próximo comando) e grave o resultado: `flow final-adjustment <n> result --outcome passed|failed --summary ...` (`passed` quando a suíte está verde fora das falhas já conhecidas e os defeitos foram corrigidos).
 

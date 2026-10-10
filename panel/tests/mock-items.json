@@ -57,7 +57,12 @@
       },
       "running": false
     },
-    "warnings": []
+    "warnings": [],
+    "version": {
+      "product": "1.1.0",
+      "commit": "a5c2e21",
+      "page": null
+    }
   },
   "organizations": [
     {
