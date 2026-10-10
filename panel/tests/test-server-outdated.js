@@ -3,7 +3,7 @@
 // with PANEL_REPO_DIR on a temporary git repository and is read through GET /api/state. The repository's history is
 // changed with git between reads. The reason comes when a commit after the startup touches what the server runs (bin/,
 // the top-level .js files of panel/, package.json), and goes away on a restart on the new HEAD.
-// Fake roots under tests/tmp/ (the folder without git under the system's temp), servers on a port between 4795 and 4799.
+// Fake roots under tests/tmp/ (the folder without git under the system's temp), servers on a port between 4790 and 4799.
 
 const fs = require('fs');
 const os = require('os');
@@ -14,7 +14,6 @@ const { assert, REPO, createSuite, tmpDir, remove, freePort, request, waitFor, k
 const suite = createSuite('server_outdated (the code the server runs changed in git)');
 const roots = [];
 const SERVER = path.join(REPO, 'panel', 'server.js');
-const PORTS = [4795, 4796, 4797, 4798, 4799]; // the ports of #38 (#37 ran in parallel on 4790-4794)
 const CACHE_MS = 5000; // panel/server-outdated.js: git runs at most once in this time
 const PRODUCT = '1.2.3';
 
@@ -74,7 +73,7 @@ function withoutGit(env) {
 
 /** Starts the server as a process; returns {port, pid}. */
 async function start(r, env = environment(r)) {
-  const port = await freePort(PORTS);
+  const port = await freePort();
   const child = spawn(process.execPath, [SERVER, '--port', String(port)], { env, windowsHide: true });
   let out = '';
   let err = '';
@@ -120,7 +119,8 @@ suite.test('started on the repository of PANEL_REPO_DIR: version from it, green,
   R = buildRoot('main');
   S = await start(R);
   const st = await state(S);
-  assert.deepStrictEqual(st.version, { product: PRODUCT, commit: R.c0 });
+  // page is null: the fake page has no page id (#37, test-page-id.js).
+  assert.deepStrictEqual(st.version, { product: PRODUCT, commit: R.c0, page: null });
   assert.strictEqual(st.health.level, 'green');
   assert.deepStrictEqual(st.health.reasons, []);
 });
@@ -134,7 +134,7 @@ suite.test('commits only in docs/, ADRs, tests, the UI source or index.html, and
   git(R.repo, 'add', 'panel/server.js');
   const st = await neverOutdated(S);
   assert.strictEqual(st.health.level, 'green');
-  assert.deepStrictEqual(st.version, { product: PRODUCT, commit: R.c0 });
+  assert.deepStrictEqual(st.version, { product: PRODUCT, commit: R.c0, page: null });
 });
 
 suite.test('a commit in bin/ after the startup turns the badge yellow with server_outdated and the two commits', async () => {
@@ -142,7 +142,7 @@ suite.test('a commit in bin/ after the startup turns the badge yellow with serve
   const st = await untilOutdated(S);
   assert.strictEqual(st.health.level, 'yellow');
   assert.deepStrictEqual(st.health.reasons, [{ code: 'server_outdated', started_commit: R.c0, head_commit: c2 }]);
-  assert.deepStrictEqual(st.version, { product: PRODUCT, commit: R.c0 }, 'the version is still the startup one');
+  assert.deepStrictEqual(st.version, { product: PRODUCT, commit: R.c0, page: null }, 'the version is still the startup one');
   R.c2 = c2;
 });
 
@@ -151,7 +151,7 @@ suite.test('a restart on the new HEAD takes the reason away', async () => {
   git(R.repo, 'reset', '-q', '--hard');
   S = await start(R);
   const st = await neverOutdated(S);
-  assert.deepStrictEqual(st.version, { product: PRODUCT, commit: R.c2 });
+  assert.deepStrictEqual(st.version, { product: PRODUCT, commit: R.c2, page: null });
   assert.strictEqual(st.health.level, 'green');
 });
 
@@ -184,7 +184,7 @@ suite.test('a folder without git: version with a null commit, no server_outdated
   const s = await start(r, environment(r, { PANEL_REPO_DIR: folder }));
   try {
     const st = await neverOutdated(s);
-    assert.deepStrictEqual(st.version, { product: PRODUCT, commit: null });
+    assert.deepStrictEqual(st.version, { product: PRODUCT, commit: null, page: null });
     assert.strictEqual(st.health.level, 'green');
     assert.strictEqual((await request(s.port, '/')).status, 200);
   } finally {
@@ -198,7 +198,7 @@ suite.test('without git on the PATH: no commit at the startup, so a later commit
   try {
     commit(r.repo, { 'bin/flow.js': '// flow 2\n' }, 'bin');
     const st = await neverOutdated(s);
-    assert.deepStrictEqual(st.version, { product: PRODUCT, commit: null });
+    assert.deepStrictEqual(st.version, { product: PRODUCT, commit: null, page: null });
     assert.strictEqual(st.health.level, 'green');
   } finally {
     kill(s.pid);

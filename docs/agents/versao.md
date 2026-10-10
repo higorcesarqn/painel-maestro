@@ -11,7 +11,7 @@ O painel-maestro tem uma versão só: o semver do `package.json` da raiz. O paco
 ## Onde a versão aparece
 
 - No rodapé do menu lateral do painel, junto de "Painel local": `v<semver> · <commit>`, ou só `v<semver>` quando o painel roda de uma pasta sem git (ou sem git no `PATH`).
-- No `GET /api/state`: `version: { product, commit }`, lidos quando o servidor sobe (o commit é nulo sem git).
+- No `GET /api/state`: `version: { product, commit, page }`; o semver e o commit lidos quando o servidor sobe (o commit é nulo sem git) e o id da página do `index.html` atual (#37), que não é versão: é o hash do conteúdo da página, para a aba aberta saber que a página mudou.
 - No CLI: `node bin/flow.js --version` (ou `-v`) imprime `painel-maestro <semver> (<commit>)`, sem o commit fora de git.
 
 O commit é o do código (`git rev-parse --short HEAD` na pasta do repositório), e o do servidor é o da hora em que ele subiu: depois de um `git pull`, o rodapé só muda quando o servidor reinicia.

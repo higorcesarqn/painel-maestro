@@ -14,7 +14,8 @@
 // Routes (details in panel/README.md):
 //   GET  /                                    the page (index.html, a single file)
 //   GET  /api/state                           health badge, menu counter of open pending decisions, plan usage, collector,
-//                                             the panel's version (semver and the commit the server started on)
+//                                             the panel's version (semver, the commit the server started on and the
+//                                             id of the current index.html)
 //   POST /api/recalculate                     runs the usage collector now and returns /api/state
 //   GET  /api/overview[?organization=]        Overview (api-overview.js)
 //   GET  /api/items[?active=&organization=&project=], GET /api/items/<project>/<number>   items (api-items.js)
@@ -173,6 +174,16 @@ class FileCache {
 
 // ---------- building the answers ----------
 
+// The page id (#37): the build (ui/scripts/publish.js) writes a hash of the bundle into index.html; a tab compares
+// its own id with the one of the current file to know the page changed on disk.
+const PAGE_ID = /<meta name="page-id" content="([0-9a-f]{16})">/;
+
+/** The page id of an index.html read ({exists, text}), or null without one. */
+function pageIdOf(read) {
+  const m = read && typeof read.text === 'string' ? PAGE_ID.exec(read.text) : null;
+  return m ? m[1] : null;
+}
+
 /** Plan of usage.json checked against the current clock (age and windows that already reset). */
 function planNow(plan, t) {
   const p = Object.assign({}, plan);
@@ -236,7 +247,8 @@ function pendingKpi(items) {
  * items: the items source (api-items.js); raw: the raw log source (api-log.js); usageFile: the read of
  * state/usage.json ({exists, data, error}); problems: health codes other checks add (the merge check, #11; server_outdated, #38);
  * hookFailure: the hook's last failure (bin/hook-failure.js, #28) or null.
- * version: { product, commit } read when the server started (bin/version.js, #36); commit is null without git.
+ * version: { product, commit } read when the server started (bin/version.js, #36), commit null without git, and
+ * page, the id of the current index.html (#37), null when the file has none.
  */
 function stateAnswer({ items, raw, usageFile, nowMs, problems = [], hookFailure = null, collector: collectorInfo, version = { product: null, commit: null } }) {
   const warnings = [];
@@ -247,7 +259,7 @@ function stateAnswer({ items, raw, usageFile, nowMs, problems = [], hookFailure 
     kpis: { pending_decisions: pendingKpi(items), usage },
     collector: collectorInfo,
     warnings,
-    version: { product: version.product, commit: version.commit },
+    version: { product: version.product, commit: version.commit, page: version.page || null },
   };
 }
 
@@ -334,7 +346,8 @@ function collectorState(ctx) {
 async function buildState(ctx) {
   return stateAnswer({
     items: ctx.items, raw: ctx.raw, usageFile: await ctx.files.json(ctx.usageFile), nowMs: ctx.now().getTime(),
-    problems: [...ctx.mergeCheck.healthReasons(), ...await ctx.serverOutdated.healthReasons()], collector: collectorState(ctx), version: ctx.version,
+    problems: [...ctx.mergeCheck.healthReasons(), ...await ctx.serverOutdated.healthReasons()], collector: collectorState(ctx),
+    version: { ...ctx.version, page: pageIdOf(await ctx.files.text(ctx.cfg.indexPath)) },
     hookFailure: hookFailureOf(await ctx.files.json(path.join(ctx.cfg.dataDir, HOOK_FAILURE_FILE))),
   });
 }

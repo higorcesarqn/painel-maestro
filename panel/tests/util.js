@@ -10,7 +10,13 @@ const { spawnSync } = require('child_process');
 
 const TMP = path.join(__dirname, 'tmp');
 const REPO = path.resolve(__dirname, '..', '..');
-const PORTS = [4790, 4791, 4792, 4793, 4794, 4795, 4796, 4797, 4798, 4799];
+// PANEL_TEST_PORTS=4790-4794 narrows the range, so two floors can run the suite at once without racing for a port.
+const PORTS = (() => {
+  const all = [4790, 4791, 4792, 4793, 4794, 4795, 4796, 4797, 4798, 4799];
+  const m = /^(\d+)-(\d+)$/.exec(process.env.PANEL_TEST_PORTS || '');
+  const chosen = m ? all.filter((p) => p >= Number(m[1]) && p <= Number(m[2])) : [];
+  return chosen.length ? chosen : all;
+})();
 
 /** Simple suite: test(name, fn) in sequence and run() at the end (exit code 1 on failure). */
 function createSuite(title) {
@@ -89,9 +95,9 @@ function userLine(text) {
   return JSON.stringify({ type: 'user', message: { role: 'user', content: text }, timestamp: new Date().toISOString(), usage_hint: 'none' });
 }
 
-/** A free port among ports (default: 4790 to 4799; never 4777). */
-async function freePort(ports = PORTS) {
-  const order = ports.slice().sort(() => Math.random() - 0.5);
+/** A free port between 4790 and 4799, or in the PANEL_TEST_PORTS range (never 4777). */
+async function freePort() {
+  const order = PORTS.slice().sort(() => Math.random() - 0.5);
   for (const p of order) {
     const free = await new Promise((resolve) => {
       const s = net.createServer();
@@ -100,7 +106,7 @@ async function freePort(ports = PORTS) {
     });
     if (free) return p;
   }
-  throw new Error(`No free port among ${ports.join(', ')}`);
+  throw new Error(`No free port among ${PORTS.join(', ')}`);
 }
 
 /** Raw HTTP request (no gzip), with Host and headers of choice. */

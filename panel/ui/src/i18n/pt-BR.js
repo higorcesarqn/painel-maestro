@@ -76,6 +76,9 @@ export default {
     mockBanner: 'Modo de teste (?mock=1): dados fictícios de tests/mock-items.json. Nada aqui vem do servidor.',
     connectionError: 'Não consegui ler o painel ({message}). Tento de novo a cada 20 s.',
     connectionErrorWithData: 'Não consegui ler o painel ({message}). Tento de novo a cada 20 s. O que está na tela é a última leitura boa.',
+    // The page changed on disk after this tab loaded it (version.page, #37).
+    pageOutdated: 'O painel foi atualizado. Recarregue para usar a versão nova.',
+    reload: 'Recarregar',
   },
 
   errors: {

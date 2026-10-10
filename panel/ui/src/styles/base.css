@@ -135,6 +135,9 @@ a.nav-item:hover { text-decoration: none; }
 }
 .banner.mock { background: var(--blue-bg); color: var(--text); }
 .banner.error { background: var(--danger-bg); color: var(--danger); }
+/* The page changed on disk (#37): fixed at the top, also when the page itself scrolls (smaller screens). */
+.banners:has(> .banner.update) { position: sticky; top: 0; z-index: 30; }
+.banner.update { background: linear-gradient(var(--blue-bg), var(--blue-bg)), var(--bg); color: var(--text); border-bottom-color: var(--blue-border); }
 
 .content { padding: 20px var(--margin) var(--margin); min-height: 0; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
 .screen { flex: 1; min-height: 0; min-width: 0; display: grid; gap: var(--gap); }

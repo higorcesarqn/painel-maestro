@@ -9,6 +9,7 @@
 //      everything the page reads and serves index.html with a CSP.
 // Test server on a port from 4790 to 4799, killed by the PID it prints.
 
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -113,13 +114,38 @@ suite.test('the demo is only the new model: mock-items.json answers /api/state t
   assert.ok(e.kpis.pending_decisions.by_severity.critical > 0, 'a critical one turns the counter strong');
   assert.deepStrictEqual([e.kpis.usage.window_5h_pct, e.kpis.usage.weekly_pct, e.generated_at], [37, 22, m.generated_at]);
   // The menu footer's version (#36): fixed and fictitious in the demo; the footer reads it from /api/state.
-  assert.deepStrictEqual(e.version, { product: '1.1.0', commit: 'a5c2e21' });
+  // The page id (#37) is null in the demo: the demo never compares it.
+  assert.deepStrictEqual(e.version, { product: '1.1.0', commit: 'a5c2e21', page: null });
   assert.ok(/state\.version/.test(source['app/Sidebar.jsx']) && /sidebar\.versionNoCommit/.test(source['app/Sidebar.jsx']), 'the footer shows the version');
   // No sentence from the server: reasons and sources are codes.
   assert.ok(e.health.reasons.every((r) => typeof r.code === 'string'));
   assert.strictEqual(e.kpis.usage.source.code, 'maestri_claude_provider');
   for (const old of ['mock-state.json', 'mock-details.json', 'generate-mock.js']) assert.ok(!fs.existsSync(path.join(__dirname, old)), `${old} still exists`);
   assert.ok(!/mock-state|mock-details/.test(js), 'the page reads only mock-items.json');
+});
+
+suite.test('page id (#37): the build writes a hash of the page in <meta name="page-id">, and the tab compares it with version.page', () => {
+  const ids = [...html.matchAll(/<meta name="page-id" content="([0-9a-f]{16})">/g)];
+  assert.strictEqual(ids.length, 1, 'one page id in index.html');
+  const id = ids[0][1];
+  assert.ok(/<head>\r?\n<meta name="page-id" content="[0-9a-f]{16}">/.test(html), 'the id opens the <head>');
+  // A hash of the content: without the meta line, the page (line endings as LF, whatever the checkout did) hashes back
+  // to the id (so an identical build keeps it and any change to the bundle changes it).
+  const hashed = html.replace(/\r?\n<meta name="page-id" content="[0-9a-f]{16}">/, '').replace(/\r*\n/g, '\n');
+  assert.strictEqual(crypto.createHash('sha256').update(hashed).digest('hex').slice(0, 16), id);
+  assert.ok(/createHash\('sha256'\)/.test(fs.readFileSync(path.join(PANEL, 'ui', 'scripts', 'publish.js'), 'utf8')), 'the build computes it');
+  // The tab reads its own id from the loaded document and compares it with version.page; never in the demo, and only
+  // when both ids are known.
+  const page = source['data/page.js'];
+  assert.ok(/document\.querySelector\('meta\[name="page-id"\]'\)/.test(page), 'the tab reads its id from the document');
+  assert.ok(/if \(MOCK \|\| !PAGE_ID\) return false;/.test(page), 'no comparison in the demo nor without an id');
+  assert.ok(/\.page/.test(page) && /page !== '' && page !== PAGE_ID/.test(page), 'compares with version.page, which must be known');
+  // The strip: fixed at the top, with "Recarregar", which reloads only on the click; it never closes nor reloads by itself.
+  const app = source['app/App.jsx'];
+  assert.ok(/pageOutdated\(state\) && \(/.test(app) && /t\('app\.pageOutdated'\)/.test(app), 'the shell shows the strip from each state read');
+  assert.ok(/onClick=\{\(\) => location\.reload\(\)\}>\{t\('app\.reload'\)\}/.test(app), 'the button reloads the page');
+  assert.strictEqual((allSource.match(/location\.reload\(/g) || []).length, 1, 'the only reload is the button');
+  assert.ok(/\.banners:has\(> \.banner\.update\) \{ position: sticky; top: 0;/.test(fs.readFileSync(path.join(SOURCE, 'styles', 'base.css'), 'utf8')), 'fixed at the top');
 });
 
 suite.test('mock-items.json: items in different stages, both trackers, several organizations; the item page has a fixed address', () => {

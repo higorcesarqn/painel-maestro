@@ -71,7 +71,9 @@ async function versionOf(r, options) {
   try {
     const st = await request(s.port, '/api/state');
     assert.strictEqual(st.status, 200);
-    return st.json.version;
+    // version.page, the page id (#37), has its own tests (test-page-id.js).
+    const { product, commit } = st.json.version;
+    return { product, commit };
   } finally {
     kill(s.pid);
   }
