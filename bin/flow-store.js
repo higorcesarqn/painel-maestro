@@ -109,10 +109,14 @@ const MIGRATIONS = [
     CREATE TRIGGER events_no_delete BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;
   `),
   // v2 (#26): the grouping of projects is an organization; the foreign key of projects follows the renamed table and column.
-  (db) => db.exec(`
-    ALTER TABLE companies RENAME TO organizations;
-    ALTER TABLE projects RENAME COLUMN company_id TO organization_id;
-  `),
+  // The reserved row, when it exists, keeps its id and takes the name of the dictionary (the panel shows the stored name).
+  (db) => {
+    db.exec(`
+      ALTER TABLE companies RENAME TO organizations;
+      ALTER TABLE projects RENAME COLUMN company_id TO organization_id;
+    `);
+    db.prepare('UPDATE organizations SET name = ? WHERE id = ?').run(UNASSIGNED_NAME, UNASSIGNED_ORGANIZATION);
+  },
 ];
 
 /** A rule of the register broken by a write: error is { code, ...params } (ADR 0004), translated by the CLI and the API. */

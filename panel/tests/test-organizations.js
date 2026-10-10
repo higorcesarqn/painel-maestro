@@ -653,9 +653,11 @@ suite.test('a maestro.db in schema v1 migrates to v2 on its first writer: same r
   const v1 = new DatabaseSync(file);
   v1.exec(SCHEMA_V1);
   v1.exec(`
-    INSERT INTO companies VALUES ('meu', 'Meu', '2026-09-01T10:00:00-03:00'), ('pessoal', 'Pessoal', '2026-09-01T10:00:00-03:00');
-    INSERT INTO projects VALUES ('painel-maestro', 'Painel Maestro', 'pessoal', 'github', '["specification","implementation","pr_ready","merge","done"]', NULL, 'Painel', '2026-09-01T10:01:00-03:00');
-    INSERT INTO project_repos VALUES ('github.com/higorcesarqn/painel-maestro', 'painel-maestro');
+    INSERT INTO companies VALUES ('meu', 'Meu', '2026-09-01T10:00:00-03:00'), ('pessoal', 'Pessoal', '2026-09-01T10:00:00-03:00'),
+      ('unassigned', 'Sem empresa', '2026-09-01T11:00:00-03:00');
+    INSERT INTO projects VALUES ('painel-maestro', 'Painel Maestro', 'pessoal', 'github', '["specification","implementation","pr_ready","merge","done"]', NULL, 'Painel', '2026-09-01T10:01:00-03:00'),
+      ('scratch', 'scratch', 'unassigned', 'github', '["specification","implementation","pr_ready","merge","done"]', NULL, NULL, '2026-09-01T11:00:00-03:00');
+    INSERT INTO project_repos VALUES ('github.com/higorcesarqn/painel-maestro', 'painel-maestro'), ('github.com/higorcesarqn/scratch', 'scratch');
     INSERT INTO events (at, type, project_id, item_number, task_number, agent_role, agent_name, source, payload) VALUES
       ('2026-09-02T09:00:00-03:00', 'item-started', 'painel-maestro', 26, NULL, 'maestro', 'Shell', 'cli', '{"title":"Renomear","stage":"specification"}'),
       ('2026-09-02T09:30:00-03:00', 'stage-changed', 'painel-maestro', 26, NULL, 'maestro', 'Shell', 'cli', '{"stage":"implementation"}');
@@ -673,6 +675,8 @@ suite.test('a maestro.db in schema v1 migrates to v2 on its first writer: same r
 
   const list = ok(flow(r, ['org', 'list']));
   assert.ok(/^meu\s+Meu · 0 projetos$/m.test(list) && /^pessoal\s+Pessoal · 1 projeto$/m.test(list), list);
+  // The reserved row keeps its id and takes the name of the dictionary (the v1 name was the old one).
+  assert.ok(/^unassigned\s+Sem organização · 1 projeto$/m.test(list), list);
 
   const db = new DatabaseSync(file, { readOnly: true });
   try {
@@ -682,8 +686,10 @@ suite.test('a maestro.db in schema v1 migrates to v2 on its first writer: same r
     assert.deepStrictEqual(db.prepare('SELECT * FROM organizations ORDER BY id').all().map((x) => ({ ...x })), [
       { id: 'meu', name: 'Meu', created_at: '2026-09-01T10:00:00-03:00' },
       { id: 'pessoal', name: 'Pessoal', created_at: '2026-09-01T10:00:00-03:00' },
+      { id: 'unassigned', name: 'Sem organização', created_at: '2026-09-01T11:00:00-03:00' },
     ]);
-    assert.deepStrictEqual(db.prepare('SELECT id, organization_id FROM projects').all().map((x) => ({ ...x })), [{ id: 'painel-maestro', organization_id: 'pessoal' }]);
+    assert.deepStrictEqual(db.prepare('SELECT id, organization_id FROM projects ORDER BY id').all().map((x) => ({ ...x })),
+      [{ id: 'painel-maestro', organization_id: 'pessoal' }, { id: 'scratch', organization_id: 'unassigned' }]);
     const fk = db.prepare('PRAGMA foreign_key_list(projects)').all().map((x) => [x.table, x.from, x.to]);
     assert.deepStrictEqual(fk, [['organizations', 'organization_id', 'id']]);
     assert.deepStrictEqual(db.prepare('SELECT * FROM events ORDER BY id').all(), eventsBefore);
@@ -697,9 +703,12 @@ suite.test('a maestro.db in schema v1 migrates to v2 on its first writer: same r
   invalid(flow(r, ['org', 'remove', 'pessoal']), /a organização "pessoal" \(Pessoal\) tem 1 projeto/);
   await withServer(r, async ({ get }) => {
     const { organizations } = await get('/api/organizations');
-    assert.deepStrictEqual(organizations.map((o) => [o.id, o.name]), [['meu', 'Meu'], ['pessoal', 'Pessoal']]);
+    assert.deepStrictEqual(organizations.map((o) => [o.id, o.name]), [['meu', 'Meu'], ['pessoal', 'Pessoal'], ['unassigned', 'Sem organização']]);
     const { projects } = await get('/api/projects');
-    assert.deepStrictEqual(projects.map((p) => [p.id, p.organization, p.repos]), [['painel-maestro', { id: 'pessoal', name: 'Pessoal' }, ['github.com/higorcesarqn/painel-maestro']]]);
+    assert.deepStrictEqual(projects.map((p) => [p.id, p.organization, p.repos]), [
+      ['scratch', { id: 'unassigned', name: 'Sem organização' }, ['github.com/higorcesarqn/scratch']],
+      ['painel-maestro', { id: 'pessoal', name: 'Pessoal' }, ['github.com/higorcesarqn/painel-maestro']],
+    ]);
     const item = (await get('/api/items/painel-maestro/26')).item;
     assert.deepStrictEqual([item.title, item.stage, item.project.organization.id], ['Renomear', 'pr_ready', 'pessoal']);
     assert.deepStrictEqual(item.timeline.map((e) => e.payload.stage), ['specification', 'implementation', 'pr_ready']);
