@@ -77,20 +77,20 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
   for (const route of ["api('/api/state')", "api('/api/recalculate', { method: 'POST' })",
     "api(withQuery('/api/pending-decisions', params))", "api(withQuery('/api/items', filters))",
     'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', "api(withQuery('/api/log', params))", 'api(`/api/log/${encodeURIComponent(id)}`)',
-    "api('/api/companies')", "api(withQuery('/api/projects', filters))",
-    "api(`/api/companies/${encodeURIComponent(id)}/rename`, { method: 'POST', body: { name } })",
-    "api(`/api/companies/${encodeURIComponent(id)}/remove`, { method: 'POST' })",
-    "api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } })",
+    "api('/api/organizations')", "api(withQuery('/api/projects', filters))",
+    "api(`/api/organizations/${encodeURIComponent(id)}/rename`, { method: 'POST', body: { name } })",
+    "api(`/api/organizations/${encodeURIComponent(id)}/remove`, { method: 'POST' })",
+    "api(`/api/projects/${encodeURIComponent(project)}/organization`, { method: 'POST', body: { organization } })",
     "api(withQuery('/api/usage', filters))", "api(withQuery('/api/agents', filters))", "api(withQuery('/api/overview', filters))"]) {
     assert.ok(api.includes(route), `the page calls ${route}`);
   }
   for (const route of ['/api/state', '/api/recalculate', '/api/pending-decisions', '/api/items', '/api/log', '/api/log/',
-    '/api/companies', '/api/projects', '/api/usage', '/api/agents', '/api/overview']) {
+    '/api/organizations', '/api/projects', '/api/usage', '/api/agents', '/api/overview']) {
     assert.ok(js.includes(route), `the build calls ${route}`);
   }
   // Nothing of the old model: no events/flows routes, no Brain.
   for (const old of ['/api/events', '/api/event/', '/api/flow/', '/api/brain']) assert.ok(!js.includes(old), `the build still calls ${old}`);
-  const allowed = /^\/api\/(state|recalculate|pending-decisions|items|items\/|log|log\/|companies|companies\/|projects|projects\/|usage|agents|overview)$/;
+  const allowed = /^\/api\/(state|recalculate|pending-decisions|items|items\/|log|log\/|organizations|organizations\/|projects|projects\/|usage|agents|overview)$/;
   for (const m of js.matchAll(/\/api\/[a-z_/-]*/g)) assert.ok(allowed.test(m[0]), `route outside the contract in the build: ${m[0]}`);
   assert.ok(!/new URLSearchParams\(\)/.test(api.replace(/export function withQuery[\s\S]*?\r?\n}\r?\n/, '')), 'every query string goes through withQuery');
   assert.ok(/'X-Panel': '1'/.test(api), 'POST carries X-Panel: 1');
@@ -118,12 +118,12 @@ suite.test('the demo is only the new model: mock-items.json answers /api/state t
   assert.ok(!/mock-state|mock-details/.test(js), 'the page reads only mock-items.json');
 });
 
-suite.test('mock-items.json: items in different stages, both trackers, several companies; the item page has a fixed address', () => {
+suite.test('mock-items.json: items in different stages, both trackers, several organizations; the item page has a fixed address', () => {
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const stages = require('../../bin/flow-store.js').STAGES;
   assert.deepStrictEqual([...new Set(m.items.map((i) => i.stage))].sort(), stages.slice().sort(), 'every stage has an item');
   assert.deepStrictEqual([...new Set(m.items.map((i) => i.tracker))].sort(), ['azure_devops', 'github']);
-  assert.ok(new Set(m.items.map((i) => i.project.company.id)).size >= 3, 'several companies');
+  assert.ok(new Set(m.items.map((i) => i.project.organization.id)).size >= 3, 'several organizations');
   for (const it of m.items) {
     assert.strictEqual(it.tracker_ref, it.tracker === 'azure_devops' ? `PBI ${it.number}` : `#${it.number}`);
     const d = m.details[it.key];
@@ -196,29 +196,29 @@ suite.test('mock-items.json: items in Final adjustment, PR ready, Merge, HML val
   for (const d of details) assert.strictEqual(d.active, d.stage !== 'done');
 });
 
-suite.test('companies (#6): the demo has two companies and "Pessoal" with GitHub and Azure DevOps projects; the selector is remembered', () => {
+suite.test('organizations (#6): the demo has two organizations and "Pessoal" with GitHub and Azure DevOps projects; the selector is remembered', () => {
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
-  const named = m.companies.filter((c) => !c.unassigned);
-  assert.ok(named.length >= 3 && named.some((c) => c.name === 'Pessoal'), 'two companies and Pessoal');
+  const named = m.organizations.filter((c) => !c.unassigned);
+  assert.ok(named.length >= 3 && named.some((c) => c.name === 'Pessoal'), 'two organizations and Pessoal');
   assert.deepStrictEqual([...new Set(m.projects.map((p) => p.tracker))].sort(), ['azure_devops', 'github']);
   assert.ok(m.projects.some((p) => p.tracker === 'azure_devops' && p.repos.length > 1), 'an Azure DevOps project with several repositories');
-  assert.ok(m.projects.some((p) => p.unassigned), 'a project in "Sem empresa" to move');
-  for (const c of m.companies) assert.strictEqual(c.project_count, m.projects.filter((p) => p.company.id === c.id).length, c.id);
+  assert.ok(m.projects.some((p) => p.unassigned), 'a project in "Sem organização" to move');
+  for (const c of m.organizations) assert.strictEqual(c.project_count, m.projects.filter((p) => p.organization.id === c.id).length, c.id);
   // The choice lives in localStorage, always behind try/catch (blocked storage must not break the page).
-  const companies = source['data/companies.js'];
-  assert.ok(/localStorage\.getItem/.test(companies) && /localStorage\.setItem/.test(companies), 'remembered in the browser');
-  assert.strictEqual((companies.match(/try \{/g) || []).length >= 2, true, 'reads and writes behind try/catch');
-  assert.ok(/readItems\(\{ \.\.\.companyFilter/.test(source['screens/Items.jsx']), 'the Items list reads with the company filter');
-  assert.ok(js.includes('painel-maestro.company'));
+  const organizations = source['data/organizations.js'];
+  assert.ok(/localStorage\.getItem/.test(organizations) && /localStorage\.setItem/.test(organizations), 'remembered in the browser');
+  assert.strictEqual((organizations.match(/try \{/g) || []).length >= 2, true, 'reads and writes behind try/catch');
+  assert.ok(/readItems\(\{ \.\.\.organizationFilter/.test(source['screens/Items.jsx']), 'the Items list reads with the organization filter');
+  assert.ok(js.includes('painel-maestro.organization'));
 });
 
-suite.test('Companies screen (#21): in the menu, sharing the project line with "Sem empresa"; the mock refuses "Sem empresa" as a destination, renames and removes only an empty company', async () => {
+suite.test('Organizations screen (#21): in the menu, sharing the project line with "Sem organização"; the mock refuses "Sem organização" as a destination, renames and removes only an empty organization', async () => {
   const { SCREENS, parseHash } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
-  assert.ok(SCREENS.some((s) => s.id === 'companies' && s.group === 'workspace'));
-  assert.deepStrictEqual(parseHash('#companies'), { id: 'companies', sub: '' });
-  for (const f of ['screens/Companies.jsx', 'screens/UnassignedProjects.jsx']) assert.ok(/import \{ ProjectRow \} from '\.\/ProjectRow\.jsx'/.test(source[f]), f);
+  assert.ok(SCREENS.some((s) => s.id === 'organizations' && s.group === 'workspace'));
+  assert.deepStrictEqual(parseHash('#organizations'), { id: 'organizations', sub: '' });
+  for (const f of ['screens/Organizations.jsx', 'screens/UnassignedProjects.jsx']) assert.ok(/import \{ ProjectRow \} from '\.\/ProjectRow\.jsx'/.test(source[f]), f);
   // Exception to the seam rule (panel/README.md, Testes): the mock lives only in the page (?mock=1), with no server or
-  // process to drive, so its refusal of "Sem empresa" is checked by calling mockApi() with the page's address and its
+  // process to drive, so its refusal of "Sem organização" is checked by calling mockApi() with the page's address and its
   // one file (tests/mock-items.json), without a browser.
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const saved = { location: globalThis.location, fetch: globalThis.fetch };
@@ -227,55 +227,55 @@ suite.test('Companies screen (#21): in the menu, sharing the project line with "
   try {
     const { mockApi } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'mock.js')).href);
     const p = m.projects.find((x) => !x.unassigned);
-    await assert.rejects(mockApi(`/api/projects/${p.id}/company`, 'POST', { company: 'unassigned' }),
-      (e) => e.status === 400 && e.error.code === 'company_reserved' && e.error.company === 'unassigned');
-    const target = m.companies.find((c) => !c.unassigned && c.id !== p.company.id);
-    const count = async (id) => (await mockApi('/api/companies', 'GET')).companies.find((c) => c.id === id).project_count;
-    const origin = p.company.id;
+    await assert.rejects(mockApi(`/api/projects/${p.id}/organization`, 'POST', { organization: 'unassigned' }),
+      (e) => e.status === 400 && e.error.code === 'organization_reserved' && e.error.organization === 'unassigned');
+    const target = m.organizations.find((c) => !c.unassigned && c.id !== p.organization.id);
+    const count = async (id) => (await mockApi('/api/organizations', 'GET')).organizations.find((c) => c.id === id).project_count;
+    const origin = p.organization.id;
     const before = [await count(origin), await count(target.id)];
-    const moved = await mockApi(`/api/projects/${p.id}/company`, 'POST', { company: target.id });
-    assert.deepStrictEqual(moved.project.company, { id: target.id, name: target.name });
+    const moved = await mockApi(`/api/projects/${p.id}/organization`, 'POST', { organization: target.id });
+    assert.deepStrictEqual(moved.project.organization, { id: target.id, name: target.name });
     assert.deepStrictEqual([await count(origin), await count(target.id)], [before[0] - 1, before[1] + 1], 'the counts follow the move');
-    // Removing a company (#24) under the store's rules: "Sem empresa" (400), with projects (409 with the count),
+    // Removing an organization (#24) under the store's rules: "Sem organização" (400), with projects (409 with the count),
     // unknown (404); an empty one leaves the list.
-    const remove = (id) => mockApi(`/api/companies/${id}/remove`, 'POST');
-    await assert.rejects(remove('unassigned'), (e) => e.status === 400 && e.error.code === 'company_reserved');
-    await assert.rejects(remove(target.id), (e) => e.status === 409 && e.error.code === 'company_not_empty' && e.error.project_count === before[1] + 1);
-    await assert.rejects(remove('nobody'), (e) => e.status === 404 && e.error.code === 'company_not_found');
-    const created = await mockApi('/api/companies', 'POST', { id: 'tmp-empty', name: 'Vazia de teste' });
-    assert.strictEqual(created.company.project_count, 0);
+    const remove = (id) => mockApi(`/api/organizations/${id}/remove`, 'POST');
+    await assert.rejects(remove('unassigned'), (e) => e.status === 400 && e.error.code === 'organization_reserved');
+    await assert.rejects(remove(target.id), (e) => e.status === 409 && e.error.code === 'organization_not_empty' && e.error.project_count === before[1] + 1);
+    await assert.rejects(remove('nobody'), (e) => e.status === 404 && e.error.code === 'organization_not_found');
+    const created = await mockApi('/api/organizations', 'POST', { id: 'tmp-empty', name: 'Vazia de teste' });
+    assert.strictEqual(created.organization.project_count, 0);
     assert.deepStrictEqual(await remove('tmp-empty'), { removed: 'tmp-empty' });
-    assert.ok(!(await mockApi('/api/companies', 'GET')).companies.some((c) => c.id === 'tmp-empty'), 'the removed company leaves the list');
-    // Renaming a company (#23) under the store's rules: "Sem empresa" (400), unknown (404), another company's name
+    assert.ok(!(await mockApi('/api/organizations', 'GET')).organizations.some((c) => c.id === 'tmp-empty'), 'the removed organization leaves the list');
+    // Renaming an organization (#23) under the store's rules: "Sem organização" (400), unknown (404), another organization's name
     // ignoring case (409), an invalid name (400); its own name with another case is accepted, the id is kept, and every
-    // answer of the mock that carries the company shows the new name, as the server's do.
-    const rename = (id, name) => mockApi(`/api/companies/${id}/rename`, 'POST', { name });
-    const other = m.companies.find((c) => !c.unassigned && c.id !== target.id);
-    await assert.rejects(rename('unassigned', 'Outra'), (e) => e.status === 400 && e.error.code === 'company_reserved');
-    await assert.rejects(rename('nobody', 'Outra'), (e) => e.status === 404 && e.error.code === 'company_not_found');
-    await assert.rejects(rename(target.id, ` ${other.name.toUpperCase()} `), (e) => e.status === 409 && e.error.code === 'company_name_taken' && e.error.company === other.id);
+    // answer of the mock that carries the organization shows the new name, as the server's do.
+    const rename = (id, name) => mockApi(`/api/organizations/${id}/rename`, 'POST', { name });
+    const other = m.organizations.find((c) => !c.unassigned && c.id !== target.id);
+    await assert.rejects(rename('unassigned', 'Outra'), (e) => e.status === 400 && e.error.code === 'organization_reserved');
+    await assert.rejects(rename('nobody', 'Outra'), (e) => e.status === 404 && e.error.code === 'organization_not_found');
+    await assert.rejects(rename(target.id, ` ${other.name.toUpperCase()} `), (e) => e.status === 409 && e.error.code === 'organization_name_taken' && e.error.organization === other.id);
     await assert.rejects(rename(target.id, '  '), (e) => e.status === 400 && e.error.code === 'invalid_field' && e.error.field === 'name');
-    // The name of "Sem empresa" is reserved, by a rename and by a creation (P-18, #20).
-    const reservedName = (e) => e.status === 409 && e.error.code === 'company_name_taken' && e.error.company === 'unassigned';
-    await assert.rejects(rename(target.id, 'SEM EMPRESA'), reservedName);
-    await assert.rejects(mockApi('/api/companies', 'POST', { id: 'tmp-reserved', name: ' sem empresa ' }), reservedName);
-    assert.strictEqual((await rename(target.id, target.name.toLowerCase())).company.name, target.name.toLowerCase());
+    // The name of "Sem organização" is reserved, by a rename and by a creation (P-18, #20).
+    const reservedName = (e) => e.status === 409 && e.error.code === 'organization_name_taken' && e.error.organization === 'unassigned';
+    await assert.rejects(rename(target.id, 'SEM ORGANIZAÇÃO'), reservedName);
+    await assert.rejects(mockApi('/api/organizations', 'POST', { id: 'tmp-reserved', name: ' sem organização ' }), reservedName);
+    assert.strictEqual((await rename(target.id, target.name.toLowerCase())).organization.name, target.name.toLowerCase());
     const renamed = await rename(target.id, '  Renomeada de Teste ');
-    assert.deepStrictEqual([renamed.company.id, renamed.company.name, renamed.company.project_count], [target.id, 'Renomeada de Teste', before[1] + 1]);
+    assert.deepStrictEqual([renamed.organization.id, renamed.organization.name, renamed.organization.project_count], [target.id, 'Renomeada de Teste', before[1] + 1]);
     const names = new Set();
     const collect = (x) => {
       if (Array.isArray(x)) return x.forEach(collect);
       if (!x || typeof x !== 'object') return undefined;
       for (const [k, v] of Object.entries(x)) {
-        if (k === 'company' && v && v.id === target.id && 'name' in v) names.add(v.name);
-        if (k === 'companies' && Array.isArray(v)) for (const c of v) if (c && c.id === target.id) names.add(c.name);
+        if (k === 'organization' && v && v.id === target.id && 'name' in v) names.add(v.name);
+        if (k === 'organizations' && Array.isArray(v)) for (const c of v) if (c && c.id === target.id) names.add(c.name);
         collect(v);
       }
       return undefined;
     };
-    const item = (await mockApi(`/api/items?company=${target.id}`, 'GET')).items[0];
-    for (const route of ['/api/companies', '/api/projects', `/api/items?company=${target.id}`, '/api/pending-decisions', '/api/overview',
-      `/api/overview?company=${target.id}`, '/api/usage', '/api/agents', '/api/log', `/api/items/${item.project.id}/${item.number}`]) {
+    const item = (await mockApi(`/api/items?organization=${target.id}`, 'GET')).items[0];
+    for (const route of ['/api/organizations', '/api/projects', `/api/items?organization=${target.id}`, '/api/pending-decisions', '/api/overview',
+      `/api/overview?organization=${target.id}`, '/api/usage', '/api/agents', '/api/log', `/api/items/${item.project.id}/${item.number}`]) {
       collect(await mockApi(route, 'GET'));
     }
     assert.deepStrictEqual([...names], ['Renomeada de Teste'], 'every answer of the mock shows the new name');
@@ -303,7 +303,7 @@ suite.test('mock-items.json: usage per item and per agent and the active agents 
   const u = m.usage;
   assert.strictEqual(u.plan.window_5h_pct, 37, 'the demo plan');
   for (const period of ['window_5h', 'today', '7d']) assert.ok(u.by_item[period].length >= 3 && u.by_agent[period].length >= 4, period);
-  assert.ok(new Set(u.by_item['7d'].map((l) => l.project.company && l.project.company.id)).size >= 3, 'items of several companies');
+  assert.ok(new Set(u.by_item['7d'].map((l) => l.project.organization && l.project.organization.id)).size >= 3, 'items of several organizations');
   assert.ok(u.by_item['7d'].some((l) => l.item === null), 'a session outside any item');
   assert.deepStrictEqual([...new Set(u.by_agent['7d'].map((l) => l.role))].sort(), ['maestro', 'other', 'worker']);
   const agents = m.agents.agents;
@@ -312,19 +312,19 @@ suite.test('mock-items.json: usage per item and per agent and the active agents 
   assert.ok(js.includes('/api/usage') && js.includes('/api/agents'), 'the screens read the usage and agents API');
 });
 
-suite.test('Overview (#14): the demo has stale items and open pending decisions per company, and the health of the new model', () => {
+suite.test('Overview (#14): the demo has stale items and open pending decisions per organization, and the health of the new model', () => {
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const all = m.overview[''];
-  assert.ok(all && all.active.total > 0 && all.active.companies.length >= 3, 'active items by company');
+  assert.ok(all && all.active.total > 0 && all.active.organizations.length >= 3, 'active items by organization');
   assert.ok(all.stale_items.length >= 2, 'items parked on the same stage');
   assert.ok(all.pending_decisions.total >= 3 && all.pending_decisions.open.length > 0, 'open pending decisions');
   assert.ok(all.recent_events.length > 0 && all.events_today > 0, 'recent activity');
-  for (const c of m.companies) assert.strictEqual(m.overview[c.id].company, c.id, `the Overview of ${c.id}`);
-  assert.ok(m.overview.contoso.active.total < all.active.total, 'the company narrows it');
+  for (const c of m.organizations) assert.strictEqual(m.overview[c.id].organization, c.id, `the Overview of ${c.id}`);
+  assert.ok(m.overview.contoso.active.total < all.active.total, 'the organization narrows it');
   assert.ok(m.state.health && typeof m.state.health.level === 'string' && m.state.health.reasons.every((r) => typeof r.code === 'string'), 'health of the new model, by codes');
-  assert.ok(m.state.health.reasons.some((r) => r.code === 'projects_unassigned'), 'the demo shows the projects in "Sem empresa"');
-  // The page reads the new model with the selector's company and no longer the old events.
-  assert.ok(/readOverview\(companyFilter\)/.test(source['screens/Overview.jsx']), 'the Overview reads with the company filter');
+  assert.ok(m.state.health.reasons.some((r) => r.code === 'projects_unassigned'), 'the demo shows the projects in "Sem organização"');
+  // The page reads the new model with the selector's organization and no longer the old events.
+  assert.ok(/readOverview\(organizationFilter\)/.test(source['screens/Overview.jsx']), 'the Overview reads with the organization filter');
   assert.ok(!/state\.events|analysis|readEvents/.test(source['screens/Overview.jsx']), 'nothing of the old model in the Overview');
   assert.ok(js.includes('/api/overview'));
 });
@@ -368,7 +368,7 @@ suite.test('the real server on a fake root (the demo in a real maestro.db + a ho
   const st = await get('/api/state');
   const kp = mock.state.kpis.pending_decisions;
   assert.deepStrictEqual(st.kpis.pending_decisions, { total: kp.total + 1, by_severity: { ...kp.by_severity, critical: kp.by_severity.critical + 1 } });
-  // This root has no bruto.db: besides the projects in "Sem empresa", the badge says the hook never wrote.
+  // This root has no bruto.db: besides the projects in "Sem organização", the badge says the hook never wrote.
   assert.deepStrictEqual(st.health.reasons.map((r) => r.code).sort(), ['hook_never', 'projects_unassigned']);
 
   // The lists the screens read: the demo's answers, plus the hostile item.
@@ -377,7 +377,7 @@ suite.test('the real server on a fake root (the demo in a real maestro.db + a ho
   for (const it of mock.items) assert.ok(items.some((x) => x.key === it.key && x.stage === it.stage), `item ${it.key}`);
   const ov = await get('/api/overview');
   assert.strictEqual(ov.active.total, mock.overview[''].active.total + 1);
-  assert.deepStrictEqual((await get('/api/companies')).companies.map((c) => c.id), mock.companies.map((c) => c.id));
+  assert.deepStrictEqual((await get('/api/organizations')).organizations.map((c) => c.id), mock.organizations.map((c) => c.id));
   const pd = (await get('/api/pending-decisions')).pending_decisions;
   assert.strictEqual(pd.length, mock.pending_decisions.pending_decisions.length + 1);
   assert.strictEqual(pd[0].severity, 'critical', 'open ones first, by severity');

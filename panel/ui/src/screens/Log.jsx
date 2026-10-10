@@ -1,5 +1,5 @@
 // Log (new model, #12): the events of every item (maestro.db), newest first, with filters by period, project, item
-// and event type (the company comes from the selector at the top of the panel, #6, like in the other screens), 50 per page (the table scrolls inside the card). A click or Enter on a row opens
+// and event type (the organization comes from the selector at the top of the panel, #6, like in the other screens), 50 per page (the table scrolls inside the card). A click or Enter on a row opens
 // the event with the raw commands of the Claude Code sessions linked to it (bruto.db, written by the hook).
 // The numbers of each option come from "counts" of /api/log (each filter ignores its own choice).
 import '../styles/log.css';
@@ -20,15 +20,15 @@ const KNOWN_TYPES = ['item-started', 'stage-changed', 'task-graph', 'task-dispat
 const withCount = (name, counts, key) => (counts ? `${name} · ${number(counts[key] || 0)}` : name);
 
 export function Log() {
-  const { filters: f, setFilters, page, setPage, log, company, companyFilter } = usePanel();
+  const { filters: f, setFilters, page, setPage, log, organization, organizationFilter } = usePanel();
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(null);
-  // Projects and items to choose from: those of /api/items of the chosen company, plus those that show up in the counts.
+  // Projects and items to choose from: those of /api/items of the chosen organization, plus those that show up in the counts.
   useEffect(() => {
     let alive = true;
-    readItems(companyFilter).then((r) => { if (alive) setItems(objs(r && r.items)); }).catch(() => {});
+    readItems(organizationFilter).then((r) => { if (alive) setItems(objs(r && r.items)); }).catch(() => {});
     return () => { alive = false; };
-  }, [log.answer, companyFilter]);
+  }, [log.answer, organizationFilter]);
 
   const r = log.answer;
   const events = objs(r && r.events);
@@ -39,17 +39,17 @@ export function Log() {
     const projects = new Map();
     for (const it of items) {
       const p = obj(it.project) || {};
-      const c = obj(p.company) || {};
-      if (p.id) projects.set(p.id, { name: txt(p.name) || p.id, company: c.id || '' });
+      const o = obj(p.organization) || {};
+      if (p.id) projects.set(p.id, { name: txt(p.name) || p.id, organization: o.id || '' });
     }
-    for (const k of Object.keys(obj(counts.project) || {})) if (!projects.has(k)) projects.set(k, { name: k, company: '' });
+    for (const k of Object.keys(obj(counts.project) || {})) if (!projects.has(k)) projects.set(k, { name: k, organization: '' });
     const types = [...new Set([...KNOWN_TYPES, ...Object.keys(obj(counts.type) || {}), ...(f.type ? [f.type] : [])])];
     const itemList = items.filter((it) => !f.project || (it.project && it.project.id === f.project));
     return { projects, types, items: itemList };
   }, [items, r, f.project, f.type]);
 
   const projectOptions = [['', t('log.allProjects')], ...[...options.projects]
-    .filter(([, p]) => !company || !p.company || p.company === company)
+    .filter(([, p]) => !organization || !p.organization || p.organization === organization)
     .map(([id, p]) => [id, withCount(p.name, counts.project, id)])];
   const itemOptions = [['', t('log.allItems')], ...options.items.map((it) => [it.key, t('log.itemOption', { ref: txt(it.tracker_ref), project: txt(it.project && it.project.name), title: txt(it.title) })])];
   if (f.item && !options.items.some((it) => it.key === f.item)) itemOptions.push([f.item, f.item]);
@@ -141,7 +141,7 @@ export function Log() {
 
 function LogRow({ e, open }) {
   const project = obj(e.project) || {};
-  const company = obj(project.company) || {};
+  const organization = obj(project.organization) || {};
   const ariaLabel = t('log.rowAria', { date: date(e.at), time: time(e.at), ref: txt(e.tracker_ref), event: eventTypeName(e.type), project: txt(project.name) });
   return (
     <tr class="clickable" tabindex="0" data-id={e.id} onClick={open} aria-label={ariaLabel}
@@ -149,7 +149,7 @@ function LogRow({ e, open }) {
       <td class="numeric" title={date(e.at)}>{dayMonth(e.at)}</td>
       <td class="numeric">{time(e.at)}</td>
       <td class="wrap"><span class="mono">{txt(e.tracker_ref)}</span> <span class="two-lines" title={txt(e.item_title)}>{txt(e.item_title)}</span></td>
-      <td title={txt(company.name)}>{txt(project.name)}<span class="muted"> · {txt(company.name)}</span></td>
+      <td title={txt(organization.name)}>{txt(project.name)}<span class="muted"> · {txt(organization.name)}</span></td>
       <td class="wrap"><Badge>{eventTypeName(e.type)}</Badge> <span class="text-2">{eventDetail(e)}</span></td>
       <td class="mono">{e.task_number === null || e.task_number === undefined ? <span class="muted">—</span> : `#${e.task_number}`}</td>
       <td class="text-2">{agentText(e.agent) || <span class="muted">—</span>}</td>

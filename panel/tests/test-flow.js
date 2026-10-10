@@ -106,18 +106,18 @@ suite.test('start an item and change its stage: the API lists the item and shows
   });
 });
 
-suite.test('an unregistered repository goes to "Sem empresa"; inside a worktree the project is the same', async () => {
+suite.test('an unregistered repository goes to "Sem organização"; inside a worktree the project is the same', async () => {
   const r = buildRoot('worktree');
   const wt = addWorktree(r);
   const first = flow(r, ['item', 'start', '7', '--title', 'Primeiro item']);
   ok(first);
-  assert.ok(/Sem empresa/.test(first.stdout), `says where the project was registered: ${first.stdout}`);
+  assert.ok(/Sem organização/.test(first.stdout), `says where the project was registered: ${first.stdout}`);
   ok(flow(r, ['stage', '7', 'final_adjustment'], { cwd: wt }));
   ok(flow(r, ['item', 'start', '8', '--title', 'Segundo item', '--stage', 'implementation'], { cwd: wt }));
   await withServer(r, async (get) => {
     const { items } = (await get('/api/items')).json;
     assert.deepStrictEqual(items.map((i) => [i.key, i.stage]).sort(), [['widgets/7', 'final_adjustment'], ['widgets/8', 'implementation']]);
-    for (const i of items) assert.deepStrictEqual(i.project, { id: 'widgets', name: 'widgets', tracker: 'github', company: { id: 'unassigned', name: 'Sem empresa' } });
+    for (const i of items) assert.deepStrictEqual(i.project, { id: 'widgets', name: 'widgets', tracker: 'github', organization: { id: 'unassigned', name: 'Sem organização' } });
   });
 });
 

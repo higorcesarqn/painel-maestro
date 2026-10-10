@@ -20,7 +20,7 @@ import '../styles/items.css';
 const RE_ITEM = /^([a-z0-9][a-z0-9-]*)\/([1-9]\d*)$/;
 const NO_FILTERS = { project: '', stage: '', tracker: '' };
 const stageName = (id) => t(`items.stages.${id}`);
-const companyName = (it) => txt(obj(it.project) && obj(it.project.company) ? it.project.company.name : '');
+const organizationName = (it) => txt(obj(it.project) && obj(it.project.organization) ? it.project.organization.name : '');
 const projectName = (it) => txt(obj(it.project) ? it.project.name || it.project.id : '');
 
 /** Reads with fn() now and every 20 s; keeps the last good answer when a read fails. */
@@ -52,32 +52,32 @@ export function Items() {
 }
 
 function ItemList() {
-  const { goTo, company, companies, setCompany, companyFilter } = usePanel();
-  // The company selector (#6) reaches the list as ?company=<id>; a project moved out of "Sem empresa" reads it again.
+  const { goTo, organization, organizations, setOrganization, organizationFilter } = usePanel();
+  // The organization selector (#6) reaches the list as ?organization=<id>; a project moved out of "unassigned" reads it again.
   const [moves, setMoves] = useState(0);
-  // Project, stage and tracker (#1: the items API filters by company, project, stage and tracker).
+  // Project, stage and tracker (#1: the items API filters by organization, project, stage and tracker).
   const [filters, setFilters] = useState(NO_FILTERS);
-  const { answer, error } = usePolling(() => readItems({ ...companyFilter, ...filters }), [companyFilter, filters, moves]);
-  const { answer: projectsAnswer } = usePolling(() => readProjects(companyFilter), [companyFilter, moves]);
+  const { answer, error } = usePolling(() => readItems({ ...organizationFilter, ...filters }), [organizationFilter, filters, moves]);
+  const { answer: projectsAnswer } = usePolling(() => readProjects(organizationFilter), [organizationFilter, moves]);
   const projects = objs(projectsAnswer && projectsAnswer.projects);
   const filtering = Object.values(filters).some(Boolean);
   const change = (k) => (v) => setFilters((f) => ({ ...f, [k]: v }));
-  // A project of another company is not offered (and not kept) once the company selector changes.
+  // A project of another organization is not offered (and not kept) once the organization selector changes.
   useEffect(() => {
     if (filters.project && projectsAnswer && !projects.some((p) => p.id === filters.project)) setFilters((f) => ({ ...f, project: '' }));
   }, [projectsAnswer]);
   const all = objs(answer && answer.items);
   const { shown: items, control: doneFilter, which } = useDoneFilter(all);
   const open = (it) => goTo('items', it.key);
-  const chosen = company && companies.find((c) => c.id === company);
+  const chosen = organization && organizations.find((c) => c.id === organization);
   return (
     <div class="screen screen-items">
       <UnassignedProjects onMoved={() => setMoves((n) => n + 1)} />
       <Card label={t('items.title')} extra={answer ? t('items.count', { count: items.length }) : null} info={t('items.listInfo')} actions={answer && all.length ? doneFilter : null} scroll flush>
         {chosen && (
           <p class="items-filtered muted small">
-            {t('companies.filtered', { company: txt(chosen.name) })}
-            <button type="button" class="button small" onClick={() => setCompany('')}>{t('companies.showAll')}</button>
+            {t('organizations.filtered', { organization: txt(chosen.name) })}
+            <button type="button" class="button small" onClick={() => setOrganization('')}>{t('organizations.showAll')}</button>
           </p>
         )}
         <div class="items-filters">
@@ -112,7 +112,7 @@ function ItemList() {
                     <td class="col-ref mono">{txt(it.tracker_ref)}</td>
                     <td title={txt(it.title)}>{txt(it.title)}</td>
                     <td class="col-stage"><StageBadge stage={it.stage} doneState={it.done_state} /></td>
-                    <td class="col-project" title={companyName(it)}>{projectName(it)}<span class="muted"> · {companyName(it)}</span></td>
+                    <td class="col-project" title={organizationName(it)}>{projectName(it)}<span class="muted"> · {organizationName(it)}</span></td>
                     <td class="col-updated" title={dateTime(it.updated_at)}>{age(it.updated_at)}</td>
                   </tr>
                 ))}
@@ -155,7 +155,7 @@ function ItemPage({ project, number: itemNumber }) {
         <div class="item-head">
           <div class="item-ref">
             <span class="item-number mono">{txt(item.tracker_ref)}</span>
-            <span class="muted">{t('items.projectOf', { project: projectName(item), company: companyName(item) })}</span>
+            <span class="muted">{t('items.projectOf', { project: projectName(item), organization: organizationName(item) })}</span>
             <Badge>{t(`items.trackers.${item.tracker}`)}</Badge>
           </div>
           <h2 class="item-title">{txt(item.title)}</h2>

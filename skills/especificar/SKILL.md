@@ -47,7 +47,7 @@ Logo depois de publicar, antes de qualquer outra coisa. O título quase sempre t
 node "$PAINEL_MAESTRO/bin/flow.js" item start --json - < "<scratchpad>/item-3100.json"
 ```
 
-O CLI responde, por exemplo, `Item cidax/3100 (PBI 3100) iniciado em Especificação.`: guarde a chave `cidax/3100` para o relatório. Se ele disser que cadastrou o projeto em "Sem empresa", repasse isso ao usuário no fim (ele move o projeto pelo painel).
+O CLI responde, por exemplo, `Item cidax/3100 (PBI 3100) iniciado em Especificação.`: guarde a chave `cidax/3100` para o relatório. Se ele disser que cadastrou o projeto em "Sem organização", repasse isso ao usuário no fim (ele move o projeto pelo painel).
 
 - **Código 2**: dado inválido; a mensagem diz o que corrigir. "Já foi iniciado" significa que uma tentativa anterior já gravou o item: siga em frente. Etapa que o projeto não usa: avise o usuário e siga sem registrar.
 - **Código 1**: falha do painel. Siga com a especificação e avise o usuário no fim, com a mensagem.

@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 'use strict';
 // Writes tests/mock-items.json, the whole test mode (?mock=1, npm run demo): the answers of GET /api/items,
-// GET /api/items/<project>/<number>, GET /api/companies, GET /api/projects and (unfiltered) GET /api/pending-decisions
-// for fictitious companies, projects and events. The answers come out of the server's own code (panel/api-items.js,
+// GET /api/items/<project>/<number>, GET /api/organizations, GET /api/projects and (unfiltered) GET /api/pending-decisions
+// for fictitious organizations, projects and events. The answers come out of the server's own code (panel/api-items.js,
 // api-projects.js, api-pending-decisions.js and the projection in bin/flow-projection.js) over an in-memory store,
 // so the mock never drifts from the API shape. Run: node panel/tests/generate-mock-items.js
 // Usage and agents per item (#13): fictitious sessions linked to the items' maestros and the tasks' workers go into a
 // temporary bruto.db with their transcripts; the real collector (bin/collect-usage.js) reads them with the fictitious
 // plan below, and the real API (panel/api-usage.js) writes the answers of GET /api/usage and /api/agents.
-// Overview and the shell (#14): GET /api/overview per company (panel/api-overview.js) and GET /api/state (the server's
+// Overview and the shell (#14): GET /api/overview per organization (panel/api-overview.js) and GET /api/state (the server's
 // own stateAnswer(): health, menu counter and plan) over the same store.
-// The same companies, projects and events are exported for build-mock-root.js, which writes them into a real
+// The same organizations, projects and events are exported for build-mock-root.js, which writes them into a real
 // maestro.db to look at the page with the real server.
 
 const fs = require('fs');
@@ -18,7 +18,7 @@ const os = require('os');
 const path = require('path');
 const { listItems, itemDetail } = require('../api-items.js');
 const { listPendingDecisions } = require('../api-pending-decisions.js');
-const { listCompanies, listProjects } = require('../api-projects.js');
+const { listOrganizations, listProjects } = require('../api-projects.js');
 const { usageAnswer, listAgents } = require('../api-usage.js');
 const { overview: overviewOf } = require('../api-overview.js');
 const { stateAnswer } = require('../server.js');
@@ -35,27 +35,27 @@ const PLAN = {
   weekly_pct: 22, weekly_reset: '2026-10-13T09:00:00-03:00', updated_at: '2026-10-09T10:21:30-03:00',
 };
 
-const companies = {
+const organizations = {
   contoso: 'Contoso',
   fabrikam: 'Fabrikam',
   personal: 'Pessoal',
-  unassigned: 'Sem empresa',
+  unassigned: 'Sem organização',
 };
-// Two companies and "Pessoal", with GitHub and Azure DevOps projects (an Azure DevOps project with several
-// repositories is a single project), and two repositories that landed in "Sem empresa" (#6).
+// Two organizations and "Pessoal", with GitHub and Azure DevOps projects (an Azure DevOps project with several
+// repositories is a single project), and two repositories that landed in "Sem organização" (#6).
 const projects = [
-  { id: 'portal', name: 'Portal Contoso', company_id: 'contoso', tracker: 'azure_devops', stages: STAGES, done_state: 'Committed', maestri_workspace: 'Contoso Portal',
+  { id: 'portal', name: 'Portal Contoso', organization_id: 'contoso', tracker: 'azure_devops', stages: STAGES, done_state: 'Committed', maestri_workspace: 'Contoso Portal',
     repos: ['dev.azure.com/contoso/portal/_git/portal-api', 'dev.azure.com/contoso/portal/_git/portal-web'] },
-  { id: 'billing-api', name: 'Cobrança', company_id: 'contoso', tracker: 'azure_devops', stages: STAGES, done_state: 'Done', maestri_workspace: 'Contoso Cobrança',
+  { id: 'billing-api', name: 'Cobrança', organization_id: 'contoso', tracker: 'azure_devops', stages: STAGES, done_state: 'Done', maestri_workspace: 'Contoso Cobrança',
     repos: ['dev.azure.com/contoso/billing/_git/billing-api'] },
-  { id: 'design-system', name: 'Design system', company_id: 'contoso', tracker: 'github', stages: NO_HML, repos: ['github.com/contoso/design-system'] },
-  { id: 'storefront', name: 'Loja', company_id: 'fabrikam', tracker: 'github', stages: NO_HML, maestri_workspace: 'Fabrikam', repos: ['github.com/fabrikam/storefront'] },
-  { id: 'erp', name: 'ERP Fabrikam', company_id: 'fabrikam', tracker: 'azure_devops', stages: STAGES, done_state: 'Closed',
+  { id: 'design-system', name: 'Design system', organization_id: 'contoso', tracker: 'github', stages: NO_HML, repos: ['github.com/contoso/design-system'] },
+  { id: 'storefront', name: 'Loja', organization_id: 'fabrikam', tracker: 'github', stages: NO_HML, maestri_workspace: 'Fabrikam', repos: ['github.com/fabrikam/storefront'] },
+  { id: 'erp', name: 'ERP Fabrikam', organization_id: 'fabrikam', tracker: 'azure_devops', stages: STAGES, done_state: 'Closed',
     repos: ['fabrikam.visualstudio.com/erp/_git/erp-core', 'fabrikam.visualstudio.com/erp/_git/erp-fiscal', 'fabrikam.visualstudio.com/erp/_git/erp-web'] },
-  { id: 'painel-maestro', name: 'painel-maestro', company_id: 'personal', tracker: 'github', stages: NO_HML, repos: ['github.com/higorcesarqn/painel-maestro'] },
-  { id: 'scratch', name: 'scratch', company_id: 'unassigned', tracker: 'github', stages: STAGES, repos: ['github.com/higorcesarqn/scratch'] },
-  { id: 'relatorios-bi', name: 'relatorios-bi', company_id: 'unassigned', tracker: 'azure_devops', stages: STAGES, repos: ['dev.azure.com/fabrikam/bi/_git/relatorios-bi'] },
-].map((p) => ({ done_state: null, maestri_workspace: null, ...p, company_name: companies[p.company_id], created_at: '2026-10-01T09:00:00-03:00' }));
+  { id: 'painel-maestro', name: 'painel-maestro', organization_id: 'personal', tracker: 'github', stages: NO_HML, repos: ['github.com/higorcesarqn/painel-maestro'] },
+  { id: 'scratch', name: 'scratch', organization_id: 'unassigned', tracker: 'github', stages: STAGES, repos: ['github.com/higorcesarqn/scratch'] },
+  { id: 'relatorios-bi', name: 'relatorios-bi', organization_id: 'unassigned', tracker: 'azure_devops', stages: STAGES, repos: ['dev.azure.com/fabrikam/bi/_git/relatorios-bi'] },
+].map((p) => ({ done_state: null, maestri_workspace: null, ...p, organization_name: organizations[p.organization_id], created_at: '2026-10-01T09:00:00-03:00' }));
 
 // PR, final adjustment, HML and conclusion (#9): a step may be an event [type, payload, role?] instead of a stage.
 const GH = (repo, n) => `https://github.com/${repo}/pull/${n}`;
@@ -288,20 +288,20 @@ events.forEach((e, i) => { e.id = i + 1; });
 for (const e of events) if (typeof e.payload.pending_decision === 'string') e.payload.pending_decision = refs.get(e.payload.pending_decision).id;
 
 // In-memory store with the same reads as bin/flow-store.js (the Log's page of events too, for the Overview).
-const companyOf = (e) => projects.find((p) => p.id === e.project_id).company_id;
+const organizationOf = (e) => projects.find((p) => p.id === e.project_id).organization_id;
 const store = {
   projects: () => projects,
   project: (id) => projects.find((p) => p.id === id) || null,
-  companies: () => Object.entries(companies).map(([id, name]) => ({ id, name, created_at: '2026-10-01T09:00:00-03:00' })),
+  organizations: () => Object.entries(organizations).map(([id, name]) => ({ id, name, created_at: '2026-10-01T09:00:00-03:00' })),
   projectRepos: (id) => projects.find((p) => p.id === id).repos.slice().sort(),
   allEvents: () => events,
   projectedItems: () => projectEventsByItem(events, new Map(projects.map((p) => [p.id, p]))),
   itemEvents: (projectId, number) => events.filter((e) => e.project_id === projectId && e.item_number === number),
   logEvents: (f, { limit = 50, offset = 0 } = {}) => {
-    const list = events.filter((e) => (!f.companies || f.companies.includes(companyOf(e))) && (!f.since || e.at >= f.since)).slice().reverse();
+    const list = events.filter((e) => (!f.organizations || f.organizations.includes(organizationOf(e))) && (!f.since || e.at >= f.since)).slice().reverse();
     return { total: list.length, events: list.slice(offset, offset + limit) };
   },
-  logCounts: () => ({ company: {}, project: {}, type: {} }),
+  logCounts: () => ({ organization: {}, project: {}, type: {} }),
 };
 const source = { store: () => store };
 // The hook's last entry (bruto.db) a few minutes before the mock's moment: the hook is working.
@@ -369,19 +369,19 @@ async function main() {
   const details = {};
   for (const it of items) details[it.key] = itemDetail(source, it.project.id, it.number).item;
   const pending = listPendingDecisions(source);
-  // Companies and projects (#6): the answers of GET /api/companies and GET /api/projects (the page filters them by company).
-  const { companies: companyList } = listCompanies(source);
+  // Organizations and projects (#6): the answers of GET /api/organizations and GET /api/projects (the page filters them by organization).
+  const { organizations: organizationList } = listOrganizations(source);
   const { projects: projectList } = listProjects(source, new URLSearchParams());
-  // Overview (#14): the answer of GET /api/overview for every company of the selector ('' = all), with the server's
+  // Overview (#14): the answer of GET /api/overview for every organization of the selector ('' = all), with the server's
   // default stale limit; and GET /api/state (health, menu counter and plan) by the server's own function.
   const nowMs = Date.parse(GENERATED_AT);
   const overview = {};
-  for (const id of ['', ...companyList.map((c) => c.id)]) {
-    overview[id] = overviewOf(source, new URLSearchParams(id ? { company: id } : {}), { nowMs, staleHours: 48 });
+  for (const id of ['', ...organizationList.map((c) => c.id)]) {
+    overview[id] = overviewOf(source, new URLSearchParams(id ? { organization: id } : {}), { nowMs, staleHours: 48 });
   }
   const { file, collector, usage, agents } = await usageAndAgents(source);
   const state = stateAnswer({ items: source, raw, usageFile: file, nowMs, collector });
-  fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, state, companies: companyList, projects: projectList, items, details, pending_decisions: pending, overview, usage, agents }, null, 2)}
+  fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, state, organizations: organizationList, projects: projectList, items, details, pending_decisions: pending, overview, usage, agents }, null, 2)}
 `);
   const taskStates = new Set(Object.values(details).flatMap((d) => d.tasks.map((x) => x.state)));
   const pd = pending.pending_decisions;
@@ -391,7 +391,7 @@ async function main() {
   console.log(`  ${all.reduce((n, d) => n + d.reports.length, 0)} relatórios e ${all.reduce((n, d) => n + d.findings.length, 0)} achados; ${agents.agents.length} agentes ativos; uso de ${usage.by_item['7d'].length} itens`);
 }
 
-module.exports = { GENERATED_AT, companies, projects, events };
+module.exports = { GENERATED_AT, organizations, projects, events };
 
 if (require.main === module) {
   main().catch((e) => {

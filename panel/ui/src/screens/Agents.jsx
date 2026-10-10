@@ -1,7 +1,7 @@
 // Agents (#13): the maestros and workers active right now, with no fixed registry. They come from the items
 // (GET /api/agents): the maestro of every item not yet Done and the worker of every task being worked on (working,
 // review or blocked), each with its item, its task, the last event of the flow and the last time the hook saw one of
-// its sessions. The company chosen at the top of the panel (companyFilter) reaches the API as ?company=.
+// its sessions. The organization chosen at the top of the panel (organizationFilter) reaches the API as ?organization=.
 import { useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
 import { readAgents } from '../data/api.js';
@@ -17,8 +17,8 @@ const ROLE_TONE = { maestro: 'blue', worker: 'ok' };
 const TASK_TONE = { working: 'blue', review: 'warning', blocked: 'danger' };
 
 export function Agents() {
-  const { goTo, companyFilter } = usePanel();
-  const { answer, error } = usePolling(() => readAgents(companyFilter), [companyFilter]);
+  const { goTo, organizationFilter } = usePanel();
+  const { answer, error } = usePolling(() => readAgents(organizationFilter), [organizationFilter]);
   const [role, setRole] = useState('all');
   const all = objs(answer && answer.agents);
   const counts = (answer && obj(answer.counts)) || { maestro: 0, worker: 0 };
@@ -63,7 +63,7 @@ export function Agents() {
 function AgentRow({ a, open }) {
   const item = obj(a.item) || {};
   const project = obj(a.project) || {};
-  const company = obj(project.company);
+  const organization = obj(project.organization);
   const ev = obj(a.last_event);
   const u = obj(a.usage) && obj(a.usage.window_5h);
   return (
@@ -74,7 +74,7 @@ function AgentRow({ a, open }) {
       </td>
       <td class="col-item">
         <span class="mono">{txt(item.tracker_ref)}</span> <span title={txt(item.title)}>{txt(item.title)}</span>
-        <span class="muted small block">{txt(project.name || project.id)}{company ? ` · ${txt(company.name)}` : ''}</span>
+        <span class="muted small block">{txt(project.name || project.id)}{organization ? ` · ${txt(organization.name)}` : ''}</span>
       </td>
       <td class="col-task"><TaskCell a={a} /></td>
       <td>

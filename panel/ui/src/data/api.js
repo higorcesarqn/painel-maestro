@@ -45,30 +45,30 @@ export const readItem = (project, number) => api(`/api/items/${encodeURIComponen
 // The Log: the events of maestro.db with filters and, for one event, the raw commands of bruto.db linked to it.
 export const readLog = (params) => api(withQuery('/api/log', params));
 export const readLogEvent = (id) => api(`/api/log/${encodeURIComponent(id)}`);
-// Pending decisions, read only: params { company, project, severity, status }.
+// Pending decisions, read only: params { organization, project, severity, status }.
 export const readPendingDecisions = (params) => api(withQuery('/api/pending-decisions', params));
 // "Mark as merged" (#11): records the PR merge by hand when the merge check cannot read it. Returns { item }.
 export const markItemMerged = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}/merged`, { method: 'POST' });
-// Usage and agents per item (#13). filters: the company selector's companyFilter ({ company }) and/or { project }.
+// Usage and agents per item (#13). filters: the organization selector's organizationFilter ({ organization }) and/or { project }.
 export const readUsage = (filters) => api(withQuery('/api/usage', filters));
 export const readAgents = (filters) => api(withQuery('/api/agents', filters));
 
-// Overview (#14): the picture of the day, narrowed by the company of the selector (companyFilter).
+// Overview (#14): the picture of the day, narrowed by the organization of the selector (organizationFilter).
 export const readOverview = (filters) => api(withQuery('/api/overview', filters));
 
-// Companies and projects (#6). The company selector reaches each list as ?company=<id> (see companyFilter).
-export const readCompanies = () => api('/api/companies');
+// Organizations and projects (#6). The organization selector reaches each list as ?organization=<id> (see organizationFilter).
+export const readOrganizations = () => api('/api/organizations');
 export const readProjects = (filters) => api(withQuery('/api/projects', filters));
-// Creates a company (#22): { company }, as GET /api/companies lists it.
-export const createCompany = (id, name) => api('/api/companies', { method: 'POST', body: { id, name } });
-// Renames a company (#23; the id never changes): { company }, as GET /api/companies lists it.
-export const renameCompany = (id, name) => api(`/api/companies/${encodeURIComponent(id)}/rename`, { method: 'POST', body: { name } });
-// Removes a company without projects (#24): { removed: <id> }.
-export const removeCompany = (id) => api(`/api/companies/${encodeURIComponent(id)}/remove`, { method: 'POST' });
-export const moveProject = (project, company) => api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } });
+// Creates an organization (#22): { organization }, as GET /api/organizations lists it.
+export const createOrganization = (id, name) => api('/api/organizations', { method: 'POST', body: { id, name } });
+// Renames an organization (#23; the id never changes): { organization }, as GET /api/organizations lists it.
+export const renameOrganization = (id, name) => api(`/api/organizations/${encodeURIComponent(id)}/rename`, { method: 'POST', body: { name } });
+// Removes an organization without projects (#24): { removed: <id> }.
+export const removeOrganization = (id) => api(`/api/organizations/${encodeURIComponent(id)}/remove`, { method: 'POST' });
+export const moveProject = (project, organization) => api(`/api/projects/${encodeURIComponent(project)}/organization`, { method: 'POST', body: { organization } });
 
 /**
- * path?k=v for the filled values of filters ({ company: 'contoso', project: '' } → path?company=contoso): the only way
+ * path?k=v for the filled values of filters ({ organization: 'contoso', project: '' } → path?organization=contoso): the only way
  * the page builds a query string. Text and number values count; empty, null and undefined are left out.
  */
 export function withQuery(path, filters) {

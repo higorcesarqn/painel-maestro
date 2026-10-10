@@ -3,11 +3,11 @@
 // request by the same code as the other screens (api-items.js, api-pending-decisions.js and the Log's api-log.js);
 // nothing derived is stored (ADR 0002).
 //
-//   GET /api/overview[?company=<id>] → {
-//     generated_at, company (the filter or null), stale_hours (PANEL_STALE_HOURS),
-//     active: { total, by_stage: {stage: n}, companies: [{ id, name, unassigned, total,
+//   GET /api/overview[?organization=<id>] → {
+//     generated_at, organization (the filter or null), stale_hours (PANEL_STALE_HOURS),
+//     active: { total, by_stage: {stage: n}, organizations: [{ id, name, unassigned, total,
 //               projects: [{ id, name, tracker, stages, total, by_stage: {stage: n} }] }] },
-//                                     active items; "Sem empresa" last, the rest alphabetical
+//                                     active items; "Sem organização" last, the rest alphabetical
 //     pending_decisions: { total, by_severity: {critical, high, normal, low}, open: [{ id, kind, severity, title, derived_from,
 //                          opened_at, item, task }] }   the open ones, the most urgent first (at most 8 listed)
 //     stale_items: [{ key, project, number, tracker_ref, title, stage, stage_since, updated_at, hours }]
@@ -15,11 +15,11 @@
 //     events_today: n,                events recorded today (São Paulo)
 //     recent_events: [LogEvent]       the last 12 events, newest first, in the shape of GET /api/log
 //   }
-// The company filter is the one of the selector at the top of the page. No sentences: errors are codes (ADR 0004):
-// 400 invalid_filter for a company that is not an id; 503 database_unreadable when maestro.db cannot be read.
+// The organization filter is the one of the selector at the top of the page. No sentences: errors are codes (ADR 0004):
+// 400 invalid_filter for an organization that is not an id; 503 database_unreadable when maestro.db cannot be read.
 const path = require('path');
 
-const { UNASSIGNED_COMPANY } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { UNASSIGNED_ORGANIZATION } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 const { isoSP } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
 const { listItems } = require(path.join(__dirname, 'api-items.js'));
 const { ProjectsError } = require(path.join(__dirname, 'api-projects.js'));
@@ -31,39 +31,39 @@ const PENDING_LIMIT = 8;   // open pending decisions listed (the most urgent; th
 const RECENT_LIMIT = 12;   // events of the recent activity
 const HOUR_MS = 60 * 60 * 1000;
 
-/** ?company=<id>: null when absent; 400 invalid_filter when it is not an id. */
-function companyParam(query) {
-  const v = query && query.get('company');
+/** ?organization=<id>: null when absent; 400 invalid_filter when it is not an id. */
+function organizationParam(query) {
+  const v = query && query.get('organization');
   if (v === null || v === undefined || v === '') return null;
-  if (!RE_ID.test(v)) throw new ProjectsError(400, { code: 'invalid_filter', param: 'company', value: String(v).slice(0, 100) });
+  if (!RE_ID.test(v)) throw new ProjectsError(400, { code: 'invalid_filter', param: 'organization', value: String(v).slice(0, 100) });
   return v;
 }
 
 const bump = (counts, key) => { counts[key] = (counts[key] || 0) + 1; };
 const byName = (a, b) => a.name.localeCompare(b.name, 'pt-BR') || a.id.localeCompare(b.id);
 
-/** Active items by company, project and stage ("Sem empresa" last, then alphabetical). */
+/** Active items by organization, project and stage ("Sem organização" last, then alphabetical). */
 function activeSummary(items, projects) {
-  const companies = new Map();
+  const organizations = new Map();
   const byStage = {};
   for (const it of items) {
     const project = projects.get(it.project.id);
     if (!project) continue;
-    const c = it.project.company;
-    if (!companies.has(c.id)) companies.set(c.id, { id: c.id, name: c.name, unassigned: c.id === UNASSIGNED_COMPANY, total: 0, projects: new Map() });
-    const company = companies.get(c.id);
-    if (!company.projects.has(project.id)) {
-      company.projects.set(project.id, { id: project.id, name: project.name, tracker: project.tracker, stages: project.stages, total: 0, by_stage: {} });
+    const c = it.project.organization;
+    if (!organizations.has(c.id)) organizations.set(c.id, { id: c.id, name: c.name, unassigned: c.id === UNASSIGNED_ORGANIZATION, total: 0, projects: new Map() });
+    const organization = organizations.get(c.id);
+    if (!organization.projects.has(project.id)) {
+      organization.projects.set(project.id, { id: project.id, name: project.name, tracker: project.tracker, stages: project.stages, total: 0, by_stage: {} });
     }
-    const p = company.projects.get(project.id);
-    company.total++;
+    const p = organization.projects.get(project.id);
+    organization.total++;
     p.total++;
     bump(p.by_stage, it.stage);
     bump(byStage, it.stage);
   }
-  const list = [...companies.values()].map((c) => ({ ...c, projects: [...c.projects.values()].sort(byName) }));
+  const list = [...organizations.values()].map((c) => ({ ...c, projects: [...c.projects.values()].sort(byName) }));
   list.sort((a, b) => Number(a.unassigned) - Number(b.unassigned) || byName(a, b));
-  return { total: items.length, by_stage: byStage, companies: list };
+  return { total: items.length, by_stage: byStage, organizations: list };
 }
 
 // The Log's reading also asks bruto.db for its last entry; the Overview does not need it.
@@ -71,22 +71,22 @@ const NO_RAW = { store: () => null };
 
 /** GET /api/overview. items: the items source (api-items.js), lazily opened maestro.db. */
 function overview(items, query, { nowMs, staleHours }) {
-  const company = companyParam(query);
+  const organization = organizationParam(query);
   try {
-    return picture(items, company, nowMs, staleHours);
+    return picture(items, organization, nowMs, staleHours);
   } catch (e) {
     if (e instanceof ProjectsError) throw e;
     throw new ProjectsError(503, { code: 'database_unreadable', file: 'maestro.db', detail: String(e && (e.errstr || e.code || e.message)).slice(0, 200) });
   }
 }
 
-function picture(items, company, nowMs, staleHours) {
+function picture(items, organization, nowMs, staleHours) {
   const raw = NO_RAW;
-  const answer = { generated_at: isoSP(new Date(nowMs)), company, stale_hours: staleHours };
+  const answer = { generated_at: isoSP(new Date(nowMs)), organization, stale_hours: staleHours };
   const store = items.store();
   const projects = new Map((store ? store.projects() : []).map((p) => [p.id, p]));
-  const active = listItems(items, { active: true }).items.filter((it) => !company || it.project.company.id === company);
-  const filter = company ? { company } : {};
+  const active = listItems(items, { active: true }).items.filter((it) => !organization || it.project.organization.id === organization);
+  const filter = organization ? { organization } : {};
   const pending = listPendingDecisions(items, new URLSearchParams({ ...filter, status: 'open' }));
   const recent = listLog(items, raw, new URLSearchParams({ ...filter, per_page: String(RECENT_LIMIT) }), nowMs);
   const today = listLog(items, raw, new URLSearchParams({ ...filter, since: isoSP(new Date(nowMs)).slice(0, 10), per_page: '1' }), nowMs);

@@ -103,7 +103,7 @@ suite.test('the maestro opens a pending decision on a task; the API shows it wit
       options: ['A: Integrar', 'B: Pedir ajuste'], recommendation: 'A: os testes passaram',
       item: {
         key: 'widgets/12', number: 12, tracker_ref: '#12', title: 'Exportar relatório', stage: 'implementation',
-        project: { id: 'widgets', name: 'widgets', tracker: 'github', company: { id: 'unassigned', name: 'Sem empresa' } },
+        project: { id: 'widgets', name: 'widgets', tracker: 'github', organization: { id: 'unassigned', name: 'Sem organização' } },
       },
       task: { number: 13, title: 'Gerar o PDF', state: 'waiting' },
       maestri: { workspace: 'Contoso', terminal: 'Maestro 12' },
@@ -224,7 +224,7 @@ suite.test('the maestro resolves with the owner\'s decision or cancels; the deci
   });
 });
 
-suite.test('the API filters by company, project, severity and status; each count ignores only its own filter', async () => {
+suite.test('the API filters by organization, project, severity and status; each count ignores only its own filter', async () => {
   const r = buildRoot('filters');
   startItem(r);
   ok(flow(r, ['item', 'start', '7', '--title', 'Outro projeto', '--stage', 'implementation'], { cwd: r.repo2 }));
@@ -239,11 +239,11 @@ suite.test('the API filters by company, project, severity and status; each count
     assert.deepStrictEqual(await ids('?project=widgets,gadgets&status=open'), [high, other]);
     assert.deepStrictEqual(await ids('?severity=high&project=widgets'), [high]);
     assert.deepStrictEqual(await ids('?status=resolved'), [low]);
-    assert.deepStrictEqual(await ids('?company=unassigned&severity=low,normal'), [low]);
-    assert.deepStrictEqual(await ids('?company=contoso'), []);
+    assert.deepStrictEqual(await ids('?organization=unassigned&severity=low,normal'), [low]);
+    assert.deepStrictEqual(await ids('?organization=contoso'), []);
     const x = await get('/api/pending-decisions?project=widgets&status=open');
     assert.deepStrictEqual(x.counts, { status: { open: 1, resolved: 1, canceled: 0 }, severity: { critical: 0, high: 1, normal: 0, low: 0 } });
-    assert.deepStrictEqual(x.companies, [{ id: 'unassigned', name: 'Sem empresa' }]);
+    assert.deepStrictEqual(x.organizations, [{ id: 'unassigned', name: 'Sem organização' }]);
     const bad = await get('/api/pending-decisions?severity=alta', 400);
     assert.deepStrictEqual(bad.error, { code: 'invalid_filter', param: 'severity', value: 'alta', allowed: ['critical', 'high', 'normal', 'low'] });
     assert.strictEqual((await get('/api/pending-decisions?status=aberta', 400)).error.param, 'status');
@@ -254,7 +254,7 @@ suite.test('without maestro.db the list is empty and nothing is created', async 
   const r = buildRoot('empty');
   await withServer(r, async (get) => {
     assert.deepStrictEqual(await get('/api/pending-decisions'), {
-      pending_decisions: [], counts: { status: { open: 0, resolved: 0, canceled: 0 }, severity: { critical: 0, high: 0, normal: 0, low: 0 } }, companies: [],
+      pending_decisions: [], counts: { status: { open: 0, resolved: 0, canceled: 0 }, severity: { critical: 0, high: 0, normal: 0, low: 0 } }, organizations: [],
     });
   });
   assert.ok(!fs.existsSync(path.join(r.data, 'maestro.db')));
@@ -294,7 +294,7 @@ suite.test('the panel no longer answers pending decisions: the answer route is g
   });
 });
 
-suite.test('the menu counter (/api/state) counts the open pending decisions of every company, by severity', async () => {
+suite.test('the menu counter (/api/state) counts the open pending decisions of every organization, by severity', async () => {
   const r = buildRoot('counter');
   await withServer(r, async (get) => {
     assert.deepStrictEqual((await get('/api/state')).kpis.pending_decisions, { total: 0, by_severity: { critical: 0, high: 0, normal: 0, low: 0 } });

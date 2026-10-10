@@ -2,8 +2,8 @@
 // canceled), the list on the left with the status filter, the pending decision in the middle (item,
 // task, context, options, recommendation and, once closed, the decision) and, on the right, where to answer: the
 // workspace and the terminal of the maestro in the Maestri. The owner answers there; the maestro records the decision
-// with "flow pending resolve". Reads GET /api/pending-decisions every 20 s; each column scrolls inside. The company
-// comes from the selector at the top of the panel (#6, companyFilter), like in the other screens of the new model.
+// with "flow pending resolve". Reads GET /api/pending-decisions every 20 s; each column scrolls inside. The organization
+// comes from the selector at the top of the panel (#6, organizationFilter), like in the other screens of the new model.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
 import { REFRESH_MS, readPendingDecisions } from '../data/api.js';
@@ -25,24 +25,24 @@ const domId = (p) => `pending-${p.id}`;
 const severityName = (s) => t(`pending.severities.${SEVERITIES.includes(s) ? s : 'normal'}`);
 const kindName = (k) => t(`pending.kinds.${k}`);
 const statusName = (s) => t(`pending.statuses.${s}`);
-/** "Portal Contoso · Contoso": the project and its company. */
+/** "Portal Contoso · Contoso": the project and its organization. */
 const projectName = (it) => {
   const p = obj(it.project) || {};
-  const company = obj(p.company) || {};
-  return [txt(p.name || p.id), txt(company.name)].filter(Boolean).join(' · ');
+  const organization = obj(p.organization) || {};
+  return [txt(p.name || p.id), txt(organization.name)].filter(Boolean).join(' · ');
 };
 
-/** The filters and the company of the selector → query parameters of /api/pending-decisions (only the ones chosen). */
-function params(f, companyFilter) {
+/** The filters and the organization of the selector → query parameters of /api/pending-decisions (only the ones chosen). */
+function params(f, organizationFilter) {
   const sp = {};
-  if (companyFilter && companyFilter.company) sp.company = companyFilter.company;
+  if (organizationFilter && organizationFilter.organization) sp.organization = organizationFilter.organization;
   if (f.status !== 'all') sp.status = f.status;
   if (f.severity) sp.severity = f.severity;
   return sp;
 }
 
 export function PendingDecisions() {
-  const { pendingTarget, setActionStatus, goTo, company, companyFilter } = usePanel();
+  const { pendingTarget, setActionStatus, goTo, organization, organizationFilter } = usePanel();
   const [filters, setFilters] = useState({ status: 'open', severity: null });
   const [read, setRead] = useState({ answer: null, error: null });
   const [chosen, setChosen] = useState(null);
@@ -52,12 +52,12 @@ export function PendingDecisions() {
   const load = useCallback(async () => {
     const mine = ++seq.current;
     try {
-      const answer = await readPendingDecisions(params(filters, companyFilter));
+      const answer = await readPendingDecisions(params(filters, organizationFilter));
       if (mine === seq.current) setRead({ answer, error: null });
     } catch (error) {
       if (mine === seq.current) setRead((r) => ({ answer: r.answer, error }));
     }
-  }, [filters, companyFilter]);
+  }, [filters, organizationFilter]);
   useEffect(() => {
     load();
     const timer = setInterval(load, REFRESH_MS);
@@ -113,7 +113,7 @@ export function PendingDecisions() {
           </div>
         )}
         {read.error && <p class="pending-error" role="alert">{t('pending.readFailed', { message: read.error.message })}</p>}
-        {answer && !list.length && <Empty icon={Inbox} center>{filters.status === 'open' && !filters.severity && !company ? t('pending.emptyOpen') : t('pending.emptyFilter')}</Empty>}
+        {answer && !list.length && <Empty icon={Inbox} center>{filters.status === 'open' && !filters.severity && !organization ? t('pending.emptyOpen') : t('pending.emptyFilter')}</Empty>}
         <div class="list pending-list" role="listbox" aria-label={t('pending.listboxLabel')}>
           {list.map((p) => {
             const it = obj(p.item) || {};

@@ -52,7 +52,7 @@ async function withServer(r, fn) {
   }
 }
 
-suite.test('lists the events newest first, with project, company and item, and filters by company, project, item, type and period', async () => {
+suite.test('lists the events newest first, with project, organization and item, and filters by organization, project, item, type and period', async () => {
   const r = buildRoot('filters');
   flow(r, r.widgets, sp('09:00:00', '2026-10-06'), 'item', 'start', '12', '--title', 'Exportar PDF');
   flow(r, r.widgets, sp('10:00:00', '2026-10-07'), 'stage', '12', 'implementation');
@@ -70,18 +70,18 @@ suite.test('lists the events newest first, with project, company and item, and f
       [sp('09:00:00', '2026-10-06'), 'item-started', 'widgets/12', '#12'],
     ]);
     const pbi = all.events[2];
-    assert.deepStrictEqual(pbi.project, { id: 'cidax-api', name: 'cidax-api', tracker: 'azure_devops', company: { id: 'unassigned', name: 'Sem empresa' } });
+    assert.deepStrictEqual(pbi.project, { id: 'cidax-api', name: 'cidax-api', tracker: 'azure_devops', organization: { id: 'unassigned', name: 'Sem organização' } });
     assert.deepStrictEqual([pbi.item_title, pbi.agent, pbi.payload.title], ['Conciliação', { role: 'maestro', name: 'Ária' }, 'Conciliação']);
-    assert.deepStrictEqual(all.counts, { company: { unassigned: 5 }, project: { widgets: 4, 'cidax-api': 1 }, type: { 'item-started': 3, 'stage-changed': 2 } });
+    assert.deepStrictEqual(all.counts, { organization: { unassigned: 5 }, project: { widgets: 4, 'cidax-api': 1 }, type: { 'item-started': 3, 'stage-changed': 2 } });
 
     const keys = async (q) => (await get(`/api/log?${q}`)).json.events.map((e) => `${e.item_key}:${e.type}`);
     assert.deepStrictEqual(await keys('project=cidax-api'), ['cidax-api/3100:item-started']);
     assert.deepStrictEqual(await keys('item=widgets/12&type=stage-changed'), ['widgets/12:stage-changed', 'widgets/12:stage-changed']);
     assert.deepStrictEqual(await keys('since=2026-10-07&until=2026-10-07'), ['cidax-api/3100:item-started', 'widgets/12:stage-changed']);
     assert.deepStrictEqual(await keys('hours=4'), ['widgets/12:stage-changed', 'widgets/13:item-started']);
-    assert.deepStrictEqual(await keys('company=unassigned&project=widgets,cidax-api&type=item-started&per_page=2&page=2'), ['widgets/12:item-started']);
-    const none = (await get('/api/log?company=contoso')).json;
-    assert.deepStrictEqual([none.total, none.events, none.counts.company], [0, [], { unassigned: 5 }], 'each facet ignores its own filter');
+    assert.deepStrictEqual(await keys('organization=unassigned&project=widgets,cidax-api&type=item-started&per_page=2&page=2'), ['widgets/12:item-started']);
+    const none = (await get('/api/log?organization=contoso')).json;
+    assert.deepStrictEqual([none.total, none.events, none.counts.organization], [0, [], { unassigned: 5 }], 'each facet ignores its own filter');
   });
 });
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 /*
- * build-mock-root.js: builds a fake data folder (MAESTRO_DIR) with the demo's companies, projects and events
+ * build-mock-root.js: builds a fake data folder (MAESTRO_DIR) with the demo's organizations, projects and events
  * (generate-mock-items.js) in a real maestro.db, to look at index.html with the real server.js (and not with ?mock=1).
  *
  * Usage:
@@ -15,8 +15,8 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { openStore, UNASSIGNED_COMPANY } = require('../../bin/flow-store.js');
-const { GENERATED_AT, companies, projects, events } = require('./generate-mock-items.js');
+const { openStore, UNASSIGNED_ORGANIZATION } = require('../../bin/flow-store.js');
+const { GENERATED_AT, organizations, projects, events } = require('./generate-mock-items.js');
 
 const TMP = path.join(__dirname, 'tmp');
 const args = process.argv.slice(2);
@@ -57,16 +57,16 @@ fs.rmSync(root, { recursive: true, force: true });
 const store = openStore({ dir: root });
 try {
   store.transaction(() => {
-    for (const [id, name] of Object.entries(companies)) store.ensureCompany(id, name, '2026-10-01T09:00:00-03:00');
+    for (const [id, name] of Object.entries(organizations)) store.ensureOrganization(id, name, '2026-10-01T09:00:00-03:00');
     for (const p of projects) {
       const [first, ...others] = p.repos;
-      // "Sem empresa" only receives the unregistered repositories (the store refuses it in addProject).
+      // "Sem organização" only receives the unregistered repositories (the store refuses it in addProject).
       const fields = {
         id: p.id, name: p.name, tracker: p.tracker, stages: p.stages, remote: first, at: p.created_at,
         doneState: p.done_state, maestriWorkspace: p.maestri_workspace,
       };
-      if (p.company_id === UNASSIGNED_COMPANY) store.addUnregisteredProject(fields);
-      else store.addProject({ ...fields, companyId: p.company_id });
+      if (p.organization_id === UNASSIGNED_ORGANIZATION) store.addUnregisteredProject(fields);
+      else store.addProject({ ...fields, organizationId: p.organization_id });
       for (const r of others) store.addRepo(p.id, r);
     }
     // The ids of maestro.db follow the order of writing: the same order (and ids) of the generator.

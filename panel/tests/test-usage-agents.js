@@ -139,7 +139,7 @@ suite.test('the collector splits the tokens by item and by agent (the item\'s ma
     assert.deepStrictEqual([u.plan.available, u.plan.window_5h_pct, u.plan.weekly_pct], [true, 36, 20]);
     assert.deepStrictEqual(u.by_item.window_5h.map(pick), [['widgets/12', 250, 83.3, 30], ['widgets/-', 50, 16.7, 6]]);
     const item = u.by_item.window_5h[0];
-    assert.deepStrictEqual([item.item.number, item.item.tracker_ref, item.item.title, item.project.id, item.project.company.id],
+    assert.deepStrictEqual([item.item.number, item.item.tracker_ref, item.item.title, item.project.id, item.project.organization.id],
       [12, '#12', 'Exportar relatório', 'widgets', 'unassigned']);
     assert.strictEqual(u.by_item.window_5h[1].item, null, 'a session on "main" counts for the project, without an item');
     assert.deepStrictEqual(u.by_agent.window_5h.map(pick), [
@@ -153,15 +153,15 @@ suite.test('the collector splits the tokens by item and by agent (the item\'s ma
   });
 });
 
-/** A repository of a project registered in a company with the flow CLI (flow company add / flow project add). */
-function companyRepo(r, { company, companyName, project, name, remote }) {
+/** A repository of a project registered in an organization with the flow CLI (flow org add / flow project add). */
+function organizationRepo(r, { organization, organizationName, project, name, remote }) {
   const repo = path.join(r.root, project);
   fs.mkdirSync(repo, { recursive: true });
   git(repo, 'init', '-q', '-b', 'main');
   git(repo, 'remote', 'add', 'origin', remote);
   git(repo, 'commit', '-q', '--allow-empty', '-m', 'inicio');
-  flow(r, ['company', 'add', company, '--name', companyName], { cwd: repo, now: sp('08:00:00') });
-  flow(r, ['project', 'add', project, '--name', name, '--company', company], { cwd: repo, now: sp('08:00:00') });
+  flow(r, ['org', 'add', organization, '--name', organizationName], { cwd: repo, now: sp('08:00:00') });
+  flow(r, ['project', 'add', project, '--name', name, '--org', organization], { cwd: repo, now: sp('08:00:00') });
   return repo;
 }
 
@@ -181,10 +181,10 @@ suite.test('the final adjustment floor (task/<item>-ajuste-final) counts for the
   });
 });
 
-suite.test('a worker session hooked before its task was in the graph counts for the item; company and project filters choose the lines', async () => {
+suite.test('a worker session hooked before its task was in the graph counts for the item; organization and project filters choose the lines', async () => {
   const r = buildRoot('filters');
   itemWithSessions(r);
-  const gadgets = companyRepo(r, { company: 'contoso', companyName: 'Contoso', project: 'gadgets', name: 'Gadgets', remote: 'git@github.com:contoso/gadgets.git' });
+  const gadgets = organizationRepo(r, { organization: 'contoso', organizationName: 'Contoso', project: 'gadgets', name: 'Gadgets', remote: 'git@github.com:contoso/gadgets.git' });
   const floor = path.join(r.root, 'floor-77');
   git(gadgets, 'worktree', 'add', '-q', '-b', 'task/77-tela', floor);
   const early = session(r, 'sess-early', floor, sp('09:30:00')); // the task is not in maestro.db yet
@@ -194,19 +194,19 @@ suite.test('a worker session hooked before its task was in the graph counts for 
   writeJsonl(early, [assistantLine({ id: 'm5', ts: sp('15:40:00'), i: 100 })]); // 100
   collect(r);
   await withServer(r, async (get) => {
-    const contoso = (await get('/api/usage?company=contoso')).json;
+    const contoso = (await get('/api/usage?organization=contoso')).json;
     assert.deepStrictEqual(contoso.by_item.window_5h.map(pick), [['gadgets/70', 100, 25, 9]], 'shares of the whole account (400)');
     assert.deepStrictEqual(contoso.by_agent.window_5h.map(pick), [['gadgets/70/task-77', 100, 25, 9]]);
-    assert.deepStrictEqual([contoso.by_agent.window_5h[0].name, contoso.by_agent.window_5h[0].task.title, contoso.by_item.window_5h[0].project.company],
+    assert.deepStrictEqual([contoso.by_agent.window_5h[0].name, contoso.by_agent.window_5h[0].task.title, contoso.by_item.window_5h[0].project.organization],
       ['Caio', 'Formulário', { id: 'contoso', name: 'Contoso' }]);
     assert.strictEqual(contoso.totals.window_5h.relative_consumption, 400);
     const widgets = (await get('/api/usage?project=widgets')).json;
     assert.deepStrictEqual(widgets.by_item.window_5h.map((l) => l.key), ['widgets/12', 'widgets/-']);
-    const both = (await get('/api/usage?company=contoso,unassigned')).json;
+    const both = (await get('/api/usage?organization=contoso,unassigned')).json;
     assert.strictEqual(both.by_agent.window_5h.length, 4);
-    const bad = await get('/api/usage?company=Contoso!');
+    const bad = await get('/api/usage?organization=Contoso!');
     assert.strictEqual(bad.status, 400);
-    assert.deepStrictEqual(bad.json.error, { code: 'invalid_param', param: 'company', value: 'Contoso!', expected: 'id' });
+    assert.deepStrictEqual(bad.json.error, { code: 'invalid_param', param: 'organization', value: 'Contoso!', expected: 'id' });
   });
 });
 
@@ -240,8 +240,8 @@ suite.test('the Agents are derived from the items: the maestro of each active it
     assert.deepStrictEqual([maestro.last_activity_at, worker.last_activity_at, idle.last_activity_at], [sp('14:00:00'), sp('14:00:00'), null]);
     assert.deepStrictEqual([maestro.usage.window_5h.consumption_pct, worker.usage.window_5h.consumption_pct, worker.usage['7d'].estimated_plan_pct], [50, 33.3, 6.7]);
     assert.strictEqual(idle.usage, null, 'an agent without a session has no usage line');
-    assert.strictEqual(maestro.project.company.id, 'unassigned');
-    assert.deepStrictEqual((await get('/api/agents?company=contoso')).json, { agents: [], counts: { maestro: 0, worker: 0 } });
+    assert.strictEqual(maestro.project.organization.id, 'unassigned');
+    assert.deepStrictEqual((await get('/api/agents?organization=contoso')).json, { agents: [], counts: { maestro: 0, worker: 0 } });
     assert.strictEqual((await get('/api/agents?project=widgets')).json.agents.length, 3);
   });
 });

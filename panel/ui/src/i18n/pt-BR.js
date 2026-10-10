@@ -36,7 +36,7 @@ const windowName = (w) => (w === '5h' ? 'de 5 h' : 'semanal');
 // Name the person knows for each query parameter of the API (the Log, the items, usage and agents).
 const PARAM_NAMES = {
   since: 'desde', until: 'ate', hours: 'horas', project: 'projeto', type: 'tipo', page: 'pagina', per_page: 'por_pagina', active: 'ativos',
-  company: 'empresa', item: 'item', task: 'task', session: 'sessao', limit: 'limite',
+  organization: 'organizacao', item: 'item', task: 'task', session: 'sessao', limit: 'limite',
 };
 const PARAM_HINTS = { date: 'use AAAA-MM-DD', flag: 'use 1 ou 0', positive_integer: 'use um inteiro a partir de 1', id: 'use letras minúsculas, números e hífen', item_key: 'use <projeto>/<número>' };
 const failedState = (c) => `estado "${c.state}"${c.error ? `: ${c.error}` : ''}`;
@@ -88,9 +88,9 @@ export default {
 
   groups: { workspace: 'Workspace' },
   // Name of each screen in the menu (and in the browser tab title).
-  nav: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso', companies: 'Empresas' },
+  nav: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso', organizations: 'Organizações' },
   // Title of each screen in the header.
-  screens: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude', companies: 'Empresas' },
+  screens: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude', organizations: 'Organizações' },
 
   sidebar: {
     brand: 'painel',
@@ -142,7 +142,7 @@ export default {
     columns: { item: 'Item', title: 'Título', stage: 'Etapa', project: 'Projeto', updated: 'Atualizado' },
     back: 'Itens',
     itemLabel: 'Item {key}',
-    projectOf: '{project} · {company}',
+    projectOf: '{project} · {organization}',
     currentStage: 'Etapa atual',
     doneInTracker: '{stage} · {state} no tracker',
     since: 'desde {when} ({age})',
@@ -270,80 +270,80 @@ export default {
     },
   },
 
-  // Companies and projects (#6): the company selector of the header, the projects in "Sem empresa" and the Companies
-  // screen (#21), whose project lines (ProjectRow) are the same as the "Sem empresa" card's, with its modals "Nova
-  // empresa" (#22, CompanyCreateModal), Renomear (#23, CompanyRenameModal) and the confirmation of Excluir (#24,
-  // CompanyRemoveModal).
-  companies: {
-    selectorLabel: 'Empresa',
-    selectorTitle: 'Mostra só o que é desta empresa nas telas do fluxo (lembrado neste navegador)',
+  // Organizations and projects (#6): the organization selector of the header, the projects in "Sem organização" and the Organizations
+  // screen (#21), whose project lines (ProjectRow) are the same as the "Sem organização" card's, with its modals "Nova
+  // organização" (#22, OrganizationCreateModal), Renomear (#23, OrganizationRenameModal) and the confirmation of Excluir (#24,
+  // OrganizationRemoveModal).
+  organizations: {
+    selectorLabel: 'Organização',
+    selectorTitle: 'Mostra só o que é desta organização nas telas do fluxo (lembrado neste navegador)',
     all: 'Todas',
     option: '{name} ({count})',
-    unassignedTitle: 'Projetos sem empresa',
-    unassignedInfo: 'Repositórios onde o comando flow rodou sem cadastro entram em "Sem empresa". Escolha a empresa de cada um; o cadastro completo (etapas, repositórios, estado de concluído) é feito com node bin/flow.js project edit.',
+    unassignedTitle: 'Projetos sem organização',
+    unassignedInfo: 'Repositórios onde o comando flow rodou sem cadastro entram em "Sem organização". Escolha a organização de cada um; o cadastro completo (etapas, repositórios, estado de concluído) é feito com node bin/flow.js project edit.',
     projectCount: { one: '{count} projeto', other: '{count} projetos' },
     projectItems: { one: '{count} item', other: '{count} itens' },
     moveTo: 'Mover para',
-    moveLabel: 'Empresa para o projeto {project}',
-    choose: 'Escolha a empresa…',
+    moveLabel: 'Organização para o projeto {project}',
+    choose: 'Escolha a organização…',
     move: 'Mover',
     moving: 'Movendo…',
-    moved: 'Projeto {project} movido para {company}.',
+    moved: 'Projeto {project} movido para {organization}.',
     moveFailed: 'Não consegui mover {project}: {message}',
-    noTarget: 'Nenhuma empresa cadastrada para receber os projetos. Crie uma pelo botão "Nova empresa" da tela Empresas (ou pelo CLI: node bin/flow.js company add <id> --name "<nome>").',
-    screenNote: 'Esta tela mostra todas as empresas, qualquer que seja a escolha do seletor do topo.',
-    none: 'Nenhuma empresa cadastrada ainda. Crie a primeira pelo botão "Nova empresa", acima.',
-    noProjects: 'Nenhum projeto nesta empresa.',
-    readFailed: 'Não consegui ler as empresas: {message}',
-    filtered: 'Mostrando só {company}.',
+    noTarget: 'Nenhuma organização cadastrada para receber os projetos. Crie uma pelo botão "Nova organização" da tela Organizações (ou pelo CLI: node bin/flow.js org add <id> --name "<nome>").',
+    screenNote: 'Esta tela mostra todas as organizações, qualquer que seja a escolha do seletor do topo.',
+    none: 'Nenhuma organização cadastrada ainda. Crie a primeira pelo botão "Nova organização", acima.',
+    noProjects: 'Nenhum projeto nesta organização.',
+    readFailed: 'Não consegui ler as organizações: {message}',
+    filtered: 'Mostrando só {organization}.',
     showAll: 'Ver todas',
     create: {
-      button: 'Nova empresa',
-      title: 'Nova empresa',
+      button: 'Nova organização',
+      title: 'Nova organização',
       name: 'Nome',
       namePlaceholder: 'Ex.: Fabrikam Ltda',
-      nameHint: 'Até 80 caracteres. Não pode repetir o nome de outra empresa, mesmo com outras maiúsculas.',
+      nameHint: 'Até 80 caracteres. Não pode repetir o nome de outra organização, mesmo com outras maiúsculas.',
       nameTooLong: 'Nome longo demais: {count} caracteres (até {max}).',
       id: 'Id',
       idHint: 'Sugerido a partir do nome; pode ser editado agora, mas depois não muda mais. Aparece nos filtros e endereços do painel.',
       idMissing: 'Não deu para sugerir um id a partir deste nome: escreva um (letras minúsculas, números e hífen).',
       idInvalid: 'Id fora do formato: use letras minúsculas sem acento, números e hífen, começando por letra ou número, até 80 caracteres.',
       cancel: 'Cancelar',
-      save: 'Criar empresa',
+      save: 'Criar organização',
       saving: 'Criando…',
-      failed: 'Não consegui criar a empresa: {message}',
-      created: 'Empresa {name} criada.',
+      failed: 'Não consegui criar a organização: {message}',
+      created: 'Organização {name} criada.',
     },
-    // #23: renaming a company (CompanyRenameModal, the name filled in; the id never changes); "Sem empresa" has no button.
+    // #23: renaming an organization (OrganizationRenameModal, the name filled in; the id never changes); "Sem organização" has no button.
     rename: {
       button: 'Renomear',
-      label: 'Renomear a empresa {name}',
-      title: 'Renomear empresa',
+      label: 'Renomear a organização {name}',
+      title: 'Renomear organização',
       name: 'Nome',
-      nameHint: 'Até 80 caracteres. Não pode repetir o nome de outra empresa, mesmo com outras maiúsculas; o próprio nome com outras maiúsculas vale.',
+      nameHint: 'Até 80 caracteres. Não pode repetir o nome de outra organização, mesmo com outras maiúsculas; o próprio nome com outras maiúsculas vale.',
       nameTooLong: 'Nome longo demais: {count} caracteres (até {max}).',
-      nameMissing: 'Informe o nome da empresa.',
+      nameMissing: 'Informe o nome da organização.',
       idKept: 'O id {id} continua o mesmo: os filtros, os endereços e o seletor do topo seguem funcionando.',
       cancel: 'Cancelar',
       save: 'Renomear',
       saving: 'Renomeando…',
-      failed: 'Não consegui renomear a empresa: {message}',
-      renamed: 'Empresa {from} renomeada para {name}.',
+      failed: 'Não consegui renomear a organização: {message}',
+      renamed: 'Organização {from} renomeada para {name}.',
     },
-    // #24: removing a company without projects (CompanyRemoveModal); "Sem empresa" has no button.
+    // #24: removing an organization without projects (OrganizationRemoveModal); "Sem organização" has no button.
     remove: {
       button: 'Excluir',
-      label: 'Excluir a empresa {name}',
+      label: 'Excluir a organização {name}',
       blocked: { one: 'mova o projeto antes', other: 'mova os {count} projetos antes' },
-      blockedTitle: { one: 'A empresa {name} tem 1 projeto: mova-o para outra empresa antes de excluí-la.', other: 'A empresa {name} tem {count} projetos: mova-os para outra empresa antes de excluí-la.' },
-      title: 'Excluir empresa',
-      question: 'Excluir a empresa {name} ({id})?',
-      detail: 'Ela não tem projetos. A exclusão não se desfaz, mas uma empresa com o mesmo id e nome pode ser criada de novo.',
+      blockedTitle: { one: 'A organização {name} tem 1 projeto: mova-o para outra organização antes de excluí-la.', other: 'A organização {name} tem {count} projetos: mova-os para outra organização antes de excluí-la.' },
+      title: 'Excluir organização',
+      question: 'Excluir a organização {name} ({id})?',
+      detail: 'Ela não tem projetos. A exclusão não se desfaz, mas uma organização com o mesmo id e nome pode ser criada de novo.',
       cancel: 'Cancelar',
-      confirm: 'Excluir empresa',
+      confirm: 'Excluir organização',
       removing: 'Excluindo…',
-      failed: 'Não consegui excluir a empresa: {message}',
-      removed: 'Empresa {name} excluída.',
+      failed: 'Não consegui excluir a organização: {message}',
+      removed: 'Organização {name} excluída.',
     },
   },
 
@@ -388,9 +388,9 @@ export default {
   overview: {
     readFailed: 'Não consegui ler a visão geral ({message}). Tento de novo a cada 20 s.',
     activeItems: 'Itens ativos',
-    activeDetail: '{projects} · {companies}',
+    activeDetail: '{projects} · {organizations}',
     projectCount: { one: '{count} projeto', other: '{count} projetos' },
-    companyCount: { one: '{count} empresa', other: '{count} empresas' },
+    organizationCount: { one: '{count} organização', other: '{count} organizações' },
     activeInfo: 'Itens em andamento (ainda não concluídos) em todos os projetos. Clique para abrir a tela Itens.',
     pending: 'Pendências abertas',
     pendingTitle: 'Pendências do dono',
@@ -416,13 +416,13 @@ export default {
     planAria: '{name}: {value}',
     resetsAt: 'Reinicia {when}',
     noReset: 'sem reset',
-    activeTitle: 'Itens ativos por empresa, projeto e etapa',
-    activeTableInfo: 'Quantos itens ativos cada projeto tem em cada etapa do fluxo. Célula hachurada: o projeto não usa essa etapa. Empresa em amarelo: "Sem empresa", escolha a empresa na tela Itens.',
+    activeTitle: 'Itens ativos por organização, projeto e etapa',
+    activeTableInfo: 'Quantos itens ativos cada projeto tem em cada etapa do fluxo. Célula hachurada: o projeto não usa essa etapa. Organização em amarelo: "Sem organização", escolha a organização na tela Itens.',
     itemCount: { one: '{count} item', other: '{count} itens' },
     openItems: 'Abrir itens',
     noActive: 'Nenhum item ativo. Um item começa com o comando flow item start.',
     stageNotUsed: 'O projeto não usa esta etapa',
-    columns: { project: 'Empresa e projeto', total: 'Total' },
+    columns: { project: 'Organização e projeto', total: 'Total' },
     openPending: 'Pendências abertas',
     openPendingInfo: 'As pendências esperando decisão sua, as mais urgentes primeiro. Clique para ver a pendência inteira na tela Pendências.',
     openCount: { one: '{count} aberta', other: '{count} abertas' },
@@ -583,7 +583,7 @@ export default {
     item: 'Item',
     itemValue: '{ref} · etapa atual: {stage}',
     project: 'Projeto',
-    projectValue: '{project} · {company}',
+    projectValue: '{project} · {organization}',
     task: 'Task',
     noTask: 'do item (sem task)',
     agent: 'Quem gravou',
@@ -611,7 +611,7 @@ export default {
   // Agents (#13): the active maestros and workers, derived from the items (GET /api/agents).
   agents: {
     title: 'Agentes ativos',
-    info: 'Sem cadastro fixo: o maestro de cada item ainda não concluído e o trabalhador de cada task em andamento (trabalhando, em revisão ou bloqueada), tirados dos eventos que o comando flow grava. "Último evento" é o do fluxo; "Atividade" é a última vez que o hook viu uma sessão do agente no log bruto. A empresa escolhida no topo filtra a lista. Clique num agente para abrir o item.',
+    info: 'Sem cadastro fixo: o maestro de cada item ainda não concluído e o trabalhador de cada task em andamento (trabalhando, em revisão ou bloqueada), tirados dos eventos que o comando flow grava. "Último evento" é o do fluxo; "Atividade" é a última vez que o hook viu uma sessão do agente no log bruto. A organização escolhida no topo filtra a lista. Clique num agente para abrir o item.',
     counts: '{maestros} maestro(s) · {workers} trabalhador(es)',
     readFailed: 'Não consegui ler os agentes ({message}).',
     none: 'Nenhum agente ativo: nenhum item em andamento. O maestro inicia um item com node bin/flow.js item start e despacha as tasks com flow task dispatch.',
@@ -652,7 +652,7 @@ export default {
     pctNotGiven: 'O Maestri não informou este percentual.',
     unavailableSeeBelow: 'Indisponível: veja o motivo abaixo.',
     sourceAndCollector: 'Fonte e coletor',
-    sourceInfo: 'O % do plano vem do provedor Claude do Maestri (o mesmo dos anéis do app). O consumo por item e por agente é calculado pelo coletor a partir das transcrições das sessões que o hook ligou a cada item (branch do maestro) e a cada task (branch do trabalhador). A empresa escolhida no topo só escolhe as linhas: as participações são sempre da conta inteira.',
+    sourceInfo: 'O % do plano vem do provedor Claude do Maestri (o mesmo dos anéis do app). O consumo por item e por agente é calculado pelo coletor a partir das transcrições das sessões que o hook ligou a cada item (branch do maestro) e a cada task (branch do trabalhador). A organização escolhida no topo só escolhe as linhas: as participações são sempre da conta inteira.',
     readFailed: 'Não consegui ler o uso ({message}). Tento de novo a cada 20 s.',
     planSource: 'Fonte do plano',
     planData: 'Dado do plano',
@@ -719,7 +719,7 @@ export default {
     // health of the new model (#14) and read warnings
     hook_never: (c) => `O hook nunca gravou no log bruto, mas os agentes registraram trabalho em ${dayTime(c.last_event_at)} (hooks instalados?)`,
     hook_stale: (c) => `Hook parado: nenhum registro no log bruto há ${durationText(c.minutes)}, mas os agentes registraram trabalho em ${dayTime(c.last_event_at)}`,
-    projects_unassigned: (c) => `${c.count === 1 ? '1 projeto' : `${c.count} projetos`} em "Sem empresa" (${(Array.isArray(c.projects) ? c.projects : []).join(', ')}): escolha a empresa na tela Itens`,
+    projects_unassigned: (c) => `${c.count === 1 ? '1 projeto' : `${c.count} projetos`} em "Sem organização" (${(Array.isArray(c.projects) ? c.projects : []).join(', ')}): escolha a organização na tela Itens`,
     database_unreadable: 'Não consegui ler o {file} ({detail})',
     file_unreadable: (c, h) => `${c.file} ilegível (${h.display(c.error)})`,
     read_failed: 'não consegui ler ({detail})',
@@ -767,23 +767,23 @@ export default {
     body_too_large: 'Corpo grande demais ou incompleto (até {limit_kb} KB).',
     internal_error: 'Erro interno do painel (detalhes no terminal do servidor).',
     invalid_param: (c) => `Parâmetro "${PARAM_NAMES[c.param] || c.param}" inválido: "${c.value}" (${PARAM_HINTS[c.expected] || PARAM_HINTS.positive_integer}).`,
-    // pending decisions (#10) and companies and projects (#6): a filter value outside the allowed ones
+    // pending decisions (#10) and organizations and projects (#6): a filter value outside the allowed ones
     invalid_filter: (c) => `Filtro "${PARAM_NAMES[c.param] || c.param}" inválido: "${c.value}"${Array.isArray(c.allowed) && c.allowed.length ? ` (use ${c.allowed.slice(0, -1).join(', ')}${c.allowed.length > 1 ? ' ou ' : ''}${c.allowed[c.allowed.length - 1]})` : ''}.`,
     json_object_required: 'Corpo inválido: envie um objeto JSON.',
-    // #22: the fields of a new company (id and name) are explained; any other field as it is.
+    // #22: the fields of a new organization (id and name) are explained; any other field as it is.
     invalid_field: (c) => (c.field === 'name'
       ? `Nome inválido: informe de 1 a ${c.max || 80} caracteres, numa linha só.`
       : c.field === 'id'
         ? `Id inválido: "${c.value}". Use letras minúsculas sem acento, números e hífen, começando por letra ou número, até 80 caracteres.`
         : `Campo "${c.field}" inválido: "${c.value}".`),
-    // The destination of a move, or the company renamed (#23) or removed (#24): gone, or never registered.
-    company_not_found: 'Empresa não encontrada: {company}. Ela pode ter sido excluída em outro lugar; a tela Empresas mostra o cadastro atual.',
+    // The destination of a move, or the organization renamed (#23) or removed (#24): gone, or never registered.
+    organization_not_found: 'Organização não encontrada: {organization}. Ela pode ter sido excluída em outro lugar; a tela Organizações mostra o cadastro atual.',
     project_not_found: 'Projeto não encontrado: {project}.',
-    // Moving a project to, removing (#24) or renaming (#23) "Sem empresa".
-    company_reserved: '"Sem empresa" é reservada aos repositórios sem cadastro: não é destino de mover, não se renomeia e não se exclui.',
-    company_not_empty: (c) => `A empresa ${c.name || c.company} tem ${c.project_count} projeto${Number(c.project_count) === 1 ? ': mova-o' : 's: mova-os'} para outra empresa antes de excluí-la.`,
-    company_exists: (c) => `O id "${c.company}" já é da empresa "${c.name || 'Sem empresa'}": escolha outro.`,
-    company_name_taken: 'O nome "{name}" já é da empresa {company_name} ({company}), sem diferenciar maiúsculas: escolha outro.',
+    // Moving a project to, removing (#24) or renaming (#23) "Sem organização".
+    organization_reserved: '"Sem organização" é reservada aos repositórios sem cadastro: não é destino de mover, não se renomeia e não se exclui.',
+    organization_not_empty: (c) => `A organização ${c.name || c.organization} tem ${c.project_count} projeto${Number(c.project_count) === 1 ? ': mova-o' : 's: mova-os'} para outra organização antes de excluí-la.`,
+    organization_exists: (c) => `O id "${c.organization}" já é da organização "${c.name || 'Sem organização'}": escolha outro.`,
+    organization_name_taken: 'O nome "{name}" já é da organização {organization_name} ({organization}), sem diferenciar maiúsculas: escolha outro.',
     // merge check (#11)
     merge_check_failed: (c, h) => `Consulta do merge de ${c.tracker_ref || c.item || '?'}${c.item ? ` (${c.item})` : ''} falhou: ${h.display(c.error) || '?'}`,
     merge_check_cli_missing: (c) => `não achei o ${c.cli || toolName(c)} (instalado e no PATH?)`,

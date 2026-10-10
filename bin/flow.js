@@ -8,10 +8,10 @@
 //   node bin/flow.js task dispatch <number> <task> [--floor F] [--worker W] [--branch B] [...] [--json -]
 //   node bin/flow.js task integrate <number> <task> --sha <sha> [--sha-before <sha>] [...] [--json -]
 //   node bin/flow.js status "<text>" [--state working|blocked|review|done] [--progress n/m] [--item N] [--task N] [...]
-//   node bin/flow.js company list|add …  ·  node bin/flow.js project list|add|edit|move …   (bin/flow-admin.js, #6)
+//   node bin/flow.js org list|add …  ·  node bin/flow.js project list|add|edit|move …   (bin/flow-admin.js, #6)
 //
 // The project comes from the "git remote origin" of the current folder (also inside a floor's worktree); an
-// unregistered repository is registered in the company "Sem empresa" and the command goes on. Fields come
+// unregistered repository is registered in the organization "Sem organização" and the command goes on. Fields come
 // from arguments or from a JSON object on standard input (--json -); arguments win over the JSON.
 //
 // status is the worker's single command: inside a Maestri terminal (MAESTRI_TERMINAL_ID set) it runs
@@ -298,7 +298,7 @@ function postFloorStatus(cmd, env = process.env) {
 
 const slug = (s) => lib.stripAccents(String(s)).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'projeto';
 
-/** The project of the current folder, registering it in "Sem empresa" when needed. Inside a transaction. */
+/** The project of the current folder, registering it in "Sem organização" when needed. Inside a transaction. */
 function resolveProject(store, origin, at) {
   const d = describeRemote(origin);
   const known = store.projectByRemote(d.remote);
@@ -740,7 +740,7 @@ function recordItemCommand(store, cmd, { project, at }) {
 function withProject(store, origin, at, fn) {
   return store.transaction(() => {
     const { project, registered, remote } = resolveProject(store, origin, at);
-    const lines = registered ? [t('done.projectRegistered', { project: project.id, company: project.company_name, remote })] : [];
+    const lines = registered ? [t('done.projectRegistered', { project: project.id, organization: project.organization_name, remote })] : [];
     return lines.concat(fn(project));
   });
 }

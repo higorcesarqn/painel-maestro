@@ -85,7 +85,7 @@ function Section({ title, children, class: className }) {
 function EventBody({ d, nav }) {
   const ev = d.event;
   const project = obj(ev.project) || {};
-  const company = obj(project.company) || {};
+  const organization = obj(project.organization) || {};
   const item = obj(d.item);
   const link = obj(d.raw_link) || {};
   const raw = arr(d.raw_commands);
@@ -116,7 +116,7 @@ function EventBody({ d, nav }) {
               <p class="summary-large">{eventTypeName(ev.type)}{eventDetail(ev) ? ` · ${eventDetail(ev)}` : ''}</p>
               <dl class="log-facts">
                 <dt>{t('logModal.item')}</dt><dd>{item ? t('logModal.itemValue', { ref: txt(ev.tracker_ref), stage: has(`items.stages.${item.stage}`) ? t(`items.stages.${item.stage}`) : txt(item.stage) }) : txt(ev.item_key)}</dd>
-                <dt>{t('logModal.project')}</dt><dd>{t('logModal.projectValue', { project: txt(project.name), company: txt(company.name) })}</dd>
+                <dt>{t('logModal.project')}</dt><dd>{t('logModal.projectValue', { project: txt(project.name), organization: txt(organization.name) })}</dd>
                 <dt>{t('logModal.task')}</dt><dd>{ev.task_number === null || ev.task_number === undefined ? t('logModal.noTask') : `#${ev.task_number}`}</dd>
                 <dt>{t('logModal.agent')}</dt><dd>{agentText(ev.agent) || t('logModal.noAgent')}</dd>
                 <dt>{t('logModal.source')}</dt><dd class="mono">{txt(ev.source)}</dd>
