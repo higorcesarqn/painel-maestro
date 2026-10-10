@@ -3,8 +3,9 @@
 // and, once closed, the decision) and, on the right, the answer (#32): for an open one, the form (options that only
 // select, the recommended one highlighted, a comment and "Enviar resposta", POST /api/pending-decisions/<id>/answer), a
 // note on when the maestro learns of it and, below, the workspace and the terminal of the maestro in the Maestri, the
-// other way to answer; for a closed one, the dates and who closed it. A discreet line under the title says when the
-// Maestri's notification failed as it opened (#44, notification 'failed'; nothing for the others or the older ones). Reads GET /api/pending-decisions every 20 s; each
+// other way to answer; for a closed one, the dates and who closed it. A discreet line under the title of an open one
+// says when the Maestri's notification failed as it opened (#44, notification 'failed'; nothing once closed, nor for
+// the others or the older ones). Reads GET /api/pending-decisions every 20 s; each
 // column scrolls inside. The organization comes from the selector at the top of the panel (#6, organizationFilter), like
 // in the other screens of the new model.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
@@ -207,7 +208,7 @@ function PendingDetail({ p, goTo }) {
         <span class="muted" title={dateTime(p.opened_at)}>{t('pending.openedAgo', { age: age(p.opened_at) })}</span>
       </div>
       <h2 class="pending-heading">{pendingTitle(p)}</h2>
-      {p.notification === 'failed' && <p class="muted small pending-notification">{t('pending.notificationFailed')}</p>}
+      {p.status === 'open' && p.notification === 'failed' && <p class="muted small pending-notification">{t('pending.notificationFailed')}</p>}
       <dl class="pending-facts">
         <dt>{t('pending.item')}</dt>
         <dd>
