@@ -46,8 +46,9 @@ const path = require('path');
 const zlib = require('zlib');
 
 const collector = require(path.join(__dirname, '..', 'bin', 'collect-usage.js'));
-const { flowDir } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { flowDir, SchemaTooNew } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 const { t } = require(path.join(__dirname, '..', 'bin', 'i18n'));
+const { HOOK_FAILURE_FILE, hookFailureOf } = require(path.join(__dirname, '..', 'bin', 'hook-failure.js'));
 const itemsApi = require(path.join(__dirname, 'api-items.js'));
 const pendingApi = require(path.join(__dirname, 'api-pending-decisions.js'));
 const logApi = require(path.join(__dirname, 'api-log.js'));
@@ -227,14 +228,15 @@ function pendingKpi(items) {
  * GET /api/state, from its parts (the demo's generator builds it with the same function):
  * { generated_at, health, kpis: { pending_decisions, usage }, collector, warnings }.
  * items: the items source (api-items.js); raw: the raw log source (api-log.js); usageFile: the read of
- * state/usage.json ({exists, data, error}); problems: health codes other checks add (the merge check, #11).
+ * state/usage.json ({exists, data, error}); problems: health codes other checks add (the merge check, #11);
+ * hookFailure: the hook's last failure (bin/hook-failure.js, #28) or null.
  */
-function stateAnswer({ items, raw, usageFile, nowMs, problems = [], collector: collectorInfo }) {
+function stateAnswer({ items, raw, usageFile, nowMs, problems = [], hookFailure = null, collector: collectorInfo }) {
   const warnings = [];
   const usage = usageKpi(usageFile, nowMs, warnings);
   return {
     generated_at: isoSP(nowMs),
-    health: { ...evaluateHealth({ items, raw, nowMs, problems }), usage_age_min: usage.age_min },
+    health: { ...evaluateHealth({ items, raw, nowMs, problems, hookFailure }), usage_age_min: usage.age_min },
     kpis: { pending_decisions: pendingKpi(items), usage },
     collector: collectorInfo,
     warnings,
@@ -321,6 +323,7 @@ async function buildState(ctx) {
   return stateAnswer({
     items: ctx.items, raw: ctx.raw, usageFile: await ctx.files.json(ctx.usageFile), nowMs: ctx.now().getTime(),
     problems: ctx.mergeCheck.healthReasons(), collector: collectorState(ctx),
+    hookFailure: hookFailureOf(await ctx.files.json(path.join(ctx.cfg.dataDir, HOOK_FAILURE_FILE))),
   });
 }
 
@@ -539,8 +542,9 @@ function createHandler(ctx) {
   return (req, res) => {
     route(ctx, req, res).catch((e) => {
       const known = e instanceof pendingApi.PendingFilterError || e instanceof logApi.LogError
-        || e instanceof projectsApi.ProjectsError || e instanceof usageApi.UsageApiError;
-      const status = known ? e.status : 500;
+        || e instanceof projectsApi.ProjectsError || e instanceof usageApi.UsageApiError || e instanceof SchemaTooNew;
+      // A maestro.db written by a newer painel-maestro (#28): nothing is served from it until the code is updated.
+      const status = e instanceof SchemaTooNew ? 503 : known ? e.status : 500;
       if (status === 500) ctx.logError(t('server.log.requestFailed', { method: req.method, url: String(req.url).slice(0, 200), detail: e && e.stack ? e.stack : e }));
       if (res.headersSent) {
         res.destroy();

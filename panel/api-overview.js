@@ -16,10 +16,11 @@
 //     recent_events: [LogEvent]       the last 12 events, newest first, in the shape of GET /api/log
 //   }
 // The organization filter is the one of the selector at the top of the page. No sentences: errors are codes (ADR 0004):
-// 400 invalid_filter for an organization that is not an id; 503 database_unreadable when maestro.db cannot be read.
+// 400 invalid_filter for an organization that is not an id; 503 database_unreadable when maestro.db cannot be read
+// (503 schema_too_new, from the server, when a newer painel-maestro wrote it, #28).
 const path = require('path');
 
-const { UNASSIGNED_ORGANIZATION } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { UNASSIGNED_ORGANIZATION, SchemaTooNew } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 const { isoSP } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
 const { listItems } = require(path.join(__dirname, 'api-items.js'));
 const { ProjectsError } = require(path.join(__dirname, 'api-projects.js'));
@@ -75,7 +76,7 @@ function overview(items, query, { nowMs, staleHours }) {
   try {
     return picture(items, organization, nowMs, staleHours);
   } catch (e) {
-    if (e instanceof ProjectsError) throw e;
+    if (e instanceof ProjectsError || e instanceof SchemaTooNew) throw e;
     throw new ProjectsError(503, { code: 'database_unreadable', file: 'maestro.db', detail: String(e && (e.errstr || e.code || e.message)).slice(0, 200) });
   }
 }

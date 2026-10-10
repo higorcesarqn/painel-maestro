@@ -19,6 +19,8 @@
 //   agent_type?, cwd, version?}. Nothing it writes is a sentence (ADR 0004): what the file tools did, their sizes and an
 //   interruption go in info as codes with parameters ({input: {code: 'raw_edit', from, to, all}, output: {code:
 //   'raw_lines_read', lines, total}, interrupted: true}), which the page translates.
+// A maestro.db written by a newer painel-maestro (schema_too_new, #28) records nothing in bruto.db, but leaves
+// hook-failure.json for the health badge (bin/hook-failure.js): the hook stays silent, never invisible.
 // The session row (sessions table: link, cwd, transcript_path, last seen) is what the usage collector
 // (bin/collect-usage.js) reads to split the tokens by item and by agent (#13).
 
@@ -142,9 +144,19 @@ function linkOf(cwd, env) {
   const { repoInfo, normalizeRemote, parseBranch } = require('./flow-repo');
   const info = repoInfo(cwd, env);
   if (!info || !info.origin) return null;
-  const { openStore, flowDir } = require('./flow-store');
+  const { openStore, flowDir, SchemaTooNew } = require('./flow-store');
   const dir = flowDir(env);
-  const store = openStore({ dir, readOnly: true, busyTimeoutMs: READ_WAIT_MS });
+  let store;
+  try {
+    store = openStore({ dir, readOnly: true, busyTimeoutMs: READ_WAIT_MS });
+  } catch (e) {
+    // maestro.db of a newer painel-maestro (#28): not swallowed, it goes to the health badge (bin/hook-failure.js).
+    if (e instanceof SchemaTooNew) {
+      const lib = require('./lib');
+      require('./hook-failure').recordHookFailure(dir, lib.isoSP(lib.now()), e.error);
+    }
+    throw e;
+  }
   if (!store) return null;
   try {
     const project = store.projectByRemote(normalizeRemote(info.origin));

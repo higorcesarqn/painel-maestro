@@ -49,7 +49,7 @@ const fsp = fs.promises;
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
-const { openStore, flowDir } = require('./flow-store');
+const { openStore, flowDir, SchemaTooNew } = require('./flow-store');
 const { openRawStore } = require('./raw-store');
 const { t, has } = require('./i18n');
 const { asDate, spParts, isoSP, InvalidData, parseOptions } = require('./lib');
@@ -321,9 +321,10 @@ function ownerOf(project, item, task) {
 
 /**
  * Sessions seen by the hook since sinceMs, from bruto.db: [{id, owner, transcript}]. Never creates a database:
- * without bruto.db there is no session (diag.raw_log = 'missing'). A task without item is looked up in maestro.db.
+ * without bruto.db there is no session (diag.raw_log = 'missing'). A task without item is looked up in maestro.db; a
+ * maestro.db newer than this code (#28) leaves it without item and adds the schema_too_new warning.
  */
-function readSessions(dir, claudeDir, sinceMs, diag) {
+function readSessions(dir, claudeDir, sinceMs, diag, warnings) {
   const raw = openRawStore({ dir, create: false });
   if (!raw) {
     diag.raw_log = 'missing';
@@ -338,7 +339,16 @@ function readSessions(dir, claudeDir, sinceMs, diag) {
   diag.raw_log = 'found';
   let flow;
   const itemOfTask = (project, task) => {
-    if (flow === undefined) flow = openStore({ dir, readOnly: true });
+    if (flow === undefined) {
+      try {
+        flow = openStore({ dir, readOnly: true });
+      } catch (e) {
+        // maestro.db of a newer painel-maestro (#28): the session keeps no item, and the collection says why.
+        if (!(e instanceof SchemaTooNew)) throw e;
+        flow = null;
+        warnings.push(e.error);
+      }
+    }
     return flow ? flow.itemOfTask(project, task) : null;
   };
   const sessions = [];
@@ -670,7 +680,7 @@ async function collect(options = {}) {
 
   // Owner of each file in this round (the session's link rules; if the hook relinks it, the attribution follows).
   // A session the hook has not seen within the retention has nothing in the periods.
-  const sessions = readSessions(p.dataDir, p.claudeDir, t - RETENTION_MS, diag);
+  const sessions = readSessions(p.dataDir, p.claudeDir, t - RETENTION_MS, diag, warnings);
   diag.sessions = sessions.length;
   const owners = new Map();
   for (const s of sessions) {

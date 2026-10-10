@@ -721,6 +721,9 @@ export default {
     hook_stale: (c) => `Hook parado: nenhum registro no log bruto há ${durationText(c.minutes)}, mas os agentes registraram trabalho em ${dayTime(c.last_event_at)}`,
     projects_unassigned: (c) => `${c.count === 1 ? '1 projeto' : `${c.count} projetos`} em "Sem organização" (${(Array.isArray(c.projects) ? c.projects : []).join(', ')}): escolha a organização na tela Itens`,
     database_unreadable: 'Não consegui ler o {file} ({detail})',
+    // #28: a maestro.db written by a newer painel-maestro (health badge, API answers and usage warnings)
+    schema_too_new: (c) => `O ${c.file || 'maestro.db'} foi atualizado por uma versão mais nova do painel-maestro (schema v${c.db_version}; este código lê até a v${c.code_version}): atualize o código.`,
+    hook_failed: (c, h) => `Hook parado desde ${dayTime(c.at)}: nenhuma sessão foi gravada no log bruto. ${h.display(c.error)}`,
     file_unreadable: (c, h) => `${c.file} ilegível (${h.display(c.error)})`,
     read_failed: 'não consegui ler ({detail})',
     empty_file: 'arquivo vazio',

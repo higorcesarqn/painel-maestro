@@ -8,7 +8,7 @@
  *   openStore({ dir, readOnly: true, busyTimeoutMs })  reads without writing anything (the hook: is the cwd's project registered?)
  *   flowDir(env)                MAESTRO_DIR, or ~/.painel-maestro (the new model's default)
  *
- * Tables (schema version in PRAGMA user_version):
+ * Tables (schema version in PRAGMA user_version; a database newer than SCHEMA_VERSION is never opened: SchemaTooNew, #28):
  *   organizations(id, name, created_at)
  *   projects(id, name, organization_id, tracker, stages JSON, done_state, maestri_workspace, created_at)
  *   project_repos(remote, project_id)            normalized remote URL → project (a project may have many repos)
@@ -128,6 +128,19 @@ class RegisterError extends Error {
   }
 }
 
+/**
+ * maestro.db written by a newer painel-maestro (#28): its user_version is above SCHEMA_VERSION. error is
+ * { code: 'schema_too_new', file: 'maestro.db', db_version, code_version } (ADR 0004), the same for the CLI, the API,
+ * the health badge, the hook and the usage collector, which translate it.
+ */
+class SchemaTooNew extends Error {
+  constructor(dbVersion) {
+    super('schema_too_new');
+    this.code = 'schema_too_new';
+    this.error = { code: 'schema_too_new', file: DB_FILE, db_version: dbVersion, code_version: SCHEMA_VERSION };
+  }
+}
+
 /** An organization's name in the register's format: trimmed, 1 to 80 characters on one line (invalid_field, field: name). */
 function organizationNameFormat(name) {
   const s = typeof name === 'string' ? name.trim() : '';
@@ -199,8 +212,20 @@ function transaction(db, fn, ms = BUSY_TIMEOUT_MS) {
   }
 }
 
+const userVersion = (db) => db.prepare('PRAGMA user_version').get().user_version;
+
+/** The schema version of db; a newer one than this code's closes db and throws SchemaTooNew (nothing written yet). */
+function knownVersion(db) {
+  const version = userVersion(db);
+  if (version > SCHEMA_VERSION) {
+    db.close();
+    throw new SchemaTooNew(version);
+  }
+  return version;
+}
+
 function migrate(db) {
-  const version = () => db.prepare('PRAGMA user_version').get().user_version;
+  const version = () => userVersion(db);
   if (version() >= SCHEMA_VERSION) return;
   transaction(db, () => {
     for (let v = version() + 1; v <= SCHEMA_VERSION; v++) {
@@ -276,6 +301,7 @@ function projectEventsByItem(events, projects) {
  * Opens maestro.db in dir. options.create=false: null if the file does not exist (does not create it).
  * options.readOnly: opens without writing anything (no WAL switch, no migration) and returns null when the file
  * does not exist or has no schema yet; busyTimeoutMs shortens the wait for a busy database (the hook's 1.5 s).
+ * Both ways throw SchemaTooNew for a schema newer than this code's (#28), before writing anything to the file.
  * Returns the store: an object with the read and write operations of the new model.
  */
 function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_TIMEOUT_MS } = {}) {
@@ -287,7 +313,7 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     db = new DatabaseSync(file, { readOnly: true });
     db.exec(`PRAGMA busy_timeout = ${busyTimeoutMs}`);
     // A reader never migrates: a schema not yet at this version (v1 before its first writer, #26) reads as no database.
-    if (db.prepare('PRAGMA user_version').get().user_version < SCHEMA_VERSION) {
+    if (knownVersion(db) < SCHEMA_VERSION) {
       db.close();
       return null;
     }
@@ -295,6 +321,8 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     fs.mkdirSync(dir, { recursive: true });
     db = new DatabaseSync(file);
     db.exec(`PRAGMA busy_timeout = ${busyTimeoutMs}`);
+    // Before the switch to WAL and the migration: a newer schema is refused with the file as it was.
+    knownVersion(db);
     retryBusy(() => db.exec('PRAGMA journal_mode = WAL'), busyTimeoutMs);
     db.exec('PRAGMA foreign_keys = ON');
     migrate(db);
@@ -537,5 +565,5 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
 }
 
 module.exports = {
-  openStore, projectEventsByItem, flowDir, RegisterError, RE_ID, organizationFields, notReserved, DB_FILE, SCHEMA_VERSION, UNASSIGNED_ORGANIZATION, TRACKERS, STAGES, loadSqlite, retryBusy, transaction,
+  openStore, projectEventsByItem, flowDir, RegisterError, SchemaTooNew, RE_ID, organizationFields, notReserved, DB_FILE, SCHEMA_VERSION, UNASSIGNED_ORGANIZATION, TRACKERS, STAGES, loadSqlite, retryBusy, transaction,
 };

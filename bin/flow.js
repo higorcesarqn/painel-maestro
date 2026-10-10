@@ -22,14 +22,15 @@
 // flow-repo.js: "task/<item>-ajuste-final" is the final adjustment floor, never a task. When the maestri call fails
 // the event is still recorded (payload.maestri = 'failed') and the command ends with exit 1.
 //
-// Exit codes: 0 ok · 2 invalid data (clear message on stderr) · 1 anything else.
+// Exit codes: 0 ok · 2 invalid data (clear message on stderr) · 1 anything else, a maestro.db written by a newer
+// painel-maestro included (#28: nothing is recorded and the message says to update the code).
 // Messages for people come from the pt-BR dictionary (bin/i18n/pt-BR.js); nothing else is printed (the
 // ExperimentalWarning of node:sqlite is silenced in flow-store.js).
 const path = require('path');
 const { spawnSync } = require('child_process');
 const lib = require('./lib');
 const { t } = require('./i18n');
-const { openStore, flowDir, STAGES } = require('./flow-store');
+const { openStore, flowDir, STAGES, SchemaTooNew } = require('./flow-store');
 const { originOf, branchOf, describeRemote, parseBranch } = require('./flow-repo');
 const { projectItem, trackerRef, EVENT_TYPES, WORKER_STATES } = require('./flow-projection');
 const { PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES } = require('./flow-projection');
@@ -945,7 +946,10 @@ if (require.main === module) {
     run(process.argv.slice(2), process.cwd());
   } catch (e) {
     const invalid = e instanceof InvalidData;
-    const message = invalid || e instanceof Failed ? e.message : t('errors.unexpected', { detail: e && e.message ? e.message : String(e) });
+    let message;
+    if (invalid || e instanceof Failed) message = e.message;
+    else if (e instanceof SchemaTooNew) message = t('errors.schemaTooNew', { ...e.error, file: lib.slashes(path.join(flowDir(), e.error.file)) });
+    else message = t('errors.unexpected', { detail: e && e.message ? e.message : String(e) });
     process.stderr.write(`${t('errors.prefix', { message })}\n`);
     process.exitCode = invalid ? 2 : 1;
   }

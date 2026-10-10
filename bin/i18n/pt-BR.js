@@ -134,6 +134,7 @@ Variáveis: MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DIR (padrão ~
       invalid_transcript_lines: '{count} linha(s) de transcrição ilegível(is) ignorada(s).',
       transcript_unreadable: 'Não consegui ler {file}: {error}',
       transcript_read_interrupted: 'Leitura interrompida em {file}: {error}',
+      schema_too_new: 'O {file} foi atualizado por uma versão mais nova do painel-maestro (schema v{db_version}; este código lê até a v{code_version}): atualize o código. As sessões de task sem item conhecido ficaram sem item.',
     },
     summary: {
       collected: 'Uso coletado em {when}',
@@ -372,6 +373,7 @@ CÓDIGOS DE SAÍDA
     maestriNotFound: 'não achei o executável "{cli}" (configure FLOW_MAESTRI_CLI ou MAESTRI_CLI)',
     maestriFailed: 'o status foi gravado no painel, mas o maestri floor status falhou: {detail}',
     unexpected: 'falha inesperada: {detail}',
+    schemaTooNew: 'o banco {file} foi atualizado por uma versão mais nova do painel-maestro (schema v{db_version}; este código lê até a v{code_version}): atualize o código (git pull no painel-maestro). Nada foi gravado.',
   },
   // PR, final adjustment, HML and conclusion (#9).
   delivery: {
