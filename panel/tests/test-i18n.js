@@ -132,6 +132,12 @@ suite.test('server codes keep the texts the page showed before', () => {
   assert.strictEqual(c({ code: 'projects_unassigned', count: 1, projects: ['scratch'] }), '1 projeto em "Sem organização" (scratch): escolha a organização na tela Itens');
   assert.strictEqual(c({ code: 'projects_unassigned', count: 2, projects: ['scratch', 'bi'] }), '2 projetos em "Sem organização" (scratch, bi): escolha a organização na tela Itens');
   assert.strictEqual(c({ code: 'database_unreadable', file: 'bruto.db', detail: 'file is not a database' }), 'Não consegui ler o bruto.db (file is not a database)');
+  // #28: a maestro.db written by a newer painel-maestro, on its own and as the hook's failure
+  const tooNew = { code: 'schema_too_new', db_version: 3, code_version: 2 };
+  assert.strictEqual(c({ ...tooNew, file: 'maestro.db' }),
+    'O maestro.db foi atualizado por uma versão mais nova do painel-maestro (schema v3; este código lê até a v2): atualize o código.');
+  assert.strictEqual(c({ code: 'hook_failed', at: '2026-10-08T09:20:00-03:00', error: tooNew }),
+    'Hook parado desde 08/10 09:20: nenhuma sessão foi gravada no log bruto. O maestro.db foi atualizado por uma versão mais nova do painel-maestro (schema v3; este código lê até a v2): atualize o código.');
   assert.strictEqual(c({ code: 'file_unreadable', file: 'state/usage.json', error: { code: 'invalid_json', detail: 'x' } }),
     'state/usage.json ilegível (JSON inválido (x))');
   assert.strictEqual(c({ code: 'invalid_param', param: 'since', value: 'lixo', expected: 'date' }), 'Parâmetro "desde" inválido: "lixo" (use AAAA-MM-DD).');

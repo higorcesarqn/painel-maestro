@@ -23,6 +23,7 @@ const { spawn } = require('child_process');
 const { isoSP, InvalidData } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
 const { t } = require(path.join(__dirname, '..', 'bin', 'i18n'));
 const { projectItem, trackerRef, EVENT_TYPES } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
+const { SchemaTooNew } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 
 const DEFAULT_SECONDS = 600;
 const CONCURRENCY = 4; // PRs read at once in a round (each read may take up to CLI_TIMEOUT_MS)
@@ -228,7 +229,14 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
 
   /** One round: the PRs waiting for a merge, CONCURRENCY at a time. */
   async function round(controller) {
-    const store = items.store();
+    let store;
+    try {
+      store = items.store();
+    } catch (e) {
+      // A maestro.db of a newer painel-maestro (#28) is the health badge's own reason: the round waits for the code.
+      if (e instanceof SchemaTooNew) return;
+      throw e;
+    }
     if (!store) return;
     const list = waiting(store);
     const keys = new Set(list.map((x) => x.key));

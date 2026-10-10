@@ -21,7 +21,7 @@ Tudo que acontece num item é um **evento** guardado para sempre (ADR 0002); o e
 
 ## Telas
 
-No topo, o **seletor de organização** (Todas ou uma organização, lembrado neste navegador) filtra todas as telas. O cabeçalho tem o **selo de saúde** (verde, amarelo ou vermelho, com os motivos: hook parado, banco ilegível, projetos em "Sem organização", falha do verificador de merge) e o botão **Recalcular** (roda o coletor de uso na hora).
+No topo, o **seletor de organização** (Todas ou uma organização, lembrado neste navegador) filtra todas as telas. O cabeçalho tem o **selo de saúde** (verde, amarelo ou vermelho, com os motivos: hook parado ou falhando, banco ilegível ou de uma versão mais nova do painel-maestro, projetos em "Sem organização", falha do verificador de merge) e o botão **Recalcular** (roda o coletor de uso na hora).
 
 - **Visão geral:** o retrato do dia: itens ativos por organização, projeto e etapa, pendências abertas por severidade, itens parados há muito tempo na mesma etapa (`PANEL_STALE_HOURS`, padrão 48 h), eventos de hoje, atividade recente e o uso do plano.
 - **Itens:** a lista (ativos, concluídos ou todos; filtros de projeto, etapa e tracker, além do seletor de organização do topo), os projetos em "Sem organização" em destaque para mover, e a **página do item**, com endereço fixo `http://127.0.0.1:4777/#items/<projeto>/<número>` (é o que o portal do Maestri abre): etapa atual e desde quando, a Entrega (PR, ajuste final, Validação HML, conclusão, o estado do verificador de merge), o grafo de tasks com bloqueios e quem está em cada task (floor, trabalhador, branch, SHA, último status), os relatórios, os achados, as etapas do fluxo e a linha do tempo com todos os eventos e quem gravou cada um.
@@ -109,6 +109,7 @@ O `bin/hook-log.js` grava o log bruto (prompts, comandos, ferramentas) de cada s
 - **Ligação pela branch:** `task/<id>-…` (ou `task/<id>`) é a task `<id>`; `feature/pbi-<id>` ou `feature/issue-<n>` é o maestro do item; `task/<item>-ajuste-final` (o floor do ajuste final) não é task: conta como o maestro do item; outra branch liga só ao projeto ("sem item" no uso). A convenção vive num lugar só (`parseBranch` em `bin/flow-repo.js`), usado pelo hook e pelo `flow status`/`flow report`; o `integrate.sh` segue a mesma regra.
 - **Garantias:** nunca escreve no stdout nem no stderr, sai sempre com 0, desiste de tudo em cerca de 1,5 s (nunca atrasa nem quebra a sessão), trunca entradas (600 caracteres) e saídas (300) e redige segredos (`«redigido»`).
 - **Retenção:** o servidor apaga do `bruto.db` o que tem mais de 90 dias, ao subir e uma vez por dia.
+- **Banco de uma versão mais nova** (#28): com um `maestro.db` atualizado por um painel-maestro mais novo que este código, o hook não sabe se a sessão é de um projeto e não grava nada, mas deixa `<MAESTRO_DIR>/hook-failure.json` para o selo de saúde, que mostra "Hook parado desde …: atualize o código" até o hook gravar de novo.
 - O hook entende esses sete eventos; se a sua versão do Claude Code não tiver algum deles, deixe-o de fora. O hook e o servidor precisam ver o mesmo `MAESTRO_DIR` (ou nenhum).
 
 ### 5. Cadastrar organizações e projetos
@@ -154,7 +155,7 @@ Os nomes mudaram (código em inglês, ADR 0004) e não há apelidos para os anti
 
 - **Quem grava:** `--role maestro|worker|owner` (padrão `maestro`; no `status` e no `report`, `worker`) e `--agent "<codinome>"`.
 - **JSON pela entrada padrão:** `--json -` recebe os campos num objeto JSON, o jeito certo para texto com acentos, aspas e várias linhas em qualquer shell do Windows (nas skills: o JSON num arquivo temporário e `--json - < arquivo.json`). O argumento vale mais que o JSON.
-- **Códigos de saída:** `0` ok; `2` dado inválido (a mensagem no stderr começa com `erro:` e diz o que corrigir; nada é gravado); `1` outros erros.
+- **Códigos de saída:** `0` ok; `2` dado inválido (a mensagem no stderr começa com `erro:` e diz o que corrigir; nada é gravado); `1` outros erros, entre eles um `maestro.db` atualizado por um painel-maestro mais novo que este código (#28: a mensagem pede para atualizar o código e nada é gravado).
 - **Etapas** (ids em inglês): `specification` Especificação, `implementation` Implementação, `final_adjustment` Ajuste final, `pr_ready` PR pronto, `merge` Merge, `hml_validation` Validação HML, `done` Concluído. Uma etapa que o projeto não usa é recusada.
 - **Links** (`--url`, `--card`): só `https` em `github.com`, `dev.azure.com` ou `*.visualstudio.com`.
 - **Concorrência:** o maestro e vários trabalhadores gravam ao mesmo tempo sem perder nem corromper eventos (WAL e `busy_timeout`, ADR 0003).
@@ -248,7 +249,7 @@ O merge do PR costuma acontecer na interface do tracker, sem agente presente (a 
 
 | Variável | Padrão | Para quê |
 |---|---|---|
-| `MAESTRO_DIR` | `~/.painel-maestro` | pasta dos dados: `maestro.db`, `bruto.db`, `state/usage.json`, `state/panel.pid`. O servidor, o `flow`, o hook e o coletor precisam ver a mesma |
+| `MAESTRO_DIR` | `~/.painel-maestro` | pasta dos dados: `maestro.db`, `bruto.db`, `hook-failure.json`, `state/usage.json`, `state/panel.pid`. O servidor, o `flow`, o hook e o coletor precisam ver a mesma |
 | `PAINEL_MAESTRO` | | pasta do código (este repositório), usada pelas skills e pelo `integrate.sh` para achar o `bin/flow.js` |
 | `PANEL_PORT` | `4777` | porta do servidor (`--port` vale mais) |
 | `PANEL_COLLECTOR` | ligado | `0` desliga o coletor de uso automático (o Recalcular continua funcionando) |
@@ -338,6 +339,7 @@ painel-maestro/
 │   ├── flow-projection.js       estado do item calculado dos eventos (função pura)
 │   ├── flow-repo.js             projeto pelo git remote origin (também em worktrees)
 │   ├── hook-log.js              hook do Claude Code → log bruto (bruto.db)
+│   ├── hook-failure.js          falha do hook (maestro.db mais novo que o código) para o selo de saúde
 │   ├── raw-store.js             bruto.db (node:sqlite, WAL, retenção de 90 dias)
 │   ├── collect-usage.js         uso do plano e tokens por item e por agente
 │   ├── install-skills.js        liga as skills ao ~/.claude (backup e --undo)
