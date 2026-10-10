@@ -39,7 +39,7 @@ Em código: `Finding`.
 _Avoid_: issue de revisão
 
 **Pendência**:
-Algo do fluxo de um item que espera uma decisão do dono, com contexto, opções e recomendação; a revisão de uma task e o OK para integrá-la são a mesma pendência.
+Algo do fluxo de um item que espera uma decisão do dono, com contexto, opções e recomendação; o dono decide no terminal do maestro ou no painel. A revisão de uma task e o OK para integrá-la são a mesma pendência.
 Em código: `PendingDecision`.
 _Avoid_: espera, aprovação, gate
 
