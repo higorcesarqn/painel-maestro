@@ -386,6 +386,47 @@ suite.test('Pendências (#32): the demo has open pending decisions to answer, wi
   assert.ok(js.includes('/api/pending-decisions/'), 'the build calls the answer route');
 });
 
+suite.test('browser tab (#43): the title counts the open pending decisions of every organization and the favicon is a data: SVG with a dot in the menu counter\'s tone', async () => {
+  const href = (rel) => require('url').pathToFileURL(path.join(SOURCE, ...rel.split('/'))).href;
+  const tab = await import(href('data/tab.js'));
+  const dictionary = (await import(href('i18n/pt-BR.js'))).default;
+  assert.strictEqual(dictionary.app.documentTitlePending, '({count}) {screen} · {panel}', 'the new key is in the pt-BR dictionary');
+  // The count is kpis.pending_decisions.total of /api/state (every organization, like the menu counter); a critical
+  // one turns the tone strong. The demo has a critical one open, so the strong dot shows there.
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
+  assert.ok(open.some((p) => p.severity === 'critical'), 'the demo has a critical pending decision open');
+  assert.deepStrictEqual(tab.openPending(m.state), { total: open.length, tone: 'strong' });
+  const state = (pd) => ({ kpis: { pending_decisions: pd } });
+  assert.deepStrictEqual(tab.openPending(state({ total: 2, by_severity: { normal: 1, low: 1 } })), { total: 2, tone: 'blue' });
+  for (const s of [null, {}, state({ total: 0, by_severity: {} }), state(null), { kpis: 'x' }]) assert.strictEqual(tab.openPending(s), null);
+  // Title: "(n) {screen} · {panel}" with n > 0, today's format with none.
+  assert.strictEqual(tab.documentTitle('pending', tab.openPending(state({ total: 3, by_severity: { high: 3 } })).total), '(3) Pendências · Painel maestro');
+  assert.strictEqual(tab.documentTitle('overview', 0), 'Visão geral · Painel maestro');
+  // Favicon: a data: SVG, nothing external, in three variants (no dot, blue dot, strong dot).
+  const icons = [null, 'blue', 'strong'].map((tone) => tab.faviconHref(tone));
+  assert.strictEqual(new Set(icons).size, 3, 'three variants');
+  for (const i of icons) {
+    assert.ok(i.startsWith('data:image/svg+xml,'), `the favicon is data: (${i.slice(0, 30)})`);
+    const svg = decodeURIComponent(i.slice('data:image/svg+xml,'.length));
+    assert.ok(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]*>[\s\S]*<\/svg>$/.test(svg), 'a whole SVG');
+    assert.ok(!/\b(href|src)=|url\(|<(image|script|foreignObject)\b/i.test(svg), 'nothing loaded from the SVG');
+  }
+  const decoded = icons.map((i) => decodeURIComponent(i));
+  assert.ok(!/<circle/.test(decoded[0]), 'no dot without pending decisions');
+  assert.ok(decoded[1].includes('#4F6BFF') && !decoded[1].includes('#F2555A'), 'blue dot');
+  assert.ok(decoded[2].includes('#F2555A'), 'strong dot');
+  // The shell (App) is the only one touching the title and the favicon, from each state read, on any screen; the
+  // menu counter reads the same count.
+  const app = source['app/App.jsx'];
+  assert.ok(/const pending = openPending\(state\);/.test(app), 'the shell counts from the state it read');
+  assert.ok(/document\.title = documentTitle\(screen, pendingTotal\)/.test(app), 'the title follows the screen and the count');
+  assert.ok(/document\.querySelector\('link\[rel="icon"\]'\)/.test(app) && /\.href = faviconHref\(/.test(app), 'the shell swaps the favicon');
+  assert.ok(/openPending\(state\)/.test(source['app/Sidebar.jsx']), 'the menu counter uses the same count');
+  assert.strictEqual(Object.entries(source).filter(([, text]) => /document\.title =|querySelector\('link\[rel="icon"\]'\)/.test(text)).map(([f]) => f).join(), 'app/App.jsx');
+  assert.ok(/<link rel="icon" href="data:,">/.test(html), 'the build keeps the empty icon until the script swaps it (no /favicon.ico request)');
+});
+
 let port = null;
 let pid = null;
 let root = null;

@@ -1,13 +1,15 @@
 // Panel shell: reads /api/state every 20 s, keeps the current screen in the URL (#overview, #log...),
 // the Log filters and the pending decision to open when the Overview sends the person there. Only the visible
 // screen is drawn. When a state read says the page changed on disk (version.page, #37), a fixed strip asks for a
-// reload, which is only ever the person's click.
+// reload, which is only ever the person's click. The tab's title and favicon show the open pending decisions of every
+// organization (#43, data/tab.js), from each state read, on any screen.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { PanelContext, SCREENS, parseHash, newFilter } from '../data/context.js';
 import { REFRESH_MS, MOCK, readState, recalculateUsage, readLog } from '../data/api.js';
 import { syncClock, time, txt, obj } from '../data/format.js';
 import { logParams } from '../data/queries.js';
 import { pageOutdated } from '../data/page.js';
+import { openPending, documentTitle, faviconHref } from '../data/tab.js';
 import { useOrganizations } from '../data/organizations.js';
 import { t } from '../i18n/index.js';
 import { Sidebar } from './Sidebar.jsx';
@@ -85,9 +87,17 @@ export function App() {
     if (location.hash !== hashOf(screen, subroute)) history.replaceState(null, '', hashOf(screen, subroute));
     return () => window.removeEventListener('hashchange', h);
   }, []);
+  // ---------- browser tab (#43): "(n) " in the title and a dot in the favicon ----------
+  const pending = openPending(state);
+  const pendingTotal = pending ? pending.total : 0;
+  const pendingTone = pending ? pending.tone : null;
   useEffect(() => {
-    document.title = t('app.documentTitle', { screen: t(`nav.${screen}`), panel: t('app.panel') });
-  }, [screen]);
+    document.title = documentTitle(screen, pendingTotal);
+  }, [screen, pendingTotal]);
+  useEffect(() => {
+    const link = document.querySelector('link[rel="icon"]');
+    if (link) link.href = faviconHref(pendingTone);
+  }, [pendingTone]);
 
   // ---------- organization selector (#6) ----------
   const organizationSelector = useOrganizations();

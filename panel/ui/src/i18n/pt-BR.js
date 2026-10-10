@@ -68,6 +68,8 @@ export default {
 
   app: {
     documentTitle: '{screen} · {panel}',
+    // With open pending decisions (#43): every organization, the same count as the menu counter.
+    documentTitlePending: '({count}) {screen} · {panel}',
     panel: 'Painel maestro',
     collectorFailed: 'Coletor falhou: {error}',
     recalculated: 'Uso recalculado às {time}',
