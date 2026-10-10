@@ -66,6 +66,9 @@ const ADMIN_HELP = `EMPRESAS E PROJETOS (dono; não precisam rodar dentro de um 
       Cadastra uma empresa. O trabalho pessoal é uma empresa como as outras (ex.: personal, "Pessoal"). O nome
       tem até 80 caracteres e não repete o de outra empresa, mesmo com outras maiúsculas (a tela Empresas do
       painel cria com a mesma regra). O id não muda depois.
+  node bin/flow.js company rename <id> --name "<nome>"
+      Renomeia uma empresa; o id continua o mesmo (a tela Empresas do painel também renomeia). O nome novo segue a
+      regra do cadastro, e o próprio nome com outras maiúsculas é aceito. "Sem empresa" (unassigned) não se renomeia.
   node bin/flow.js company remove <id>
       Exclui uma empresa sem projetos (a tela Empresas do painel também exclui). Com projetos, mova-os antes
       (flow project move); "Sem empresa" (unassigned) não se exclui.
@@ -194,6 +197,7 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       collectorFailed: 'Falha no coletor de uso ({trigger}): {detail}',
       projectMoved: 'Projeto {project} movido pelo painel para a empresa {company}',
       companyCreated: 'Empresa {company} ({name}) criada pelo painel',
+      companyRenamed: 'Empresa {company} renomeada pelo painel de {from} para {name}',
       companyRemoved: 'Empresa {company} ({name}) excluída pelo painel',
       requestFailed: 'Erro em {method} {url}: {detail}',
       serverError: 'Erro no servidor: {detail}',
@@ -211,6 +215,7 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
     trackers: { github: 'GitHub', azure_devops: 'Azure DevOps' },
     done: {
       companyAdded: 'Empresa "{company}" ({name}) cadastrada.',
+      companyRenamed: 'Empresa "{company}" renomeada de "{from}" para "{name}".',
       companyRemoved: 'Empresa "{company}" ({name}) excluída.',
       companyLine: (p) => `${p.id.padEnd(20)} ${p.name} · ${p.count} projeto${p.count === 1 ? '' : 's'}`,
       noCompanies: 'Nenhuma empresa cadastrada. Cadastre com: flow company add <id> --name "<nome>".',
@@ -246,13 +251,13 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       nothingToChange: 'nada para mudar: informe ao menos uma opção (veja flow --help).',
     },
     // Codes of the rules of the register (RegisterError, bin/flow-store.js); company_not_found and project_not_found
-    // reuse unknownCompany (companyNotFound in a removal) and unknownProject above.
+    // reuse unknownCompany (companyNotFound in a rename or a removal) and unknownProject above.
     codes: {
       // Moving a project to, removing (#24) or renaming (#23) "Sem empresa".
       company_reserved: '"Sem empresa" é reservada: ela só recebe os repositórios sem cadastro, então não é destino de mover, não se renomeia e não se exclui (empresas cadastradas: flow company list).',
       // #24: removing a company that still has projects.
       company_not_empty: (p) => `a empresa "${p.company}" (${p.name}) tem ${p.project_count} projeto${p.project_count === 1 ? ': mova-o' : 's: mova-os'} antes para outra empresa (flow project list --company ${p.company} e flow project move <projeto> <empresa>).`,
-      // #22: creating a company (and, in #23, renaming one) under the name rule of the store.
+      // #22 and #23: creating or renaming a company under the name rule of the store.
       company_exists: (p) => `a empresa "${p.company}" já existe (${p.name || 'reservada para "Sem empresa"'}).`,
       company_name_taken: 'o nome "{name}" já é da empresa "{company}" ({company_name}): escolha outro nome (sem diferenciar maiúsculas).',
       invalid_field: (p) => (p.field === 'name'

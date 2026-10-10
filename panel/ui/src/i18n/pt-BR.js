@@ -272,7 +272,8 @@ export default {
 
   // Companies and projects (#6): the company selector of the header, the projects in "Sem empresa" and the Companies
   // screen (#21), whose project lines (ProjectRow) are the same as the "Sem empresa" card's, with its modals "Nova
-  // empresa" (#22, CompanyCreateModal) and the confirmation of Excluir (#24, CompanyRemoveModal).
+  // empresa" (#22, CompanyCreateModal), Renomear (#23, CompanyRenameModal) and the confirmation of Excluir (#24,
+  // CompanyRemoveModal).
   companies: {
     selectorLabel: 'Empresa',
     selectorTitle: 'Mostra só o que é desta empresa nas telas do fluxo (lembrado neste navegador)',
@@ -312,6 +313,22 @@ export default {
       saving: 'Criando…',
       failed: 'Não consegui criar a empresa: {message}',
       created: 'Empresa {name} criada.',
+    },
+    // #23: renaming a company (CompanyRenameModal, the name filled in; the id never changes); "Sem empresa" has no button.
+    rename: {
+      button: 'Renomear',
+      label: 'Renomear a empresa {name}',
+      title: 'Renomear empresa',
+      name: 'Nome',
+      nameHint: 'Até 80 caracteres. Não pode repetir o nome de outra empresa, mesmo com outras maiúsculas; o próprio nome com outras maiúsculas vale.',
+      nameTooLong: 'Nome longo demais: {count} caracteres (até {max}).',
+      nameMissing: 'Informe o nome da empresa.',
+      idKept: 'O id {id} continua o mesmo: os filtros, os endereços e o seletor do topo seguem funcionando.',
+      cancel: 'Cancelar',
+      save: 'Renomear',
+      saving: 'Renomeando…',
+      failed: 'Não consegui renomear a empresa: {message}',
+      renamed: 'Empresa {from} renomeada para {name}.',
     },
     // #24: removing a company without projects (CompanyRemoveModal); "Sem empresa" has no button.
     remove: {
@@ -759,7 +776,8 @@ export default {
       : c.field === 'id'
         ? `Id inválido: "${c.value}". Use letras minúsculas sem acento, números e hífen, começando por letra ou número, até 80 caracteres.`
         : `Campo "${c.field}" inválido: "${c.value}".`),
-    company_not_found: 'Empresa não encontrada: {company}. Cadastre com: node bin/flow.js company add.',
+    // The destination of a move, or the company renamed (#23) or removed (#24): gone, or never registered.
+    company_not_found: 'Empresa não encontrada: {company}. Ela pode ter sido excluída em outro lugar; a tela Empresas mostra o cadastro atual.',
     project_not_found: 'Projeto não encontrado: {project}.',
     // Moving a project to, removing (#24) or renaming (#23) "Sem empresa".
     company_reserved: '"Sem empresa" é reservada aos repositórios sem cadastro: não é destino de mover, não se renomeia e não se exclui.',

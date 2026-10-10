@@ -450,10 +450,114 @@ suite.test('the panel and the CLI remove an empty company only (POST /api/compan
   });
 });
 
+suite.test('the panel and the CLI rename a company (POST /api/companies/<id>/rename, flow company rename); the items show the new name', async () => {
+  const r = buildRoot('rename');
+  const shopRepo = repo(r, 'shop', 'https://github.com/contoso/shop.git');
+  // Before maestro.db exists there is no company to rename (and the POST does not create the database).
+  await withServer(r, async ({ port }) => {
+    const x = await request(port, '/api/companies/contoso/rename', {
+      method: 'POST', headers: { 'X-Panel': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Contoso' }),
+    });
+    assert.deepStrictEqual([x.status, x.json], [404, { error: { code: 'company_not_found', company: 'contoso' } }]);
+  });
+  assert.ok(!fs.existsSync(path.join(r.data, 'maestro.db')), 'a refused rename does not create maestro.db');
+  ok(flow(r, ['company', 'add', 'contoso', '--name', 'Contoso']));
+  ok(flow(r, ['company', 'add', 'fabrikam', '--name', 'Fabrikam']));
+  ok(flow(r, ['project', 'add', 'shop', '--company', 'contoso', '--repo', 'https://github.com/contoso/shop']));
+  ok(flow(r, ['item', 'start', '7', '--title', 'Carrinho'], { cwd: shopRepo }));
+  ok(flow(r, ['item', 'start', '3', '--title', 'Rascunho'], { cwd: repo(r, 'scratch', 'https://github.com/higor/scratch.git') }));
+  // One server for the whole test: its connection keeps the projected items cached between reads, and a rename (by the
+  // panel or by the CLI, another process) must reach every answer that carries the company's name.
+  await withServer(r, async ({ port, get }) => {
+    const rename = (id, body, headers = { 'X-Panel': '1' }, method = 'POST') => request(port, `/api/companies/${id}/rename`, {
+      method, headers: { 'Content-Type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body),
+    });
+    const names = async () => (await get('/api/companies')).companies.map((c) => [c.id, c.name]);
+    /** The company's name as every read of the panel shows it. */
+    const shown = async () => {
+      const item = (await get('/api/items')).items.find((it) => it.key === 'shop/7');
+      const overview = await get('/api/overview');
+      return {
+        companies: (await get('/api/companies')).companies.find((c) => c.id === 'contoso').name,
+        projects: (await get('/api/projects')).projects.find((p) => p.id === 'shop').company.name,
+        items: item.project.company.name,
+        item: (await get('/api/items/shop/7')).item.project.company.name,
+        overview: overview.active.companies.find((c) => c.id === 'contoso').name,
+        overviewEvents: [...new Set(overview.recent_events.filter((e) => e.project.id === 'shop').map((e) => e.project.company.name))],
+        log: [...new Set((await get('/api/log?project=shop')).events.map((e) => e.project.company.name))],
+        filtered: (await get('/api/items?company=contoso')).items.map((it) => [it.key, it.project.company.name]),
+      };
+    };
+    const everywhere = (name) => ({
+      companies: name, projects: name, items: name, item: name, overview: name, overviewEvents: [name], log: [name], filtered: [['shop/7', name]],
+    });
+    assert.deepStrictEqual(await shown(), everywhere('Contoso'), 'the reads before the rename (the cache is warm)');
+    // Security: X-Panel, Origin and the 16 KB body, exactly as every POST of the server; only POST.
+    const without = await rename('contoso', { name: 'Outra' }, {});
+    assert.deepStrictEqual([without.status, without.json], [403, { error: { code: 'missing_panel_header', header: 'X-Panel' } }]);
+    const foreign = await rename('contoso', { name: 'Outra' }, { 'X-Panel': '1', Origin: 'http://evil.example' });
+    assert.deepStrictEqual([foreign.status, foreign.json.error.code], [403, 'origin_not_allowed']);
+    const tooLarge = await rename('contoso', JSON.stringify({ name: 'x'.repeat(17 * 1024) }));
+    assert.deepStrictEqual([tooLarge.status, tooLarge.json.error.code], [413, 'body_too_large']);
+    const get405 = await rename('contoso', '', {}, 'GET');
+    assert.deepStrictEqual([get405.status, get405.json.error.code, get405.json.error.allowed], [405, 'method_not_allowed', ['POST']]);
+    // The rules of the store: body, name format, "Sem empresa", unknown company and a name in use ignoring case.
+    const cases = [
+      ['contoso', '{', 400, { code: 'json_object_required' }],
+      ['contoso', '[1]', 400, { code: 'json_object_required' }],
+      ['contoso', {}, 400, { code: 'invalid_field', field: 'name', value: '', max: 80 }],
+      ['contoso', { name: '   ' }, 400, { code: 'invalid_field', field: 'name', value: '   ', max: 80 }],
+      ['contoso', { name: 'Contoso\nBrasil' }, 400, { code: 'invalid_field', field: 'name', value: 'Contoso\nBrasil', max: 80 }],
+      ['contoso', { name: 'C'.repeat(81) }, 400, { code: 'invalid_field', field: 'name', value: 'C'.repeat(81), max: 80 }],
+      ['unassigned', { name: 'Outra' }, 400, { code: 'company_reserved', company: 'unassigned' }],
+      ['nobody', { name: 'Outra' }, 404, { code: 'company_not_found', company: 'nobody' }],
+      ['contoso', { name: ' FABRIKAM ' }, 409, { code: 'company_name_taken', name: 'FABRIKAM', company: 'fabrikam', company_name: 'Fabrikam' }],
+    ];
+    for (const [id, body, status, error] of cases) {
+      const x = await rename(id, body);
+      assert.deepStrictEqual([id, body, x.status, x.json], [id, body, status, { error }]);
+    }
+    assert.strictEqual((await rename('Bad%20Id', { name: 'Outra' })).status, 404, 'an id outside the format is no route');
+    assert.deepStrictEqual(await names(), [['contoso', 'Contoso'], ['fabrikam', 'Fabrikam'], ['unassigned', 'Sem empresa']], 'nothing renamed by a refused POST');
+    // The rename, from the page's origin: 200 { company } as GET /api/companies lists it, the name trimmed, the id kept.
+    const renamed = await rename('contoso', { name: '  Contoso Brasil ' }, { 'X-Panel': '1', Origin: `http://127.0.0.1:${port}` });
+    assert.strictEqual(renamed.status, 200, renamed.text);
+    assert.deepStrictEqual(renamed.json, { company: { id: 'contoso', name: 'Contoso Brasil', unassigned: false, project_count: 1, item_count: 1 } });
+    assert.deepStrictEqual((await get('/api/companies')).companies.find((c) => c.id === 'contoso'), renamed.json.company);
+    assert.deepStrictEqual(await shown(), everywhere('Contoso Brasil'), 'every read shows the new name right away');
+    // Its own name, even only changing the case, is accepted; the alphabetical order follows the new name.
+    const sameName = await rename('contoso', { name: 'CONTOSO BRASIL' });
+    assert.deepStrictEqual([sameName.status, sameName.json.company.name], [200, 'CONTOSO BRASIL'], sameName.text);
+    const zeta = await rename('contoso', { name: 'Zeta' });
+    assert.strictEqual(zeta.status, 200, zeta.text);
+    assert.deepStrictEqual(await names(), [['fabrikam', 'Fabrikam'], ['contoso', 'Zeta'], ['unassigned', 'Sem empresa']]);
+    // The CLI, another process, renames while the server runs: the server's next reads show it.
+    assert.ok(/Empresa "contoso" renomeada de "Zeta" para "Contoso SA"\./.test(ok(flow(r, ['company', 'rename', 'contoso', '--name', 'Contoso SA']))));
+    assert.deepStrictEqual(await shown(), everywhere('Contoso SA'), 'a rename by the CLI reaches the server too');
+  });
+  // The CLI applies the same rules: exit 2 with a Portuguese message.
+  invalid(flow(r, ['company', 'rename', 'contoso', '--name', 'fabrikam']), /o nome "fabrikam" já é da empresa "fabrikam" \(Fabrikam\)/);
+  invalid(flow(r, ['company', 'rename', '--json', '-'], { input: JSON.stringify({ id: 'contoso', name: 'FABRIKAM' }) }), /o nome "FABRIKAM" já é da empresa "fabrikam"/);
+  invalid(flow(r, ['company', 'rename', 'contoso', '--name', 'C'.repeat(81)]), /o nome da empresa precisa ter de 1 a 80 caracteres/);
+  invalid(flow(r, ['company', 'rename', 'contoso', '--name', '  ']), /o nome da empresa precisa ter de 1 a 80 caracteres/);
+  invalid(flow(r, ['company', 'rename', 'contoso']), /falta o nome da empresa/);
+  invalid(flow(r, ['company', 'rename', 'unassigned', '--name', 'Outra']), /"Sem empresa" é reservada: .*não se renomeia/);
+  invalid(flow(r, ['company', 'rename', 'nobody', '--name', 'Outra']), /a empresa "nobody" não existe \(empresas: contoso, fabrikam, unassigned\)\.\s*$/);
+  invalid(flow(r, ['company', 'rename', 'Bad Id', '--name', 'Outra']), /id de empresa inválido: "Bad Id"/);
+  invalid(flow(r, ['company', 'rename'], { input: '' }), /falta o id da empresa/);
+  assert.ok(/Empresa "contoso" renomeada de "Contoso SA" para "contoso sa"\./.test(ok(flow(r, ['company', 'rename', 'contoso', '--name', 'contoso sa']))));
+  assert.ok(/Empresa "fabrikam" renomeada de "Fabrikam" para "Fabrikam Ltda"\./.test(ok(flow(r, ['company', 'rename', '--json', '-'], { input: JSON.stringify({ id: 'fabrikam', name: ' Fabrikam Ltda ' }) }))));
+  await withServer(r, async ({ get }) => {
+    assert.deepStrictEqual((await get('/api/companies')).companies.map((c) => [c.id, c.name, c.project_count]),
+      [['contoso', 'contoso sa', 1], ['fabrikam', 'Fabrikam Ltda', 0], ['unassigned', 'Sem empresa', 1]]);
+    assert.deepStrictEqual((await get('/api/items?company=contoso')).items.map((it) => [it.key, it.project.company]), [['shop/7', { id: 'contoso', name: 'contoso sa' }]]);
+  });
+});
+
 suite.test('help lists the company and project subcommands', () => {
   const r = buildRoot('help');
   const out = ok(flow(r, ['--help']));
-  assert.ok(/company add <id> --name/.test(out) && /company remove <id>/.test(out) && /project add <id>/.test(out) && /project move <id> <empresa>/.test(out), out);
+  assert.ok(/company add <id> --name/.test(out) && /company rename <id> --name/.test(out) && /company remove <id>/.test(out) && /project add <id>/.test(out) && /project move <id> <empresa>/.test(out), out);
 });
 
 suite.run().finally(() => {

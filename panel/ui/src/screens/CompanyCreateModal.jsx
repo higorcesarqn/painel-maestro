@@ -4,13 +4,10 @@
 // here translated. onCreated(company) runs after the company exists; onClose closes without creating.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { createCompany } from '../data/api.js';
-import { RE_ID, suggestCompanyId } from '../data/companies.js';
+import { MAX_COMPANY_NAME, RE_ID, suggestCompanyId } from '../data/companies.js';
 import { t } from '../i18n/index.js';
 import { Modal } from '../components/Modal.jsx';
 import { Icon, X } from '../components/Icon.jsx';
-
-// The longest name the store accepts (bin/flow-store.js); the server checks it again.
-const MAX_NAME = 80;
 
 export function CompanyCreateModal({ onCreated, onClose }) {
   const [name, setName] = useState('');
@@ -24,7 +21,7 @@ export function CompanyCreateModal({ onCreated, onClose }) {
     const frame = requestAnimationFrame(() => nameInput.current && nameInput.current.focus());
     return () => cancelAnimationFrame(frame);
   }, []);
-  const nameLong = name.trim().length > MAX_NAME;
+  const nameLong = name.trim().length > MAX_COMPANY_NAME;
   const idBad = id !== '' && !RE_ID.test(id);
   const idMissing = id === '' && name.trim() !== '';
   const ready = !busy && !idBad && !nameLong && id !== '' && name.trim() !== '';
@@ -69,7 +66,7 @@ export function CompanyCreateModal({ onCreated, onClose }) {
             <input type="text" class="text-input" ref={nameInput} value={name} maxlength={200} autocomplete="off" placeholder={t('companies.create.namePlaceholder')}
               aria-invalid={nameLong ? 'true' : undefined} aria-describedby="company-create-name-hint" onInput={(e) => changeName(e.currentTarget.value)} />
             <span id="company-create-name-hint" class={nameLong ? 'company-form-error small' : 'muted small'}>
-              {nameLong ? t('companies.create.nameTooLong', { max: MAX_NAME, count: name.trim().length }) : t('companies.create.nameHint')}
+              {nameLong ? t('companies.create.nameTooLong', { max: MAX_COMPANY_NAME, count: name.trim().length }) : t('companies.create.nameHint')}
             </span>
           </label>
           <label class="field">

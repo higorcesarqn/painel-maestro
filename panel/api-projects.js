@@ -2,11 +2,12 @@
 // api-projects.js · companies and projects of the new model (#6), from maestro.db (bin/flow-store.js):
 //   GET  /api/companies                    → { companies: [{ id, name, unassigned, project_count, item_count }] }
 //   POST /api/companies {id, name}         → 201 { company } (creates a company, #22; one element of GET /api/companies)
+//   POST /api/companies/<id>/rename {name} → { company } (renames a company, #23; the id never changes)
 //   POST /api/companies/<id>/remove        → { removed: <id> } (removes a company without projects, #24)
 //   GET  /api/projects[?company=<id>]      → { projects: [{ id, name, tracker, company: {id, name}, unassigned, repos,
 //                                                           stages, done_state, maestri_workspace, created_at, item_count }] }
 //   POST /api/projects/<id>/company {company} → { project } (moves the project to another company, never to "Sem empresa")
-// The panel writes the register of companies (create, #22; remove, #24) and moves a project, which is how a repository
+// The panel writes the register of companies (create, #22; rename, #23; remove, #24) and moves a project, which is how a repository
 // that landed in "Sem empresa" gets its company; registering and editing projects stays with the CLI (flow project).
 // The rules are the store's (RegisterError, bin/flow-store.js): this file only gives each code its HTTP status, per
 // route (a code without one is a 500). No sentences: errors are codes (ADR 0004).
@@ -26,6 +27,7 @@ class ProjectsError extends Error {
 // HTTP status of each code of the store's register rules, per route. In a move the company comes in the body (400).
 const MOVE_STATUS = { project_not_found: 404, company_not_found: 400, company_reserved: 400 };
 const CREATE_STATUS = { invalid_field: 400, company_exists: 409, company_name_taken: 409 };
+const RENAME_STATUS = { invalid_field: 400, company_reserved: 400, company_not_found: 404, company_name_taken: 409 };
 const REMOVE_STATUS = { company_reserved: 400, company_not_found: 404, company_not_empty: 409 };
 
 /** fn() under the store's rules: a RegisterError with a status in statuses becomes that HTTP answer (else a 500). */
@@ -73,7 +75,7 @@ function idParam(query, name) {
   return v;
 }
 
-/** A company as GET /api/companies lists it (and POST /api/companies answers it). */
+/** A company as GET /api/companies lists it (and POST /api/companies and .../rename answer it). */
 function companySummary(c, projects, counts) {
   const own = projects.filter((p) => p.company_id === c.id);
   return {
@@ -144,6 +146,19 @@ function createCompany(source, body, at) {
 }
 
 /**
+ * Renames a company (#23; the rules are the store's renameCompany, with companyName's rule for the name). body: the
+ * raw JSON body ({ name }). Returns { company } as GET /api/companies lists it and from, the name it had (for the
+ * server's log); without maestro.db there is none (404 company_not_found, and nothing is created).
+ */
+function renameCompany(source, companyId, body) {
+  const input = jsonObject(body);
+  const store = source.store();
+  if (!store) throw new ProjectsError(RENAME_STATUS.company_not_found, { code: 'company_not_found', company: companyId });
+  const c = underRules(RENAME_STATUS, () => store.transaction(() => store.renameCompany(companyId, input.name)));
+  return { company: companySummary(c, store.projects(), itemCounts(source)), from: c.from };
+}
+
+/**
  * Removes a company without projects (#24; the rules are the store's removeCompany). Returns the removed company
  * ({ id, name, created_at }); without maestro.db there is none (404 company_not_found, and nothing is created).
  */
@@ -174,4 +189,4 @@ function parseRegisterId(text) {
   return RE_ID.test(id) ? id : null;
 }
 
-module.exports = { listCompanies, listProjects, filterItems, createCompany, removeCompany, moveProject, parseRegisterId, ProjectsError };
+module.exports = { listCompanies, listProjects, filterItems, createCompany, renameCompany, removeCompany, moveProject, parseRegisterId, ProjectsError };

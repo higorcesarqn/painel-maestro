@@ -29,7 +29,7 @@ No topo, o **seletor de empresa** (Todas ou uma empresa, lembrado neste navegado
 - **Log:** os eventos de todos os itens, com filtros por período, projeto, item e tipo; abrir um evento mostra o que foi gravado e os comandos brutos das sessões do Claude Code ligadas a ele.
 - **Agentes:** os maestros e trabalhadores ativos, sem cadastro fixo: o maestro de cada item ainda não concluído e o trabalhador de cada task em andamento, com o último evento, a última atividade vista pelo hook e o consumo da janela de 5 h.
 - **Uso:** o plano Claude (5 h e semanal, com o reinício), o consumo de cada item em cada período e os tokens de cada agente.
-- **Empresas:** o cadastro inteiro, qualquer que seja o seletor do topo: um card por empresa (nome, id, projetos e itens), em ordem alfabética, com "Sem empresa" por último e só quando tem projetos; o botão **Nova empresa** cria uma (nome até 80 caracteres, único sem diferenciar maiúsculas, e o id sugerido a partir do nome, editável antes de salvar e fixo depois); **Excluir**, no card, exclui uma empresa sem projetos depois de confirmar num modal com o nome dela (com projetos o botão fica desabilitado com "mova os N projetos antes"; "Sem empresa" não tem o botão; se ela era a do seletor do topo, ele volta para Todas); dentro de cada card, os projetos (nome, tracker, repositórios, itens) com **Mover para** outra empresa, a mesma linha do card "Sem empresa" da tela Itens.
+- **Empresas:** o cadastro inteiro, qualquer que seja o seletor do topo: um card por empresa (nome, id, projetos e itens), em ordem alfabética, com "Sem empresa" por último e só quando tem projetos; o botão **Nova empresa** cria uma (nome até 80 caracteres, único sem diferenciar maiúsculas, e o id sugerido a partir do nome, editável antes de salvar e fixo depois); **Renomear**, no card, abre um modal com o nome atual preenchido (mesma regra de nome, e o próprio nome com outras maiúsculas é aceito; o id não muda; o seletor do topo e as outras telas passam a mostrar o nome novo; "Sem empresa" não tem o botão); **Excluir**, no card, exclui uma empresa sem projetos depois de confirmar num modal com o nome dela (com projetos o botão fica desabilitado com "mova os N projetos antes"; "Sem empresa" não tem o botão; se ela era a do seletor do topo, ele volta para Todas); dentro de cada card, os projetos (nome, tracker, repositórios, itens) com **Mover para** outra empresa, a mesma linha do card "Sem empresa" da tela Itens.
 
 A página se atualiza sozinha a cada 20 segundos.
 
@@ -230,6 +230,7 @@ flow item done 12                                                               
 ```
 flow company list
 flow company add <id> --name "<nome>"   # nome até 80, único sem diferenciar maiúsculas (a tela Empresas também cria)
+flow company rename <id> --name "<nome>" # o id não muda; "Sem empresa" não se renomeia (a tela Empresas também renomeia)
 flow company remove <id>                # só empresa sem projetos; "Sem empresa" não se exclui (a tela Empresas também exclui)
 flow project list [--company <id>]
 flow project add <id> --company <id> [--name] [--tracker github|azure_devops] [--repo <url>]... [--stages a,b,...] [--done-state "..."] [--workspace "..."]

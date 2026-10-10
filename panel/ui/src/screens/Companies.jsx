@@ -2,10 +2,11 @@
 // top says (a note tells so: a move's destination is never hidden). The cards come in the order of GET /api/companies
 // (alphabetical, "Sem empresa" last); "Sem empresa" shows only when it has projects. Each project is a ProjectRow,
 // shared with the "Sem empresa" card of the Items screen. The "Nova empresa" button opens CompanyCreateModal (#22);
-// with no company yet, the screen points to it. Each company but "Sem empresa" has Excluir (#24): disabled with the
-// number of projects to move first, otherwise it opens CompanyRemoveModal. Reads GET /api/companies and
-// GET /api/projects every 20 s; after a move, a creation or a removal it reads both again, reloads the company selector
-// and shows a status notice; removing the company of the selector sets it back to all.
+// with no company yet, the screen points to it. Each company but "Sem empresa" has Renomear (#23), which opens
+// CompanyRenameModal, and Excluir (#24): disabled with the number of projects to move first, otherwise it opens
+// CompanyRemoveModal. Reads GET /api/companies and GET /api/projects every 20 s; after a move, a creation, a rename or
+// a removal it reads both again, reloads the company selector (the other screens read the names from the API again on
+// their next read) and shows a status notice; removing the company of the selector sets it back to all.
 import { useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
 import { readCompanies, readProjects } from '../data/api.js';
@@ -13,9 +14,10 @@ import { usePolling } from '../data/polling.js';
 import { obj, objs, txt } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Empty, Skeleton } from '../components/base.jsx';
-import { Icon, Building, Info, Plus, Trash2 } from '../components/Icon.jsx';
+import { Icon, Building, Info, Pencil, Plus, Trash2 } from '../components/Icon.jsx';
 import { ProjectRow } from './ProjectRow.jsx';
 import { CompanyCreateModal } from './CompanyCreateModal.jsx';
+import { CompanyRenameModal } from './CompanyRenameModal.jsx';
 import { CompanyRemoveModal } from './CompanyRemoveModal.jsx';
 import '../styles/companies.css';
 
@@ -28,6 +30,7 @@ export function Companies() {
   const { company: selected, setCompany, reloadCompanies, setActionStatus } = usePanel();
   const { answer, error, reload } = usePolling(readRegister, []);
   const [creating, setCreating] = useState(false);
+  const [renaming, setRenaming] = useState(null);
   const [removing, setRemoving] = useState(null);
   const companies = answer ? answer.companies : [];
   const projects = answer ? answer.projects : [];
@@ -41,6 +44,14 @@ export function Companies() {
   const created = (company) => {
     setCreating(false);
     changed(t('companies.create.created', { name: txt(company.name) }));
+  };
+  const renamed = (company, from) => {
+    setRenaming(null);
+    changed(t('companies.rename.renamed', { from, name: txt(company.name) }));
+  };
+  const failed = () => {
+    reload();
+    reloadCompanies();
   };
   const removed = (company) => {
     setRemoving(null);
@@ -59,21 +70,27 @@ export function Companies() {
       {shown.length > 0 && (
         <div class="companies-grid">
           {shown.map((c) => (
-            <CompanyCard key={c.id} company={c} projects={projectsOf(c)} companies={companies} onMoved={changed} onRemove={setRemoving} />
+            <CompanyCard key={c.id} company={c} projects={projectsOf(c)} companies={companies} onMoved={changed} onRename={setRenaming} onRemove={setRemoving} />
           ))}
         </div>
       )}
       {creating && <CompanyCreateModal onCreated={created} onClose={() => setCreating(false)} />}
-      {removing && <CompanyRemoveModal company={removing} onRemoved={removed} onFailed={() => { reload(); reloadCompanies(); }} onClose={() => setRemoving(null)} />}
+      {renaming && <CompanyRenameModal company={renaming} onRenamed={renamed} onFailed={failed} onClose={() => setRenaming(null)} />}
+      {removing && <CompanyRemoveModal company={removing} onRemoved={removed} onFailed={failed} onClose={() => setRemoving(null)} />}
     </div>
   );
 }
 
-function CompanyCard({ company: c, projects, companies, onMoved, onRemove }) {
+function CompanyCard({ company: c, projects, companies, onMoved, onRename, onRemove }) {
   return (
     <Card class={`company-card${c.unassigned ? ' unassigned' : ''}`} label={txt(c.name)}
       info={c.unassigned ? t('companies.unassignedInfo') : undefined}
-      actions={c.unassigned ? undefined : <RemoveButton company={c} count={projects.length} onRemove={onRemove} />}
+      actions={c.unassigned ? undefined : (
+        <>
+          <RenameButton company={c} onRename={onRename} />
+          <RemoveButton company={c} count={projects.length} onRemove={onRemove} />
+        </>
+      )}
       extra={(
         <span class="company-meta">
           <span class="mono">{txt(c.id)}</span>
@@ -86,6 +103,16 @@ function CompanyCard({ company: c, projects, companies, onMoved, onRemove }) {
         ? <ul class="project-list">{projects.map((p) => <ProjectRow key={p.id} project={p} companies={companies} onMoved={onMoved} />)}</ul>
         : <p class="muted small">{t('companies.noProjects')}</p>}
     </Card>
+  );
+}
+
+/** Renomear of a company card (#23): opens the modal with the current name. */
+function RenameButton({ company: c, onRename }) {
+  const label = t('companies.rename.label', { name: txt(c.name) });
+  return (
+    <button type="button" class="button small" aria-label={label} title={label} onClick={() => onRename(c)}>
+      <Icon of={Pencil} size={14} />{t('companies.rename.button')}
+    </button>
   );
 }
 

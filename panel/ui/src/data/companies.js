@@ -12,6 +12,8 @@ import { objs } from './format.js';
 const STORAGE_KEY = 'painel-maestro.company';
 // The id format of the register (bin/flow-store.js); the server is the one that validates it.
 export const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
+// The longest company name the store accepts (bin/flow-store.js); the server checks it again.
+export const MAX_COMPANY_NAME = 80;
 
 /**
  * The id suggested for a new company from its name (#22): lowercase, no accents, spaces and symbols become one hyphen,

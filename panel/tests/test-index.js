@@ -78,6 +78,7 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
     "api(withQuery('/api/pending-decisions', params))", "api(withQuery('/api/items', filters))",
     'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', "api(withQuery('/api/log', params))", 'api(`/api/log/${encodeURIComponent(id)}`)',
     "api('/api/companies')", "api(withQuery('/api/projects', filters))",
+    "api(`/api/companies/${encodeURIComponent(id)}/rename`, { method: 'POST', body: { name } })",
     "api(`/api/companies/${encodeURIComponent(id)}/remove`, { method: 'POST' })",
     "api(`/api/projects/${encodeURIComponent(project)}/company`, { method: 'POST', body: { company } })",
     "api(withQuery('/api/usage', filters))", "api(withQuery('/api/agents', filters))", "api(withQuery('/api/overview', filters))"]) {
@@ -211,7 +212,7 @@ suite.test('companies (#6): the demo has two companies and "Pessoal" with GitHub
   assert.ok(js.includes('painel-maestro.company'));
 });
 
-suite.test('Companies screen (#21): in the menu, sharing the project line with "Sem empresa"; the mock refuses "Sem empresa" as a destination and removes only an empty company', async () => {
+suite.test('Companies screen (#21): in the menu, sharing the project line with "Sem empresa"; the mock refuses "Sem empresa" as a destination, renames and removes only an empty company', async () => {
   const { SCREENS, parseHash } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
   assert.ok(SCREENS.some((s) => s.id === 'companies' && s.group === 'workspace'));
   assert.deepStrictEqual(parseHash('#companies'), { id: 'companies', sub: '' });
@@ -245,6 +246,35 @@ suite.test('Companies screen (#21): in the menu, sharing the project line with "
     assert.strictEqual(created.company.project_count, 0);
     assert.deepStrictEqual(await remove('tmp-empty'), { removed: 'tmp-empty' });
     assert.ok(!(await mockApi('/api/companies', 'GET')).companies.some((c) => c.id === 'tmp-empty'), 'the removed company leaves the list');
+    // Renaming a company (#23) under the store's rules: "Sem empresa" (400), unknown (404), another company's name
+    // ignoring case (409), an invalid name (400); its own name with another case is accepted, the id is kept, and every
+    // answer of the mock that carries the company shows the new name, as the server's do.
+    const rename = (id, name) => mockApi(`/api/companies/${id}/rename`, 'POST', { name });
+    const other = m.companies.find((c) => !c.unassigned && c.id !== target.id);
+    await assert.rejects(rename('unassigned', 'Outra'), (e) => e.status === 400 && e.error.code === 'company_reserved');
+    await assert.rejects(rename('nobody', 'Outra'), (e) => e.status === 404 && e.error.code === 'company_not_found');
+    await assert.rejects(rename(target.id, ` ${other.name.toUpperCase()} `), (e) => e.status === 409 && e.error.code === 'company_name_taken' && e.error.company === other.id);
+    await assert.rejects(rename(target.id, '  '), (e) => e.status === 400 && e.error.code === 'invalid_field' && e.error.field === 'name');
+    assert.strictEqual((await rename(target.id, target.name.toLowerCase())).company.name, target.name.toLowerCase());
+    const renamed = await rename(target.id, '  Renomeada de Teste ');
+    assert.deepStrictEqual([renamed.company.id, renamed.company.name, renamed.company.project_count], [target.id, 'Renomeada de Teste', before[1] + 1]);
+    const names = new Set();
+    const collect = (x) => {
+      if (Array.isArray(x)) return x.forEach(collect);
+      if (!x || typeof x !== 'object') return undefined;
+      for (const [k, v] of Object.entries(x)) {
+        if (k === 'company' && v && v.id === target.id && 'name' in v) names.add(v.name);
+        if (k === 'companies' && Array.isArray(v)) for (const c of v) if (c && c.id === target.id) names.add(c.name);
+        collect(v);
+      }
+      return undefined;
+    };
+    const item = (await mockApi(`/api/items?company=${target.id}`, 'GET')).items[0];
+    for (const route of ['/api/companies', '/api/projects', `/api/items?company=${target.id}`, '/api/pending-decisions', '/api/overview',
+      `/api/overview?company=${target.id}`, '/api/usage', '/api/agents', '/api/log', `/api/items/${item.project.id}/${item.number}`]) {
+      collect(await mockApi(route, 'GET'));
+    }
+    assert.deepStrictEqual([...names], ['Renomeada de Teste'], 'every answer of the mock shows the new name');
   } finally {
     globalThis.location = saved.location;
     globalThis.fetch = saved.fetch;

@@ -13,15 +13,16 @@
  *   projects(id, name, company_id, tracker, stages JSON, done_state, maestri_workspace, created_at)
  *   project_repos(remote, project_id)            normalized remote URL → project (a project may have many repos)
  *   events(id, at, type, project_id, item_number, task_number, agent_role, agent_name, source, payload JSON)
- * Companies and projects are the owner's register (flow company / flow project, bin/flow-admin.js; the panel only
- * moves a project to another company): they may change, unlike the events. Its rules live here, once: a write that
+ * Companies and projects are the owner's register (flow company / flow project, bin/flow-admin.js; the panel creates,
+ * renames and removes a company and moves a project to another company): they may change, unlike the events. Its rules live here, once: a write that
  * breaks one throws RegisterError with a code ({ code, ...params }), which the CLI turns into a message (exit 2) and
  * the API into an HTTP answer; neither repeats the rule.
  * The events table is append-only (triggers refuse UPDATE and DELETE) and is the only source of the state of
  * items: nothing derived is stored (the projection is computed by flow-projection.js).
  *
  * projectedItems() is the one place that groups the events by item and projects them (the server's routes and the
- * CLI's lookups); on a long-lived connection (the server) it is cached until an event is appended or a project changes.
+ * CLI's lookups); on a long-lived connection (the server) it is cached until an event is appended or a project changes
+ * (its company's name included: a rename, #23, by any process).
  *
  * Several processes (maestro, workers, the panel) write at the same time: every write is a short
  * BEGIN IMMEDIATE transaction and busy_timeout makes the others wait instead of failing.
@@ -335,6 +336,20 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
       return store.company(companyId);
     },
     /**
+     * Renames a company (#23) and returns it renamed, with from: the name it had; the id never changes. "Sem empresa" is never renamed
+     * (company_reserved, even before a repository lands there); an unknown company is company_not_found; the name
+     * follows companyName's rule without counting the company itself, so its own name (even with another case) is
+     * accepted. The projects read the name from here (no copy), so every answer shows the new one.
+     */
+    renameCompany(id, name) {
+      if (id === UNASSIGNED_COMPANY) throw new RegisterError({ code: 'company_reserved', company: id });
+      const before = store.company(id);
+      if (!before) throw new RegisterError({ code: 'company_not_found', company: id });
+      const companyName = store.companyName(name, id);
+      db.prepare('UPDATE companies SET name = ? WHERE id = ?').run(companyName, id);
+      return { ...store.company(id), from: before.name };
+    },
+    /**
      * Removes a company without projects (#24) and returns it as it was. "Sem empresa" is never removed
      * (company_reserved, even before a repository lands there); an unknown company is company_not_found; a company
      * with projects is company_not_empty (with project_count), checked here on the register as it is now, so a screen
@@ -408,8 +423,8 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
      * Every item projected from its events (bin/flow-projection.js), in the order each one first appeared:
      * Map('<project>/<number>' → { key, project, state, events }). Items whose project is gone or that never
      * started are left out. Without projectId the answer is kept on this connection and reused while no event was
-     * appended (MAX(id) is exact: the table is append-only) and no project changed (its stages and company shape
-     * the answer): the server's routes read it many times per poll. It is shared: never change what it returns.
+     * appended (MAX(id) is exact: the table is append-only) and no project changed (its stages and company, with the
+     * company's name, shape the answer): the server's routes read it many times per poll. It is shared: never change what it returns.
      * With projectId, only that project's items, computed now (the CLI looks up a task or a pending decision).
      */
     projectedItems({ projectId } = {}) {
