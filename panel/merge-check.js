@@ -24,6 +24,7 @@ const { isoSP, InvalidData } = require(path.join(__dirname, '..', 'bin', 'lib.js
 const { t } = require(path.join(__dirname, '..', 'bin', 'i18n'));
 const { projectItem, trackerRef, EVENT_TYPES } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
 const { SchemaTooNew } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { hiddenOrganizations } = require(path.join(__dirname, 'api-items.js'));
 
 const DEFAULT_SECONDS = 600;
 const CONCURRENCY = 4; // PRs read at once in a round (each read may take up to CLI_TIMEOUT_MS)
@@ -280,18 +281,26 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
       const s = statuses.get(key);
       return { enabled: true, reason: null, checked_at: s ? s.checked_at : null, error: s ? s.error : null };
     },
-    /** Health reasons: one merge_check_failed per item whose last check failed. */
+    /**
+     * Health reasons: one merge_check_failed per item whose last check failed, but those of a hidden organization (#52):
+     * the health popover never names its items. Their PRs are still checked, and their page still shows the failure.
+     */
     healthReasons() {
       const reasons = [];
       let store;
+      let hidden = new Set();
       for (const [key, s] of statuses) {
         if (!s.error) continue;
         // An unreadable maestro.db is the health's own reason (database_unreadable, #14): never throws from here.
         if (store === undefined) {
-          try { store = items.store(); } catch (_) { store = null; }
+          try {
+            store = items.store();
+            if (store) hidden = hiddenOrganizations(store);
+          } catch (_) { store = null; }
         }
         const [projectId, number] = key.split('/');
         const project = store && store.project(projectId);
+        if (project && hidden.has(project.organization_id)) continue;
         reasons.push({ code: 'merge_check_failed', item: key, tracker_ref: trackerRef(project ? project.tracker : 'github', Number(number)), error: s.error });
       }
       return reasons;

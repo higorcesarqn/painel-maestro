@@ -221,12 +221,12 @@ suite.test('the item of a hidden organization still answers by its key, and its 
   });
 });
 
-suite.test('GET /api/state still counts the pending decisions of a hidden organization (left to #52)', async () => {
+suite.test('GET /api/state leaves the pending decisions of a hidden organization out of its KPIs, as the Pendências screen (#52, test-state-hidden.js)', async () => {
   const { r, pending } = twoOrganizations('state');
   await withServer(r, async ({ get }) => {
     const { kpis } = await get('/api/state');
     assert.deepStrictEqual([kpis.pending_decisions.total, kpis.pending_decisions.by_severity.high, kpis.pending_decisions.open.map((p) => p.id)],
-      [2, 1, [pending.hidden, pending.visible]]);
+      [1, 0, [pending.visible]]);
   });
 });
 

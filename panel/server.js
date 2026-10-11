@@ -230,18 +230,18 @@ function usageKpi(usageFile, t, warnings) {
 }
 
 /**
- * The menu counter: open pending decisions of every organization, by severity (computed from the events, #10), and
- * the open ones themselves (#45), every one, the most urgent first, in the Overview's summary shape: the page's
- * browser notification compares their ids between reads. An unreadable maestro.db counts nothing: the health badge
- * already says why (database_unreadable); its list is null, unknown: an empty one would read as "all closed", and the
- * page would notify every open one again on the next good read.
+ * The menu counter: open pending decisions of every organization but the hidden ones (#52), by severity (computed
+ * from the events, #10), and the open ones themselves (#45), every one, the most urgent first, in the Overview's
+ * summary shape: the page's browser notification compares their ids between reads. Those of a hidden organization
+ * reach neither the counter, the tab nor the notification: the owner answers them in the maestro's terminal. An
+ * unreadable maestro.db counts nothing: the health badge already says why (database_unreadable); its list is null,
+ * unknown: an empty one would read as "all closed", and the page would notify every open one again on the next good read.
  */
 function pendingKpi(items) {
   let counts;
   let open;
   try {
-    // Those of a hidden organization still count here, as before #51: leaving them out of the KPIs is #52's.
-    ({ counts, pending_decisions: open } = pendingApi.listPendingDecisions(items, new URLSearchParams({ status: 'open' }), { withHidden: true }));
+    ({ counts, pending_decisions: open } = pendingApi.listPendingDecisions(items, new URLSearchParams({ status: 'open' })));
   } catch (_) {
     counts = { severity: { critical: 0, high: 0, normal: 0, low: 0 } };
     open = null;
