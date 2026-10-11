@@ -17,7 +17,7 @@
 const path = require('path');
 
 const { UNASSIGNED_ORGANIZATION, STAGES, TRACKERS, RE_ID, RegisterError, organizationFields, notReserved } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
-const { listItems, projectInfo } = require(path.join(__dirname, 'api-items.js'));
+const { listItems, projectInfo, hiddenOrganizations } = require(path.join(__dirname, 'api-items.js'));
 
 class ProjectsError extends Error {
   constructor(status, error) {
@@ -56,10 +56,10 @@ function jsonObject(body) {
   return input;
 }
 
-/** Number of items per project id. */
+/** Number of items per project id (those of a hidden organization too: Configurações counts them). */
 function itemCounts(source) {
   const counts = new Map();
-  for (const it of listItems(source).items) counts.set(it.project.id, (counts.get(it.project.id) || 0) + 1);
+  for (const it of listItems(source, { withHidden: true }).items) counts.set(it.project.id, (counts.get(it.project.id) || 0) + 1);
   return counts;
 }
 
@@ -130,7 +130,7 @@ function listProjects(source, query) {
   const store = source.store();
   if (!store) return { projects: [] };
   const counts = itemCounts(source);
-  const hidden = new Set(withHidden ? [] : store.organizations().filter((o) => o.hidden).map((o) => o.id));
+  const hidden = withHidden ? new Set() : hiddenOrganizations(store);
   const projects = store.projects().filter((p) => (!organization || p.organization_id === organization) && !hidden.has(p.organization_id))
     .map((p) => projectDetail(store, p, counts));
   projects.sort((a, b) => Number(b.unassigned) - Number(a.unassigned) || a.organization.name.localeCompare(b.organization.name, 'pt-BR')

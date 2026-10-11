@@ -11,7 +11,7 @@ Documentação técnica do painel (o que ele é e como instalar está no [README
 | `panel/merge-check.js` | verificador de merge dos PRs prontos e o "marcar como mergeado" |
 | `panel/ui/` | **fonte da página**: app Preact com identidade visual própria (telas, componentes, gráficos em SVG). O build gera o `index.html` |
 | `panel/index.html` | a página compilada (arquivo único, sem nada externo; não edite à mão: rode o build do `ui/`) |
-| `panel/api-items.js` | itens: lê os eventos do `maestro.db` (`bin/flow-store.js`) e calcula cada item pela projeção pura (`bin/flow-projection.js`). Todas as rotas que precisam de todos os itens (itens, pendências, uso, agentes, Visão geral, saúde, organizações e projetos, verificador de merge) leem o mesmo `projectedItems()` do `flow-store.js`, guardado na conexão do servidor até chegar um evento novo (`MAX(id)`, a tabela só cresce) ou mudar um projeto |
+| `panel/api-items.js` | itens: lê os eventos do `maestro.db` (`bin/flow-store.js`) e calcula cada item pela projeção pura (`bin/flow-projection.js`). Todas as rotas que precisam de todos os itens (itens, pendências, uso, agentes, Visão geral, saúde, organizações e projetos, verificador de merge) leem o mesmo `projectedItems()` do `flow-store.js` (as listagens, por `visibleItems()`, que tira os itens das organizações ocultas), guardado na conexão do servidor até chegar um evento novo (`MAX(id)`, a tabela só cresce) ou mudar um projeto |
 | `panel/api-log.js` | Log: eventos do `maestro.db` com filtros, os comandos brutos do `bruto.db` (`bin/raw-store.js`) ligados a cada evento e a limpeza diária do log bruto |
 | `panel/api-pending-decisions.js` | pendências: calculadas dos eventos do `maestro.db` pela mesma projeção, com filtros e contagens, e a resposta do dono pelo painel (#32) |
 | `panel/api-projects.js` | organizações e projetos (#6): listas, filtro de organização/projeto dos itens e mover um projeto de organização |
@@ -51,6 +51,8 @@ Com `taskkill /F` o processo morre sem chance de limpar, então o `panel.pid` an
 - Toda resposta leva `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` e `X-Frame-Options: DENY`; o HTML leva uma `Content-Security-Policy` que bloqueia qualquer recurso externo (a página é um arquivo único) e, com `frame-ancestors 'none'`, impede que outro site embuta o painel num iframe para induzir cliques (clickjacking no Recalcular, por exemplo).
 
 ## Rotas
+
+**Organizações ocultas (#51).** Toda rota de listagem e agregação deixa as organizações ocultas (#49) de fora, por padrão e sem parâmetro: `/api/items`, `/api/pending-decisions`, `/api/log` (os eventos e as contagens dos filtros), `/api/overview`, as linhas `by_item`/`by_agent` de `/api/usage` (o plano, os períodos, os totais e os percentuais seguem sendo da conta toda), `/api/agents`, `/api/organizations` e `/api/projects`; um `?organization=<oculta>` responde vazio, como uma organização sem itens. Só `?hidden=include` (Configurações, em `/api/organizations` e `/api/projects`) as traz. Seguem respondendo para uma oculta: a página de um item pela chave (`GET /api/items/<projeto>/<número>` e o `POST .../merged`), um evento pelo id (`GET /api/log/<id>`), o log bruto (`GET /api/raw`) e a resposta a uma pendência (`POST /api/pending-decisions/<id>/answer`: o maestro pode estar esperando). O filtro fica num lugar só, `hiddenOrganizations(store)` e `visibleItems(store)` em `api-items.js`; por ora o `/api/state` ainda conta as pendências das ocultas.
 
 | Rota | Devolve |
 |---|---|

@@ -269,6 +269,11 @@ function logWhere(f, skip) {
     params.push(...values);
   };
   if (f.organizations && skip !== 'organization') many('p.organization_id', f.organizations);
+  // Left out of the page and of every facet, whatever the other filters (the panel's hidden organizations, #51).
+  if (f.excludeOrganizations && f.excludeOrganizations.length) {
+    where.push(`p.organization_id NOT IN (${f.excludeOrganizations.map(() => '?').join(', ')})`);
+    params.push(...f.excludeOrganizations);
+  }
   if (f.projects && skip !== 'project') many('e.project_id', f.projects);
   if (f.types && skip !== 'type') many('e.type', f.types);
   if (f.item) {
@@ -555,7 +560,7 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     },
     /**
      * Filtered page of events, newest first. f: { organizations, projects, types (lists), item: {project, number},
-     * since, until (ISO texts with the São Paulo offset; since inclusive, until exclusive) }.
+     * since, until (ISO texts with the São Paulo offset; since inclusive, until exclusive), excludeOrganizations (list) }.
      */
     logEvents(f, { limit = 50, offset = 0 } = {}) {
       const w = logWhere(f);

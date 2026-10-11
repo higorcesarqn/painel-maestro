@@ -14,21 +14,22 @@
 //              estimated_plan_pct, plan_week_consumption_pct? (7d) }
 //     The sums come from state/usage.json (bin/collect-usage.js); the names, titles and organizations from maestro.db
 //     (the projection, on every request). The percentages are always of the whole account: the organization and project
-//     filters only choose the lines. reason: null, {code: 'collector_not_run'} or {code: 'usage_unreadable', ...}.
+//     filters only choose the lines. The lines of a hidden organization (#49) are left out (#51); the plan, the periods and the
+//     totals stay those of the whole account. reason: null, {code: 'collector_not_run'} or {code: 'usage_unreadable', ...}.
 //
 //   GET /api/agents?organization=&project=
 //     → { agents: [Agent], counts: { maestro, worker } }
 //     Agent = { key, role: 'maestro' | 'worker', name, project, item, task: TaskInfo | null, active_tasks (maestro),
 //               last_event: {id, at, type, task_number, agent, payload} | null, last_activity_at, usage }
 //     No fixed registry: the maestro of every active item (not Done) and the worker of every task being worked on
-//     (working, review or blocked), derived from the items' events. last_activity_at is the last time the hook saw a
+//     (working, review or blocked), derived from the items' events; none of a hidden organization (#51). last_activity_at is the last time the hook saw a
 //     session of that agent (bruto.db); usage is its line in each period of usage.json (or null).
 //
 // No sentences: an invalid filter is {code: 'invalid_param', param, value, expected: 'id'} (ADR 0004).
 const path = require('path');
 
 const { trackerRef } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
-const { projectInfo } = require(path.join(__dirname, 'api-items.js'));
+const { projectInfo, hiddenOrganizations } = require(path.join(__dirname, 'api-items.js'));
 
 const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const PERIODS = ['window_5h', 'today', '7d'];
@@ -58,13 +59,19 @@ function filtersOf(query) {
 
 const passes = (f, project) => (!f.organization || (project.organization && f.organization.has(project.organization.id))) && (!f.project || f.project.has(project.id));
 
-/** Every item of maestro.db with its state and events: { projects: Map, items: Map('<project>/<n>' → {...}) }. */
+/** Whether a line's project (as projectInfo shows it) is of a hidden organization (#51). */
+const hiddenProject = (ctx, project) => !!project.organization && ctx.hidden.has(project.organization.id);
+
+/**
+ * Every item of maestro.db with its state and events: { projects: Map, items: Map('<project>/<n>' → {...}), hidden: Set }.
+ * hidden: the hidden organizations, whose lines and agents are left out (#51).
+ */
 function itemsOf(source) {
   const store = source.store();
   const projects = new Map();
-  if (!store) return { projects, items: new Map() };
+  if (!store) return { projects, items: new Map(), hidden: new Set() };
   for (const p of store.projects()) projects.set(p.id, p);
-  return { projects, items: store.projectedItems() };
+  return { projects, items: store.projectedItems(), hidden: hiddenOrganizations(store) };
 }
 
 function itemInfo(it) {
@@ -160,7 +167,7 @@ function usageAnswer(source, usageFile, query, { plan = (p) => p, collector = nu
       answer[list][period] = (Array.isArray(lists[period]) ? lists[period] : [])
         .filter((l) => obj(l) && typeof l.key === 'string' && typeof l.project_id === 'string')
         .map((l) => build(l, ctx))
-        .filter((l) => passes(f, l.project));
+        .filter((l) => passes(f, l.project) && !hiddenProject(ctx, l.project));
     }
   }
   return answer;
@@ -227,9 +234,9 @@ function usageByAgent(usageFile) {
 /** GET /api/agents. source: the items source (maestro.db); raw: the raw log source (bruto.db); usageFile: usage.json. */
 function listAgents(source, raw, usageFile, query) {
   const f = filtersOf(query);
-  const { items } = itemsOf(source);
+  const { items, hidden } = itemsOf(source);
   const active = [...items.values()]
-    .filter((it) => it.state.active && passes(f, projectInfo(it.project)))
+    .filter((it) => it.state.active && !hidden.has(it.project.organization_id) && passes(f, projectInfo(it.project)))
     .sort((a, b) => Date.parse(b.state.updated_at) - Date.parse(a.state.updated_at) || a.key.localeCompare(b.key));
   const seen = lastActivity(raw, items);
   const usage = usageByAgent(usageFile);

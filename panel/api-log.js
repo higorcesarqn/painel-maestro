@@ -11,14 +11,15 @@
 // Link of an event to the raw log: the sessions whose branch points to the same task (an event of a task) or to
 // the item's maestro (an event of the item itself, without task), in the window from the previous event of the same
 // item and task (at most 6 h back) until one minute after the event (the hook writes the command that recorded the
-// event right after it). No sentences: errors are codes (ADR 0004).
+// event right after it). The events of a hidden organization (#49) are left out of the list and of its counts (#51); one
+// of them still answers by its id. No sentences: errors are codes (ADR 0004).
 const path = require('path');
 
 const { openStore, flowDir } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 const { openRawStore } = require(path.join(__dirname, '..', 'bin', 'raw-store.js'));
 const { projectItem, trackerRef } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
 const { isoSP } = require(path.join(__dirname, '..', 'bin', 'lib.js'));
-const { projectInfo } = require(path.join(__dirname, 'api-items.js'));
+const { projectInfo, hiddenOrganizations } = require(path.join(__dirname, 'api-items.js'));
 
 const MIN_MS = 60 * 1000;
 const HOUR_MS = 60 * MIN_MS;
@@ -167,6 +168,7 @@ function listLog(source, raw, sp, nowMs) {
   const rawLastAt = rawStore ? rawStore.lastAt() : null;
   const store = source.store();
   if (!store) return { total: 0, page: f.page, per_page: f.perPage, pages: 1, events: [], counts: EMPTY_COUNTS, raw_last_at: rawLastAt };
+  f.excludeOrganizations = [...hiddenOrganizations(store)];
   const { total, events } = store.logEvents(f, { limit: f.perPage, offset: (f.page - 1) * f.perPage });
   const projects = new Map(store.projects().map((p) => [p.id, p]));
   const items = itemsOf(store, events, projects);

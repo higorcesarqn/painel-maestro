@@ -240,7 +240,8 @@ function pendingKpi(items) {
   let counts;
   let open;
   try {
-    ({ counts, pending_decisions: open } = pendingApi.listPendingDecisions(items, new URLSearchParams({ status: 'open' })));
+    // Those of a hidden organization still count here, as before #51: leaving them out of the KPIs is #52's.
+    ({ counts, pending_decisions: open } = pendingApi.listPendingDecisions(items, new URLSearchParams({ status: 'open' }), { withHidden: true }));
   } catch (_) {
     counts = { severity: { critical: 0, high: 0, normal: 0, low: 0 } };
     open = null;
