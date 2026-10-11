@@ -253,6 +253,8 @@ flow org list
 flow org add <id> --name "<nome>"   # nome até 80, único sem diferenciar maiúsculas, nunca o de "Sem organização" (a tela Organizações também cria)
 flow org rename <id> --name "<nome>" # o id não muda; "Sem organização" não se renomeia (a tela Organizações também renomeia)
 flow org remove <id>                # só organização sem projetos; "Sem organização" não se exclui (a tela Organizações também exclui)
+flow org hide <id>                  # oculta: sai das listagens do painel, o trabalho segue normal; "Sem organização" também (o org list marca as ocultas)
+flow org unhide <id>                # mostra de novo; repetir hide ou unhide não é erro
 flow project list [--org <id>]
 flow project add <id> --org <id> [--name] [--tracker github|azure_devops] [--repo <url>]... [--stages a,b,...] [--done-state "..."] [--workspace "..."]
 flow project edit <id> [--name] [--org] [--tracker] [--repo <url>]... [--remove-repo <url>]... [--stages] [--done-state] [--workspace]

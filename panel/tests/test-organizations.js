@@ -334,7 +334,7 @@ suite.test('the panel creates an organization (POST /api/organizations) under th
     const created = await create({ id: 'contoso', name: '  Contoso  ' }, { 'X-Panel': '1', Origin: `http://127.0.0.1:${port}` });
     assert.strictEqual(created.status, 201, created.text);
     const listed = (await get('/api/organizations')).organizations;
-    assert.deepStrictEqual(created.json, { organization: { id: 'contoso', name: 'Contoso', unassigned: false, project_count: 0, item_count: 0 } });
+    assert.deepStrictEqual(created.json, { organization: { id: 'contoso', name: 'Contoso', unassigned: false, hidden: false, project_count: 0, item_count: 0, open_pending_count: 0 } });
     assert.deepStrictEqual(listed, [created.json.organization]);
     // Invalid bodies, ids and names: 400 with the field; an id in use or a name in use (ignoring case): 409.
     const cases = [
@@ -541,7 +541,7 @@ suite.test('the panel and the CLI rename an organization (POST /api/organization
     // The rename, from the page's origin: 200 { organization } as GET /api/organizations lists it, the name trimmed, the id kept.
     const renamed = await rename('contoso', { name: '  Contoso Brasil ' }, { 'X-Panel': '1', Origin: `http://127.0.0.1:${port}` });
     assert.strictEqual(renamed.status, 200, renamed.text);
-    assert.deepStrictEqual(renamed.json, { organization: { id: 'contoso', name: 'Contoso Brasil', unassigned: false, project_count: 1, item_count: 1 } });
+    assert.deepStrictEqual(renamed.json, { organization: { id: 'contoso', name: 'Contoso Brasil', unassigned: false, hidden: false, project_count: 1, item_count: 1, open_pending_count: 0 } });
     assert.deepStrictEqual((await get('/api/organizations')).organizations.find((c) => c.id === 'contoso'), renamed.json.organization);
     assert.deepStrictEqual(await shown(), everywhere('Contoso Brasil'), 'every read shows the new name right away');
     // Its own name, even only changing the case, is accepted; the alphabetical order follows the new name.
@@ -644,7 +644,7 @@ const SCHEMA_V1 = `
   PRAGMA user_version = 1;
 `;
 
-suite.test('a maestro.db in schema v1 migrates to v2 on its first writer: same register, events untouched (#26)', async () => {
+suite.test('a maestro.db in schema v1 migrates on its first writer (to v2, #26, and on to v3, #49): same register, events untouched', async () => {
   const { loadSqlite, openStore } = require(path.join(REPO, 'bin', 'flow-store.js'));
   const { DatabaseSync } = loadSqlite();
   const r = buildRoot('migration');
@@ -680,13 +680,13 @@ suite.test('a maestro.db in schema v1 migrates to v2 on its first writer: same r
 
   const db = new DatabaseSync(file, { readOnly: true });
   try {
-    assert.strictEqual(db.prepare('PRAGMA user_version').get().user_version, 2);
+    assert.strictEqual(db.prepare('PRAGMA user_version').get().user_version, 3);
     const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map((x) => x.name);
     assert.deepStrictEqual(tables, ['events', 'organizations', 'project_repos', 'projects']);
     assert.deepStrictEqual(db.prepare('SELECT * FROM organizations ORDER BY id').all().map((x) => ({ ...x })), [
-      { id: 'meu', name: 'Meu', created_at: '2026-09-01T10:00:00-03:00' },
-      { id: 'pessoal', name: 'Pessoal', created_at: '2026-09-01T10:00:00-03:00' },
-      { id: 'unassigned', name: 'Sem organização', created_at: '2026-09-01T11:00:00-03:00' },
+      { id: 'meu', name: 'Meu', created_at: '2026-09-01T10:00:00-03:00', hidden: 0 },
+      { id: 'pessoal', name: 'Pessoal', created_at: '2026-09-01T10:00:00-03:00', hidden: 0 },
+      { id: 'unassigned', name: 'Sem organização', created_at: '2026-09-01T11:00:00-03:00', hidden: 0 },
     ]);
     assert.deepStrictEqual(db.prepare('SELECT id, organization_id FROM projects ORDER BY id').all().map((x) => ({ ...x })),
       [{ id: 'painel-maestro', organization_id: 'pessoal' }, { id: 'scratch', organization_id: 'unassigned' }]);

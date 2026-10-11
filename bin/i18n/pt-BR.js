@@ -103,6 +103,10 @@ const ADMIN_HELP = `ORGANIZAÇÕES E PROJETOS (dono; não precisam rodar dentro 
   node bin/flow.js org remove <id>
       Exclui uma organização sem projetos (a tela Organizações do painel também exclui). Com projetos, mova-os antes
       (flow project move); "Sem organização" (unassigned) não se exclui.
+  node bin/flow.js org hide <id>
+  node bin/flow.js org unhide <id>
+      Oculta uma organização (ela sai das listagens do painel, o trabalho dela segue normal) e a mostra de novo.
+      Repetir não é erro. "Sem organização" (unassigned) também pode ser oculta. O org list marca as ocultas.
   node bin/flow.js project list [--org <id>]
   node bin/flow.js project add <id> --org <id> [--name "<nome>"] [--tracker github|azure_devops]
         [--repo <url do remote>]... [--stages <etapa,...>] [--done-state "<estado>"] [--workspace "<workspace>"]
@@ -232,6 +236,8 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       organizationCreated: 'Organização {organization} ({name}) criada pelo painel',
       organizationRenamed: 'Organização {organization} renomeada pelo painel de {from} para {name}',
       organizationRemoved: 'Organização {organization} ({name}) excluída pelo painel',
+      organizationHidden: 'Organização {organization} ({name}) oculta pelo painel',
+      organizationShown: 'Organização {organization} ({name}) mostrada pelo painel',
       requestFailed: 'Erro em {method} {url}: {detail}',
       serverError: 'Erro no servidor: {detail}',
       rawPurged: 'Log bruto: {entries} registro(s) e {sessions} sessão(ões) com mais de 90 dias apagados',
@@ -251,7 +257,12 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       organizationAdded: 'Organização "{organization}" ({name}) cadastrada.',
       organizationRenamed: 'Organização "{organization}" renomeada de "{from}" para "{name}".',
       organizationRemoved: 'Organização "{organization}" ({name}) excluída.',
-      organizationLine: (p) => `${p.id.padEnd(20)} ${p.name} · ${p.count} projeto${p.count === 1 ? '' : 's'}`,
+      // #49: org hide / org unhide; repeating is not an error.
+      organizationHidden: 'Organização "{organization}" ({name}) oculta: ela sai das listagens do painel e o trabalho dela segue normal.',
+      organizationAlreadyHidden: 'Organização "{organization}" ({name}) já estava oculta.',
+      organizationShown: 'Organização "{organization}" ({name}) mostrada de novo nas listagens do painel.',
+      organizationAlreadyShown: 'Organização "{organization}" ({name}) já estava visível.',
+      organizationLine: (p) => `${p.id.padEnd(20)} ${p.name} · ${p.count} projeto${p.count === 1 ? '' : 's'}${p.hidden ? ' · oculta' : ''}`,
       noOrganizations: 'Nenhuma organização cadastrada. Cadastre com: flow org add <id> --name "<nome>".',
       projectAdded: 'Projeto "{project}" cadastrado.',
       projectEdited: 'Projeto "{project}" alterado.',
@@ -285,7 +296,7 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       nothingToChange: 'nada para mudar: informe ao menos uma opção (veja flow --help).',
     },
     // Codes of the rules of the register (RegisterError, bin/flow-store.js); organization_not_found and project_not_found
-    // reuse unknownOrganization (organizationNotFound in a rename or a removal) and unknownProject above.
+    // reuse unknownOrganization (organizationNotFound in an org subcommand: rename, remove, hide, unhide) and unknownProject above.
     codes: {
       // Moving a project to, adding a project to, removing (#24) or renaming (#23) "Sem organização".
       organization_reserved: '"Sem organização" é reservada: ela só recebe os repositórios sem cadastro, então não é destino de mover nem organização de um projeto cadastrado, não se renomeia e não se exclui (organizações cadastradas: flow org list).',
