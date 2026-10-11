@@ -37,6 +37,15 @@ function readSource(dir = SOURCE, base = SOURCE, acc = {}) {
 const source = readSource();
 const allSource = Object.values(source).join('\n');
 
+/**
+ * The open pending decisions the demo's /api/state counts: those of the mock file but the hidden organizations' (#52). The
+ * file keeps them all (the mock leaves the hidden ones out of its listings at read time).
+ */
+function openVisible(m) {
+  const hidden = new Set(m.organizations.filter((c) => c.hidden).map((c) => c.id));
+  return m.pending_decisions.pending_decisions.filter((p) => p.status === 'open' && !hidden.has(p.item.project.organization.id));
+}
+
 // XML namespace identifiers Preact uses in createElementNS: never downloaded.
 const NAMESPACES = /^http:\/\/www\.w3\.org\/(2000\/svg|1999\/xhtml|1998\/Math\/MathML|1999\/xlink|XML\/1998\/namespace)$/;
 
@@ -111,8 +120,9 @@ suite.test('the demo is only the new model: mock-items.json answers /api/state t
   assert.deepStrictEqual(Object.keys(e).sort(), ['collector', 'generated_at', 'health', 'kpis', 'version', 'warnings']);
   assert.deepStrictEqual(Object.keys(e.health).sort(), ['last_event_at', 'last_raw_at', 'level', 'reasons', 'usage_age_min']);
   assert.deepStrictEqual(Object.keys(e.kpis).sort(), ['pending_decisions', 'usage']);
-  const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
-  assert.strictEqual(e.kpis.pending_decisions.total, open.length, 'the menu counter counts the open pending decisions of the demo');
+  const open = openVisible(m);
+  assert.ok(open.length < m.pending_decisions.pending_decisions.filter((p) => p.status === 'open').length, 'the demo has an open one of a hidden organization');
+  assert.strictEqual(e.kpis.pending_decisions.total, open.length, 'the menu counter counts the open pending decisions of the demo, without the hidden organization\'s (#52)');
   assert.ok(e.kpis.pending_decisions.by_severity.critical > 0, 'a critical one turns the counter strong');
   assert.deepStrictEqual([e.kpis.usage.window_5h_pct, e.kpis.usage.weekly_pct, e.generated_at], [37, 22, m.generated_at]);
   // The menu footer's version (#36): fixed and fictitious in the demo; the footer reads it from /api/state.
@@ -509,15 +519,15 @@ suite.test('Pendências (#32): the demo has open pending decisions to answer, wi
   assert.ok(js.includes('/api/pending-decisions/'), 'the build calls the answer route');
 });
 
-suite.test('browser tab (#43): the title counts the open pending decisions of every organization and the favicon is a data: SVG with a dot in the menu counter\'s tone', async () => {
+suite.test('browser tab (#43): the title counts the open pending decisions of every organization but the hidden ones and the favicon is a data: SVG with a dot in the menu counter\'s tone', async () => {
   const href = (rel) => require('url').pathToFileURL(path.join(SOURCE, ...rel.split('/'))).href;
   const tab = await import(href('data/tab.js'));
   const dictionary = (await import(href('i18n/pt-BR.js'))).default;
   assert.strictEqual(dictionary.app.documentTitlePending, '({count}) {screen} · {panel}', 'the new key is in the pt-BR dictionary');
-  // The count is kpis.pending_decisions.total of /api/state (every organization, like the menu counter); a critical
-  // one turns the tone strong. The demo has a critical one open, so the strong dot shows there.
+  // The count is kpis.pending_decisions.total of /api/state (every organization but the hidden ones, #52, like the menu
+  // counter); a critical one turns the tone strong. The demo has a critical one open, so the strong dot shows there.
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
-  const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
+  const open = openVisible(m);
   assert.ok(open.some((p) => p.severity === 'critical'), 'the demo has a critical pending decision open');
   assert.deepStrictEqual(tab.openPending(m.state), { total: open.length, tone: 'strong' });
   const state = (pd) => ({ kpis: { pending_decisions: pd } });
@@ -649,11 +659,12 @@ suite.test('browser notification (#45): the bell\'s states, the notification\'s 
   assert.ok(/BellRing/.test(header) && /BellOff/.test(header), 'the bell icons');
   assert.ok(/bell &&/.test(header), 'no bell without the Notification API');
   assert.ok(/disabled=\{bell === 'demo'\}/.test(header), 'disabled in the demo');
-  // The demo has the open list on /api/state, with a critical one, by the generator (the server's function).
+  // The demo has the open list on /api/state, with a critical one, by the generator (the server's function); the hidden
+  // organization's open one is not there, so it never notifies (#52).
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const kp = m.state.kpis.pending_decisions;
-  const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
-  assert.deepStrictEqual(kp.open.map((p) => p.id), open.map((p) => p.id), 'every open pending decision of the demo, in the server\'s order');
+  const open = openVisible(m);
+  assert.deepStrictEqual(kp.open.map((p) => p.id), open.map((p) => p.id), 'every open pending decision of the demo but the hidden organization\'s, in the server\'s order');
   assert.deepStrictEqual(Object.keys(kp.open[0]), ['id', 'kind', 'severity', 'title', 'derived_from', 'opened_at', 'item', 'task']);
   assert.ok(kp.open.some((p) => p.severity === 'critical'));
   // Answering in the demo takes the pending decision out of the list too.
@@ -701,6 +712,7 @@ suite.test('the real server on a fake root (the demo in a real maestro.db + a ho
   assert.deepStrictEqual(counter, { total: kp.total + 1, by_severity: { ...kp.by_severity, critical: kp.by_severity.critical + 1 } });
   assert.strictEqual(stOpen.length, kp.total + 1, 'the open list (#45) has the hostile one too');
   assert.ok(stOpen[0].title.includes('onerror'), 'the hostile critical one arrives raw, first (the notification shows it as text)');
+  assert.ok(stOpen.every((x) => !mock.organizations.find((c) => c.id === x.item.project.organization.id).hidden), 'none of the hidden organization (#52)');
   // This root has no bruto.db: besides the projects in "Sem organização", the badge says the hook never wrote.
   assert.deepStrictEqual(st.health.reasons.map((r) => r.code).sort(), ['hook_never', 'projects_unassigned']);
 

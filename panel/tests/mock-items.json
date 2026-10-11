@@ -20,11 +20,11 @@
     },
     "kpis": {
       "pending_decisions": {
-        "total": 7,
+        "total": 6,
         "by_severity": {
           "critical": 1,
           "high": 3,
-          "normal": 3,
+          "normal": 2,
           "low": 0
         },
         "open": [
@@ -139,31 +139,6 @@
               "title": "Gerar o PDF no servidor",
               "state": "working"
             }
-          },
-          {
-            "id": 88,
-            "kind": "decision",
-            "severity": "normal",
-            "title": "Reserva recorrente entra nesta entrega?",
-            "derived_from": null,
-            "opened_at": "2026-10-09T09:10:00-03:00",
-            "item": {
-              "key": "intranet/12",
-              "number": 12,
-              "tracker_ref": "#12",
-              "title": "Reserva de salas de reunião",
-              "stage": "implementation",
-              "project": {
-                "id": "intranet",
-                "name": "Intranet Northwind",
-                "tracker": "github",
-                "organization": {
-                  "id": "northwind",
-                  "name": "Northwind"
-                }
-              }
-            },
-            "task": null
           },
           {
             "id": 93,
