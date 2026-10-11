@@ -37,6 +37,15 @@ function readSource(dir = SOURCE, base = SOURCE, acc = {}) {
 const source = readSource();
 const allSource = Object.values(source).join('\n');
 
+/**
+ * The open pending decisions the demo's /api/state counts: those of the mock file but the hidden organizations' (#52). The
+ * file keeps them all (the mock leaves the hidden ones out of its listings at read time).
+ */
+function openVisible(m) {
+  const hidden = new Set(m.organizations.filter((c) => c.hidden).map((c) => c.id));
+  return m.pending_decisions.pending_decisions.filter((p) => p.status === 'open' && !hidden.has(p.item.project.organization.id));
+}
+
 // XML namespace identifiers Preact uses in createElementNS: never downloaded.
 const NAMESPACES = /^http:\/\/www\.w3\.org\/(2000\/svg|1999\/xhtml|1998\/Math\/MathML|1999\/xlink|XML\/1998\/namespace)$/;
 
@@ -79,9 +88,11 @@ suite.test('the embedded script compiles and only uses the contract routes', () 
     "api(withQuery('/api/pending-decisions', params))", "api(withQuery('/api/items', filters))",
     "api(`/api/pending-decisions/${encodeURIComponent(id)}/answer`, { method: 'POST', body: { option, text } })",
     'api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}`)', "api(withQuery('/api/log', params))", 'api(`/api/log/${encodeURIComponent(id)}`)',
-    "api('/api/organizations')", "api(withQuery('/api/projects', filters))",
+    "api(withQuery('/api/organizations', filters))", "api(withQuery('/api/projects', filters))",
     "api(`/api/organizations/${encodeURIComponent(id)}/rename`, { method: 'POST', body: { name } })",
     "api(`/api/organizations/${encodeURIComponent(id)}/remove`, { method: 'POST' })",
+    "api(`/api/organizations/${encodeURIComponent(id)}/hide`, { method: 'POST' })",
+    "api(`/api/organizations/${encodeURIComponent(id)}/unhide`, { method: 'POST' })",
     "api(`/api/projects/${encodeURIComponent(project)}/organization`, { method: 'POST', body: { organization } })",
     "api(withQuery('/api/usage', filters))", "api(withQuery('/api/agents', filters))", "api(withQuery('/api/overview', filters))"]) {
     assert.ok(api.includes(route), `the page calls ${route}`);
@@ -109,8 +120,9 @@ suite.test('the demo is only the new model: mock-items.json answers /api/state t
   assert.deepStrictEqual(Object.keys(e).sort(), ['collector', 'generated_at', 'health', 'kpis', 'version', 'warnings']);
   assert.deepStrictEqual(Object.keys(e.health).sort(), ['last_event_at', 'last_raw_at', 'level', 'reasons', 'usage_age_min']);
   assert.deepStrictEqual(Object.keys(e.kpis).sort(), ['pending_decisions', 'usage']);
-  const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
-  assert.strictEqual(e.kpis.pending_decisions.total, open.length, 'the menu counter counts the open pending decisions of the demo');
+  const open = openVisible(m);
+  assert.ok(open.length < m.pending_decisions.pending_decisions.filter((p) => p.status === 'open').length, 'the demo has an open one of a hidden organization');
+  assert.strictEqual(e.kpis.pending_decisions.total, open.length, 'the menu counter counts the open pending decisions of the demo, without the hidden organization\'s (#52)');
   assert.ok(e.kpis.pending_decisions.by_severity.critical > 0, 'a critical one turns the counter strong');
   assert.deepStrictEqual([e.kpis.usage.window_5h_pct, e.kpis.usage.weekly_pct, e.generated_at], [37, 22, m.generated_at]);
   // The menu footer's version (#36): fixed and fictitious in the demo; the footer reads it from /api/state.
@@ -186,6 +198,41 @@ suite.test('the address picks the screen: a malformed address (bad percent-encod
   for (const bad of ['#items/%E0%A4%A', '#log/%', '#%ZZ']) assert.deepStrictEqual(parseHash(bad), { id: 'overview', sub: '' }, bad);
 });
 
+suite.test('Configurações (#48): #organizations, #settings and #settings/organizations open Configurações → Organizações; the arrows skip it', async () => {
+  const { SCREENS, ARROW_SCREENS, parseHash, screenAt } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
+  const organizations = { id: 'settings', sub: 'organizations' };
+  for (const h of ['#organizations', '#settings', '#settings/organizations', '#settings/nao-existe', '#organizations/x']) {
+    assert.deepStrictEqual(parseHash(h), organizations, h);
+  }
+  // goTo goes through the same rule: the default sub-tab, and an unknown screen opens the Overview.
+  assert.deepStrictEqual(screenAt('settings', ''), organizations);
+  assert.deepStrictEqual(screenAt('items', 'widgets/12'), { id: 'items', sub: 'widgets/12' });
+  assert.deepStrictEqual(screenAt('nao-existe', 'x'), { id: 'overview', sub: '' });
+  assert.ok(!SCREENS.some((s) => s.id === 'organizations'), 'Organizations is no longer a screen of its own');
+  assert.deepStrictEqual(ARROW_SCREENS, ['overview', 'items', 'pending', 'log', 'agents', 'usage'], 'the arrows only go through the work screens');
+  // The menu: the arrows follow ARROW_SCREENS; the gear on the footer opens Configurações, named and marked when it is open.
+  const sidebar = source['app/Sidebar.jsx'];
+  assert.ok(/ARROW_SCREENS/.test(sidebar) && !/GROUPS\.flatMap/.test(sidebar), 'the arrows read ARROW_SCREENS');
+  const foot = sidebar.slice(sidebar.indexOf('class="sidebar-foot"'));
+  assert.ok(/<Icon of=\{Gear\}/.test(foot) && /onClick=\{\(\) => goTo\('settings'\)\}/.test(foot), 'the gear is on the footer');
+  assert.ok(/aria-label=\{t\('nav\.settings'\)\}/.test(foot) && /aria-current=\{screen === 'settings' \? 'page' : undefined\}/.test(foot), 'named and marked');
+  // The shell resolves every address and goTo with screenAt, and writes the canonical address back (#organizations → #settings/organizations).
+  const app = source['app/App.jsx'];
+  assert.ok(/settings: Settings/.test(app) && !/organizations: Organizations/.test(app), 'Settings in SCREEN_COMPONENTS');
+  assert.ok(/screenAt\(id, sub\)/.test(app), 'goTo goes through screenAt');
+  // The screen: one tab per sub-tab, from the dictionary; Organizations is the screen of before.
+  const settings = source['screens/Settings.jsx'];
+  assert.ok(/role="tablist"/.test(settings) && /role="tab"/.test(settings) && /t\(`settings\.tabs\.\$\{/.test(settings), 'the sub-tabs are tabs');
+  assert.ok(/organizations: Organizations/.test(settings), 'Organizations is a sub-tab');
+  // The dictionary through i18n/index.js, which pt-BR.js imports back (importing pt-BR.js first breaks the cycle).
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  assert.deepStrictEqual([t('nav.settings'), t('screens.settings'), t('settings.tabs.organizations')], ['Configurações', 'Configurações', 'Organizações']);
+  // No text sends the owner to the Organizations screen of before: it is Configurações → Organizações now.
+  assert.ok(!/tela Organizações/.test(source['i18n/pt-BR.js']), 'no "tela Organizações" in the dictionary');
+  assert.ok(/Configurações → Organizações/.test(t('organizations.noTarget')), t('organizations.noTarget'));
+  assert.ok(/Configurações → Organizações/.test(t('codes.organization_not_found', { organization: 'x' })));
+});
+
 suite.test('the Items filters offer the server\'s stages and trackers (the page keeps its own copy of the lists)', async () => {
   const { STAGES, TRACKERS } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'domain.js')).href);
   // Parity between the page's copy and the server's lists (a contract constant, not a database read): same exception
@@ -242,10 +289,9 @@ suite.test('organizations (#6): the demo has two organizations and "Pessoal" wit
   assert.ok(js.includes('painel-maestro.organization'));
 });
 
-suite.test('Organizations screen (#21): in the menu, sharing the project line with "Sem organização"; the mock refuses "Sem organização" as a destination, renames and removes only an empty organization', async () => {
-  const { SCREENS, parseHash } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
-  assert.ok(SCREENS.some((s) => s.id === 'organizations' && s.group === 'workspace'));
-  assert.deepStrictEqual(parseHash('#organizations'), { id: 'organizations', sub: '' });
+suite.test('Organizations screen (#21): a sub-tab of Configurações (#48), sharing the project line with "Sem organização"; the mock refuses "Sem organização" as a destination, renames and removes only an empty organization', async () => {
+  const { SCREENS } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
+  assert.ok(SCREENS.some((s) => s.id === 'settings' && s.subs[0] === 'organizations'));
   for (const f of ['screens/Organizations.jsx', 'screens/UnassignedProjects.jsx']) assert.ok(/import \{ ProjectRow \} from '\.\/ProjectRow\.jsx'/.test(source[f]), f);
   // Exception to the seam rule (panel/README.md, Testes): the mock lives only in the page (?mock=1), with no server or
   // process to drive, so its refusal of "Sem organização" is checked by calling mockApi() with the page's address and its
@@ -312,6 +358,97 @@ suite.test('Organizations screen (#21): in the menu, sharing the project line wi
   } finally {
     globalThis.location = saved.location;
     globalThis.fetch = saved.fetch;
+  }
+});
+
+suite.test('hidden organization (#50): the demo has a hidden organization with a project, items and an open pending decision; the mock answers ?hidden=include, hide and unhide like the server', async () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  // The generator writes the whole register (?hidden=include): every organization carries hidden and open_pending_count.
+  for (const c of m.organizations) assert.ok(typeof c.hidden === 'boolean' && Number.isInteger(c.open_pending_count), c.id);
+  const hidden = m.organizations.find((c) => c.hidden && !c.unassigned);
+  assert.ok(hidden, 'a hidden organization in the demo');
+  assert.ok(m.projects.some((p) => p.organization.id === hidden.id), 'with a project');
+  assert.ok(m.items.filter((i) => i.project.organization.id === hidden.id).length >= 2, 'with items');
+  const openOfHidden = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open' && p.item.project.organization.id === hidden.id);
+  assert.ok(openOfHidden.length >= 1 && hidden.open_pending_count === openOfHidden.length, 'with an open pending decision, counted on its card');
+  // Exception to the seam rule, as above: the mock lives only in the page (?mock=1).
+  const saved = { location: globalThis.location, fetch: globalThis.fetch };
+  globalThis.location = new URL('http://127.0.0.1:4795/?mock=1');
+  globalThis.fetch = async () => ({ ok: true, json: async () => JSON.parse(JSON.stringify(m)) });
+  try {
+    const { mockApi } = await import(`${require('url').pathToFileURL(path.join(SOURCE, 'data', 'mock.js')).href}?hidden`);
+    const ids = async (route) => (await mockApi(route, 'GET')).organizations.map((c) => c.id);
+    const projectIds = async (route) => (await mockApi(route, 'GET')).projects.map((p) => p.id);
+    // Without ?hidden=include the hidden ones (and their projects) stay out, as on the server; with it, everything comes.
+    assert.deepStrictEqual(await ids('/api/organizations'), m.organizations.filter((c) => !c.hidden).map((c) => c.id));
+    assert.deepStrictEqual(await ids('/api/organizations?hidden=include'), m.organizations.map((c) => c.id));
+    assert.deepStrictEqual(await projectIds('/api/projects'), m.projects.filter((p) => p.organization.id !== hidden.id).map((p) => p.id));
+    assert.deepStrictEqual(await projectIds('/api/projects?hidden=include'), m.projects.map((p) => p.id));
+    assert.deepStrictEqual(await projectIds(`/api/projects?organization=${hidden.id}`), [], 'a hidden organization\'s projects only with ?hidden=include');
+    for (const route of ['/api/organizations?hidden=all', '/api/projects?hidden=1']) {
+      await assert.rejects(mockApi(route, 'GET'), (e) => e.status === 400 && e.error.code === 'invalid_filter' && e.error.param === 'hidden', route);
+    }
+    // The demo's listings leave the hidden organization out, as the server does since #51; its item page still answers by the
+    // key, and one of its events by the id.
+    const mentions = (answer, id) => JSON.stringify(answer).includes(`"id":"${id}"`);
+    const listings = ['/api/items', '/api/pending-decisions', '/api/log?per_page=500', '/api/usage', '/api/agents', '/api/overview'];
+    for (const route of listings) assert.ok(!mentions(await mockApi(route, 'GET'), hidden.id), `${route} without the hidden organization`);
+    const hiddenItem = m.items.find((i) => i.project.organization.id === hidden.id);
+    assert.strictEqual((await mockApi(`/api/items/${hiddenItem.project.id}/${hiddenItem.number}`, 'GET')).item.key, hiddenItem.key);
+    const hiddenEvent = m.details[hiddenItem.key].timeline[0];
+    assert.strictEqual((await mockApi(`/api/log/${hiddenEvent.id}`, 'GET')).event.id, hiddenEvent.id);
+    const listed = (await mockApi('/api/organizations?hidden=include', 'GET')).organizations.find((c) => c.id === hidden.id);
+    assert.deepStrictEqual([listed.hidden, listed.open_pending_count], [true, openOfHidden.length]);
+    // Hide and show (POST .../hide and .../unhide) answer { organization } as the list does; repeating is not an error;
+    // an unknown organization is 404; "Sem organização" may be hidden too.
+    const post = (id, what) => mockApi(`/api/organizations/${id}/${what}`, 'POST');
+    const visible = m.organizations.find((c) => !c.hidden && !c.unassigned);
+    const h = await post(visible.id, 'hide');
+    assert.deepStrictEqual([h.organization.id, h.organization.hidden, h.organization.project_count], [visible.id, true, visible.project_count]);
+    assert.ok(!(await ids('/api/organizations')).includes(visible.id), 'the hidden one leaves the list');
+    for (const route of listings.slice(0, 5)) assert.ok(!mentions(await mockApi(route, 'GET'), visible.id), `${route} without the organization just hidden`);
+    assert.strictEqual((await post(visible.id, 'hide')).organization.hidden, true, 'hiding again is not an error');
+    assert.strictEqual((await post(visible.id, 'unhide')).organization.hidden, false);
+    assert.ok((await ids('/api/organizations')).includes(visible.id), 'shown again');
+    assert.ok(mentions(await mockApi('/api/items', 'GET'), visible.id), 'its items back in the list');
+    await post(hidden.id, 'unhide');
+    for (const route of listings.slice(0, 5)) assert.ok(mentions(await mockApi(route, 'GET'), hidden.id), `${route} with the organization shown again`);
+    await post(hidden.id, 'hide');
+    await assert.rejects(post('nobody', 'hide'), (e) => e.status === 404 && e.error.code === 'organization_not_found');
+    await assert.rejects(mockApi(`/api/organizations/${visible.id}/hide`, 'GET'), (e) => e.status === 405);
+    assert.strictEqual((await post('unassigned', 'hide')).organization.hidden, true);
+    assert.ok(!(await ids('/api/organizations')).includes('unassigned'));
+    assert.ok(!(await projectIds('/api/projects')).some((id) => m.projects.find((p) => p.id === id).unassigned), 'its projects leave the list too');
+    await post('unassigned', 'unhide');
+    // A move in Configurações may take a project to a hidden organization; its open pending decisions go along.
+    const p = m.projects.find((x) => x.organization.id === visible.id);
+    const moved = await mockApi(`/api/projects/${p.id}/organization`, 'POST', { organization: hidden.id });
+    assert.strictEqual(moved.project.organization.id, hidden.id);
+    const openOfProject = m.pending_decisions.pending_decisions.filter((x) => x.status === 'open' && x.item.project.id === p.id).length;
+    const after = (await mockApi('/api/organizations?hidden=include', 'GET')).organizations.find((c) => c.id === hidden.id);
+    assert.deepStrictEqual([after.project_count, after.open_pending_count], [hidden.project_count + 1, openOfHidden.length + openOfProject]);
+  } finally {
+    globalThis.location = saved.location;
+    globalThis.fetch = saved.fetch;
+  }
+});
+
+suite.test('hidden organization (#50): Configurações → Organizações reads the whole register and hides or shows from the card, without a modal', async () => {
+  const screen = source['screens/Organizations.jsx'];
+  assert.ok(/const (\w+) = \{ hidden: 'include' \};[\s\S]*readOrganizations\(\1\), readProjects\(\1\)/.test(screen), 'the sub-tab reads with ?hidden=include');
+  assert.ok(/readOrganizations\(\)/.test(source['data/organizations.js']), 'the selector reads without the hidden ones');
+  assert.ok(/!o\.unassigned \|\| o\.hidden \|\| projectsOf\(o\)\.length > 0/.test(screen), '"Sem organização" shows when it has projects or is hidden');
+  const hideButton = /function HideButton[\s\S]*?\r?\n\}\r?\n/.exec(screen);
+  assert.ok(hideButton && /call: hideOrganization/.test(hideButton[0]) && /call: unhideOrganization/.test(hideButton[0]) && !/Modal/.test(hideButton[0]),
+    'Ocultar / Mostrar call the API from the card, without a modal');
+  assert.ok(/actions=\{\(\s*<>\s*<HideButton\b/.test(screen), 'every card has the button (outside any condition), "Sem organização" too');
+  // The texts come from the pt-BR dictionary.
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  assert.deepStrictEqual([t('organizations.hide.button'), t('organizations.hide.showButton'), t('organizations.hidden')], ['Ocultar', 'Mostrar', 'Oculta']);
+  assert.match(t('organizations.screenNote'), /ocultas/);
+  assert.strictEqual(t('organizations.openPending', { count: 2 }), '2 pendências abertas');
+  for (const key of ['hide.label', 'hide.showLabel', 'hide.hidden', 'hide.shown', 'hide.failed', 'hiddenOption']) {
+    assert.ok(t(`organizations.${key}`, { name: 'X', message: 'm' }) !== `organizations.${key}`, `organizations.${key} in pt-BR`);
   }
 });
 
@@ -386,15 +523,15 @@ suite.test('Pendências (#32): the demo has open pending decisions to answer, wi
   assert.ok(js.includes('/api/pending-decisions/'), 'the build calls the answer route');
 });
 
-suite.test('browser tab (#43): the title counts the open pending decisions of every organization and the favicon is a data: SVG with a dot in the menu counter\'s tone', async () => {
+suite.test('browser tab (#43): the title counts the open pending decisions of every organization but the hidden ones and the favicon is a data: SVG with a dot in the menu counter\'s tone', async () => {
   const href = (rel) => require('url').pathToFileURL(path.join(SOURCE, ...rel.split('/'))).href;
   const tab = await import(href('data/tab.js'));
   const dictionary = (await import(href('i18n/pt-BR.js'))).default;
   assert.strictEqual(dictionary.app.documentTitlePending, '({count}) {screen} · {panel}', 'the new key is in the pt-BR dictionary');
-  // The count is kpis.pending_decisions.total of /api/state (every organization, like the menu counter); a critical
-  // one turns the tone strong. The demo has a critical one open, so the strong dot shows there.
+  // The count is kpis.pending_decisions.total of /api/state (every organization but the hidden ones, #52, like the menu
+  // counter); a critical one turns the tone strong. The demo has a critical one open, so the strong dot shows there.
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
-  const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
+  const open = openVisible(m);
   assert.ok(open.some((p) => p.severity === 'critical'), 'the demo has a critical pending decision open');
   assert.deepStrictEqual(tab.openPending(m.state), { total: open.length, tone: 'strong' });
   const state = (pd) => ({ kpis: { pending_decisions: pd } });
@@ -526,11 +663,12 @@ suite.test('browser notification (#45): the bell\'s states, the notification\'s 
   assert.ok(/BellRing/.test(header) && /BellOff/.test(header), 'the bell icons');
   assert.ok(/bell &&/.test(header), 'no bell without the Notification API');
   assert.ok(/disabled=\{bell === 'demo'\}/.test(header), 'disabled in the demo');
-  // The demo has the open list on /api/state, with a critical one, by the generator (the server's function).
+  // The demo has the open list on /api/state, with a critical one, by the generator (the server's function); the hidden
+  // organization's open one is not there, so it never notifies (#52).
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const kp = m.state.kpis.pending_decisions;
-  const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
-  assert.deepStrictEqual(kp.open.map((p) => p.id), open.map((p) => p.id), 'every open pending decision of the demo, in the server\'s order');
+  const open = openVisible(m);
+  assert.deepStrictEqual(kp.open.map((p) => p.id), open.map((p) => p.id), 'every open pending decision of the demo but the hidden organization\'s, in the server\'s order');
   assert.deepStrictEqual(Object.keys(kp.open[0]), ['id', 'kind', 'severity', 'title', 'derived_from', 'opened_at', 'item', 'task']);
   assert.ok(kp.open.some((p) => p.severity === 'critical'));
   // Answering in the demo takes the pending decision out of the list too.
@@ -578,18 +716,33 @@ suite.test('the real server on a fake root (the demo in a real maestro.db + a ho
   assert.deepStrictEqual(counter, { total: kp.total + 1, by_severity: { ...kp.by_severity, critical: kp.by_severity.critical + 1 } });
   assert.strictEqual(stOpen.length, kp.total + 1, 'the open list (#45) has the hostile one too');
   assert.ok(stOpen[0].title.includes('onerror'), 'the hostile critical one arrives raw, first (the notification shows it as text)');
+  assert.ok(stOpen.every((x) => !mock.organizations.find((c) => c.id === x.item.project.organization.id).hidden), 'none of the hidden organization (#52)');
   // This root has no bruto.db: besides the projects in "Sem organização", the badge says the hook never wrote.
   assert.deepStrictEqual(st.health.reasons.map((r) => r.code).sort(), ['hook_never', 'projects_unassigned']);
 
-  // The lists the screens read: the demo's answers, plus the hostile item.
+  // The lists the screens read: the demo's answers, plus the hostile item. The file has the hidden organization's items and
+  // pending decisions too (the mock leaves them out); the server leaves them out of its lists (#51).
+  const hiddenIds = new Set(mock.organizations.filter((c) => c.hidden).map((c) => c.id));
+  const visible = (list, project) => list.filter((x) => !hiddenIds.has(project(x).organization.id));
   const items = (await get('/api/items')).items;
-  assert.strictEqual(items.length, mock.items.length + 1);
-  for (const it of mock.items) assert.ok(items.some((x) => x.key === it.key && x.stage === it.stage), `item ${it.key}`);
+  assert.strictEqual(items.length, visible(mock.items, (x) => x.project).length + 1);
+  for (const it of visible(mock.items, (x) => x.project)) assert.ok(items.some((x) => x.key === it.key && x.stage === it.stage), `item ${it.key}`);
+  assert.ok(!items.some((x) => hiddenIds.has(x.project.organization.id)), 'no item of the hidden organization');
+  const hiddenItem = mock.items.find((x) => hiddenIds.has(x.project.organization.id));
+  assert.strictEqual((await get(`/api/items/${hiddenItem.project.id}/${hiddenItem.number}`)).item.key, hiddenItem.key, 'its page answers by the key');
   const ov = await get('/api/overview');
   assert.strictEqual(ov.active.total, mock.overview[''].active.total + 1);
-  assert.deepStrictEqual((await get('/api/organizations')).organizations.map((c) => c.id), mock.organizations.map((c) => c.id));
+  // The register: the mock has every organization (?hidden=include); the plain list leaves the hidden one out (#50).
+  const register = (await get('/api/organizations?hidden=include')).organizations;
+  // The hostile item (portal, of Contoso) adds one open pending decision there.
+  const hostileOrganization = mock.projects.find((x) => x.id === 'portal').organization.id;
+  assert.deepStrictEqual(register.map((c) => [c.id, c.hidden, c.project_count, c.open_pending_count]),
+    mock.organizations.map((c) => [c.id, c.hidden, c.project_count, c.open_pending_count + (c.id === hostileOrganization ? 1 : 0)]));
+  assert.ok(register.some((c) => c.hidden && c.open_pending_count > 0), 'a hidden organization with an open pending decision');
+  assert.deepStrictEqual((await get('/api/organizations')).organizations.map((c) => c.id), mock.organizations.filter((c) => !c.hidden).map((c) => c.id));
+  assert.deepStrictEqual((await get('/api/projects?hidden=include')).projects.map((x) => x.id), mock.projects.map((x) => x.id));
   const pd = (await get('/api/pending-decisions')).pending_decisions;
-  assert.strictEqual(pd.length, mock.pending_decisions.pending_decisions.length + 1);
+  assert.strictEqual(pd.length, visible(mock.pending_decisions.pending_decisions, (x) => x.item.project).length + 1);
   assert.strictEqual(pd[0].severity, 'critical', 'open ones first, by severity');
 
   // The hostile texts arrive raw (the page shows them as text) and a javascript: link never becomes a link.

@@ -9,12 +9,12 @@
  *   flowDir(env)                MAESTRO_DIR, or ~/.painel-maestro (the new model's default)
  *
  * Tables (schema version in PRAGMA user_version; a database newer than SCHEMA_VERSION is never opened: SchemaTooNew, #28):
- *   organizations(id, name, created_at)
+ *   organizations(id, name, created_at, hidden 0|1)   hidden (#49): out of the panel's listings, its work going on as usual
  *   projects(id, name, organization_id, tracker, stages JSON, done_state, maestri_workspace, created_at)
  *   project_repos(remote, project_id)            normalized remote URL → project (a project may have many repos)
  *   events(id, at, type, project_id, item_number, task_number, agent_role, agent_name, source, payload JSON)
  * Organizations and projects are the owner's register (flow org / flow project, bin/flow-admin.js; the panel creates,
- * renames and removes an organization and moves a project to another organization): they may change, unlike the events. Its rules live here, once: a write that
+ * renames, removes, hides and shows an organization and moves a project to another organization): they may change, unlike the events. Its rules live here, once: a write that
  * breaks one throws RegisterError with a code ({ code, ...params }), which the CLI turns into a message (exit 2) and
  * the API into an HTTP answer; neither repeats the rule.
  * The events table is append-only (triggers refuse UPDATE and DELETE) and is the only source of the state of
@@ -35,7 +35,7 @@ const { t } = require('./i18n');
 
 const DB_FILE = 'maestro.db';
 const BUSY_TIMEOUT_MS = 15000;
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const UNASSIGNED_ORGANIZATION = 'unassigned';
 // The name "Sem organização" is registered with (the pt-BR dictionary): reserved for it, even before it exists (P-18, #20).
 const UNASSIGNED_NAME = t('organizations.unassigned');
@@ -117,6 +117,8 @@ const MIGRATIONS = [
     `);
     db.prepare('UPDATE organizations SET name = ? WHERE id = ?').run(UNASSIGNED_NAME, UNASSIGNED_ORGANIZATION);
   },
+  // v3 (#49): an organization may be hidden; every organization of an older database stays visible.
+  (db) => db.exec('ALTER TABLE organizations ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0'),
 ];
 
 /** A rule of the register broken by a write: error is { code, ...params } (ADR 0004), translated by the CLI and the API. */
@@ -235,6 +237,8 @@ function migrate(db) {
   });
 }
 
+const organizationRow = (o) => ({ id: o.id, name: o.name, hidden: o.hidden === 1, created_at: o.created_at });
+
 function projectRow(row) {
   if (!row) return null;
   let stages = [];
@@ -265,6 +269,11 @@ function logWhere(f, skip) {
     params.push(...values);
   };
   if (f.organizations && skip !== 'organization') many('p.organization_id', f.organizations);
+  // Left out of the page and of every facet, whatever the other filters (the panel's hidden organizations, #51).
+  if (f.excludeOrganizations && f.excludeOrganizations.length) {
+    where.push(`p.organization_id NOT IN (${f.excludeOrganizations.map(() => '?').join(', ')})`);
+    params.push(...f.excludeOrganizations);
+  }
   if (f.projects && skip !== 'project') many('e.project_id', f.projects);
   if (f.types && skip !== 'type') many('e.type', f.types);
   if (f.item) {
@@ -379,10 +388,11 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
 
     // ---- organizations and projects (#6) ----
     organization(id) {
-      return db.prepare('SELECT id, name, created_at FROM organizations WHERE id = ?').get(id) || null;
+      const o = db.prepare('SELECT id, name, hidden, created_at FROM organizations WHERE id = ?').get(id);
+      return o ? organizationRow(o) : null;
     },
     organizations() {
-      return db.prepare('SELECT id, name, created_at FROM organizations ORDER BY id').all().map((o) => ({ id: o.id, name: o.name, created_at: o.created_at }));
+      return db.prepare('SELECT id, name, hidden, created_at FROM organizations ORDER BY id').all().map(organizationRow);
     },
     /**
      * The rule of an organization's name (#22; renaming reuses it with exceptId, the organization being renamed): required,
@@ -440,6 +450,20 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
       if (n > 0) throw new RegisterError({ code: 'organization_not_empty', organization: id, name: o.name, project_count: Number(n) });
       db.prepare('DELETE FROM organizations WHERE id = ?').run(id);
       return o;
+    },
+    /**
+     * Hides (hidden true) or shows an organization (#49) and returns it, with changed: false when it already was so (repeating
+     * is not an error). The only rule is the organization existing (organization_not_found): any one may be hidden, "Sem organização"
+     * too, registered with its name when no repository landed there yet (at: its creation time), so one that lands there later
+     * comes in hidden. Its reservation for renaming, removing and moving still holds.
+     */
+    setOrganizationHidden(id, hidden, at) {
+      if (id === UNASSIGNED_ORGANIZATION) store.ensureOrganization(UNASSIGNED_ORGANIZATION, UNASSIGNED_NAME, at);
+      const before = store.organization(id);
+      if (!before) throw new RegisterError({ code: 'organization_not_found', organization: id });
+      if (before.hidden === hidden) return { ...before, changed: false };
+      db.prepare('UPDATE organizations SET hidden = ? WHERE id = ?').run(hidden ? 1 : 0, id);
+      return { ...store.organization(id), changed: true };
     },
     /** Normalized remotes of a project, in alphabetical order. */
     projectRepos(projectId) {
@@ -536,7 +560,7 @@ function openStore({ dir, create = true, readOnly = false, busyTimeoutMs = BUSY_
     },
     /**
      * Filtered page of events, newest first. f: { organizations, projects, types (lists), item: {project, number},
-     * since, until (ISO texts with the São Paulo offset; since inclusive, until exclusive) }.
+     * since, until (ISO texts with the São Paulo offset; since inclusive, until exclusive), excludeOrganizations (list) }.
      */
     logEvents(f, { limit = 50, offset = 0 } = {}) {
       const w = logWhere(f);

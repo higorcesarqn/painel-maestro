@@ -8,7 +8,7 @@ import { useContext } from 'preact/hooks';
 export const PanelContext = createContext(null);
 export const usePanel = () => useContext(PanelContext);
 
-export { GROUPS, SCREENS, OLD_SCREEN_IDS, parseHash } from './screens.js';
+export { GROUPS, WORK_GROUPS, SCREENS, ARROW_SCREENS, OLD_ADDRESSES, screenAt, parseHash } from './screens.js';
 
 /** Filters of the Log: period, project, item (<project>/<number>) and event type. The organization is the
  * selector at the top of the panel (organizationFilter, #6), joined to these filters when the Log is read. */

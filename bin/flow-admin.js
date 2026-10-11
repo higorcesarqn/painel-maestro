@@ -7,6 +7,7 @@
 //   flow org add <id> --name "<name>"
 //   flow org rename <id> --name "<name>"      (the id never changes, #23)
 //   flow org remove <id>                     (only an organization without projects, #24)
+//   flow org hide <id> / flow org unhide <id>  (out of the panel's listings and back, #49; repeating is not an error)
 //   flow project list [--org <id>]
 //   flow project add <id> --org <id> [--name "..."] [--tracker github|azure_devops] [--repo <url>]...
 //                    [--stages a,b,...] [--done-state "<state>"] [--workspace "<Maestri workspace>"]
@@ -33,12 +34,14 @@ const OPTIONS = {
   'org list': [],
   'org rename': ['name', 'json'],
   'org remove': ['json'],
+  'org hide': ['json'],
+  'org unhide': ['json'],
   'project list': ['org'],
   'project add': ['name', 'org', 'tracker', 'repo', 'stages', 'done-state', 'workspace', 'json'],
   'project edit': ['name', 'org', 'tracker', 'repo', 'remove-repo', 'stages', 'done-state', 'workspace', 'json'],
   'project move': ['json'],
 };
-const POSITIONAL = { 'org add': 1, 'org list': 0, 'org rename': 1, 'org remove': 1, 'project list': 0, 'project add': 1, 'project edit': 1, 'project move': 2 };
+const POSITIONAL = { 'org add': 1, 'org list': 0, 'org rename': 1, 'org remove': 1, 'org hide': 1, 'org unhide': 1, 'project list': 0, 'project add': 1, 'project edit': 1, 'project move': 2 };
 const REPEATABLE = ['repo', 'remove-repo'];
 
 const isAdminCommand = (argv) => argv[0] === 'org' || argv[0] === 'project';
@@ -120,7 +123,7 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
       if (organizationName === undefined || organizationName === null) throw fail('missingOrganizationName');
       return { ...cmd, id: organizationId, organizationName };
     }
-    if (name === 'org remove') return { ...cmd, id: id(pick(pos[0], json.id), 'organization') };
+    if (name === 'org remove' || name === 'org hide' || name === 'org unhide') return { ...cmd, id: id(pick(pos[0], json.id), 'organization') };
     if (name === 'project move') return { ...cmd, id: id(pick(pos[0], json.id), 'project'), organization: id(pick(pos[1], json.organization), 'organization') };
     const fields = {
       ...cmd,
@@ -139,7 +142,7 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
 
   // ---------- commands ----------
 
-  // key: unknownOrganization suggests registering it; organizationNotFound (a rename or a removal) only lists the organizations.
+  // key: unknownOrganization suggests registering it; organizationNotFound (an org subcommand: rename, remove, hide, unhide) only lists the organizations.
   const unknownOrganizationError = (store, organizationId, key = 'unknownOrganization') => fail(key, { organization: organizationId, known: store.organizations().map((x) => x.id).join(', ') || '-' });
   const unknownProjectError = (store, projectId) => fail('unknownProject', { project: projectId, known: store.projects().map((x) => x.id).join(', ') || '-' });
 
@@ -157,11 +160,11 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
 
   /**
    * A rule of the store broken (RegisterError) → the InvalidData of exit 2, with the message of the code. An unknown
-   * organization in a rename or a removal lists the organizations without suggesting to register it.
+   * organization in an org subcommand (rename, remove, hide, unhide) lists the organizations without suggesting to register it.
    */
   function registerFailure(store, e, cmd) {
     const x = e.error;
-    if (x.code === 'organization_not_found') return unknownOrganizationError(store, x.organization, cmd.name === 'org rename' || cmd.name === 'org remove' ? 'organizationNotFound' : undefined);
+    if (x.code === 'organization_not_found') return unknownOrganizationError(store, x.organization, cmd.name.startsWith('org ') ? 'organizationNotFound' : undefined);
     if (x.code === 'project_not_found') return unknownProjectError(store, x.project);
     return new InvalidData(`admin.codes.${x.code}`, x);
   }
@@ -198,6 +201,13 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
   function organizationRemove(store, cmd) {
     const o = store.removeOrganization(cmd.id);
     return [t('admin.done.organizationRemoved', { organization: o.id, name: o.name })];
+  }
+
+  function organizationHide(store, cmd, at) {
+    const hidden = cmd.name === 'org hide';
+    const o = store.setOrganizationHidden(cmd.id, hidden, at);
+    const key = hidden ? (o.changed ? 'organizationHidden' : 'organizationAlreadyHidden') : (o.changed ? 'organizationShown' : 'organizationAlreadyShown');
+    return [t(`admin.done.${key}`, { organization: o.id, name: o.name })];
   }
 
   function projectAdd(store, cmd, at, cwd) {
@@ -249,7 +259,7 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
     const organizations = store.organizations();
     if (!organizations.length) return [t('admin.done.noOrganizations')];
     const projects = store.projects();
-    return organizations.map((o) => t('admin.done.organizationLine', { id: o.id, name: o.name, count: projects.filter((p) => p.organization_id === o.id).length }));
+    return organizations.map((o) => t('admin.done.organizationLine', { id: o.id, name: o.name, count: projects.filter((p) => p.organization_id === o.id).length, hidden: o.hidden }));
   }
 
   function listProjects(store, cmd) {
@@ -272,6 +282,7 @@ function createAdmin({ InvalidData, parseArgs, readJson, pick }) {
         if (cmd.name === 'org add') return organizationAdd(store, cmd, at);
         if (cmd.name === 'org rename') return organizationRename(store, cmd);
         if (cmd.name === 'org remove') return organizationRemove(store, cmd);
+        if (cmd.name === 'org hide' || cmd.name === 'org unhide') return organizationHide(store, cmd, at);
         if (cmd.name === 'project add') return projectAdd(store, cmd, at, cwd);
         if (cmd.name === 'project edit') return projectEdit(store, cmd);
         return projectMove(store, cmd);

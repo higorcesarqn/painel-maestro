@@ -31,6 +31,28 @@ function createItemsSource(env) {
   };
 }
 
+// ---------- hidden organizations (#51) ----------
+// The one place that leaves the hidden organizations (#49) out of the panel's listings and aggregates. Every route that
+// lists or counts items, pending decisions, events, usage lines or agents reads through it, by default: a new screen is
+// born without them. Only the reading of one item by its key (and the routes of its page), the answer to a pending
+// decision and ?hidden=include (Configurações, api-projects.js) see them.
+
+/** Ids of the hidden organizations: a Set, empty when none is hidden. */
+function hiddenOrganizations(store) {
+  return new Set(store.organizations().filter((o) => o.hidden).map((o) => o.id));
+}
+
+/**
+ * store.projectedItems() without the items of a hidden organization (the same Map, shared, when none is hidden: never
+ * change it); withHidden: every item.
+ */
+function visibleItems(store, { withHidden = false } = {}) {
+  const items = store.projectedItems();
+  const hidden = withHidden ? new Set() : hiddenOrganizations(store);
+  if (!hidden.size) return items;
+  return new Map([...items].filter(([, it]) => !hidden.has(it.project.organization_id)));
+}
+
 /** The project as every answer of the API shows it: { id, name, tracker, organization: { id, name } }. */
 function projectInfo(p) {
   return { id: p.id, name: p.name, tracker: p.tracker, organization: { id: p.organization_id, name: p.organization_name } };
@@ -59,12 +81,15 @@ function timelineEntry(e) {
   return { id: e.id, at: e.at, type: e.type, task_number: e.task_number, agent: e.agent, source: e.source, payload: e.payload };
 }
 
-/** { items }: every item (or only the active / done ones: active = true | false), most recently updated first. */
-function listItems(source, { active = null } = {}) {
+/**
+ * { items }: every item (or only the active / done ones: active = true | false), most recently updated first; those of a
+ * hidden organization only with withHidden.
+ */
+function listItems(source, { active = null, withHidden = false } = {}) {
   const store = source.store();
   if (!store) return { items: [] };
   const items = [];
-  for (const { project, state } of store.projectedItems().values()) {
+  for (const { project, state } of visibleItems(store, { withHidden }).values()) {
     if (active === null || state.active === active) items.push(summary(project, state));
   }
   items.sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at) || a.key.localeCompare(b.key));
@@ -121,4 +146,4 @@ function parseItemPath(projectText, numberText) {
   return { project, number: Number(numberText) };
 }
 
-module.exports = { createItemsSource, listItems, itemDetail, parseItemPath, activeFilter, projectInfo };
+module.exports = { createItemsSource, listItems, itemDetail, parseItemPath, activeFilter, projectInfo, hiddenOrganizations, visibleItems };

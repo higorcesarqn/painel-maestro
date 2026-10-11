@@ -1,0 +1,15 @@
+/* Settings (#48): the sub-tabs on top, a line of tabs over a stripe, and the open sub-tab below, which keeps its own
+   layout (the Organizations screen scrolls its cards inside). */
+.screen-settings { grid-template-rows: auto minmax(0, 1fr); }
+.settings-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
+.settings-tab {
+  height: 36px; padding: 0 14px; border: 0; background: none; color: var(--muted); position: relative;
+  transition: color .12s;
+}
+.settings-tab:hover { color: var(--text); }
+.settings-tab[aria-selected="true"] { color: var(--text); }
+.settings-tab[aria-selected="true"]::after {
+  content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--blue);
+}
+.settings-panel { min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.settings-panel > .screen { min-height: 0; }

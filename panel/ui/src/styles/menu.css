@@ -4,3 +4,7 @@
 .nav-block.separated { margin-top: 14px; }
 .nav-block.separated::before { content: ''; display: block; height: 1px; background: var(--border); margin: 0 10px 14px; }
 .nav-group { font-size: 9.5px; color: var(--faint); padding: 0 12px 6px; }
+
+/* The gear of Settings (#48) on the menu's footer, next to "Painel local": blue while Settings is open. */
+.sidebar-foot-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.settings-button[aria-current="page"] { color: var(--blue-text); border-color: var(--blue); }

@@ -1,6 +1,7 @@
 // A project's line (#21), shared by the Organizations screen and the "unassigned" card of the Items screen: name,
 // repositories, tracker, items and "Mover para" (an organization + the Move button, POST /api/projects/<id>/organization).
-// The destinations leave out the project's own organization and "unassigned", which the store never accepts as one.
+// The destinations leave out the project's own organization and "unassigned", which the store never accepts as one. A hidden
+// organization is a destination only where the list has it (Settings, #50), marked as hidden.
 import { useState } from 'preact/hooks';
 import { moveProject } from '../data/api.js';
 import { obj, txt } from '../data/format.js';
@@ -19,7 +20,7 @@ export function ProjectRow({ project: p, organizations, onMoved }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const targets = moveTargets(p, organizations);
-  const options = [['', t('organizations.choose')], ...targets.map((c) => [c.id, txt(c.name)])];
+  const options = [['', t('organizations.choose')], ...targets.map((c) => [c.id, c.hidden ? t('organizations.hiddenOption', { name: txt(c.name) }) : txt(c.name)])];
   const move = async () => {
     if (!target) return;
     setBusy(true);

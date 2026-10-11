@@ -17,13 +17,15 @@
 //                                        entry is older than HOOK_STALE_MS. Only the work of agents (maestro, worker)
 //                                        expects the hook: the owner's own records may come from any terminal; and
 //                                        without active items nothing is expected (an old raw entry is no problem).
-//   projects_unassigned {count, projects} repositories that landed in "Sem organização" and wait for an organization (#6)
+//   projects_unassigned {count, projects} repositories that landed in "Sem organização" and wait for an organization (#6);
+//                                        none while "Sem organização" is hidden (#52): the popover never names its projects
 //   problems                             codes other parts of the server add (yellow), kept in the order given: the
 //                                        merge check's (merge-check.js, #11) and server_outdated (server-outdated.js, #38)
 // last_event_at is the agents' last record on an active item; last_raw_at, the hook's last entry.
 const path = require('path');
 
 const { UNASSIGNED_ORGANIZATION, SchemaTooNew } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
+const { hiddenOrganizations } = require(path.join(__dirname, 'api-items.js'));
 
 const MIN_MS = 60 * 1000;
 const HOOK_STALE_MS = 60 * MIN_MS;
@@ -66,7 +68,8 @@ function evaluateHealth({ items, raw, nowMs, problems = [], hookFailure = null }
   const flow = attempt(() => {
     const store = items.store();
     if (!store) return { event: null, unassigned: [] };
-    return { event: lastAgentEvent(store), unassigned: store.projects().filter((p) => p.organization_id === UNASSIGNED_ORGANIZATION).map((p) => p.id) };
+    const unassigned = hiddenOrganizations(store).has(UNASSIGNED_ORGANIZATION) ? [] : store.projects().filter((p) => p.organization_id === UNASSIGNED_ORGANIZATION).map((p) => p.id);
+    return { event: lastAgentEvent(store), unassigned };
   });
   if (flow.schemaTooNew) raise(2, flow.schemaTooNew);
   else if (flow.error) raise(2, { code: 'database_unreadable', file: 'maestro.db', detail: flow.error });

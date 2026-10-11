@@ -8,7 +8,8 @@ export {
   FileText, Layers, CircleDashed,
   MapPin, UserCheck, Undo2,
   Building, FolderInput, GitMerge, Plus, Trash2, Pencil, Send,
-  Bell, BellRing, BellOff,
+  Bell, BellRing, BellOff, Settings as Gear,
+  Eye, EyeOff,
 } from 'lucide-preact';
 
 /** <Icon of={Clock} /> draws the icon in the brand style (16 px, stroke 1.75). */

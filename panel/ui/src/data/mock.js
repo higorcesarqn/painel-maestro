@@ -1,12 +1,14 @@
 // Test mode (?mock=1): reads tests/mock-items.json (written by tests/generate-mock-items.js with the server's own code:
 // the projection, the APIs, the usage collector and the health) and imitates every route the page calls: /api/state
 // and POST /api/recalculate, the organizations and projects routes (#6, POST /api/organizations, POST /api/organizations/<id>/rename,
-// POST /api/organizations/<id>/remove and POST /api/projects/<id>/organization in memory),
+// POST /api/organizations/<id>/remove, POST /api/organizations/<id>/hide|unhide and POST /api/projects/<id>/organization in memory,
+// the hidden organizations only with ?hidden=include, #50),
 // /api/items, /api/items/<project>/<number> (and POST .../merged in memory), /api/pending-decisions (and POST
 // /api/pending-decisions/<id>/answer in memory, #32), /api/log,
 // /api/log/<id> (the raw commands are made up on the spot), /api/overview, /api/usage and /api/agents, answering in the
 // API shape (English fields and codes), as the real server does. Items, pending decisions, the Log, the Overview, usage
-// and agents take ?organization=<id> (the organization selector of the header) like the server.
+// and agents take ?organization=<id> (the organization selector of the header) like the server, and leave out the hidden
+// organizations of the moment (#50, as the server does since #51; the file has every one, and the demo hides and shows in memory).
 // Serve with "npm run demo" and open http://127.0.0.1:4795/?mock=1 (or use npm run dev in panel/ui).
 import { t } from '../i18n/index.js';
 import { LOCALE } from '../i18n/locale.js';
@@ -30,23 +32,28 @@ function loadMockItems() {
   return loadItems;
 }
 
+/** Ids of the hidden organizations of the moment (#50): their items, pending decisions, events, usage lines and agents stay out. */
+const hiddenOrganizations = (m) => new Set(arr(m.organizations).filter((c) => c.hidden).map((c) => c.id));
+
 /**
- * /api/pending-decisions from tests/mock-items.json (the unfiltered answer, already in the server's order), with the
- * server's filters (organization, project, severity, status: comma-separated lists) and counts (each facet without its own filter).
+ * /api/pending-decisions from tests/mock-items.json (the unfiltered answer, already in the server's order, with every
+ * organization), without the hidden organizations and with the server's filters (organization, project, severity, status:
+ * comma-separated lists) and counts (each facet without its own filter).
  */
 function mockPendingDecisions(m, sp) {
   const all = obj(m.pending_decisions) || {};
+  const hidden = hiddenOrganizations(m);
   const set = (n) => (sp.get(n) ? new Set(sp.get(n).split(',').map((v) => v.trim().toLowerCase()).filter(Boolean)) : null);
   const f = { organization: set('organization'), project: set('project'), severity: set('severity'), status: set('status') };
   const passes = (p, skip) => (!f.organization || f.organization.has(p.item.project.organization.id)) && (!f.project || f.project.has(p.item.project.id))
     && (skip === 'severity' || !f.severity || f.severity.has(p.severity)) && (skip === 'status' || !f.status || f.status.has(p.status));
-  const list = arr(all.pending_decisions);
+  const list = arr(all.pending_decisions).filter((p) => !hidden.has(p.item.project.organization.id));
   const counts = { status: { open: 0, resolved: 0, canceled: 0 }, severity: { critical: 0, high: 0, normal: 0, low: 0 } };
   for (const p of list) {
     if (passes(p, 'status')) counts.status[p.status]++;
     if (passes(p, 'severity')) counts.severity[p.severity]++;
   }
-  return { pending_decisions: list.filter((p) => passes(p)), counts, organizations: arr(all.organizations) };
+  return { pending_decisions: list.filter((p) => passes(p)), counts, organizations: arr(all.organizations).filter((c) => !hidden.has(c.id)) };
 }
 
 /**
@@ -79,7 +86,7 @@ function mockCreateOrganization(organizations, body, summary) {
   if (!RE_ID.test(id)) throw error('invalid_field', 400, { field: 'id', value: String(body.id ?? '').slice(0, 100) });
   const existing = organizations.find((c) => c.id === id);
   if (existing || id === UNASSIGNED) throw error('organization_exists', 409, { organization: id, name: existing ? existing.name : undefined });
-  const organization = { id, name: mockOrganizationName(organizations, body.name), unassigned: false };
+  const organization = { id, name: mockOrganizationName(organizations, body.name), unassigned: false, hidden: false };
   organizations.push(organization);
   sortOrganizations(organizations);
   return { organization: summary(organization) };
@@ -131,35 +138,64 @@ function mockRemoveOrganization(organizations, projects, id) {
 }
 
 /**
- * Organizations and projects (#6) from tests/mock-items.json: GET /api/organizations, POST /api/organizations (mockCreateOrganization),
- * POST /api/organizations/<id>/rename (mockRenameOrganization), POST /api/organizations/<id>/remove (mockRemoveOrganization),
- * GET /api/projects[?organization=] and POST /api/projects/<id>/organization, which moves the project only in this page's memory
- * and, like the store, refuses "unassigned" as a destination (400 organization_reserved, #21). null for any other path.
+ * POST /api/organizations/<id>/hide|unhide (#50): hides or shows the organization only in this page's memory, under the store's rule
+ * (setOrganizationHidden in bin/flow-store.js): an unknown organization is 404, "unassigned" may be hidden too and repeating is not
+ * an error.
+ */
+function mockSetOrganizationHidden(organizations, id, hidden, summary) {
+  const organization = organizations.find((c) => c.id === id);
+  if (!organization) throw error('organization_not_found', 404, { organization: id });
+  organization.hidden = hidden;
+  return { organization: summary(organization) };
+}
+
+/** ?hidden=include (true) or absent (false), as the server reads it (#49); any other value is 400 invalid_filter. */
+function includeHidden(sp) {
+  const v = sp.get('hidden');
+  if (v === null || v === '') return false;
+  if (v !== 'include') throw error('invalid_filter', 400, { param: 'hidden', value: v.slice(0, 100) });
+  return true;
+}
+
+/**
+ * Organizations and projects (#6) from tests/mock-items.json, the whole register (the generator reads it with ?hidden=include):
+ * GET /api/organizations, POST /api/organizations (mockCreateOrganization), POST /api/organizations/<id>/rename
+ * (mockRenameOrganization), POST /api/organizations/<id>/remove (mockRemoveOrganization), POST /api/organizations/<id>/hide|unhide
+ * (mockSetOrganizationHidden), GET /api/projects[?organization=] and POST /api/projects/<id>/organization, which moves the project only in
+ * this page's memory and, like the store, refuses "unassigned" as a destination (400 organization_reserved, #21), but takes a hidden
+ * one. Both lists leave the hidden organizations and their projects out unless asked with ?hidden=include (#50). Each organization
+ * counts its projects, their items and its open pending decisions from the mock's data, so they follow a move or an answer.
+ * null for any other path.
  */
 async function mockOrganizations(u, method, body) {
   const p = u.pathname;
   const move = /^\/api\/projects\/([^/]+)\/organization$/.exec(p);
-  const own = /^\/api\/organizations\/([^/]+)\/(rename|remove)$/.exec(p);
+  const own = /^\/api\/organizations\/([^/]+)\/(rename|remove|hide|unhide)$/.exec(p);
   if (p !== '/api/organizations' && p !== '/api/projects' && !move && !own) return null;
   const m = await loadMockItems();
   if (!Array.isArray(m.organizations)) m.organizations = [];
   const organizations = m.organizations;
   const projects = arr(m.projects);
+  const pending = arr(obj(m.pending_decisions) && m.pending_decisions.pending_decisions);
   const summary = (c) => {
     const own = projects.filter((x) => x.organization.id === c.id);
-    return { ...c, project_count: own.length, item_count: own.reduce((n, x) => n + (Number(x.item_count) || 0), 0) };
+    return {
+      ...c, hidden: !!c.hidden, project_count: own.length, item_count: own.reduce((n, x) => n + (Number(x.item_count) || 0), 0),
+      open_pending_count: pending.filter((x) => x.status === 'open' && x.item.project.organization.id === c.id).length,
+    };
   };
-  if (p === '/api/organizations') {
-    if (method === 'POST') return mockCreateOrganization(organizations, body, summary);
-    return { organizations: organizations.map(summary) };
-  }
-  if (p === '/api/projects') {
+  if (p === '/api/organizations' && method === 'POST') return mockCreateOrganization(organizations, body, summary);
+  if (p === '/api/organizations' || p === '/api/projects') {
+    const withHidden = includeHidden(u.searchParams);
+    const excluded = new Set(withHidden ? [] : organizations.filter((c) => c.hidden).map((c) => c.id));
+    if (p === '/api/organizations') return { organizations: organizations.filter((c) => !excluded.has(c.id)).map(summary) };
     const organization = u.searchParams.get('organization');
-    return { projects: projects.filter((x) => !organization || x.organization.id === organization) };
+    return { projects: projects.filter((x) => (!organization || x.organization.id === organization) && !excluded.has(x.organization.id)) };
   }
   if (method !== 'POST') throw error('method_not_allowed', 405, { method, allowed: ['POST'] });
   if (own && own[2] === 'rename') return mockRenameOrganization(m, organizations, decodeURIComponent(own[1]), body, summary);
-  if (own) return mockRemoveOrganization(organizations, projects, decodeURIComponent(own[1]));
+  if (own && own[2] === 'remove') return mockRemoveOrganization(organizations, projects, decodeURIComponent(own[1]));
+  if (own) return mockSetOrganizationHidden(organizations, decodeURIComponent(own[1]), own[2] === 'hide', summary);
   const id = decodeURIComponent(move[1]);
   const project = projects.find((x) => x.id === id);
   if (!project) throw error('project_not_found', 404, { project: id });
@@ -244,7 +280,9 @@ async function mockItems(u, method, body) {
   if (p === '/api/items') {
     const m = await loadMockItems();
     const [organization, project, stage, tracker] = ['organization', 'project', 'stage', 'tracker'].map((k) => sp.get(k));
-    return { items: arr(m.items).filter((it) => (!organization || it.project.organization.id === organization) && (!project || it.project.id === project)
+    const hidden = hiddenOrganizations(m);
+    return { items: arr(m.items).filter((it) => !hidden.has(it.project.organization.id)
+      && (!organization || it.project.organization.id === organization) && (!project || it.project.id === project)
       && (!stage || it.stage === stage) && (!tracker || it.tracker === tracker)) };
   }
   if (p === '/api/pending-decisions') return mockPendingDecisions(await loadMockItems(), sp);
@@ -265,10 +303,15 @@ async function mockItems(u, method, body) {
   return { item };
 }
 
-/** Events of the Log (new model) from the item timelines of tests/mock-items.json, newest first. */
-function logEvents(m) {
+/**
+ * Events of the Log (new model) from the item timelines of tests/mock-items.json, newest first; those of a hidden organization
+ * only with withHidden (one event still answers by its id, as on the server).
+ */
+function logEvents(m, { withHidden = false } = {}) {
   const out = [];
+  const hidden = withHidden ? new Set() : hiddenOrganizations(m);
   for (const it of Object.values(obj(m.details) || {})) {
+    if (hidden.has(it.project.organization.id)) continue;
     for (const e of arr(it.timeline)) {
       out.push({
         id: e.id, at: e.at, type: e.type, project: it.project, item_number: it.number, item_key: it.key, item_title: it.title,
@@ -312,8 +355,8 @@ function mockRaw(ev, start) {
 /** /api/log and /api/log/<id> like the server: filters, counts where each facet ignores its own filter, the raw link. */
 async function mockLog(p, sp) {
   if (p !== '/api/log' && !/^\/api\/log\/\d+$/.test(p)) return null;
-  const all = logEvents(await loadMockItems());
   const m = /^\/api\/log\/(\d+)$/.exec(p);
+  const all = logEvents(await loadMockItems(), { withHidden: !!m });
   if (m) {
     const id = Number(m[1]);
     const ev = all.find((e) => e.id === id);
@@ -384,8 +427,11 @@ async function mockUsage(p, sp) {
   if (p !== '/api/usage' && p !== '/api/agents') return null;
   const m = await loadMockItems();
   const set = (n) => (sp.get(n) ? new Set(sp.get(n).split(',').map((x) => x.trim()).filter(Boolean)) : null);
-  const og = set('organization'); const pj = set('project');
-  const passes = (x) => { const pr = obj(x.project) || {}; return (!og || (obj(pr.organization) && og.has(pr.organization.id))) && (!pj || pj.has(pr.id)); };
+  const og = set('organization'); const pj = set('project'); const hidden = hiddenOrganizations(m);
+  const passes = (x) => {
+    const pr = obj(x.project) || {}; const organization = obj(pr.organization) && pr.organization.id;
+    return !(organization && hidden.has(organization)) && (!og || (organization && og.has(organization))) && (!pj || pj.has(pr.id));
+  };
   if (p === '/api/agents') {
     const agents = arr(obj(m.agents) && m.agents.agents).filter(passes);
     return { agents, counts: { maestro: agents.filter((a) => a.role === 'maestro').length, worker: agents.filter((a) => a.role === 'worker').length } };

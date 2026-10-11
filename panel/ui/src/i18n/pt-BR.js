@@ -92,10 +92,16 @@ export default {
   },
 
   groups: { workspace: 'Workspace' },
-  // Name of each screen in the menu (and in the browser tab title).
-  nav: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso', organizations: 'Organizações' },
+  // Name of each screen in the menu (and in the browser tab title); settings is the gear on the menu's footer (#48).
+  nav: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso', settings: 'Configurações' },
   // Title of each screen in the header.
-  screens: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude', organizations: 'Organizações' },
+  screens: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude', settings: 'Configurações' },
+
+  // Configurações (#48): its sub-tabs, #settings/<sub>.
+  settings: {
+    tabsLabel: 'Seções de Configurações',
+    tabs: { organizations: 'Organizações' },
+  },
 
   sidebar: {
     brand: 'painel',
@@ -311,13 +317,19 @@ export default {
     moving: 'Movendo…',
     moved: 'Projeto {project} movido para {organization}.',
     moveFailed: 'Não consegui mover {project}: {message}',
-    noTarget: 'Nenhuma organização cadastrada para receber os projetos. Crie uma pelo botão "Nova organização" da tela Organizações (ou pelo CLI: node bin/flow.js org add <id> --name "<nome>").',
-    screenNote: 'Esta tela mostra todas as organizações, qualquer que seja a escolha do seletor do topo.',
+    noTarget: 'Nenhuma organização disponível para receber os projetos. Crie uma pelo botão "Nova organização" em Configurações → Organizações (ou pelo CLI: node bin/flow.js org add <id> --name "<nome>").',
+    screenNote: 'Esta tela mostra todas as organizações, as ocultas inclusive, qualquer que seja a escolha do seletor do topo.',
     none: 'Nenhuma organização cadastrada ainda. Crie a primeira pelo botão "Nova organização", acima.',
     noProjects: 'Nenhum projeto nesta organização.',
     readFailed: 'Não consegui ler as organizações: {message}',
     filtered: 'Mostrando só {organization}.',
     showAll: 'Ver todas',
+    // #50: a hidden organization's card in Configurações (it shows only there) and its option among a move's destinations.
+    hidden: 'Oculta',
+    hiddenTitle: 'Organização oculta: fica fora de todas as listagens do painel, menos desta tela.',
+    hiddenOption: '{name} (oculta)',
+    openPending: { one: '{count} pendência aberta', other: '{count} pendências abertas' },
+    openPendingTitle: 'As pendências de uma organização oculta não aparecem no painel: responda-as no terminal do maestro.',
     create: {
       button: 'Nova organização',
       title: 'Nova organização',
@@ -350,6 +362,17 @@ export default {
       saving: 'Renomeando…',
       failed: 'Não consegui renomear a organização: {message}',
       renamed: 'Organização {from} renomeada para {name}.',
+    },
+    // #50: hiding and showing an organization from its card, without a confirmation (undoing is one click); "Sem organização" too.
+    hide: {
+      button: 'Ocultar',
+      label: 'Ocultar a organização {name} das listagens do painel',
+      showButton: 'Mostrar',
+      showLabel: 'Mostrar de novo a organização {name} nas listagens do painel',
+      busy: 'Salvando…',
+      hidden: 'Organização {name} oculta.',
+      shown: 'Organização {name} visível de novo.',
+      failed: 'Não consegui mudar a organização {name}: {message}',
     },
     // #24: removing an organization without projects (OrganizationRemoveModal); "Sem organização" has no button.
     remove: {
@@ -825,7 +848,7 @@ export default {
         ? `Id inválido: "${c.value}". Use letras minúsculas sem acento, números e hífen, começando por letra ou número, até 80 caracteres.`
         : `Campo "${c.field}" inválido: "${c.value}".`),
     // The destination of a move, or the organization renamed (#23) or removed (#24): gone, or never registered.
-    organization_not_found: 'Organização não encontrada: {organization}. Ela pode ter sido excluída em outro lugar; a tela Organizações mostra o cadastro atual.',
+    organization_not_found: 'Organização não encontrada: {organization}. Ela pode ter sido excluída em outro lugar; Configurações → Organizações mostra o cadastro atual.',
     project_not_found: 'Projeto não encontrado: {project}.',
     // Moving a project to, removing (#24) or renaming (#23) "Sem organização".
     organization_reserved: '"Sem organização" é reservada aos repositórios sem cadastro: não é destino de mover, não se renomeia e não se exclui.',

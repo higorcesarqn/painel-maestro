@@ -20,6 +20,8 @@
 //     each facet counts with the other filters applied but not its own
 //   organizations: [{ id, name }]   every organization with a project (for the screen's filter)
 // }
+// The pending decisions of a hidden organization (#49), and the organization itself, are left out of all three (#51): its
+// owner answers them in the maestro's terminal, and the POST below still accepts them.
 // No sentences: an invalid filter is {code: 'invalid_filter', param, value, allowed} (ADR 0004).
 //
 // POST /api/pending-decisions/<id>/answer (#32), <id> as P-<n> or <n>, body { option: 'B' | null, text: '...' } (at least
@@ -37,7 +39,7 @@ const path = require('path');
 
 const { trackerRef, EVENT_TYPES, PENDING_DECISION_SEVERITIES, PENDING_DECISION_STATUSES, MAX_PENDING_DECISION } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
 const { SchemaTooNew } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
-const { projectInfo } = require(path.join(__dirname, 'api-items.js'));
+const { projectInfo, hiddenOrganizations, visibleItems } = require(path.join(__dirname, 'api-items.js'));
 
 const RE_ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const SOURCE = 'panel';
@@ -99,14 +101,14 @@ function pendingView(project, state, p) {
   return { ...rest, item: itemInfo(project, state), task: taskInfo(state, taskNumber) };
 }
 
-/** Every pending decision of every item, with its item and task. */
-function allPendingDecisions(store) {
-  const projects = new Map(store.projects().map((p) => [p.id, p]));
+/** Every pending decision of every item, with its item and task; those of a hidden organization only with withHidden (#51). */
+function allPendingDecisions(store, withHidden) {
+  const hidden = withHidden ? new Set() : hiddenOrganizations(store);
   const out = [];
-  for (const { project, state } of store.projectedItems().values()) {
+  for (const { project, state } of visibleItems(store, { withHidden }).values()) {
     for (const p of state.pending_decisions) out.push(pendingView(project, state, p));
   }
-  return { list: out, organizations: organizationsOf([...projects.values()]) };
+  return { list: out, organizations: organizationsOf(store.projects().filter((p) => !hidden.has(p.organization_id))) };
 }
 
 function organizationsOf(projects) {
@@ -115,8 +117,11 @@ function organizationsOf(projects) {
   return [...seen.values()].sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
 }
 
-/** GET /api/pending-decisions. source: the items source of api-items.js (lazily opened maestro.db). */
-function listPendingDecisions(source, query = new URLSearchParams()) {
+/**
+ * GET /api/pending-decisions. source: the items source of api-items.js (lazily opened maestro.db). The pending decisions of a
+ * hidden organization (#51), and the organization itself, are left out unless withHidden.
+ */
+function listPendingDecisions(source, query = new URLSearchParams(), { withHidden = false } = {}) {
   const filters = {
     organization: filterValues(query, 'organization'),
     project: filterValues(query, 'project'),
@@ -129,7 +134,7 @@ function listPendingDecisions(source, query = new URLSearchParams()) {
   };
   const store = source.store();
   if (!store) return { pending_decisions: [], counts, organizations: [] };
-  const { list, organizations } = allPendingDecisions(store);
+  const { list, organizations } = allPendingDecisions(store, withHidden);
   const passes = (p, skip) => (!filters.organization || filters.organization.has(p.item.project.organization.id))
     && (!filters.project || filters.project.has(p.item.project.id))
     && (skip === 'severity' || !filters.severity || filters.severity.has(p.severity))

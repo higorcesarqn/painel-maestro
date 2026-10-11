@@ -60,7 +60,8 @@ export const readAgents = (filters) => api(withQuery('/api/agents', filters));
 export const readOverview = (filters) => api(withQuery('/api/overview', filters));
 
 // Organizations and projects (#6). The organization selector reaches each list as ?organization=<id> (see organizationFilter).
-export const readOrganizations = () => api('/api/organizations');
+// Both leave the hidden organizations out; only Settings reads them with { hidden: 'include' } (#50).
+export const readOrganizations = (filters) => api(withQuery('/api/organizations', filters));
 export const readProjects = (filters) => api(withQuery('/api/projects', filters));
 // Creates an organization (#22): { organization }, as GET /api/organizations lists it.
 export const createOrganization = (id, name) => api('/api/organizations', { method: 'POST', body: { id, name } });
@@ -68,6 +69,9 @@ export const createOrganization = (id, name) => api('/api/organizations', { meth
 export const renameOrganization = (id, name) => api(`/api/organizations/${encodeURIComponent(id)}/rename`, { method: 'POST', body: { name } });
 // Removes an organization without projects (#24): { removed: <id> }.
 export const removeOrganization = (id) => api(`/api/organizations/${encodeURIComponent(id)}/remove`, { method: 'POST' });
+// Hides or shows an organization (#50; repeating is not an error): { organization }, as GET /api/organizations?hidden=include lists it.
+export const hideOrganization = (id) => api(`/api/organizations/${encodeURIComponent(id)}/hide`, { method: 'POST' });
+export const unhideOrganization = (id) => api(`/api/organizations/${encodeURIComponent(id)}/unhide`, { method: 'POST' });
 export const moveProject = (project, organization) => api(`/api/projects/${encodeURIComponent(project)}/organization`, { method: 'POST', body: { organization } });
 
 /**

@@ -24,7 +24,7 @@
 //   POST /api/pending-decisions/<id>/answer   the owner's answer to an open pending decision (#32)
 //   GET  /api/log, GET /api/log/<id>, GET /api/raw   the Log and the raw log (api-log.js)
 //   GET  /api/organizations, POST /api/organizations, POST /api/organizations/<id>/rename, POST /api/organizations/<id>/remove,
-//   GET  /api/projects, POST /api/projects/<id>/organization
+//   POST /api/organizations/<id>/hide, POST /api/organizations/<id>/unhide, GET /api/projects, POST /api/projects/<id>/organization
 //                                             organizations and projects (api-projects.js)
 //   GET  /api/usage, GET /api/agents          usage and agents per item (api-usage.js)
 // The raw log older than 90 days is deleted on startup and once a day.
@@ -230,11 +230,12 @@ function usageKpi(usageFile, t, warnings) {
 }
 
 /**
- * The menu counter: open pending decisions of every organization, by severity (computed from the events, #10), and
- * the open ones themselves (#45), every one, the most urgent first, in the Overview's summary shape: the page's
- * browser notification compares their ids between reads. An unreadable maestro.db counts nothing: the health badge
- * already says why (database_unreadable); its list is null, unknown: an empty one would read as "all closed", and the
- * page would notify every open one again on the next good read.
+ * The menu counter: open pending decisions of every organization but the hidden ones (#52), by severity (computed
+ * from the events, #10), and the open ones themselves (#45), every one, the most urgent first, in the Overview's
+ * summary shape: the page's browser notification compares their ids between reads. Those of a hidden organization
+ * reach neither the counter, the tab nor the notification: the owner answers them in the maestro's terminal. An
+ * unreadable maestro.db counts nothing: the health badge already says why (database_unreadable); its list is null,
+ * unknown: an empty one would read as "all closed", and the page would notify every open one again on the next good read.
  */
 function pendingKpi(items) {
   let counts;
@@ -419,7 +420,7 @@ const FIXED_ROUTES = {
 
 function findRoute(urlPath) {
   if (Object.prototype.hasOwnProperty.call(FIXED_ROUTES, urlPath)) return FIXED_ROUTES[urlPath];
-  const rc = /^\/api\/organizations\/([^/]+)\/(rename|remove)$/.exec(urlPath);
+  const rc = /^\/api\/organizations\/([^/]+)\/(rename|remove|hide|unhide)$/.exec(urlPath);
   if (rc) {
     const id = projectsApi.parseRegisterId(rc[1]);
     return id ? { name: `organization-${rc[2]}`, methods: ['POST'], organization: id } : null;
@@ -510,7 +511,7 @@ async function route(ctx, req, res) {
       return respondJson(req, res, 200, projectsApi.filterItems(itemsApi.listItems(ctx.items, { active }), query));
     }
     case 'organizations': {
-      if (req.method !== 'POST') return respondJson(req, res, 200, projectsApi.listOrganizations(ctx.items));
+      if (req.method !== 'POST') return respondJson(req, res, 200, projectsApi.listOrganizations(ctx.items, query));
       const buf = await body;
       if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });
       const x = projectsApi.createOrganization(ctx.items, buf, isoSP(ctx.now()));
@@ -530,6 +531,13 @@ async function route(ctx, req, res) {
       const c = projectsApi.removeOrganization(ctx.items, r.organization);
       ctx.log(t('server.log.organizationRemoved', { organization: c.id, name: c.name }));
       return respondJson(req, res, 200, { removed: c.id });
+    }
+    case 'organization-hide':
+    case 'organization-unhide': {
+      const hidden = r.name === 'organization-hide';
+      const x = projectsApi.setOrganizationHidden(ctx.items, r.organization, hidden, isoSP(ctx.now()));
+      if (x.changed) ctx.log(t(hidden ? 'server.log.organizationHidden' : 'server.log.organizationShown', { organization: x.organization.id, name: x.organization.name }));
+      return respondJson(req, res, 200, { organization: x.organization });
     }
     case 'project-organization': {
       const buf = await body;
