@@ -10,6 +10,9 @@
 // plan below, and the real API (panel/api-usage.js) writes the answers of GET /api/usage and /api/agents.
 // Overview and the shell (#14): GET /api/overview per organization (panel/api-overview.js) and GET /api/state (the server's
 // own stateAnswer(): health, menu counter and plan) over the same store.
+// Hidden organizations (#50): the register, items, pending decisions, usage and agents are written with every organization, and the
+// mock leaves the hidden ones out of the listings like the server (#51), so hiding and showing in the demo shows on those screens;
+// the Overview and /api/state are the server's answers as they are, written once.
 // The same organizations, projects and events are exported for build-mock-root.js, which writes them into a real
 // maestro.db to look at the page with the real server.
 
@@ -41,10 +44,13 @@ const organizations = {
   contoso: 'Contoso',
   fabrikam: 'Fabrikam',
   personal: 'Pessoal',
+  northwind: 'Northwind',
   unassigned: 'Sem organização',
 };
+// Northwind is a hidden organization (#50): it shows only in Configurações → Organizações, with an open pending decision.
+const HIDDEN = ['northwind'];
 // Two organizations and "Pessoal", with GitHub and Azure DevOps projects (an Azure DevOps project with several
-// repositories is a single project), and two repositories that landed in "Sem organização" (#6).
+// repositories is a single project), two repositories that landed in "Sem organização" (#6) and the hidden Northwind.
 const projects = [
   { id: 'portal', name: 'Portal Contoso', organization_id: 'contoso', tracker: 'azure_devops', stages: STAGES, done_state: 'Committed', maestri_workspace: 'Contoso Portal',
     repos: ['dev.azure.com/contoso/portal/_git/portal-api', 'dev.azure.com/contoso/portal/_git/portal-web'] },
@@ -55,6 +61,8 @@ const projects = [
   { id: 'erp', name: 'ERP Fabrikam', organization_id: 'fabrikam', tracker: 'azure_devops', stages: STAGES, done_state: 'Closed',
     repos: ['fabrikam.visualstudio.com/erp/_git/erp-core', 'fabrikam.visualstudio.com/erp/_git/erp-fiscal', 'fabrikam.visualstudio.com/erp/_git/erp-web'] },
   { id: 'painel-maestro', name: 'painel-maestro', organization_id: 'personal', tracker: 'github', stages: NO_HML, repos: ['github.com/higorcesarqn/painel-maestro'] },
+  { id: 'intranet', name: 'Intranet Northwind', organization_id: 'northwind', tracker: 'github', stages: NO_HML, maestri_workspace: 'Northwind',
+    repos: ['github.com/northwind/intranet'] },
   { id: 'scratch', name: 'scratch', organization_id: 'unassigned', tracker: 'github', stages: STAGES, repos: ['github.com/higorcesarqn/scratch'] },
   { id: 'relatorios-bi', name: 'relatorios-bi', organization_id: 'unassigned', tracker: 'azure_devops', stages: STAGES, repos: ['dev.azure.com/fabrikam/bi/_git/relatorios-bi'] },
 ].map((p) => ({ done_state: null, maestri_workspace: null, ...p, organization_name: organizations[p.organization_id], created_at: '2026-10-01T09:00:00-03:00' }));
@@ -101,6 +109,11 @@ const ITEMS = [
   ['design-system', 31, 'Tokens de cor para o modo escuro', [['2026-10-06T14:00:00', 'implementation'], ['2026-10-08T11:30:00', 'pr_ready']]],
   ['erp', 1204, 'Nota fiscal de serviço eletrônica', [['2026-10-05T09:00:00', 'specification'], ['2026-10-06T10:00:00', 'implementation']]],
   ['relatorios-bi', 77, 'Painel de vendas por região', [['2026-10-08T15:20:00', 'implementation']]],
+  // The hidden Northwind (#50): an item in progress and a done one.
+  ['intranet', 12, 'Reserva de salas de reunião', [['2026-10-07T10:00:00', 'specification'], ['2026-10-08T09:30:00', 'implementation']]],
+  ['intranet', 9, 'Entrar com a conta da empresa', [['2026-10-02T09:00:00', 'implementation'],
+    ['2026-10-03T17:00:00', pr('ready', { url: GH('northwind/intranet', 21), branch: 'feature/issue-9' })], ['2026-10-05T10:00:00', pr('merged')],
+    ['2026-10-05T10:05:00', itemDone]]],
 ];
 
 const events = [];
@@ -287,6 +300,12 @@ const PENDING = [
     kind: 'finding', severity: 'low', title: 'Achado: o selo de saúde não conta o maestro.db',
     options: ['A: Corrigir agora', 'B: Task nova para triagem'], maestri: { workspace: 'Pessoal', terminal: 'Maestro #5' } }],
   [null, 'painel-maestro', 5, '2026-10-09T09:00:00', 'pending-decision-resolved', 5, ['owner', null], { pending_decision: 'finding-5', decision: 'B: vira task nova para triagem.' }],
+  // The hidden Northwind (#50): its open pending decision is only counted on its card in Configurações.
+  [null, 'intranet', 12, '2026-10-09T09:10:00', 'pending-decision-opened', null, ['maestro', 'Bento'], {
+    kind: 'decision', severity: 'normal', title: 'Reserva recorrente entra nesta entrega?',
+    context: 'O pedido fala em reservar uma sala; a equipe da Northwind perguntou por reservas semanais.',
+    options: ['A: Só reserva avulsa agora', 'B: Incluir a recorrente'], recommendation: 'A: a recorrente vira um item novo.',
+    maestri: { workspace: 'Northwind', terminal: 'Maestro #12' } }],
 ];
 const refs = new Map();
 for (const [ref, projectId, number, at, type, task, [role, name], payload] of PENDING) {
@@ -304,18 +323,22 @@ const organizationOf = (e) => projects.find((p) => p.id === e.project_id).organi
 const store = {
   projects: () => projects,
   project: (id) => projects.find((p) => p.id === id) || null,
-  organizations: () => Object.entries(organizations).map(([id, name]) => ({ id, name, created_at: '2026-10-01T09:00:00-03:00' })),
+  organizations: () => Object.entries(organizations).map(([id, name]) => ({ id, name, hidden: HIDDEN.includes(id), created_at: '2026-10-01T09:00:00-03:00' })),
   projectRepos: (id) => projects.find((p) => p.id === id).repos.slice().sort(),
   allEvents: () => events,
   projectedItems: () => projectEventsByItem(events, new Map(projects.map((p) => [p.id, p]))),
   itemEvents: (projectId, number) => events.filter((e) => e.project_id === projectId && e.item_number === number),
   logEvents: (f, { limit = 50, offset = 0 } = {}) => {
-    const list = events.filter((e) => (!f.organizations || f.organizations.includes(organizationOf(e))) && (!f.since || e.at >= f.since)).slice().reverse();
+    const list = events.filter((e) => (!f.organizations || f.organizations.includes(organizationOf(e)))
+      && !(f.excludeOrganizations || []).includes(organizationOf(e)) && (!f.since || e.at >= f.since)).slice().reverse();
     return { total: list.length, events: list.slice(offset, offset + limit) };
   },
   logCounts: () => ({ organization: {}, project: {}, type: {} }),
 };
 const source = { store: () => store };
+// The same store with every organization visible: the answers the mock filters by itself, like the server, with the hidden
+// organizations of the moment (#50; the demo hides and shows them in memory).
+const everyOrganization = { store: () => ({ ...store, organizations: () => store.organizations().map((o) => ({ ...o, hidden: false })) }) };
 // The hook's last entry (bruto.db) a few minutes before the mock's moment: the hook is working.
 const raw = { store: () => ({ lastAt: () => '2026-10-09T10:21:10-03:00' }) };
 
@@ -333,6 +356,7 @@ const SESSIONS = [
   ['s-48-maestro', 'storefront', 48, null, '2026-10-09T09:45:00', [['2026-10-09T09:41:00', 500, 3900, 36000, 500000]]],
   ['s-5-maestro', 'painel-maestro', 5, null, '2026-10-09T07:40:00', [['2026-10-09T07:32:00', 400, 2500, 28000, 240000]]],
   ['s-5-worker', 'painel-maestro', 5, 5, '2026-10-09T10:20:00', [['2026-10-09T08:15:00', 2100, 18000, 160000, 3100000], ['2026-10-09T10:12:00', 900, 7200, 64000, 1300000]]],
+  ['s-12-maestro', 'intranet', 12, null, '2026-10-09T09:12:00', [['2026-10-09T09:05:00', 300, 2100, 20000, 180000]]],
   ['s-scratch', 'scratch', null, null, '2026-10-09T10:05:00', [['2026-10-09T10:02:00', 200, 900, 12000, 90000]]],
 ];
 
@@ -377,13 +401,17 @@ async function usageAndAgents(source) {
 }
 
 async function main() {
-  const { items } = listItems(source);
+  // Every item, the hidden organizations' too: the mock leaves those out of the listings, as the server does (#51), and their
+  // pages still answer by the key.
+  const { items } = listItems(source, { withHidden: true });
   const details = {};
   for (const it of items) details[it.key] = itemDetail(source, it.project.id, it.number).item;
-  const pending = listPendingDecisions(source);
-  // Organizations and projects (#6): the answers of GET /api/organizations and GET /api/projects (the page filters them by organization).
-  const { organizations: organizationList } = listOrganizations(source);
-  const { projects: projectList } = listProjects(source, new URLSearchParams());
+  const pending = listPendingDecisions(source, new URLSearchParams(), { withHidden: true });
+  // Organizations and projects (#6): the answers of GET /api/organizations and GET /api/projects with ?hidden=include, the whole
+  // register (#50); the page leaves the hidden ones out unless asked, and filters them by organization.
+  const whole = new URLSearchParams({ hidden: 'include' });
+  const { organizations: organizationList } = listOrganizations(source, whole);
+  const { projects: projectList } = listProjects(source, whole);
   // Overview (#14): the answer of GET /api/overview for every organization of the selector ('' = all), with the server's
   // default stale limit; and GET /api/state (health, menu counter and plan) by the server's own function.
   const nowMs = Date.parse(GENERATED_AT);
@@ -391,7 +419,7 @@ async function main() {
   for (const id of ['', ...organizationList.map((c) => c.id)]) {
     overview[id] = overviewOf(source, new URLSearchParams(id ? { organization: id } : {}), { nowMs, staleHours: 48 });
   }
-  const { file, collector, usage, agents } = await usageAndAgents(source);
+  const { file, collector, usage, agents } = await usageAndAgents(everyOrganization);
   const state = stateAnswer({ items: source, raw, usageFile: file, nowMs, collector, version: DEMO_VERSION });
   fs.writeFileSync(OUT, `${JSON.stringify({ generated_at: GENERATED_AT, state, organizations: organizationList, projects: projectList, items, details, pending_decisions: pending, overview, usage, agents }, null, 2)}
 `);
@@ -403,7 +431,7 @@ async function main() {
   console.log(`  ${all.reduce((n, d) => n + d.reports.length, 0)} relatórios e ${all.reduce((n, d) => n + d.findings.length, 0)} achados; ${agents.agents.length} agentes ativos; uso de ${usage.by_item['7d'].length} itens`);
 }
 
-module.exports = { GENERATED_AT, organizations, projects, events };
+module.exports = { GENERATED_AT, organizations, HIDDEN, projects, events };
 
 if (require.main === module) {
   main().catch((e) => {

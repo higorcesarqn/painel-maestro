@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 /*
- * build-mock-root.js: builds a fake data folder (MAESTRO_DIR) with the demo's organizations, projects and events
+ * build-mock-root.js: builds a fake data folder (MAESTRO_DIR) with the demo's organizations (the hidden one too, #50), projects and events
  * (generate-mock-items.js) in a real maestro.db, to look at index.html with the real server.js (and not with ?mock=1).
  *
  * Usage:
@@ -16,7 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const { openStore, UNASSIGNED_ORGANIZATION } = require('../../bin/flow-store.js');
-const { GENERATED_AT, organizations, projects, events } = require('./generate-mock-items.js');
+const { GENERATED_AT, organizations, HIDDEN, projects, events } = require('./generate-mock-items.js');
 
 const TMP = path.join(__dirname, 'tmp');
 const args = process.argv.slice(2);
@@ -58,6 +58,7 @@ const store = openStore({ dir: root });
 try {
   store.transaction(() => {
     for (const [id, name] of Object.entries(organizations)) store.ensureOrganization(id, name, '2026-10-01T09:00:00-03:00');
+    for (const id of HIDDEN) store.setOrganizationHidden(id, true, '2026-10-01T09:00:00-03:00');
     for (const p of projects) {
       const [first, ...others] = p.repos;
       // "Sem organização" only receives the unregistered repositories (the store refuses it in addProject).

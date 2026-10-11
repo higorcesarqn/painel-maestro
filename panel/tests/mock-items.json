@@ -20,16 +20,16 @@
     },
     "kpis": {
       "pending_decisions": {
-        "total": 6,
+        "total": 7,
         "by_severity": {
           "critical": 1,
           "high": 3,
-          "normal": 2,
+          "normal": 3,
           "low": 0
         },
         "open": [
           {
-            "id": 92,
+            "id": 99,
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
@@ -58,7 +58,7 @@
             }
           },
           {
-            "id": 66,
+            "id": 72,
             "kind": "hml",
             "severity": "high",
             "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
@@ -83,7 +83,7 @@
             "task": null
           },
           {
-            "id": 78,
+            "id": 84,
             "kind": "task_review",
             "severity": "high",
             "title": "Revisar e integrar a task 3115 (botão de exportar)",
@@ -112,7 +112,7 @@
             }
           },
           {
-            "id": 83,
+            "id": 90,
             "kind": "worker_blocked",
             "severity": "high",
             "title": "Em que formato sai o extrato exportado?",
@@ -141,7 +141,32 @@
             }
           },
           {
-            "id": 86,
+            "id": 88,
+            "kind": "decision",
+            "severity": "normal",
+            "title": "Reserva recorrente entra nesta entrega?",
+            "derived_from": null,
+            "opened_at": "2026-10-09T09:10:00-03:00",
+            "item": {
+              "key": "intranet/12",
+              "number": 12,
+              "tracker_ref": "#12",
+              "title": "Reserva de salas de reunião",
+              "stage": "implementation",
+              "project": {
+                "id": "intranet",
+                "name": "Intranet Northwind",
+                "tracker": "github",
+                "organization": {
+                  "id": "northwind",
+                  "name": "Northwind"
+                }
+              }
+            },
+            "task": null
+          },
+          {
+            "id": 93,
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
@@ -166,7 +191,7 @@
             "task": null
           },
           {
-            "id": 90,
+            "id": 97,
             "kind": "decision",
             "severity": "normal",
             "title": "Como chamar o carrinho juntado na tela?",
@@ -233,29 +258,46 @@
       "id": "contoso",
       "name": "Contoso",
       "unassigned": false,
+      "hidden": false,
       "project_count": 3,
-      "item_count": 6
+      "item_count": 6,
+      "open_pending_count": 4
     },
     {
       "id": "fabrikam",
       "name": "Fabrikam",
       "unassigned": false,
+      "hidden": false,
       "project_count": 2,
-      "item_count": 4
+      "item_count": 4,
+      "open_pending_count": 2
+    },
+    {
+      "id": "northwind",
+      "name": "Northwind",
+      "unassigned": false,
+      "hidden": true,
+      "project_count": 1,
+      "item_count": 2,
+      "open_pending_count": 1
     },
     {
       "id": "personal",
       "name": "Pessoal",
       "unassigned": false,
+      "hidden": false,
       "project_count": 1,
-      "item_count": 2
+      "item_count": 2,
+      "open_pending_count": 0
     },
     {
       "id": "unassigned",
       "name": "Sem organização",
       "unassigned": true,
+      "hidden": false,
       "project_count": 2,
-      "item_count": 2
+      "item_count": 2,
+      "open_pending_count": 0
     }
   ],
   "projects": [
@@ -443,6 +485,31 @@
       "item_count": 3
     },
     {
+      "id": "intranet",
+      "name": "Intranet Northwind",
+      "tracker": "github",
+      "organization": {
+        "id": "northwind",
+        "name": "Northwind"
+      },
+      "unassigned": false,
+      "repos": [
+        "github.com/northwind/intranet"
+      ],
+      "stages": [
+        "specification",
+        "implementation",
+        "final_adjustment",
+        "pr_ready",
+        "merge",
+        "done"
+      ],
+      "done_state": null,
+      "maestri_workspace": "Northwind",
+      "created_at": "2026-10-01T09:00:00-03:00",
+      "item_count": 2
+    },
+    {
       "id": "painel-maestro",
       "name": "painel-maestro",
       "tracker": "github",
@@ -577,6 +644,28 @@
       "stage_since": "2026-10-09T08:50:00-03:00",
       "started_at": "2026-10-09T08:50:00-03:00",
       "updated_at": "2026-10-09T09:30:00-03:00",
+      "active": true
+    },
+    {
+      "key": "intranet/12",
+      "project": {
+        "id": "intranet",
+        "name": "Intranet Northwind",
+        "tracker": "github",
+        "organization": {
+          "id": "northwind",
+          "name": "Northwind"
+        }
+      },
+      "number": 12,
+      "tracker": "github",
+      "tracker_ref": "#12",
+      "title": "Reserva de salas de reunião",
+      "stage": "implementation",
+      "done_state": null,
+      "stage_since": "2026-10-08T09:30:00-03:00",
+      "started_at": "2026-10-07T10:00:00-03:00",
+      "updated_at": "2026-10-09T09:10:00-03:00",
       "active": true
     },
     {
@@ -734,6 +823,28 @@
       "active": true
     },
     {
+      "key": "intranet/9",
+      "project": {
+        "id": "intranet",
+        "name": "Intranet Northwind",
+        "tracker": "github",
+        "organization": {
+          "id": "northwind",
+          "name": "Northwind"
+        }
+      },
+      "number": 9,
+      "tracker": "github",
+      "tracker_ref": "#9",
+      "title": "Entrar com a conta da empresa",
+      "stage": "done",
+      "done_state": null,
+      "stage_since": "2026-10-05T10:05:00-03:00",
+      "started_at": "2026-10-02T09:00:00-03:00",
+      "updated_at": "2026-10-05T10:05:00-03:00",
+      "active": false
+    },
+    {
       "key": "portal/3088",
       "project": {
         "id": "portal",
@@ -863,7 +974,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 73,
+          "id": 79,
           "at": "2026-10-09T07:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -878,7 +989,7 @@
           }
         },
         {
-          "id": 74,
+          "id": 80,
           "at": "2026-10-09T07:35:00-03:00",
           "type": "task-dispatched",
           "task_number": 5,
@@ -894,7 +1005,7 @@
           }
         },
         {
-          "id": 75,
+          "id": 81,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 5,
@@ -918,7 +1029,7 @@
           }
         },
         {
-          "id": 81,
+          "id": 87,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": 5,
@@ -928,12 +1039,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 75,
+            "pending_decision": 81,
             "decision": "B: vira task nova para triagem."
           }
         },
         {
-          "id": 93,
+          "id": 100,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -1172,7 +1283,7 @@
       "hml": null,
       "reports": [
         {
-          "id": 54,
+          "id": 60,
           "at": "2026-10-08T13:12:00-03:00",
           "task_number": 3113,
           "agent": {
@@ -1197,7 +1308,7 @@
           "text": "Task 3113, branch task/3113-modelo-pdf, SHA final e41f0a6, sobre a integradora (sem push, sem tracker, sem merge). Status: ok.\nTestes: npm test, duas rodadas seguidas, banco portal-3113.db recriado vazio; 0 falhas. npm run check: ok.\nO que mudou: o extrato ganhou o modelo de PDF (cabeçalho com o logo, tabela de lançamentos, rodapé com a página).\nDecisões:\n  1. Fonte embutida \"Noto Sans\": o servidor de HML não tem fontes do sistema.\n  2. A4 retrato por padrão; paisagem fica para a 3114, se precisar.\nRiscos: tabelas com mais de 200 linhas quebram a página no meio da linha.\nArquivos compartilhados: src/report/layout.ts e package.json (a 3114 também mexe)."
         },
         {
-          "id": 77,
+          "id": 83,
           "at": "2026-10-09T08:42:00-03:00",
           "task_number": 3115,
           "agent": {
@@ -1220,7 +1331,7 @@
           "text": "Task 3115, branch task/3115-botao-exportar, SHA final 9c8b7a6. Status: ok.\nTestes: npm test, 0 falhas nas 2 rodadas; teste manual no Chrome e no Edge.\nO que mudou: botão \"Exportar PDF\" na tela do extrato, desabilitado enquanto o PDF é gerado.\nDecisões: 1. adaptador para a rota da 3114, com PDF de exemplo até ela integrar.\nRiscos: depende da 3114. Arquivos compartilhados: src/screens/Statement.tsx."
         },
         {
-          "id": 91,
+          "id": 98,
           "at": "2026-10-09T10:06:00-03:00",
           "task_number": 3116,
           "agent": {
@@ -1288,7 +1399,7 @@
       ],
       "timeline": [
         {
-          "id": 40,
+          "id": 45,
           "at": "2026-10-07T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1303,7 +1414,7 @@
           }
         },
         {
-          "id": 46,
+          "id": 52,
           "at": "2026-10-08T10:20:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -1317,7 +1428,7 @@
           }
         },
         {
-          "id": 47,
+          "id": 53,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -1333,7 +1444,7 @@
           }
         },
         {
-          "id": 48,
+          "id": 54,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "task-graph",
           "task_number": null,
@@ -1393,7 +1504,7 @@
           }
         },
         {
-          "id": 49,
+          "id": 55,
           "at": "2026-10-08T10:30:00-03:00",
           "type": "task-dispatched",
           "task_number": 3113,
@@ -1409,7 +1520,7 @@
           }
         },
         {
-          "id": 53,
+          "id": 59,
           "at": "2026-10-08T13:10:00-03:00",
           "type": "task-status",
           "task_number": 3113,
@@ -1429,7 +1540,7 @@
           }
         },
         {
-          "id": 54,
+          "id": 60,
           "at": "2026-10-08T13:12:00-03:00",
           "type": "task-report",
           "task_number": 3113,
@@ -1458,7 +1569,7 @@
           }
         },
         {
-          "id": 55,
+          "id": 61,
           "at": "2026-10-08T13:12:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3113,
@@ -1484,7 +1595,7 @@
           }
         },
         {
-          "id": 56,
+          "id": 62,
           "at": "2026-10-08T13:50:00-03:00",
           "type": "finding-recorded",
           "task_number": 3113,
@@ -1506,7 +1617,7 @@
           }
         },
         {
-          "id": 57,
+          "id": 63,
           "at": "2026-10-08T13:52:00-03:00",
           "type": "finding-recorded",
           "task_number": 3113,
@@ -1525,7 +1636,7 @@
           }
         },
         {
-          "id": 58,
+          "id": 64,
           "at": "2026-10-08T13:55:00-03:00",
           "type": "finding-recorded",
           "task_number": 3113,
@@ -1544,7 +1655,7 @@
           }
         },
         {
-          "id": 59,
+          "id": 65,
           "at": "2026-10-08T14:02:00-03:00",
           "type": "task-integrated",
           "task_number": 3113,
@@ -1559,7 +1670,7 @@
           }
         },
         {
-          "id": 60,
+          "id": 66,
           "at": "2026-10-08T14:04:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1585,7 +1696,7 @@
           }
         },
         {
-          "id": 61,
+          "id": 67,
           "at": "2026-10-08T14:08:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -1595,12 +1706,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 60,
+            "pending_decision": 66,
             "decision": "Pode paralelizar. A 3115 integra primeiro."
           }
         },
         {
-          "id": 62,
+          "id": 68,
           "at": "2026-10-08T14:10:00-03:00",
           "type": "task-dispatched",
           "task_number": 3114,
@@ -1616,7 +1727,7 @@
           }
         },
         {
-          "id": 63,
+          "id": 69,
           "at": "2026-10-08T14:12:00-03:00",
           "type": "task-dispatched",
           "task_number": 3115,
@@ -1632,7 +1743,7 @@
           }
         },
         {
-          "id": 76,
+          "id": 82,
           "at": "2026-10-09T08:40:00-03:00",
           "type": "task-status",
           "task_number": 3115,
@@ -1652,7 +1763,7 @@
           }
         },
         {
-          "id": 77,
+          "id": 83,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "task-report",
           "task_number": 3115,
@@ -1679,7 +1790,7 @@
           }
         },
         {
-          "id": 78,
+          "id": 84,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3115,
@@ -1707,7 +1818,7 @@
           }
         },
         {
-          "id": 82,
+          "id": 89,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "task_number": 3114,
@@ -1727,7 +1838,7 @@
           }
         },
         {
-          "id": 83,
+          "id": 90,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3114,
@@ -1749,7 +1860,7 @@
           }
         },
         {
-          "id": 87,
+          "id": 94,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "task_number": 3116,
@@ -1765,7 +1876,7 @@
           }
         },
         {
-          "id": 89,
+          "id": 96,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "task_number": 3116,
@@ -1782,7 +1893,7 @@
           }
         },
         {
-          "id": 91,
+          "id": 98,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "task_number": 3116,
@@ -1805,7 +1916,7 @@
           }
         },
         {
-          "id": 92,
+          "id": 99,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -1919,7 +2030,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 88,
+          "id": 95,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2065,7 +2176,7 @@
       "hml": null,
       "reports": [
         {
-          "id": 28,
+          "id": 32,
           "at": "2026-10-05T11:20:00-03:00",
           "task_number": 49,
           "agent": {
@@ -2086,7 +2197,7 @@
           "text": "Task 49 pronta: o carrinho fica salvo na conta (30 dias). npm test: 0 falhas."
         },
         {
-          "id": 67,
+          "id": 73,
           "at": "2026-10-08T16:50:00-03:00",
           "task_number": 50,
           "agent": {
@@ -2126,7 +2237,7 @@
       ],
       "timeline": [
         {
-          "id": 11,
+          "id": 12,
           "at": "2026-10-02T10:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2141,7 +2252,7 @@
           }
         },
         {
-          "id": 14,
+          "id": 15,
           "at": "2026-10-02T16:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -2155,7 +2266,7 @@
           }
         },
         {
-          "id": 15,
+          "id": 16,
           "at": "2026-10-02T16:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2171,7 +2282,7 @@
           }
         },
         {
-          "id": 16,
+          "id": 17,
           "at": "2026-10-02T16:05:00-03:00",
           "type": "task-graph",
           "task_number": null,
@@ -2200,7 +2311,7 @@
           }
         },
         {
-          "id": 17,
+          "id": 18,
           "at": "2026-10-02T16:10:00-03:00",
           "type": "task-dispatched",
           "task_number": 49,
@@ -2216,7 +2327,7 @@
           }
         },
         {
-          "id": 28,
+          "id": 32,
           "at": "2026-10-05T11:20:00-03:00",
           "type": "task-report",
           "task_number": 49,
@@ -2241,7 +2352,7 @@
           }
         },
         {
-          "id": 29,
+          "id": 33,
           "at": "2026-10-05T11:30:00-03:00",
           "type": "task-integrated",
           "task_number": 49,
@@ -2256,7 +2367,7 @@
           }
         },
         {
-          "id": 30,
+          "id": 34,
           "at": "2026-10-05T11:40:00-03:00",
           "type": "task-dispatched",
           "task_number": 50,
@@ -2272,7 +2383,7 @@
           }
         },
         {
-          "id": 67,
+          "id": 73,
           "at": "2026-10-08T16:50:00-03:00",
           "type": "task-report",
           "task_number": 50,
@@ -2295,7 +2406,7 @@
           }
         },
         {
-          "id": 68,
+          "id": 74,
           "at": "2026-10-08T17:00:00-03:00",
           "type": "task-integrated",
           "task_number": 50,
@@ -2310,7 +2421,7 @@
           }
         },
         {
-          "id": 69,
+          "id": 75,
           "at": "2026-10-08T17:05:00-03:00",
           "type": "finding-recorded",
           "task_number": 50,
@@ -2332,7 +2443,7 @@
           }
         },
         {
-          "id": 85,
+          "id": 92,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2344,7 +2455,7 @@
           "payload": {}
         },
         {
-          "id": 86,
+          "id": 93,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2370,7 +2481,7 @@
           }
         },
         {
-          "id": 90,
+          "id": 97,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2479,7 +2590,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 79,
+          "id": 85,
           "at": "2026-10-09T08:50:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2494,7 +2605,7 @@
           }
         },
         {
-          "id": 80,
+          "id": 86,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2518,7 +2629,7 @@
           }
         },
         {
-          "id": 84,
+          "id": 91,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "task_number": null,
@@ -2528,8 +2639,145 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 80,
+            "pending_decision": 86,
             "reason": "Entrou na especificação do item."
+          }
+        }
+      ]
+    },
+    "intranet/12": {
+      "key": "intranet/12",
+      "project": {
+        "id": "intranet",
+        "name": "Intranet Northwind",
+        "tracker": "github",
+        "organization": {
+          "id": "northwind",
+          "name": "Northwind"
+        }
+      },
+      "number": 12,
+      "tracker": "github",
+      "tracker_ref": "#12",
+      "title": "Reserva de salas de reunião",
+      "stage": "implementation",
+      "done_state": null,
+      "stage_since": "2026-10-08T09:30:00-03:00",
+      "started_at": "2026-10-07T10:00:00-03:00",
+      "updated_at": "2026-10-09T09:10:00-03:00",
+      "active": true,
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": "2026-10-07T10:00:00-03:00"
+        },
+        {
+          "id": "implementation",
+          "status": "current",
+          "entered_at": "2026-10-08T09:30:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "merge",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "tasks": [
+        {
+          "number": 12,
+          "title": "Reserva de salas de reunião",
+          "self": true,
+          "state": "waiting",
+          "blocked_by": [],
+          "worker": null,
+          "floor": null,
+          "branch": null,
+          "sha": null,
+          "sha_before": null,
+          "status_text": null,
+          "progress": null,
+          "dispatched_at": null,
+          "integrated_at": null,
+          "updated_at": null,
+          "finding": null
+        }
+      ],
+      "completed_at": null,
+      "pr": null,
+      "final_adjustment": null,
+      "hml": null,
+      "reports": [],
+      "findings": [],
+      "timeline": [
+        {
+          "id": 44,
+          "at": "2026-10-07T10:00:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Reserva de salas de reunião",
+            "stage": "specification"
+          }
+        },
+        {
+          "id": 51,
+          "at": "2026-10-08T09:30:00-03:00",
+          "type": "stage-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 88,
+          "at": "2026-10-09T09:10:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "kind": "decision",
+            "severity": "normal",
+            "title": "Reserva recorrente entra nesta entrega?",
+            "context": "O pedido fala em reservar uma sala; a equipe da Northwind perguntou por reservas semanais.",
+            "options": [
+              "A: Só reserva avulsa agora",
+              "B: Incluir a recorrente"
+            ],
+            "recommendation": "A: a recorrente vira um item novo.",
+            "maestri": {
+              "workspace": "Northwind",
+              "terminal": "Maestro #12"
+            }
           }
         }
       ]
@@ -2623,7 +2871,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 24,
+          "id": 26,
           "at": "2026-10-04T11:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2638,7 +2886,7 @@
           }
         },
         {
-          "id": 35,
+          "id": 39,
           "at": "2026-10-06T13:20:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2654,7 +2902,7 @@
           }
         },
         {
-          "id": 72,
+          "id": 78,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2804,7 +3052,7 @@
       ],
       "timeline": [
         {
-          "id": 19,
+          "id": 20,
           "at": "2026-10-03T08:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2819,7 +3067,7 @@
           }
         },
         {
-          "id": 20,
+          "id": 21,
           "at": "2026-10-03T08:40:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2835,7 +3083,7 @@
           }
         },
         {
-          "id": 41,
+          "id": 46,
           "at": "2026-10-07T16:45:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2847,7 +3095,7 @@
           "payload": {}
         },
         {
-          "id": 42,
+          "id": 47,
           "at": "2026-10-07T17:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2873,7 +3121,7 @@
           }
         },
         {
-          "id": 44,
+          "id": 49,
           "at": "2026-10-07T18:20:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -2883,12 +3131,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 42,
+            "pending_decision": 47,
             "decision": "A: 3 retentativas, com intervalo de 24 h."
           }
         },
         {
-          "id": 50,
+          "id": 56,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -2903,7 +3151,7 @@
           }
         },
         {
-          "id": 52,
+          "id": 58,
           "at": "2026-10-08T11:35:00-03:00",
           "type": "finding-recorded",
           "task_number": null,
@@ -2925,7 +3173,7 @@
           }
         },
         {
-          "id": 64,
+          "id": 70,
           "at": "2026-10-08T15:00:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2937,7 +3185,7 @@
           "payload": {}
         },
         {
-          "id": 70,
+          "id": 76,
           "at": "2026-10-08T17:50:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -2951,7 +3199,7 @@
           }
         },
         {
-          "id": 71,
+          "id": 77,
           "at": "2026-10-08T18:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3183,7 +3431,7 @@
           }
         },
         {
-          "id": 18,
+          "id": 19,
           "at": "2026-10-02T18:20:00-03:00",
           "type": "task-integrated",
           "task_number": 3101,
@@ -3198,7 +3446,7 @@
           }
         },
         {
-          "id": 21,
+          "id": 22,
           "at": "2026-10-03T09:00:00-03:00",
           "type": "task-dispatched",
           "task_number": 3102,
@@ -3214,7 +3462,7 @@
           }
         },
         {
-          "id": 26,
+          "id": 30,
           "at": "2026-10-05T10:40:00-03:00",
           "type": "task-integrated",
           "task_number": 3102,
@@ -3229,7 +3477,7 @@
           }
         },
         {
-          "id": 27,
+          "id": 31,
           "at": "2026-10-05T11:02:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -3241,7 +3489,7 @@
           "payload": {}
         },
         {
-          "id": 31,
+          "id": 35,
           "at": "2026-10-05T16:20:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -3256,7 +3504,7 @@
           }
         },
         {
-          "id": 34,
+          "id": 38,
           "at": "2026-10-06T10:15:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3270,7 +3518,7 @@
           }
         },
         {
-          "id": 43,
+          "id": 48,
           "at": "2026-10-07T17:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3284,7 +3532,7 @@
           }
         },
         {
-          "id": 45,
+          "id": 50,
           "at": "2026-10-08T09:05:00-03:00",
           "type": "hml-recorded",
           "task_number": null,
@@ -3302,7 +3550,7 @@
           }
         },
         {
-          "id": 66,
+          "id": 72,
           "at": "2026-10-08T16:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -3415,7 +3663,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 65,
+          "id": 71,
           "at": "2026-10-08T15:20:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -3512,7 +3760,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 36,
+          "id": 40,
           "at": "2026-10-06T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -3527,7 +3775,7 @@
           }
         },
         {
-          "id": 51,
+          "id": 57,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -3631,7 +3879,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 32,
+          "id": 36,
           "at": "2026-10-06T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -3646,7 +3894,7 @@
           }
         },
         {
-          "id": 37,
+          "id": 41,
           "at": "2026-10-06T18:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3662,7 +3910,7 @@
           }
         },
         {
-          "id": 38,
+          "id": 42,
           "at": "2026-10-07T08:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3676,7 +3924,7 @@
           }
         },
         {
-          "id": 39,
+          "id": 43,
           "at": "2026-10-07T08:12:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -3775,7 +4023,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 25,
+          "id": 27,
           "at": "2026-10-05T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -3790,7 +4038,7 @@
           }
         },
         {
-          "id": 33,
+          "id": 37,
           "at": "2026-10-06T10:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -3802,6 +4050,153 @@
           "payload": {
             "stage": "implementation"
           }
+        }
+      ]
+    },
+    "intranet/9": {
+      "key": "intranet/9",
+      "project": {
+        "id": "intranet",
+        "name": "Intranet Northwind",
+        "tracker": "github",
+        "organization": {
+          "id": "northwind",
+          "name": "Northwind"
+        }
+      },
+      "number": 9,
+      "tracker": "github",
+      "tracker_ref": "#9",
+      "title": "Entrar com a conta da empresa",
+      "stage": "done",
+      "done_state": null,
+      "stage_since": "2026-10-05T10:05:00-03:00",
+      "started_at": "2026-10-02T09:00:00-03:00",
+      "updated_at": "2026-10-05T10:05:00-03:00",
+      "active": false,
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "implementation",
+          "status": "done",
+          "entered_at": "2026-10-02T09:00:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "done",
+          "entered_at": "2026-10-03T17:00:00-03:00"
+        },
+        {
+          "id": "merge",
+          "status": "done",
+          "entered_at": "2026-10-05T10:00:00-03:00"
+        },
+        {
+          "id": "done",
+          "status": "current",
+          "entered_at": "2026-10-05T10:05:00-03:00"
+        }
+      ],
+      "tasks": [
+        {
+          "number": 9,
+          "title": "Entrar com a conta da empresa",
+          "self": true,
+          "state": "waiting",
+          "blocked_by": [],
+          "worker": null,
+          "floor": null,
+          "branch": null,
+          "sha": null,
+          "sha_before": null,
+          "status_text": null,
+          "progress": null,
+          "dispatched_at": null,
+          "integrated_at": null,
+          "updated_at": null,
+          "finding": null
+        }
+      ],
+      "completed_at": "2026-10-05T10:05:00-03:00",
+      "pr": {
+        "state": "merged",
+        "url": "https://github.com/northwind/intranet/pull/21",
+        "number": 21,
+        "branch": "feature/issue-9",
+        "opened_at": "2026-10-03T17:00:00-03:00",
+        "ready_at": "2026-10-03T17:00:00-03:00",
+        "merged_at": "2026-10-05T10:00:00-03:00"
+      },
+      "final_adjustment": null,
+      "hml": null,
+      "reports": [],
+      "findings": [],
+      "timeline": [
+        {
+          "id": 11,
+          "at": "2026-10-02T09:00:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Entrar com a conta da empresa",
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 25,
+          "at": "2026-10-03T17:00:00-03:00",
+          "type": "pr-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "ready",
+            "url": "https://github.com/northwind/intranet/pull/21",
+            "branch": "feature/issue-9"
+          }
+        },
+        {
+          "id": 28,
+          "at": "2026-10-05T10:00:00-03:00",
+          "type": "pr-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "merged"
+          }
+        },
+        {
+          "id": 29,
+          "at": "2026-10-05T10:05:00-03:00",
+          "type": "item-done",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {}
         }
       ]
     },
@@ -3983,7 +4378,7 @@
           }
         },
         {
-          "id": 12,
+          "id": 13,
           "at": "2026-10-02T11:00:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3997,7 +4392,7 @@
           }
         },
         {
-          "id": 22,
+          "id": 23,
           "at": "2026-10-03T15:40:00-03:00",
           "type": "hml-recorded",
           "task_number": null,
@@ -4014,7 +4409,7 @@
           }
         },
         {
-          "id": 23,
+          "id": 24,
           "at": "2026-10-03T16:00:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -4108,7 +4503,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 13,
+          "id": 14,
           "at": "2026-10-02T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -4128,7 +4523,7 @@
   "pending_decisions": {
     "pending_decisions": [
       {
-        "id": 92,
+        "id": 99,
         "kind": "worker_blocked",
         "severity": "critical",
         "status": "open",
@@ -4178,7 +4573,7 @@
         }
       },
       {
-        "id": 66,
+        "id": 72,
         "kind": "hml",
         "severity": "high",
         "status": "open",
@@ -4224,7 +4619,7 @@
         "task": null
       },
       {
-        "id": 78,
+        "id": 84,
         "kind": "task_review",
         "severity": "high",
         "status": "open",
@@ -4275,7 +4670,7 @@
         }
       },
       {
-        "id": 83,
+        "id": 90,
         "kind": "worker_blocked",
         "severity": "high",
         "status": "open",
@@ -4322,7 +4717,53 @@
         }
       },
       {
-        "id": 86,
+        "id": 88,
+        "kind": "decision",
+        "severity": "normal",
+        "status": "open",
+        "title": "Reserva recorrente entra nesta entrega?",
+        "context": "O pedido fala em reservar uma sala; a equipe da Northwind perguntou por reservas semanais.",
+        "options": [
+          "A: Só reserva avulsa agora",
+          "B: Incluir a recorrente"
+        ],
+        "recommendation": "A: a recorrente vira um item novo.",
+        "maestri": {
+          "workspace": "Northwind",
+          "terminal": "Maestro #12"
+        },
+        "notification": null,
+        "opened_at": "2026-10-09T09:10:00-03:00",
+        "opened_by": {
+          "role": "maestro",
+          "name": "Bento"
+        },
+        "closed_at": null,
+        "closed_by": null,
+        "resolution": null,
+        "decision": null,
+        "reason": null,
+        "derived_from": null,
+        "item": {
+          "key": "intranet/12",
+          "number": 12,
+          "tracker_ref": "#12",
+          "title": "Reserva de salas de reunião",
+          "stage": "implementation",
+          "project": {
+            "id": "intranet",
+            "name": "Intranet Northwind",
+            "tracker": "github",
+            "organization": {
+              "id": "northwind",
+              "name": "Northwind"
+            }
+          }
+        },
+        "task": null
+      },
+      {
+        "id": 93,
         "kind": "finding",
         "severity": "normal",
         "status": "open",
@@ -4368,7 +4809,7 @@
         "task": null
       },
       {
-        "id": 90,
+        "id": 97,
         "kind": "decision",
         "severity": "normal",
         "status": "open",
@@ -4411,7 +4852,7 @@
         "task": null
       },
       {
-        "id": 80,
+        "id": 86,
         "kind": "decision",
         "severity": "low",
         "status": "canceled",
@@ -4460,7 +4901,7 @@
         "task": null
       },
       {
-        "id": 75,
+        "id": 81,
         "kind": "finding",
         "severity": "low",
         "status": "resolved",
@@ -4513,7 +4954,7 @@
         }
       },
       {
-        "id": 45,
+        "id": 50,
         "kind": "hml",
         "severity": "high",
         "status": "resolved",
@@ -4565,7 +5006,7 @@
         "task": null
       },
       {
-        "id": 60,
+        "id": 66,
         "kind": "parallelize",
         "severity": "normal",
         "status": "resolved",
@@ -4614,7 +5055,7 @@
         "task": null
       },
       {
-        "id": 55,
+        "id": 61,
         "kind": "task_review",
         "severity": "normal",
         "status": "resolved",
@@ -4667,7 +5108,7 @@
         }
       },
       {
-        "id": 42,
+        "id": 47,
         "kind": "decision",
         "severity": "normal",
         "status": "resolved",
@@ -4718,14 +5159,14 @@
     ],
     "counts": {
       "status": {
-        "open": 6,
+        "open": 7,
         "resolved": 5,
         "canceled": 1
       },
       "severity": {
         "critical": 1,
         "high": 4,
-        "normal": 5,
+        "normal": 6,
         "low": 2
       }
     },
@@ -4737,6 +5178,10 @@
       {
         "id": "fabrikam",
         "name": "Fabrikam"
+      },
+      {
+        "id": "northwind",
+        "name": "Northwind"
       },
       {
         "id": "personal",
@@ -4953,7 +5398,7 @@
         },
         "open": [
           {
-            "id": 92,
+            "id": 99,
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
@@ -4982,7 +5427,7 @@
             }
           },
           {
-            "id": 66,
+            "id": 72,
             "kind": "hml",
             "severity": "high",
             "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
@@ -5007,7 +5452,7 @@
             "task": null
           },
           {
-            "id": 78,
+            "id": 84,
             "kind": "task_review",
             "severity": "high",
             "title": "Revisar e integrar a task 3115 (botão de exportar)",
@@ -5036,7 +5481,7 @@
             }
           },
           {
-            "id": 83,
+            "id": 90,
             "kind": "worker_blocked",
             "severity": "high",
             "title": "Em que formato sai o extrato exportado?",
@@ -5065,7 +5510,7 @@
             }
           },
           {
-            "id": 86,
+            "id": 93,
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
@@ -5090,7 +5535,7 @@
             "task": null
           },
           {
-            "id": 90,
+            "id": 97,
             "kind": "decision",
             "severity": "normal",
             "title": "Como chamar o carrinho juntado na tela?",
@@ -5159,7 +5604,7 @@
       "events_today": 21,
       "recent_events": [
         {
-          "id": 93,
+          "id": 100,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "project": {
@@ -5192,7 +5637,7 @@
           }
         },
         {
-          "id": 92,
+          "id": 99,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -5232,7 +5677,7 @@
           }
         },
         {
-          "id": 91,
+          "id": 98,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "project": {
@@ -5268,7 +5713,7 @@
           }
         },
         {
-          "id": 90,
+          "id": 97,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -5303,7 +5748,7 @@
           }
         },
         {
-          "id": 89,
+          "id": 96,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "project": {
@@ -5333,7 +5778,7 @@
           }
         },
         {
-          "id": 88,
+          "id": 95,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "project": {
@@ -5361,7 +5806,7 @@
           }
         },
         {
-          "id": 87,
+          "id": 94,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -5390,7 +5835,7 @@
           }
         },
         {
-          "id": 86,
+          "id": 93,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -5429,7 +5874,7 @@
           }
         },
         {
-          "id": 85,
+          "id": 92,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "project": {
@@ -5454,7 +5899,7 @@
           "payload": {}
         },
         {
-          "id": 84,
+          "id": 91,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "project": {
@@ -5477,12 +5922,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 80,
+            "pending_decision": 86,
             "reason": "Entrou na especificação do item."
           }
         },
         {
-          "id": 83,
+          "id": 90,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -5517,7 +5962,7 @@
           }
         },
         {
-          "id": 82,
+          "id": 89,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "project": {
@@ -5639,7 +6084,7 @@
         },
         "open": [
           {
-            "id": 92,
+            "id": 99,
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
@@ -5668,7 +6113,7 @@
             }
           },
           {
-            "id": 66,
+            "id": 72,
             "kind": "hml",
             "severity": "high",
             "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
@@ -5693,7 +6138,7 @@
             "task": null
           },
           {
-            "id": 78,
+            "id": 84,
             "kind": "task_review",
             "severity": "high",
             "title": "Revisar e integrar a task 3115 (botão de exportar)",
@@ -5722,7 +6167,7 @@
             }
           },
           {
-            "id": 83,
+            "id": 90,
             "kind": "worker_blocked",
             "severity": "high",
             "title": "Em que formato sai o extrato exportado?",
@@ -5756,7 +6201,7 @@
       "events_today": 12,
       "recent_events": [
         {
-          "id": 92,
+          "id": 99,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -5796,7 +6241,7 @@
           }
         },
         {
-          "id": 91,
+          "id": 98,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "project": {
@@ -5832,7 +6277,7 @@
           }
         },
         {
-          "id": 89,
+          "id": 96,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "project": {
@@ -5862,7 +6307,7 @@
           }
         },
         {
-          "id": 87,
+          "id": 94,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -5891,7 +6336,7 @@
           }
         },
         {
-          "id": 84,
+          "id": 91,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "project": {
@@ -5914,12 +6359,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 80,
+            "pending_decision": 86,
             "reason": "Entrou na especificação do item."
           }
         },
         {
-          "id": 83,
+          "id": 90,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -5954,7 +6399,7 @@
           }
         },
         {
-          "id": 82,
+          "id": 89,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "project": {
@@ -5987,7 +6432,7 @@
           }
         },
         {
-          "id": 80,
+          "id": 86,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6024,7 +6469,7 @@
           }
         },
         {
-          "id": 79,
+          "id": 85,
           "at": "2026-10-09T08:50:00-03:00",
           "type": "item-started",
           "project": {
@@ -6052,7 +6497,7 @@
           }
         },
         {
-          "id": 78,
+          "id": 84,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6093,7 +6538,7 @@
           }
         },
         {
-          "id": 77,
+          "id": 83,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "task-report",
           "project": {
@@ -6133,7 +6578,7 @@
           }
         },
         {
-          "id": 76,
+          "id": 82,
           "at": "2026-10-09T08:40:00-03:00",
           "type": "task-status",
           "project": {
@@ -6237,7 +6682,7 @@
         },
         "open": [
           {
-            "id": 86,
+            "id": 93,
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
@@ -6262,7 +6707,7 @@
             "task": null
           },
           {
-            "id": 90,
+            "id": 97,
             "kind": "decision",
             "severity": "normal",
             "title": "Como chamar o carrinho juntado na tela?",
@@ -6331,7 +6776,7 @@
       "events_today": 3,
       "recent_events": [
         {
-          "id": 90,
+          "id": 97,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6366,7 +6811,7 @@
           }
         },
         {
-          "id": 86,
+          "id": 93,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6405,7 +6850,7 @@
           }
         },
         {
-          "id": 85,
+          "id": 92,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "project": {
@@ -6430,7 +6875,7 @@
           "payload": {}
         },
         {
-          "id": 72,
+          "id": 78,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -6457,7 +6902,7 @@
           }
         },
         {
-          "id": 69,
+          "id": 75,
           "at": "2026-10-08T17:05:00-03:00",
           "type": "finding-recorded",
           "project": {
@@ -6492,7 +6937,7 @@
           }
         },
         {
-          "id": 68,
+          "id": 74,
           "at": "2026-10-08T17:00:00-03:00",
           "type": "task-integrated",
           "project": {
@@ -6520,7 +6965,7 @@
           }
         },
         {
-          "id": 67,
+          "id": 73,
           "at": "2026-10-08T16:50:00-03:00",
           "type": "task-report",
           "project": {
@@ -6556,7 +7001,7 @@
           }
         },
         {
-          "id": 35,
+          "id": 39,
           "at": "2026-10-06T13:20:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -6585,7 +7030,7 @@
           }
         },
         {
-          "id": 33,
+          "id": 37,
           "at": "2026-10-06T10:00:00-03:00",
           "type": "stage-changed",
           "project": {
@@ -6612,7 +7057,7 @@
           }
         },
         {
-          "id": 30,
+          "id": 34,
           "at": "2026-10-05T11:40:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -6641,7 +7086,7 @@
           }
         },
         {
-          "id": 29,
+          "id": 33,
           "at": "2026-10-05T11:30:00-03:00",
           "type": "task-integrated",
           "project": {
@@ -6669,7 +7114,7 @@
           }
         },
         {
-          "id": 28,
+          "id": 32,
           "at": "2026-10-05T11:20:00-03:00",
           "type": "task-report",
           "project": {
@@ -6707,6 +7152,29 @@
           }
         }
       ]
+    },
+    "northwind": {
+      "generated_at": "2026-10-09T10:24:30-03:00",
+      "organization": "northwind",
+      "stale_hours": 48,
+      "active": {
+        "total": 0,
+        "by_stage": {},
+        "organizations": []
+      },
+      "pending_decisions": {
+        "total": 0,
+        "by_severity": {
+          "critical": 0,
+          "high": 0,
+          "normal": 0,
+          "low": 0
+        },
+        "open": []
+      },
+      "stale_items": [],
+      "events_today": 0,
+      "recent_events": []
     },
     "personal": {
       "generated_at": "2026-10-09T10:24:30-03:00",
@@ -6759,7 +7227,7 @@
       "events_today": 5,
       "recent_events": [
         {
-          "id": 93,
+          "id": 100,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "project": {
@@ -6792,7 +7260,7 @@
           }
         },
         {
-          "id": 81,
+          "id": 87,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-resolved",
           "project": {
@@ -6815,12 +7283,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 75,
+            "pending_decision": 81,
             "decision": "B: vira task nova para triagem."
           }
         },
         {
-          "id": 75,
+          "id": 81,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6857,7 +7325,7 @@
           }
         },
         {
-          "id": 74,
+          "id": 80,
           "at": "2026-10-09T07:35:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -6886,7 +7354,7 @@
           }
         },
         {
-          "id": 73,
+          "id": 79,
           "at": "2026-10-09T07:30:00-03:00",
           "type": "item-started",
           "project": {
@@ -6914,7 +7382,7 @@
           }
         },
         {
-          "id": 39,
+          "id": 43,
           "at": "2026-10-07T08:12:00-03:00",
           "type": "item-done",
           "project": {
@@ -6939,7 +7407,7 @@
           "payload": {}
         },
         {
-          "id": 38,
+          "id": 42,
           "at": "2026-10-07T08:10:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -6966,7 +7434,7 @@
           }
         },
         {
-          "id": 37,
+          "id": 41,
           "at": "2026-10-06T18:30:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -6995,7 +7463,7 @@
           }
         },
         {
-          "id": 32,
+          "id": 36,
           "at": "2026-10-06T09:00:00-03:00",
           "type": "item-started",
           "project": {
@@ -7095,7 +7563,7 @@
       "events_today": 1,
       "recent_events": [
         {
-          "id": 88,
+          "id": 95,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "project": {
@@ -7123,7 +7591,7 @@
           }
         },
         {
-          "id": 65,
+          "id": 71,
           "at": "2026-10-08T15:20:00-03:00",
           "type": "item-started",
           "project": {
@@ -7209,28 +7677,28 @@
     },
     "totals": {
       "window_5h": {
-        "input": 7900,
-        "output": 63200,
-        "cache_write": 578000,
-        "cache_read": 10120000,
-        "messages": 8,
-        "relative_consumption": 2058400
+        "input": 8200,
+        "output": 65300,
+        "cache_write": 598000,
+        "cache_read": 10300000,
+        "messages": 9,
+        "relative_consumption": 2112200
       },
       "today": {
-        "input": 8300,
-        "output": 65700,
-        "cache_write": 606000,
-        "cache_read": 10360000,
-        "messages": 9,
-        "relative_consumption": 2130300
+        "input": 8600,
+        "output": 67800,
+        "cache_write": 626000,
+        "cache_read": 10540000,
+        "messages": 10,
+        "relative_consumption": 2184100
       },
       "7d": {
-        "input": 13700,
-        "output": 108700,
-        "cache_write": 1020000,
-        "cache_read": 15900000,
-        "messages": 15,
-        "relative_consumption": 3422200
+        "input": 14000,
+        "output": 110800,
+        "cache_write": 1040000,
+        "cache_read": 16080000,
+        "messages": 16,
+        "relative_consumption": 3476000
       }
     },
     "note": {
@@ -7244,16 +7712,16 @@
     },
     "collection": {
       "raw_log": "found",
-      "sessions": 11,
+      "sessions": 12,
       "sessions_without_transcript": 0,
-      "transcripts": 11,
+      "transcripts": 12,
       "missing_transcripts": 0,
       "old_transcripts": 0,
       "restarted_transcripts": 0,
-      "bytes_read": 3470,
-      "lines_with_usage": 15,
+      "bytes_read": 3702,
+      "lines_with_usage": 16,
       "invalid_lines": 0,
-      "messages": 15,
+      "messages": 16,
       "cache": "new",
       "duration_ms": 42
     },
@@ -7297,8 +7765,8 @@
           "cache_read": 5130000,
           "messages": 4,
           "relative_consumption": 1065700,
-          "consumption_pct": 51.8,
-          "estimated_plan_pct": 19.2
+          "consumption_pct": 50.5,
+          "estimated_plan_pct": 18.7
         },
         {
           "key": "painel-maestro/5",
@@ -7325,8 +7793,8 @@
           "cache_read": 4400000,
           "messages": 2,
           "relative_consumption": 849000,
-          "consumption_pct": 41.2,
-          "estimated_plan_pct": 15.3
+          "consumption_pct": 40.2,
+          "estimated_plan_pct": 14.9
         },
         {
           "key": "storefront/48",
@@ -7353,8 +7821,36 @@
           "cache_read": 500000,
           "messages": 1,
           "relative_consumption": 115000,
-          "consumption_pct": 5.6,
-          "estimated_plan_pct": 2.1
+          "consumption_pct": 5.4,
+          "estimated_plan_pct": 2
+        },
+        {
+          "key": "intranet/12",
+          "project": {
+            "id": "intranet",
+            "name": "Intranet Northwind",
+            "tracker": "github",
+            "organization": {
+              "id": "northwind",
+              "name": "Northwind"
+            }
+          },
+          "item": {
+            "key": "intranet/12",
+            "number": 12,
+            "tracker_ref": "#12",
+            "title": "Reserva de salas de reunião",
+            "stage": "implementation",
+            "active": true
+          },
+          "input": 300,
+          "output": 2100,
+          "cache_write": 20000,
+          "cache_read": 180000,
+          "messages": 1,
+          "relative_consumption": 53800,
+          "consumption_pct": 2.5,
+          "estimated_plan_pct": 0.9
         },
         {
           "key": "scratch/-",
@@ -7404,7 +7900,7 @@
           "cache_read": 5130000,
           "messages": 4,
           "relative_consumption": 1065700,
-          "consumption_pct": 50,
+          "consumption_pct": 48.8,
           "estimated_plan_pct": null
         },
         {
@@ -7432,7 +7928,7 @@
           "cache_read": 4640000,
           "messages": 3,
           "relative_consumption": 920900,
-          "consumption_pct": 43.2,
+          "consumption_pct": 42.2,
           "estimated_plan_pct": null
         },
         {
@@ -7460,7 +7956,35 @@
           "cache_read": 500000,
           "messages": 1,
           "relative_consumption": 115000,
-          "consumption_pct": 5.4,
+          "consumption_pct": 5.3,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "intranet/12",
+          "project": {
+            "id": "intranet",
+            "name": "Intranet Northwind",
+            "tracker": "github",
+            "organization": {
+              "id": "northwind",
+              "name": "Northwind"
+            }
+          },
+          "item": {
+            "key": "intranet/12",
+            "number": 12,
+            "tracker_ref": "#12",
+            "title": "Reserva de salas de reunião",
+            "stage": "implementation",
+            "active": true
+          },
+          "input": 300,
+          "output": 2100,
+          "cache_write": 20000,
+          "cache_read": 180000,
+          "messages": 1,
+          "relative_consumption": 53800,
+          "consumption_pct": 2.5,
           "estimated_plan_pct": null
         },
         {
@@ -7511,9 +8035,9 @@
           "cache_read": 8610000,
           "messages": 7,
           "relative_consumption": 1880700,
-          "consumption_pct": 55,
-          "estimated_plan_pct": 12.1,
-          "plan_week_consumption_pct": 55
+          "consumption_pct": 54.1,
+          "estimated_plan_pct": 11.9,
+          "plan_week_consumption_pct": 54.1
         },
         {
           "key": "painel-maestro/5",
@@ -7540,9 +8064,9 @@
           "cache_read": 4640000,
           "messages": 3,
           "relative_consumption": 920900,
-          "consumption_pct": 26.9,
-          "estimated_plan_pct": 5.9,
-          "plan_week_consumption_pct": 26.9
+          "consumption_pct": 26.5,
+          "estimated_plan_pct": 5.8,
+          "plan_week_consumption_pct": 26.5
         },
         {
           "key": "billing-api/2875",
@@ -7569,9 +8093,9 @@
           "cache_read": 1100000,
           "messages": 1,
           "relative_consumption": 242500,
-          "consumption_pct": 7.1,
-          "estimated_plan_pct": 1.6,
-          "plan_week_consumption_pct": 7.1
+          "consumption_pct": 7,
+          "estimated_plan_pct": 1.5,
+          "plan_week_consumption_pct": 7
         },
         {
           "key": "portal/3100",
@@ -7598,9 +8122,9 @@
           "cache_read": 960000,
           "messages": 2,
           "relative_consumption": 234400,
-          "consumption_pct": 6.8,
+          "consumption_pct": 6.7,
           "estimated_plan_pct": 1.5,
-          "plan_week_consumption_pct": 6.8
+          "plan_week_consumption_pct": 6.7
         },
         {
           "key": "storefront/48",
@@ -7627,9 +8151,38 @@
           "cache_read": 500000,
           "messages": 1,
           "relative_consumption": 115000,
-          "consumption_pct": 3.4,
+          "consumption_pct": 3.3,
           "estimated_plan_pct": 0.7,
-          "plan_week_consumption_pct": 3.4
+          "plan_week_consumption_pct": 3.3
+        },
+        {
+          "key": "intranet/12",
+          "project": {
+            "id": "intranet",
+            "name": "Intranet Northwind",
+            "tracker": "github",
+            "organization": {
+              "id": "northwind",
+              "name": "Northwind"
+            }
+          },
+          "item": {
+            "key": "intranet/12",
+            "number": 12,
+            "tracker_ref": "#12",
+            "title": "Reserva de salas de reunião",
+            "stage": "implementation",
+            "active": true
+          },
+          "input": 300,
+          "output": 2100,
+          "cache_write": 20000,
+          "cache_read": 180000,
+          "messages": 1,
+          "relative_consumption": 53800,
+          "consumption_pct": 1.5,
+          "estimated_plan_pct": 0.3,
+          "plan_week_consumption_pct": 1.5
         },
         {
           "key": "scratch/-",
@@ -7697,8 +8250,8 @@
           "cache_read": 4400000,
           "messages": 2,
           "relative_consumption": 849000,
-          "consumption_pct": 41.2,
-          "estimated_plan_pct": 15.3
+          "consumption_pct": 40.2,
+          "estimated_plan_pct": 14.9
         },
         {
           "key": "portal/3112/task-3114",
@@ -7740,8 +8293,8 @@
           "cache_read": 2600000,
           "messages": 1,
           "relative_consumption": 519300,
-          "consumption_pct": 25.2,
-          "estimated_plan_pct": 9.3
+          "consumption_pct": 24.6,
+          "estimated_plan_pct": 9.1
         },
         {
           "key": "portal/3112/task-3115",
@@ -7783,8 +8336,8 @@
           "cache_read": 1700000,
           "messages": 1,
           "relative_consumption": 345050,
-          "consumption_pct": 16.8,
-          "estimated_plan_pct": 6.2
+          "consumption_pct": 16.3,
+          "estimated_plan_pct": 6
         },
         {
           "key": "portal/3112/maestro",
@@ -7814,7 +8367,7 @@
           "cache_read": 520000,
           "messages": 1,
           "relative_consumption": 119450,
-          "consumption_pct": 5.8,
+          "consumption_pct": 5.7,
           "estimated_plan_pct": 2.1
         },
         {
@@ -7845,8 +8398,8 @@
           "cache_read": 500000,
           "messages": 1,
           "relative_consumption": 115000,
-          "consumption_pct": 5.6,
-          "estimated_plan_pct": 2.1
+          "consumption_pct": 5.4,
+          "estimated_plan_pct": 2
         },
         {
           "key": "portal/3112/task-3116",
@@ -7885,8 +8438,39 @@
           "cache_read": 310000,
           "messages": 1,
           "relative_consumption": 81900,
-          "consumption_pct": 4,
-          "estimated_plan_pct": 1.5
+          "consumption_pct": 3.9,
+          "estimated_plan_pct": 1.4
+        },
+        {
+          "key": "intranet/12/maestro",
+          "role": "maestro",
+          "name": "Bento",
+          "project": {
+            "id": "intranet",
+            "name": "Intranet Northwind",
+            "tracker": "github",
+            "organization": {
+              "id": "northwind",
+              "name": "Northwind"
+            }
+          },
+          "item": {
+            "key": "intranet/12",
+            "number": 12,
+            "tracker_ref": "#12",
+            "title": "Reserva de salas de reunião",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": null,
+          "input": 300,
+          "output": 2100,
+          "cache_write": 20000,
+          "cache_read": 180000,
+          "messages": 1,
+          "relative_consumption": 53800,
+          "consumption_pct": 2.5,
+          "estimated_plan_pct": 0.9
         },
         {
           "key": "scratch/-/other",
@@ -7954,7 +8538,7 @@
           "cache_read": 4400000,
           "messages": 2,
           "relative_consumption": 849000,
-          "consumption_pct": 39.9,
+          "consumption_pct": 38.9,
           "estimated_plan_pct": null
         },
         {
@@ -7997,7 +8581,7 @@
           "cache_read": 2600000,
           "messages": 1,
           "relative_consumption": 519300,
-          "consumption_pct": 24.4,
+          "consumption_pct": 23.8,
           "estimated_plan_pct": null
         },
         {
@@ -8040,7 +8624,7 @@
           "cache_read": 1700000,
           "messages": 1,
           "relative_consumption": 345050,
-          "consumption_pct": 16.2,
+          "consumption_pct": 15.8,
           "estimated_plan_pct": null
         },
         {
@@ -8071,7 +8655,7 @@
           "cache_read": 520000,
           "messages": 1,
           "relative_consumption": 119450,
-          "consumption_pct": 5.6,
+          "consumption_pct": 5.5,
           "estimated_plan_pct": null
         },
         {
@@ -8102,7 +8686,7 @@
           "cache_read": 500000,
           "messages": 1,
           "relative_consumption": 115000,
-          "consumption_pct": 5.4,
+          "consumption_pct": 5.3,
           "estimated_plan_pct": null
         },
         {
@@ -8142,7 +8726,7 @@
           "cache_read": 310000,
           "messages": 1,
           "relative_consumption": 81900,
-          "consumption_pct": 3.8,
+          "consumption_pct": 3.7,
           "estimated_plan_pct": null
         },
         {
@@ -8173,7 +8757,38 @@
           "cache_read": 240000,
           "messages": 1,
           "relative_consumption": 71900,
-          "consumption_pct": 3.4,
+          "consumption_pct": 3.3,
+          "estimated_plan_pct": null
+        },
+        {
+          "key": "intranet/12/maestro",
+          "role": "maestro",
+          "name": "Bento",
+          "project": {
+            "id": "intranet",
+            "name": "Intranet Northwind",
+            "tracker": "github",
+            "organization": {
+              "id": "northwind",
+              "name": "Northwind"
+            }
+          },
+          "item": {
+            "key": "intranet/12",
+            "number": 12,
+            "tracker_ref": "#12",
+            "title": "Reserva de salas de reunião",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": null,
+          "input": 300,
+          "output": 2100,
+          "cache_write": 20000,
+          "cache_read": 180000,
+          "messages": 1,
+          "relative_consumption": 53800,
+          "consumption_pct": 2.5,
           "estimated_plan_pct": null
         },
         {
@@ -8242,9 +8857,9 @@
           "cache_read": 4400000,
           "messages": 2,
           "relative_consumption": 849000,
-          "consumption_pct": 24.8,
-          "estimated_plan_pct": 5.5,
-          "plan_week_consumption_pct": 24.8
+          "consumption_pct": 24.4,
+          "estimated_plan_pct": 5.4,
+          "plan_week_consumption_pct": 24.4
         },
         {
           "key": "portal/3112/task-3114",
@@ -8286,9 +8901,9 @@
           "cache_read": 3800000,
           "messages": 2,
           "relative_consumption": 797900,
-          "consumption_pct": 23.3,
+          "consumption_pct": 23,
           "estimated_plan_pct": 5.1,
-          "plan_week_consumption_pct": 23.3
+          "plan_week_consumption_pct": 23
         },
         {
           "key": "portal/3112/task-3113",
@@ -8330,9 +8945,9 @@
           "cache_read": 1900000,
           "messages": 1,
           "relative_consumption": 411500,
-          "consumption_pct": 12,
+          "consumption_pct": 11.8,
           "estimated_plan_pct": 2.6,
-          "plan_week_consumption_pct": 12
+          "plan_week_consumption_pct": 11.8
         },
         {
           "key": "portal/3112/task-3115",
@@ -8374,9 +8989,9 @@
           "cache_read": 1700000,
           "messages": 1,
           "relative_consumption": 345050,
-          "consumption_pct": 10.1,
+          "consumption_pct": 9.9,
           "estimated_plan_pct": 2.2,
-          "plan_week_consumption_pct": 10.1
+          "plan_week_consumption_pct": 9.9
         },
         {
           "key": "portal/3112/maestro",
@@ -8406,9 +9021,9 @@
           "cache_read": 900000,
           "messages": 2,
           "relative_consumption": 244350,
-          "consumption_pct": 7.1,
-          "estimated_plan_pct": 1.6,
-          "plan_week_consumption_pct": 7.1
+          "consumption_pct": 7,
+          "estimated_plan_pct": 1.5,
+          "plan_week_consumption_pct": 7
         },
         {
           "key": "billing-api/2875/maestro",
@@ -8438,9 +9053,9 @@
           "cache_read": 1100000,
           "messages": 1,
           "relative_consumption": 242500,
-          "consumption_pct": 7.1,
-          "estimated_plan_pct": 1.6,
-          "plan_week_consumption_pct": 7.1
+          "consumption_pct": 7,
+          "estimated_plan_pct": 1.5,
+          "plan_week_consumption_pct": 7
         },
         {
           "key": "portal/3100/maestro",
@@ -8470,9 +9085,9 @@
           "cache_read": 960000,
           "messages": 2,
           "relative_consumption": 234400,
-          "consumption_pct": 6.8,
+          "consumption_pct": 6.7,
           "estimated_plan_pct": 1.5,
-          "plan_week_consumption_pct": 6.8
+          "plan_week_consumption_pct": 6.7
         },
         {
           "key": "storefront/48/maestro",
@@ -8502,9 +9117,9 @@
           "cache_read": 500000,
           "messages": 1,
           "relative_consumption": 115000,
-          "consumption_pct": 3.4,
+          "consumption_pct": 3.3,
           "estimated_plan_pct": 0.7,
-          "plan_week_consumption_pct": 3.4
+          "plan_week_consumption_pct": 3.3
         },
         {
           "key": "portal/3112/task-3116",
@@ -8580,6 +9195,38 @@
           "plan_week_consumption_pct": 2.1
         },
         {
+          "key": "intranet/12/maestro",
+          "role": "maestro",
+          "name": "Bento",
+          "project": {
+            "id": "intranet",
+            "name": "Intranet Northwind",
+            "tracker": "github",
+            "organization": {
+              "id": "northwind",
+              "name": "Northwind"
+            }
+          },
+          "item": {
+            "key": "intranet/12",
+            "number": 12,
+            "tracker_ref": "#12",
+            "title": "Reserva de salas de reunião",
+            "stage": "implementation",
+            "active": true
+          },
+          "task": null,
+          "input": 300,
+          "output": 2100,
+          "cache_write": 20000,
+          "cache_read": 180000,
+          "messages": 1,
+          "relative_consumption": 53800,
+          "consumption_pct": 1.5,
+          "estimated_plan_pct": 0.3,
+          "plan_week_consumption_pct": 1.5
+        },
+        {
           "key": "scratch/-/other",
           "role": "other",
           "name": null,
@@ -8633,7 +9280,7 @@
         "task": null,
         "active_tasks": 1,
         "last_event": {
-          "id": 75,
+          "id": 81,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 5,
@@ -8659,7 +9306,7 @@
         "usage": {
           "window_5h": null,
           "today": {
-            "consumption_pct": 3.4,
+            "consumption_pct": 3.3,
             "estimated_plan_pct": null,
             "relative_consumption": 71900
           },
@@ -8706,7 +9353,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 93,
+          "id": 100,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -8727,18 +9374,18 @@
         "last_activity_at": "2026-10-09T10:20:00-03:00",
         "usage": {
           "window_5h": {
-            "consumption_pct": 41.2,
-            "estimated_plan_pct": 15.3,
+            "consumption_pct": 40.2,
+            "estimated_plan_pct": 14.9,
             "relative_consumption": 849000
           },
           "today": {
-            "consumption_pct": 39.9,
+            "consumption_pct": 38.9,
             "estimated_plan_pct": null,
             "relative_consumption": 849000
           },
           "7d": {
-            "consumption_pct": 24.8,
-            "estimated_plan_pct": 5.5,
+            "consumption_pct": 24.4,
+            "estimated_plan_pct": 5.4,
             "relative_consumption": 849000
           }
         }
@@ -8767,7 +9414,7 @@
         "task": null,
         "active_tasks": 3,
         "last_event": {
-          "id": 92,
+          "id": 99,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -8795,18 +9442,18 @@
         "last_activity_at": "2026-10-09T10:15:00-03:00",
         "usage": {
           "window_5h": {
-            "consumption_pct": 5.8,
+            "consumption_pct": 5.7,
             "estimated_plan_pct": 2.1,
             "relative_consumption": 119450
           },
           "today": {
-            "consumption_pct": 5.6,
+            "consumption_pct": 5.5,
             "estimated_plan_pct": null,
             "relative_consumption": 119450
           },
           "7d": {
-            "consumption_pct": 7.1,
-            "estimated_plan_pct": 1.6,
+            "consumption_pct": 7,
+            "estimated_plan_pct": 1.5,
             "relative_consumption": 244350
           }
         }
@@ -8847,7 +9494,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 83,
+          "id": 90,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3114,
@@ -8870,17 +9517,17 @@
         "last_activity_at": "2026-10-09T10:22:00-03:00",
         "usage": {
           "window_5h": {
-            "consumption_pct": 25.2,
-            "estimated_plan_pct": 9.3,
+            "consumption_pct": 24.6,
+            "estimated_plan_pct": 9.1,
             "relative_consumption": 519300
           },
           "today": {
-            "consumption_pct": 24.4,
+            "consumption_pct": 23.8,
             "estimated_plan_pct": null,
             "relative_consumption": 519300
           },
           "7d": {
-            "consumption_pct": 23.3,
+            "consumption_pct": 23,
             "estimated_plan_pct": 5.1,
             "relative_consumption": 797900
           }
@@ -8922,7 +9569,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 78,
+          "id": 84,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3115,
@@ -8951,17 +9598,17 @@
         "last_activity_at": "2026-10-09T08:45:00-03:00",
         "usage": {
           "window_5h": {
-            "consumption_pct": 16.8,
-            "estimated_plan_pct": 6.2,
+            "consumption_pct": 16.3,
+            "estimated_plan_pct": 6,
             "relative_consumption": 345050
           },
           "today": {
-            "consumption_pct": 16.2,
+            "consumption_pct": 15.8,
             "estimated_plan_pct": null,
             "relative_consumption": 345050
           },
           "7d": {
-            "consumption_pct": 10.1,
+            "consumption_pct": 9.9,
             "estimated_plan_pct": 2.2,
             "relative_consumption": 345050
           }
@@ -9000,7 +9647,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 92,
+          "id": 99,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -9028,12 +9675,12 @@
         "last_activity_at": "2026-10-09T10:06:00-03:00",
         "usage": {
           "window_5h": {
-            "consumption_pct": 4,
-            "estimated_plan_pct": 1.5,
+            "consumption_pct": 3.9,
+            "estimated_plan_pct": 1.4,
             "relative_consumption": 81900
           },
           "today": {
-            "consumption_pct": 3.8,
+            "consumption_pct": 3.7,
             "estimated_plan_pct": null,
             "relative_consumption": 81900
           },
@@ -9068,7 +9715,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 88,
+          "id": 95,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -9108,7 +9755,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 90,
+          "id": 97,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -9131,17 +9778,17 @@
         "last_activity_at": "2026-10-09T09:45:00-03:00",
         "usage": {
           "window_5h": {
-            "consumption_pct": 5.6,
-            "estimated_plan_pct": 2.1,
+            "consumption_pct": 5.4,
+            "estimated_plan_pct": 2,
             "relative_consumption": 115000
           },
           "today": {
-            "consumption_pct": 5.4,
+            "consumption_pct": 5.3,
             "estimated_plan_pct": null,
             "relative_consumption": 115000
           },
           "7d": {
-            "consumption_pct": 3.4,
+            "consumption_pct": 3.3,
             "estimated_plan_pct": 0.7,
             "relative_consumption": 115000
           }
@@ -9171,7 +9818,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 84,
+          "id": 91,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "task_number": null,
@@ -9180,12 +9827,79 @@
             "name": "Bento"
           },
           "payload": {
-            "pending_decision": 80,
+            "pending_decision": 86,
             "reason": "Entrou na especificação do item."
           }
         },
         "last_activity_at": null,
         "usage": null
+      },
+      {
+        "key": "intranet/12/maestro",
+        "role": "maestro",
+        "name": "Bento",
+        "project": {
+          "id": "intranet",
+          "name": "Intranet Northwind",
+          "tracker": "github",
+          "organization": {
+            "id": "northwind",
+            "name": "Northwind"
+          }
+        },
+        "item": {
+          "key": "intranet/12",
+          "number": 12,
+          "tracker_ref": "#12",
+          "title": "Reserva de salas de reunião",
+          "stage": "implementation",
+          "active": true
+        },
+        "task": null,
+        "active_tasks": 0,
+        "last_event": {
+          "id": 88,
+          "at": "2026-10-09T09:10:00-03:00",
+          "type": "pending-decision-opened",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "payload": {
+            "kind": "decision",
+            "severity": "normal",
+            "title": "Reserva recorrente entra nesta entrega?",
+            "context": "O pedido fala em reservar uma sala; a equipe da Northwind perguntou por reservas semanais.",
+            "options": [
+              "A: Só reserva avulsa agora",
+              "B: Incluir a recorrente"
+            ],
+            "recommendation": "A: a recorrente vira um item novo.",
+            "maestri": {
+              "workspace": "Northwind",
+              "terminal": "Maestro #12"
+            }
+          }
+        },
+        "last_activity_at": "2026-10-09T09:12:00-03:00",
+        "usage": {
+          "window_5h": {
+            "consumption_pct": 2.5,
+            "estimated_plan_pct": 0.9,
+            "relative_consumption": 53800
+          },
+          "today": {
+            "consumption_pct": 2.5,
+            "estimated_plan_pct": null,
+            "relative_consumption": 53800
+          },
+          "7d": {
+            "consumption_pct": 1.5,
+            "estimated_plan_pct": 0.3,
+            "relative_consumption": 53800
+          }
+        }
       },
       {
         "key": "storefront/52/maestro",
@@ -9211,7 +9925,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 72,
+          "id": 78,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -9250,7 +9964,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 71,
+          "id": 77,
           "at": "2026-10-08T18:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -9267,8 +9981,8 @@
           "window_5h": null,
           "today": null,
           "7d": {
-            "consumption_pct": 7.1,
-            "estimated_plan_pct": 1.6,
+            "consumption_pct": 7,
+            "estimated_plan_pct": 1.5,
             "relative_consumption": 242500
           }
         }
@@ -9297,7 +10011,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 43,
+          "id": 48,
           "at": "2026-10-07T17:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -9314,7 +10028,7 @@
           "window_5h": null,
           "today": null,
           "7d": {
-            "consumption_pct": 6.8,
+            "consumption_pct": 6.7,
             "estimated_plan_pct": 1.5,
             "relative_consumption": 234400
           }
@@ -9344,7 +10058,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 65,
+          "id": 71,
           "at": "2026-10-08T15:20:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -9384,7 +10098,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 51,
+          "id": 57,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -9423,7 +10137,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 33,
+          "id": 37,
           "at": "2026-10-06T10:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -9462,7 +10176,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 13,
+          "id": 14,
           "at": "2026-10-02T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -9480,7 +10194,7 @@
       }
     ],
     "counts": {
-      "maestro": 12,
+      "maestro": 13,
       "worker": 4
     }
   }
