@@ -16,6 +16,11 @@ A organização reservada onde cai o projeto de um repositório sem cadastro, at
 Em código: `UNASSIGNED_ORGANIZATION`.
 _Avoid_: sem empresa, organização padrão, sem cadastro
 
+**Organização oculta**:
+Uma organização que o dono tirou das listagens do painel, por exemplo para apresentá-lo a outra organização; o trabalho dela segue normal e ela continua no cadastro, de onde o dono a mostra de novo.
+Em código: `hidden`.
+_Avoid_: arquivada, inativa, desativada
+
 **Projeto**:
 Um projeto do tracker (um repositório no GitHub, um projeto no Azure DevOps), com os repositórios e pastas locais que pertencem a ele.
 Em código: `Project`.
