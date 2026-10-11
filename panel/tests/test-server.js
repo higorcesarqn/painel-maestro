@@ -111,7 +111,7 @@ suite.test('GET /api/state: health, the menu counter, the plan usage and the col
   assert.deepStrictEqual(Object.keys(e.health).sort(), ['last_event_at', 'last_raw_at', 'level', 'reasons', 'usage_age_min']);
   assert.strictEqual(e.generated_at, NOW);
   assert.deepStrictEqual([e.health.level, e.health.reasons, e.health.last_event_at, e.health.last_raw_at, e.health.usage_age_min], ['green', [], null, null, 3]);
-  assert.deepStrictEqual(e.kpis.pending_decisions, { total: 0, by_severity: { critical: 0, high: 0, normal: 0, low: 0 } });
+  assert.deepStrictEqual(e.kpis.pending_decisions, { total: 0, by_severity: { critical: 0, high: 0, normal: 0, low: 0 }, open: [] });
   const u = e.kpis.usage;
   assert.deepStrictEqual(
     [u.available, u.window_5h_pct, u.reset_5h, u.weekly_pct, u.weekly_reset, u.age_min],

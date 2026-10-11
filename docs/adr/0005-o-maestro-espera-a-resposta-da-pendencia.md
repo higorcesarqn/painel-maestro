@@ -5,4 +5,5 @@ O dono volta a poder responder uma pendência pelo painel, que grava a decisão 
 ## Consequences
 
 - As skills de orquestração (com e sem Maestri) passam a deixar o `wait` rodando a cada `pending open`.
+- O aviso ao **dono** de uma pendência nova sai do CLI (o `flow pending open` chama o `maestri notify` quando roda num terminal do Maestri, #44) e da página (título, favicon e notificação do navegador, #40); o painel continua sem empurrar nada ao maestro.
 - Uma pendência sem ninguém esperando por ela, como a de HML derivada ou a de uma sessão encerrada, pode ser respondida pelo painel. A decisão fica gravada, mas ninguém é acordado: o maestro a encontra quando retomar o item.

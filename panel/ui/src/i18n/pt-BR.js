@@ -68,6 +68,8 @@ export default {
 
   app: {
     documentTitle: '{screen} · {panel}',
+    // With open pending decisions (#43): every organization, the same count as the menu counter.
+    documentTitlePending: '({count}) {screen} · {panel}',
     panel: 'Painel maestro',
     collectorFailed: 'Coletor falhou: {error}',
     recalculated: 'Uso recalculado às {time}',
@@ -129,6 +131,19 @@ export default {
     when: '{date} ({age})',
     planData: 'Dado de uso do plano',
     readWarnings: 'Avisos de leitura ({count})',
+  },
+
+  // The browser notification of a new pending decision (#45): the bell in the header and the notification itself.
+  notification: {
+    bell: {
+      off: 'Notificação do navegador desligada. Clique para ser avisado de pendência nova com a aba escondida.',
+      on: 'Notificação do navegador ligada: avisa pendência nova com a aba escondida. Clique para desligar.',
+      blocked: 'Notificação bloqueada pelo navegador. Libere as notificações deste site nas configurações do navegador e clique de novo.',
+      demo: 'Notificação do navegador indisponível na demonstração.',
+    },
+    pendingBody: 'Severidade {severity} · {project} {ref} · {item}',
+    groupTitle: { one: '{count} pendência nova', other: '{count} pendências novas' },
+    groupBody: 'Abra a tela Pendências para ver todas.',
   },
 
   charts: { total: 'Total' },
@@ -509,6 +524,8 @@ export default {
     derivedHml: 'Validação HML: {failed} com falha e {blocked} bloqueado(s) de {total} cenários',
     derivedHmlContext: 'Aberta sozinha pelo resultado da validação HML ({passed} aprovado(s), {failed} com falha, {blocked} bloqueado(s)); fecha quando uma validação seguinte passar em tudo ou o item for concluído.',
     derivedHmlCard: 'Card de validação',
+    // the Maestri's notification failed when it opened (#44)
+    notificationFailed: 'O aviso do Maestri falhou quando esta pendência abriu (maestri notify): você pode não ter sido notificado.',
     cancelReason: 'Motivo do cancelamento',
     noReason: 'Sem motivo registrado.',
     whereTitle: 'Onde responder',

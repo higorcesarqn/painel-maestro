@@ -295,6 +295,8 @@ function deliveryState() {
 //     title, context, options: [text], recommendation,
 //     task_number,              the task it is about, or null (the item as a whole)
 //     maestri: { workspace, terminal },   where the owner answers (the maestro's Maestri terminal)
+//     notification,             how the owner was told when it opened (#44): 'sent' (maestri notify) | 'failed' |
+//                               'outside' (not run in a Maestri terminal) | null (derived, or opened before #44)
 //     opened_at, opened_by: { role, name },
 //     closed_at, closed_by: { role, name } | null,
 //     resolution,               'decision' (resolved with the owner's decision) | 'task_integrated' | 'hml_approved' |
@@ -305,7 +307,7 @@ function deliveryState() {
 //
 // Events:
 //   pending-decision-opened    task_number?, payload { kind, severity, title, context, options, recommendation,
-//                              maestri: { workspace, terminal } }
+//                              maestri: { workspace, terminal }, notification: 'sent' | 'failed' | 'outside' }
 //   pending-decision-resolved  payload { pending_decision: id, decision }
 //   pending-decision-canceled  payload { pending_decision: id, reason }
 //   task-integrated            also resolves the open task_review of that task (the review and the OK to integrate are
@@ -325,6 +327,7 @@ function deliveryState() {
 const PENDING_DECISION_KINDS = ['task_review', 'worker_blocked', 'decision', 'finding', 'parallelize', 'hml'];
 const PENDING_DECISION_SEVERITIES = ['critical', 'high', 'normal', 'low'];
 const PENDING_DECISION_STATUSES = ['open', 'resolved', 'canceled'];
+const PENDING_DECISION_NOTIFICATIONS = ['sent', 'failed', 'outside'];
 // The longest decision (and cancel reason), in characters: flow pending resolve and the panel's answer (#32).
 const MAX_PENDING_DECISION = 2000;
 
@@ -352,6 +355,7 @@ function projectPendingDecisions(list, project) {
         recommendation: textOrNull(p.recommendation),
         task_number: isNumber(e.task_number) ? e.task_number : null,
         maestri: { workspace: textOrNull(maestri.workspace), terminal: textOrNull(maestri.terminal) },
+        notification: PENDING_DECISION_NOTIFICATIONS.includes(p.notification) ? p.notification : null,
         opened_at: e.at,
         opened_by: agentOf(e),
         closed_at: null,
@@ -380,7 +384,7 @@ function projectPendingDecisions(list, project) {
         const workspace = project && typeof project.maestri_workspace === 'string' ? textOrNull(project.maestri_workspace) : null;
         byId.set(e.id, {
           id: e.id, kind: 'hml', severity: 'high', status: 'open', title: null, context: null, options: [], recommendation: null,
-          task_number: null, maestri: { workspace, terminal: null }, opened_at: e.at, opened_by: agentOf(e), closed_at: null, closed_by: null,
+          task_number: null, maestri: { workspace, terminal: null }, notification: null, opened_at: e.at, opened_by: agentOf(e), closed_at: null, closed_by: null,
           resolution: null, decision: null, reason: null, derived_from: hmlOrigin(p, passed, failed, blocked),
         });
       }

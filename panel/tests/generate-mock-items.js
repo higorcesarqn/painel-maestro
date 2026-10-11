@@ -234,7 +234,8 @@ for (const [projectId, number, at, type, task, [role, name], payload] of TASKS) 
 
 // Pending decisions (#10): [ref, project, number, ISO moment, type, task, [role, name], payload]. The id of a pending
 // decision is the id of its opening event, so the closing events name it by ref (filled in after the ids are given).
-// Open and closed ones of every kind; the review of task 3113 is resolved by its integration (no closing event).
+// Open and closed ones of every kind; the review of task 3113 is resolved by its integration (no closing event). The
+// owner's Maestri notification (#44): sent for the critical one, failed for the review of 3115, none for the older ones.
 const CONTOSO = { workspace: 'Contoso', terminal: 'Maestro PBI 3112' };
 const PENDING = [
   ['review-3113', 'portal', 3112, '2026-10-08T13:12:00', 'pending-decision-opened', 3113, MAESTRO, {
@@ -249,11 +250,11 @@ const PENDING = [
   [null, 'portal', 3112, '2026-10-09T08:42:00', 'pending-decision-opened', 3115, MAESTRO, {
     kind: 'task_review', severity: 'high', title: 'Revisar e integrar a task 3115 (botão de exportar)',
     context: 'Botão pronto, 4/4 testes verdes. Mudou o componente de cabeçalho da tela do extrato.', options: ['A: Integrar', 'B: Pedir ajuste', 'C: Esperar a 3114'],
-    recommendation: 'A: a 3114 não depende do botão.', maestri: CONTOSO }],
+    recommendation: 'A: a 3114 não depende do botão.', maestri: CONTOSO, notification: 'failed' }],
   [null, 'portal', 3112, '2026-10-09T10:06:00', 'pending-decision-opened', 3116, MAESTRO, {
     kind: 'worker_blocked', severity: 'critical', title: 'Falta o certificado de homologação para assinar o PDF',
     context: 'O subagente da 3116 parou: a assinatura digital precisa do certificado A1 de homologação, que não está no cofre do projeto.',
-    options: ['A: Enviar o certificado', 'B: Assinar com certificado de teste por enquanto'], recommendation: 'B, e abrir um achado para trocar antes do HML.', maestri: CONTOSO }],
+    options: ['A: Enviar o certificado', 'B: Assinar com certificado de teste por enquanto'], recommendation: 'B, e abrir um achado para trocar antes do HML.', maestri: CONTOSO, notification: 'sent' }],
   [null, 'portal', 3100, '2026-10-08T16:30:00', 'pending-decision-opened', null, ['owner', 'Higor'], {
     kind: 'hml', severity: 'high', title: 'Cenário 4 reprovado em HML: boleto pago em duplicidade',
     context: 'Na Validação HML, um boleto pago duas vezes no mesmo dia foi conciliado só uma vez. Cenários 1 a 3 aprovados.',

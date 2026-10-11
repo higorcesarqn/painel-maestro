@@ -105,7 +105,10 @@ function picture(items, organization, nowMs, staleHours) {
   };
 }
 
-/** The open pending decision as the Overview lists it (the whole one is on the Pendências screen). */
+/**
+ * The open pending decision as the Overview lists it (the whole one is on the Pendências screen); GET /api/state lists
+ * every open one in the same shape (kpis.pending_decisions.open, #45).
+ */
 function pendingSummary(p) {
   return { id: p.id, kind: p.kind, severity: p.severity, title: p.title, derived_from: p.derived_from, opened_at: p.opened_at, item: p.item, task: p.task };
 }
@@ -126,4 +129,4 @@ function staleItems(items, nowMs, staleHours) {
   return out.sort((a, b) => b.hours - a.hours || a.key.localeCompare(b.key));
 }
 
-module.exports = { overview };
+module.exports = { overview, pendingSummary };

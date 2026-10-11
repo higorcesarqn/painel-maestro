@@ -1,15 +1,20 @@
 // Panel shell: reads /api/state every 20 s, keeps the current screen in the URL (#overview, #log...),
 // the Log filters and the pending decision to open when the Overview sends the person there. Only the visible
 // screen is drawn. When a state read says the page changed on disk (version.page, #37), a fixed strip asks for a
-// reload, which is only ever the person's click.
+// reload, which is only ever the person's click. The tab's title and favicon show the open pending decisions of every
+// organization (#43, data/tab.js), from each state read, on any screen. With the bell on (#45, data/notification.js),
+// a pending decision that opened while the tab was hidden becomes a browser notification; the shell is the only one
+// touching the Notification API.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { PanelContext, SCREENS, parseHash, newFilter } from '../data/context.js';
 import { REFRESH_MS, MOCK, readState, recalculateUsage, readLog } from '../data/api.js';
 import { syncClock, time, txt, obj } from '../data/format.js';
 import { logParams } from '../data/queries.js';
 import { pageOutdated } from '../data/page.js';
+import { openPending, documentTitle, faviconHref } from '../data/tab.js';
+import { pendingNotice, openList, bellState, noticeContent, loadWanted, saveWanted } from '../data/notification.js';
 import { useOrganizations } from '../data/organizations.js';
-import { t } from '../i18n/index.js';
+import { t, LOCALE } from '../i18n/index.js';
 import { Sidebar } from './Sidebar.jsx';
 import { Header } from './Header.jsx';
 import { Overview } from '../screens/Overview.jsx';
@@ -27,6 +32,8 @@ const SCREEN_COMPONENTS = { overview: Overview, items: Items, pending: PendingDe
 const hashParts = () => parseHash(location.hash);
 const screenFromHash = () => hashParts().id;
 const hashOf = (id, sub) => `#${id}${sub ? `/${sub}` : ''}`;
+// The browser's Notification API: absent in some embedded browsers (the Maestri portal, probably), and then no bell.
+const NOTIFICATIONS = typeof window !== 'undefined' && 'Notification' in window;
 
 export function App() {
   const [state, setState] = useState(null);
@@ -85,9 +92,17 @@ export function App() {
     if (location.hash !== hashOf(screen, subroute)) history.replaceState(null, '', hashOf(screen, subroute));
     return () => window.removeEventListener('hashchange', h);
   }, []);
+  // ---------- browser tab (#43): "(n) " in the title and a dot in the favicon ----------
+  const pending = openPending(state);
+  const pendingTotal = pending ? pending.total : 0;
+  const pendingTone = pending ? pending.tone : null;
   useEffect(() => {
-    document.title = t('app.documentTitle', { screen: t(`nav.${screen}`), panel: t('app.panel') });
-  }, [screen]);
+    document.title = documentTitle(screen, pendingTotal);
+  }, [screen, pendingTotal]);
+  useEffect(() => {
+    const link = document.querySelector('link[rel="icon"]');
+    if (link) link.href = faviconHref(pendingTone);
+  }, [pendingTone]);
 
   // ---------- organization selector (#6) ----------
   const organizationSelector = useOrganizations();
@@ -158,10 +173,57 @@ export function App() {
     setPendingTarget({ id, at: Date.now() });
   }, []);
 
+  // ---------- browser notification (#45): the bell and a notification for a new pending decision ----------
+  // Every state read asks the rule with the ids of the previous one (none on the first read, which never notifies) and
+  // whether the tab is in sight; the notification only goes out with the bell on. The permission is only ever asked by
+  // the bell's click, never in the demo.
+  const [wanted, setWanted] = useState(loadWanted);
+  const [permission, setPermission] = useState(() => (NOTIFICATIONS ? Notification.permission : 'default'));
+  const bell = bellState({ supported: NOTIFICATIONS, mock: MOCK, permission, wanted });
+  const bellRef = useRef(bell);
+  bellRef.current = bell;
+  const previousIds = useRef(null);
+  useEffect(() => {
+    const open = openList(state);
+    if (!open) return;
+    const notice = pendingNotice(previousIds.current, open, document.visibilityState === 'visible');
+    previousIds.current = open.map((p) => p.id);
+    if (!NOTIFICATIONS) return;
+    setPermission(Notification.permission); // the owner may have changed it in the browser's settings
+    if (!notice || bellRef.current !== 'on' || Notification.permission !== 'granted') return;
+    const content = noticeContent(notice);
+    try {
+      const n = new Notification(content.title, { body: content.body, tag: content.tag, lang: LOCALE });
+      n.onclick = () => {
+        window.focus();
+        if (content.target) goToPendingDecision(content.target);
+        else goTo('pending');
+        n.close();
+      };
+    } catch (_) { /* a browser that only notifies from a service worker: the tab's title and favicon still say it */ }
+  }, [state]);
+  const toggleBell = useCallback(async () => {
+    if (!NOTIFICATIONS || MOCK) return;
+    if (bellRef.current === 'on') {
+      setWanted(false);
+      saveWanted(false);
+      return;
+    }
+    let answer = Notification.permission;
+    if (answer !== 'granted') {
+      try { answer = (await Notification.requestPermission()) || Notification.permission; } catch (_) { answer = Notification.permission; }
+    }
+    setPermission(answer);
+    if (answer === 'granted') {
+      setWanted(true);
+      saveWanted(true);
+    }
+  }, []);
+
   const ctx = {
     ...organizationSelector,
     state, connectionError, failingSince, screen, goTo, actionStatus, setActionStatus, recalculating, recalculate,
-    goToPendingDecision, pendingTarget,
+    goToPendingDecision, pendingTarget, bell, toggleBell,
     filters, setFilters, setRawFilters, page, setPage, log, loadLog,
     subroute,
   };

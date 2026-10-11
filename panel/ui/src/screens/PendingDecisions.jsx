@@ -3,9 +3,12 @@
 // and, once closed, the decision) and, on the right, the answer (#32): for an open one, the form (options that only
 // select, the recommended one highlighted, a comment and "Enviar resposta", POST /api/pending-decisions/<id>/answer), a
 // note on when the maestro learns of it and, below, the workspace and the terminal of the maestro in the Maestri, the
-// other way to answer; for a closed one, the dates and who closed it. Reads GET /api/pending-decisions every 20 s; each
-// column scrolls inside. The organization comes from the selector at the top of the panel (#6, organizationFilter), like
-// in the other screens of the new model.
+// other way to answer; for a closed one, the dates and who closed it. A discreet line under the title of an open one
+// says when the Maestri's notification failed as it opened (#44, notification 'failed'; nothing once closed, nor for
+// the others or the older ones). Reads GET /api/pending-decisions every 20 s; each column scrolls inside. The
+// organization comes from the selector at the top of the panel (#6, organizationFilter), like in the other screens of
+// the new model. A pending decision linked from the Overview or a browser notification (#45) that the selector or the
+// screen's filters leave out of the list shows up anyway, read without them; the selector and the filters stay.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
 import { REFRESH_MS, readPendingDecisions, answerPendingDecision } from '../data/api.js';
@@ -24,6 +27,8 @@ const AUTO_RESOLUTIONS = ['task_integrated', 'hml_approved', 'item_done', 'repla
 const STATUS_TONE = { open: 'blue', resolved: 'ok', canceled: 'neutral' };
 const ref = (p) => t('pending.ref', { id: p.id });
 const domId = (p) => `pending-${p.id}`;
+/** Whether p is the pending decision of this id: "P-7" (a link) or 7. */
+const isPending = (p, id) => ref(p) === id || String(p.id) === String(id);
 const severityName = (s) => t(`pending.severities.${SEVERITIES.includes(s) ? s : 'normal'}`);
 const kindName = (k) => t(`pending.kinds.${k}`);
 const statusName = (s) => t(`pending.statuses.${s}`);
@@ -43,21 +48,30 @@ function params(f, organizationFilter) {
   return sp;
 }
 
+/** The pending decision of this id as it is now, read without the selector's organization nor the screen's filters, or null. */
+async function readAnywhere(id) {
+  const all = await readPendingDecisions(params({ status: 'all', severity: null }, null));
+  return objs(all && all.pending_decisions).find((p) => isPending(p, id)) || null;
+}
+
 export function PendingDecisions() {
   const { pendingTarget, setActionStatus, goTo, organization, organizationFilter } = usePanel();
   const [filters, setFilters] = useState({ status: 'open', severity: null });
   const [read, setRead] = useState({ answer: null, error: null });
   const [chosen, setChosen] = useState(null);
   // The pending decision just answered (or closed before the answer went out): it stays on screen, closed, even when
-  // the status filter takes it out of the list.
+  // the status filter takes it out of the list. Also the one of a link that the list leaves out (outside the selector's
+  // organization or the screen's filters), open or not.
   const [kept, setKept] = useState(null);
   const detail = useRef(null);
   const seq = useRef(0);
 
-  // The open pending decision on screen ({ id, query }): when a new reading of the same query no longer has it open,
-  // it was closed elsewhere (the maestro, an integration, a cancel) and closedMeanwhile shows how.
+  // The open pending decision on screen ({ id, query, outside }): when a new reading of the same query no longer has it
+  // open, it was closed elsewhere (the maestro, an integration, a cancel) and closedMeanwhile shows how. One outside the
+  // list (a link's) is read again by itself.
   const shownOpen = useRef(null);
   const onClosed = useRef(null);
+  const onOutside = useRef(null);
 
   const load = useCallback(async () => {
     const mine = ++seq.current;
@@ -65,11 +79,12 @@ export function PendingDecisions() {
     try {
       const answer = await readPendingDecisions(query);
       if (mine !== seq.current) return;
-      setRead({ answer, error: null });
+      setRead({ answer, error: null, seq: mine });
       const open = shownOpen.current;
       if (open && open.query === JSON.stringify(query)) {
         const now = objs(answer && answer.pending_decisions).find((p) => p.id === open.id);
-        if (!now || now.status !== 'open') onClosed.current(open.id, { reload: false });
+        if (!now && open.outside) onOutside.current(open.id);
+        else if (!now || now.status !== 'open') onClosed.current(open.id, { reload: false });
       }
     } catch (error) {
       if (mine === seq.current) setRead((r) => ({ answer: r.answer, error }));
@@ -86,10 +101,13 @@ export function PendingDecisions() {
   const counts = obj(answer && answer.counts) || {};
   const byStatus = obj(counts.status) || {};
   const bySeverity = obj(counts.severity) || {};
-  // The kept one wins over the list: it is already closed (final), while the list may still hold the open copy read
-  // before the answer.
-  const current = (kept && kept.id === chosen ? kept : null) || list.find((p) => p.id === chosen) || list[0] || null;
-  shownOpen.current = current && current.status === 'open' ? { id: current.id, query: JSON.stringify(params(filters, organizationFilter)) } : null;
+  // The kept one wins over the list when it is closed (final: the list may still hold the open copy read before the
+  // answer) or when the list leaves it out; an open one in the list is the list's, the fresher copy.
+  const listed = list.find((p) => p.id === chosen);
+  const current = (kept && kept.id === chosen && !(listed && kept.status === 'open') ? kept : null) || listed || list[0] || null;
+  shownOpen.current = current && current.status === 'open'
+    ? { id: current.id, query: JSON.stringify(params(filters, organizationFilter)), outside: !list.some((p) => p.id === current.id) }
+    : null;
 
   /** After the answer: the pending decision as the server recorded it, and the lists read again. */
   const answered = (p) => {
@@ -108,25 +126,55 @@ export function PendingDecisions() {
     setActionStatus(t('pending.alreadyClosed', { id }));
     if (reload) load();
     try {
-      const all = await readPendingDecisions(params({ status: 'all', severity: null }, organizationFilter));
-      const now = objs(all && all.pending_decisions).find((p) => p.id === id);
+      const now = await readAnywhere(id);
       if (now) { setKept(now); setChosen(id); }
     } catch (_) { /* the next reading shows it */ }
   };
   onClosed.current = closedMeanwhile;
+  /** The open one outside the list, read again by itself: still open → its fresher copy; else closedMeanwhile. */
+  onOutside.current = async (id) => {
+    try {
+      const now = await readAnywhere(id);
+      if (now && now.status === 'open') setKept(now);
+      else closedMeanwhile(id, { reload: false });
+    } catch (_) { /* the next reading tries again */ }
+  };
 
-  // Coming from a link to a pending decision (the Overview): shows it when it is in the list.
+  // Coming from a link to a pending decision (the Overview, a browser notification): reads the list again and shows it
+  // in the list when it is there. The link may be newer than the list on screen, or come before the first read (the
+  // screen was just opened), so the lookup waits for a read started after the link. Out of the list (the selector's
+  // organization, the screen's filters), it is read without them and shown anyway, kept like a pending decision closed
+  // meanwhile; the selector and the filters stay. "Not in the list" only when it does not exist at all.
+  const targetRead = useRef(null);
+  const lastTarget = useRef(null);
+  lastTarget.current = pendingTarget;
   useEffect(() => {
     if (!pendingTarget) return;
-    const hit = list.find((p) => ref(p) === pendingTarget.id || String(p.id) === String(pendingTarget.id));
-    if (!hit) { setActionStatus(t('pending.notInList', { id: pendingTarget.id })); return; }
-    setChosen(hit.id);
-    requestAnimationFrame(() => {
-      const el = document.getElementById(domId(hit));
-      if (el) el.scrollIntoView({ block: 'nearest' });
-      if (detail.current) detail.current.focus({ preventScroll: true });
-    });
+    load();
+    targetRead.current = { target: pendingTarget, seq: seq.current };
   }, [pendingTarget]);
+  useEffect(() => {
+    const wait = targetRead.current;
+    if (!wait || !(read.seq >= wait.seq)) return;
+    targetRead.current = null;
+    const id = wait.target.id;
+    const show = (p, inList) => {
+      setChosen(p.id);
+      requestAnimationFrame(() => {
+        const el = inList && document.getElementById(domId(p));
+        if (el) el.scrollIntoView({ block: 'nearest' });
+        if (detail.current) detail.current.focus({ preventScroll: true });
+      });
+    };
+    const hit = list.find((p) => isPending(p, id));
+    if (hit) { show(hit, true); return; }
+    readAnywhere(id).then((p) => {
+      if (lastTarget.current !== wait.target) return; // another link came meanwhile
+      if (!p) { setActionStatus(t('pending.notInList', { id })); return; }
+      setKept(p);
+      show(p, false);
+    }, () => setActionStatus(t('pending.notInList', { id })));
+  }, [read]);
 
   const change = (f) => { setFilters((x) => ({ ...x, ...f })); setChosen(null); };
   const statusOptions = [...STATUSES, 'all'].map((s) => ({ id: s, name: s === 'all' ? t('pending.allStatuses') : statusName(s), n: s === 'all' ? undefined : number(byStatus[s] || 0) }));
@@ -206,6 +254,7 @@ function PendingDetail({ p, goTo }) {
         <span class="muted" title={dateTime(p.opened_at)}>{t('pending.openedAgo', { age: age(p.opened_at) })}</span>
       </div>
       <h2 class="pending-heading">{pendingTitle(p)}</h2>
+      {p.status === 'open' && p.notification === 'failed' && <p class="muted small pending-notification">{t('pending.notificationFailed')}</p>}
       <dl class="pending-facts">
         <dt>{t('pending.item')}</dt>
         <dd>
