@@ -22,7 +22,9 @@
 .report-diff-total .mono { display: inline-flex; gap: 8px; }
 .report-diff-files { list-style: none; display: flex; flex-direction: column; gap: 2px; max-height: 16em; overflow: auto; }
 .report-diff-files li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline; }
-.diff-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.diff-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; min-width: 0; }
+.diff-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; max-width: 100%; }
+.diff-also { font-family: var(--font); white-space: nowrap; }
 .diff-added { color: var(--ok); }
 .diff-removed { color: var(--danger); }
 .report-diff-files .diff-added, .report-diff-files .diff-removed { min-width: 3.5em; text-align: right; }

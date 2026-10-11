@@ -419,6 +419,8 @@ export default {
       removedTitle: 'linhas removidas',
       base: 'desde {base}',
       empty: 'Nenhum arquivo alterado desde a base.',
+      // Another task of the item also changed the file (#56): a warning of a possible conflict, never "compartilhado".
+      alsoIn: 'também na task {task}',
     },
     findings: {
       title: 'Achados',

@@ -415,7 +415,7 @@ function projectPendingDecisions(list, project) {
 // Fields added to ItemState:
 //   reports    [{ id, at, task_number, agent, status, blocked_reason, branch, sha, tests, changes, decisions,
 //                 risks, shared_files, text, diff }]   every report, oldest first (a task may have several); diff
-//                 as recorded, or null
+//                 as recorded, or null, with also_in: [task numbers] on each file (#56, computed on read)
 //   findings   [{ number, title, description, classification, origin_task, new_task, agent, recorded_at,
 //                 linked_at }]   in the order they were recorded
 // and to each TaskState: finding (the number of the finding the task came from, or null). The new task of a
@@ -474,7 +474,32 @@ function reviewState(list, tasks) {
     if (task.finding === null) task.finding = f.number;
     if (!task.title) task.title = f.new_task.title || f.title;
   }
-  return { tasks: all, reports, findings: [...findings.values()] };
+  return { tasks: all, reports: withAlsoIn(reports), findings: [...findings.values()] };
+}
+
+/** The paths a file of a diff summary names: its path and, when renamed, the old one (from). */
+const pathsOf = (f) => [f.path, f.from].filter((x) => typeof x === 'string');
+const filesOf = (diff) => (diff && Array.isArray(diff.files) ? diff.files.filter((f) => f && typeof f === 'object') : []);
+
+/**
+ * "também na task #N" (#56): each file of a report's diff gains also_in, the other tasks of the item (ascending, in
+ * any state) whose last report with a summary changed the same path (path or from). Computed on read, never recorded.
+ */
+function withAlsoIn(reports) {
+  const lastPathsByTask = new Map();
+  for (const r of reports) if (r.diff) lastPathsByTask.set(r.task_number, new Set(filesOf(r.diff).flatMap(pathsOf)));
+  const tasksWithSummary = [...lastPathsByTask.keys()].sort((x, y) => x - y);
+  // Files as recorded, entries that are not objects included: only the objects gain also_in.
+  return reports.map((r) => (!r.diff || !Array.isArray(r.diff.files) ? r : {
+    ...r,
+    diff: {
+      ...r.diff,
+      files: r.diff.files.map((f) => (!f || typeof f !== 'object' ? f : {
+        ...f,
+        also_in: tasksWithSummary.filter((n) => n !== r.task_number && pathsOf(f).some((p) => lastPathsByTask.get(n).has(p))),
+      })),
+    },
+  }));
 }
 
 module.exports = {

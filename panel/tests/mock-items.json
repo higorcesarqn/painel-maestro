@@ -1289,31 +1289,38 @@
                 "path": "package.json",
                 "added": 1,
                 "removed": 0,
-                "binary": false
+                "binary": false,
+                "also_in": [
+                  3115
+                ]
               },
               {
                 "path": "src/report/fonts/noto-sans.ts",
                 "added": 6,
                 "removed": 0,
-                "binary": false
+                "binary": false,
+                "also_in": []
               },
               {
                 "path": "src/report/layout.ts",
                 "added": 64,
                 "removed": 12,
-                "binary": false
+                "binary": false,
+                "also_in": []
               },
               {
                 "path": "src/report/statement-pdf.test.ts",
                 "added": 92,
                 "removed": 0,
-                "binary": false
+                "binary": false,
+                "also_in": []
               },
               {
                 "path": "src/report/statement-pdf.ts",
                 "added": 148,
                 "removed": 0,
-                "binary": false
+                "binary": false,
+                "also_in": []
               }
             ],
             "total": {
@@ -1352,22 +1359,33 @@
             "base_ref": "feature/pbi-3112",
             "files": [
               {
+                "path": "package.json",
+                "added": 2,
+                "removed": 1,
+                "binary": false,
+                "also_in": [
+                  3113
+                ]
+              },
+              {
                 "path": "src/api/export-adapter.ts",
                 "added": 38,
                 "removed": 0,
-                "binary": false
+                "binary": false,
+                "also_in": []
               },
               {
                 "path": "src/screens/Statement.tsx",
                 "added": 21,
                 "removed": 4,
-                "binary": false
+                "binary": false,
+                "also_in": []
               }
             ],
             "total": {
-              "files": 2,
-              "added": 59,
-              "removed": 4
+              "files": 3,
+              "added": 61,
+              "removed": 5
             },
             "truncated": false,
             "uncommitted": 0
@@ -1879,6 +1897,12 @@
               "base_ref": "feature/pbi-3112",
               "files": [
                 {
+                  "path": "package.json",
+                  "added": 2,
+                  "removed": 1,
+                  "binary": false
+                },
+                {
                   "path": "src/api/export-adapter.ts",
                   "added": 38,
                   "removed": 0,
@@ -1892,9 +1916,9 @@
                 }
               ],
               "total": {
-                "files": 2,
-                "added": 59,
-                "removed": 4
+                "files": 3,
+                "added": 61,
+                "removed": 5
               },
               "truncated": false,
               "uncommitted": 0
@@ -2315,13 +2339,15 @@
                 "path": "src/cart/saved-cart.js",
                 "added": 57,
                 "removed": 9,
-                "binary": false
+                "binary": false,
+                "also_in": []
               },
               {
                 "path": "src/cart/saved-cart.test.js",
                 "added": 40,
                 "removed": 0,
-                "binary": false
+                "binary": false,
+                "also_in": []
               }
             ],
             "total": {
@@ -6743,6 +6769,12 @@
               "base_ref": "feature/pbi-3112",
               "files": [
                 {
+                  "path": "package.json",
+                  "added": 2,
+                  "removed": 1,
+                  "binary": false
+                },
+                {
                   "path": "src/api/export-adapter.ts",
                   "added": 38,
                   "removed": 0,
@@ -6756,9 +6788,9 @@
                 }
               ],
               "total": {
-                "files": 2,
-                "added": 59,
-                "removed": 4
+                "files": 3,
+                "added": 61,
+                "removed": 5
               },
               "truncated": false,
               "uncommitted": 0

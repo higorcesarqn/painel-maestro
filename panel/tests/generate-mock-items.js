@@ -232,7 +232,9 @@ TASKS.push(
       'Decisões: 1. adaptador para a rota da 3114, com PDF de exemplo até ela integrar.',
       'Riscos: depende da 3114. Arquivos compartilhados: src/screens/Statement.tsx.',
     ]),
+    // package.json is also in 3113's summary: both get "também na task" (#56).
     diff: diffSummary('feature/pbi-3112', '7d1c0e94b2a8f6e5d3c1b0a9f8e7d6c5b4a39281', [
+      ['package.json', 2, 1],
       ['src/api/export-adapter.ts', 38, 0],
       ['src/screens/Statement.tsx', 21, 4],
     ]),

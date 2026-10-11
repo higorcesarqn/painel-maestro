@@ -32,9 +32,10 @@ function ReportField({ label, children }) {
 
 /**
  * The diff summary of a report (TaskDiff, #54): the totals and the files the task committed since it left the
- * integration branch, with the lines added and removed. Nothing when the report has none (old, or no base).
+ * integration branch, with the lines added and removed, and the "also in task #N" tag on the files another task of the
+ * item also changed (also_in, #56; tracker formats the number). Nothing when the report has none (old, or no base).
  */
-function DiffSummary({ diff }) {
+function DiffSummary({ diff, tracker }) {
   const d = obj(diff);
   if (!d) return null;
   const files = objs(d.files).filter((f) => typeof f.path === 'string');
@@ -57,7 +58,12 @@ function DiffSummary({ diff }) {
           <ul class="report-diff-files small mono">
             {files.map((f, i) => (
               <li key={i}>
-                <span class="diff-path" title={f.path}>{f.path}</span>
+                <span class="diff-name">
+                  <span class="diff-path" title={f.path}>{f.path}</span>
+                  {arr(f.also_in).filter(Number.isInteger).map((n) => (
+                    <Badge key={n} tone="warning" class="diff-also">{t('review.diff.alsoIn', { task: taskRef(tracker, n) })}</Badge>
+                  ))}
+                </span>
                 {plusMinus(f.added, f.removed)}
               </li>
             ))}
@@ -68,7 +74,7 @@ function DiffSummary({ diff }) {
   );
 }
 
-function Report({ report: r, open }) {
+function Report({ report: r, open, tracker }) {
   const decisions = arr(r.decisions).filter((x) => typeof x === 'string');
   const files = arr(r.shared_files).filter((x) => typeof x === 'string');
   return (
@@ -84,7 +90,7 @@ function Report({ report: r, open }) {
         {r.blocked_reason && <ReportField label={t('review.fields.blockedReason')}><p class="pre small">{txt(r.blocked_reason)}</p></ReportField>}
         {r.tests && <ReportField label={t('review.fields.tests')}><p class="pre small">{txt(r.tests)}</p></ReportField>}
         {r.changes && <ReportField label={t('review.fields.changes')}><p class="pre small">{txt(r.changes)}</p></ReportField>}
-        <DiffSummary diff={r.diff} />
+        <DiffSummary diff={r.diff} tracker={tracker} />
         {decisions.length > 0 && (
           <ReportField label={t('review.fields.decisions')}>
             <ol class="report-decisions small">{decisions.map((d, i) => <li key={i} class="pre">{d}</li>)}</ol>
@@ -119,7 +125,7 @@ export function ItemReports({ item }) {
             <span>{txt(g.task && g.task.title) || t('items.tasks.untitled')}</span>
             {g.task && <TaskStateBadge state={g.task.state} />}
           </h3>
-          {g.reports.slice().reverse().map((r, i) => <Report key={r.id || i} report={r} open={i === 0} />)}
+          {g.reports.slice().reverse().map((r, i) => <Report key={r.id || i} report={r} open={i === 0} tracker={item.tracker} />)}
         </section>
       ))}
     </Card>

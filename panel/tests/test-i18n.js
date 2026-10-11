@@ -230,6 +230,13 @@ suite.test('CLI (#54): every reason for a report without the diff summary has it
     'Relatório gravado sem o resumo do diff: nenhuma base encontrada (feature/issue-41, origin/feature/issue-41); passe --base <branch>.');
 });
 
+suite.test('"também na task #N" (#56): its own text, and no text of the diff summary says "compartilhado" (that is shared_files)', () => {
+  assert.strictEqual(i18n.t('review.diff.alsoIn', { task: '#14' }), 'também na task #14');
+  const texts = leafKeys(dictionary.review.diff).map((k) => [k, i18n.t(`review.diff.${k}`, { count: 2, base: 'x', task: '#14' })]);
+  assert.deepStrictEqual(texts.filter(([, v]) => /compartilhad/i.test(v)), []);
+  assert.strictEqual(i18n.t('review.fields.sharedFiles'), 'Arquivos compartilhados', 'the worker\'s field keeps its name');
+});
+
 suite.test('the provisional bridge (compat.js) is gone and the old folders were renamed', () => {
   assert.ok(!fs.existsSync(path.join(SOURCE, 'dados')) && !fs.existsSync(path.join(SOURCE, 'data', 'compat.js')));
   for (const dir of ['telas', 'componentes', 'estilo']) assert.ok(!fs.existsSync(path.join(SOURCE, dir)), `ui/src/${dir} still exists`);

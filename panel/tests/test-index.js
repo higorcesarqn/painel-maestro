@@ -475,14 +475,14 @@ suite.test('diff summary (#54): reports with and without it in the mock, and the
     assert.deepStrictEqual(d.total, {
       files: d.files.length, added: d.files.reduce((n, f) => n + f.added, 0), removed: d.files.reduce((n, f) => n + f.removed, 0),
     }, 'totals over the files');
-    for (const f of d.files) assert.deepStrictEqual(Object.keys(f).sort(), ['added', 'binary', 'path', 'removed']);
+    for (const f of d.files) assert.deepStrictEqual(Object.keys(f).sort(), ['added', 'also_in', 'binary', 'path', 'removed']);
   }
   assert.ok(reports.some((r) => r.diff && r.shared_files.length), 'the summary and the shared files side by side');
   assert.ok(reports.filter((r) => !r.diff).every((r) => r.diff === null), 'a report without a summary comes with diff null');
   // The source: the block lives inside the report's <details>, after the changes, and "Arquivos compartilhados" stays.
   const screen = source['screens/ItemReview.jsx'];
   const report = /function Report\(\{[\s\S]*?\r?\n\}\r?\n/.exec(screen)[0];
-  assert.ok(/<details class="report"[\s\S]*<DiffSummary diff=\{r\.diff\} \/>[\s\S]*<\/details>/.test(report), 'the summary inside the folded report');
+  assert.ok(/<details class="report"[\s\S]*<DiffSummary diff=\{r\.diff\}[^>]*\/>[\s\S]*<\/details>/.test(report), 'the summary inside the folded report');
   assert.ok(/review\.fields\.sharedFiles/.test(report), 'shared_files keeps its own field');
   assert.ok(/function DiffSummary\([\s\S]*?if \(!d\) return null;/.test(screen), 'nothing when the report has no summary');
   // The build carries the block, and the texts come from the dictionary.
@@ -492,6 +492,29 @@ suite.test('diff summary (#54): reports with and without it in the mock, and the
     [t('review.fields.diff'), t('review.diff.files', { count: 1 }), t('review.diff.files', { count: 5 }), t('review.diff.added', { count: 64 }), t('review.diff.removed', { count: 12 })],
     ['Resumo do diff', '1 arquivo', '5 arquivos', '+64', '−12'],
   );
+});
+
+suite.test('"também na task #N" (#56): a crossing between tasks in the mock, and the tag on the file in the item page', async () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const crossed = Object.values(m.details).flatMap((d) => d.reports.filter((r) => r.diff).map((r) => ({ d, r })))
+    .flatMap(({ d, r }) => r.diff.files.filter((f) => f.also_in.length).map((f) => ({ d, r, f })));
+  assert.ok(crossed.length >= 2, 'at least two tasks of an item cite each other');
+  for (const { d, r, f } of crossed) {
+    for (const n of f.also_in) {
+      assert.notStrictEqual(n, r.task_number, 'never the report\'s own task');
+      const other = d.reports.filter((x) => x.task_number === n && x.diff).pop();
+      assert.ok(other.diff.files.some((g) => g.path === f.path && g.also_in.includes(r.task_number)), `${f.path}: the tasks cite each other`);
+    }
+  }
+  assert.ok(Object.values(m.details).flatMap((d) => d.reports).some((r) => r.diff && r.diff.files.some((f) => !f.also_in.length)), 'files without a crossing too');
+  // The source: the tag on the file, with the task as the tracker shows it, inside the report of the item page.
+  const screen = source['screens/ItemReview.jsx'];
+  const summary = /function DiffSummary\([\s\S]*?\r?\n\}\r?\n/.exec(screen)[0];
+  assert.ok(/f\.also_in[\s\S]*t\('review\.diff\.alsoIn', \{ task: taskRef\(tracker, n\) \}\)/.test(summary), 'one tag per task, numbered by the tracker');
+  assert.ok(/<DiffSummary diff=\{r\.diff\} tracker=\{tracker\} \/>/.test(screen) && /tracker=\{item\.tracker\}/.test(screen), 'the item\'s tracker reaches the summary');
+  assert.ok(js.includes('review.diff.alsoIn') && html.includes('.diff-also'), 'the build has the tag and its style');
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  assert.deepStrictEqual([t('review.diff.alsoIn', { task: '#14' }), t('review.diff.alsoIn', { task: '3115' })], ['também na task #14', 'também na task 3115']);
 });
 
 suite.test('mock-items.json: usage per item and per agent and the active agents (#13), from the real collector and API', () => {

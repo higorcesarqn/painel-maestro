@@ -60,7 +60,9 @@ function startItem(r, number, task, branch) {
 
 const REPORT = JSON.stringify({ status: 'ok', text: 'Pronto.' });
 const lines = (x) => x.stdout.trim().split(/\r?\n/);
-const fileRow = (p, added, removed) => ({ path: p, added, removed, binary: false });
+/** A file of the summary as the API returns it: also_in is computed on read (#56), the recorded one has none. */
+const fileRow = (p, added, removed, alsoIn = []) => ({ path: p, added, removed, binary: false, also_in: alsoIn });
+const recorded = (diff) => ({ ...diff, files: diff.files.map(({ also_in: _, ...f }) => f) });
 
 /** A floor: a worktree of the repository on the given branch, with one commit of its own. */
 function addFloor(r, name, branch) {
@@ -285,7 +287,7 @@ suite.test('diff summary: only what the task committed since it left the integra
     assert.strictEqual(item.reports.length, 1);
     assert.deepStrictEqual(item.reports[0].diff, expected);
     assert.strictEqual(item.reports[0].sha, git(a, 'rev-parse', 'HEAD'));
-    assert.deepStrictEqual(item.timeline.find((e) => e.type === 'task-report').payload.diff, expected, 'recorded in the task-report itself');
+    assert.deepStrictEqual(item.timeline.find((e) => e.type === 'task-report').payload.diff, recorded(expected), 'recorded in the task-report itself, without also_in');
   });
 });
 
@@ -392,6 +394,49 @@ suite.test('without a summary (no SHA, unknown commit, no base, no common ancest
     const item = (await get('/api/items/widgets/12')).item;
     assert.deepStrictEqual(item.reports.map((x) => x.diff), cases.map(() => null));
     for (const e of item.timeline.filter((x) => x.type === 'task-report')) assert.ok(!('diff' in e.payload), 'nothing about the summary in the payload');
+  });
+});
+
+// ---------- "também na task #N": the other tasks of the item that changed the same file (#56) ----------
+
+suite.test('also_in: two tasks that change the same file cite each other, different files do not, and only the last report with a summary of each task counts', async () => {
+  const r = buildRoot('also-in');
+  commit(r.repo, { 'comum.txt': 'comum\n', 'a.txt': 'a\n' }, 'base');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Resumo do diff', '--stage', 'implementation']));
+  ok(flow(r, ['task', 'graph', '12', '--task', '13|Uma', '--task', '14|Outra', '--task', '15|Mais uma']));
+  for (const [task, branch] of [[13, 'task/13-um'], [14, 'task/14-outra'], [15, 'task/15-mais']]) {
+    ok(flow(r, ['task', 'dispatch', '12', String(task), '--worker', 'Atlas', '--branch', branch]));
+  }
+  const a = addWorktree(r, 'floor-13', 'task/13-um');
+  const b = addWorktree(r, 'floor-14', 'task/14-outra');
+  const c = addWorktree(r, 'floor-15', 'task/15-mais');
+  commit(a, { 'comum.txt': 'comum\nda 13\n', 'a.txt': 'a\nda 13\n' }, 'a');
+  const b1 = commit(b, { 'a.txt': 'a\nda 14\n' }, 'b1');
+  const b2 = commit(b, { 'comum.txt': 'comum\nda 14\n' }, 'b2');
+  commit(c, { 'c.txt': 'c\n' }, 'c');
+  // Task 14: a first report with both files, then a later one with only a.txt, then one without a summary (no SHA).
+  ok(flow(r, ['report', '--sha', b2, '--json', '-'], { cwd: b, input: REPORT }));
+  ok(flow(r, ['report', '--sha', b1, '--json', '-'], { cwd: b, input: REPORT }));
+  ok(flow(r, ['report', '--item', '12', '--task', '14', '--json', '-'], { input: REPORT }));
+  ok(flow(r, ['report', '--json', '-'], { cwd: a, input: REPORT }));
+  ok(flow(r, ['report', '--json', '-'], { cwd: c, input: REPORT }));
+  // Task 14 integrated: it still counts (a warning, not a guarantee of conflict).
+  ok(flow(r, ['task', 'integrate', '12', '14', '--sha', b1]));
+  const files = (x) => (x.diff ? x.diff.files.map((f) => [f.path, f.also_in]) : null);
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/12')).item;
+    assert.deepStrictEqual(item.reports.map((x) => [x.task_number, files(x)]), [
+      // 14's older report: 13's last summary also changed both files.
+      [14, [['a.txt', [13]], ['comum.txt', [13]]]],
+      [14, [['a.txt', [13]]]],
+      [14, null],
+      // 13: comum.txt only in 14's older report, which no longer counts.
+      [13, [['a.txt', [14]], ['comum.txt', []]]],
+      [15, [['c.txt', []]]],
+    ]);
+    for (const e of item.timeline.filter((x) => x.type === 'task-report' && x.payload.diff)) {
+      assert.ok(e.payload.diff.files.every((f) => !('also_in' in f)), 'also_in is not recorded (ADR 0002)');
+    }
   });
 });
 
