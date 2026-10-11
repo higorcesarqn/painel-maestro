@@ -465,6 +465,35 @@ suite.test('mock-items.json: reports by task (ok and blocked) and findings of ev
   assert.ok(/reviewEventText/.test(source['screens/Items.jsx']), 'the timeline names the report and finding events');
 });
 
+suite.test('diff summary (#54): reports with and without it in the mock, and the block inside each report of the item page', async () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const reports = Object.values(m.details).flatMap((d) => d.reports);
+  const withDiff = reports.filter((r) => r.diff);
+  assert.ok(withDiff.length >= 2 && withDiff.length < reports.length, 'reports with and without a summary');
+  for (const { diff: d } of withDiff) {
+    assert.deepStrictEqual(Object.keys(d).sort(), ['base', 'base_ref', 'files', 'total', 'truncated', 'uncommitted']);
+    assert.deepStrictEqual(d.total, {
+      files: d.files.length, added: d.files.reduce((n, f) => n + f.added, 0), removed: d.files.reduce((n, f) => n + f.removed, 0),
+    }, 'totals over the files');
+    for (const f of d.files) assert.deepStrictEqual(Object.keys(f).sort(), ['added', 'binary', 'path', 'removed']);
+  }
+  assert.ok(reports.some((r) => r.diff && r.shared_files.length), 'the summary and the shared files side by side');
+  assert.ok(reports.filter((r) => !r.diff).every((r) => r.diff === null), 'a report without a summary comes with diff null');
+  // The source: the block lives inside the report's <details>, after the changes, and "Arquivos compartilhados" stays.
+  const screen = source['screens/ItemReview.jsx'];
+  const report = /function Report\(\{[\s\S]*?\r?\n\}\r?\n/.exec(screen)[0];
+  assert.ok(/<details class="report"[\s\S]*<DiffSummary diff=\{r\.diff\} \/>[\s\S]*<\/details>/.test(report), 'the summary inside the folded report');
+  assert.ok(/review\.fields\.sharedFiles/.test(report), 'shared_files keeps its own field');
+  assert.ok(/function DiffSummary\([\s\S]*?if \(!d\) return null;/.test(screen), 'nothing when the report has no summary');
+  // The build carries the block, and the texts come from the dictionary.
+  assert.ok(js.includes('report-diff-files') && html.includes('.diff-added'), 'the build has the block and its style');
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  assert.deepStrictEqual(
+    [t('review.fields.diff'), t('review.diff.files', { count: 1 }), t('review.diff.files', { count: 5 }), t('review.diff.added', { count: 64 }), t('review.diff.removed', { count: 12 })],
+    ['Resumo do diff', '1 arquivo', '5 arquivos', '+64', '−12'],
+  );
+});
+
 suite.test('mock-items.json: usage per item and per agent and the active agents (#13), from the real collector and API', () => {
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const u = m.usage;
@@ -749,6 +778,7 @@ suite.test('the real server on a fake root (the demo in a real maestro.db + a ho
   const hostile = (await get('/api/items/portal/4242')).item;
   assert.ok(hostile.title.includes('<script>'), 'the hostile title arrives raw');
   assert.ok(hostile.reports[0].text.includes('onerror'), 'the hostile report arrives raw');
+  assert.ok(hostile.reports[0].diff.files[0].path.includes('onerror'), 'the hostile diff summary arrives raw, as recorded');
   assert.strictEqual(hostile.pr.url, null, 'only tracker links are kept');
   assert.ok(pd.some((x) => x.title.includes('onerror')), 'the hostile pending decision is in the list');
   const log = await get('/api/log?per_page=50');

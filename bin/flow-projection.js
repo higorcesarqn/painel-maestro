@@ -405,7 +405,8 @@ function projectPendingDecisions(list, project) {
 //
 // Event types (none of them moves the item's stage):
 //   task-report        task_number, payload { status: 'ok' | 'blocked', blocked_reason, branch, sha, tests, changes,
-//                      decisions: [text], risks, shared_files: [text], text }   (texts may have many lines)
+//                      decisions: [text], risks, shared_files: [text], text, diff? }   (texts may have many lines;
+//                      diff: the diff summary flow report computed, TaskDiff of bin/flow-diff.js, absent without one)
 //   finding-recorded   task_number = the origin task (or null), payload { finding, title, description,
 //                      classification: 'defect' | 'owner_decision' | 'discarded', origin_task,
 //                      new_task: { number, title } | null }
@@ -413,7 +414,8 @@ function projectPendingDecisions(list, project) {
 //
 // Fields added to ItemState:
 //   reports    [{ id, at, task_number, agent, status, blocked_reason, branch, sha, tests, changes, decisions,
-//                 risks, shared_files, text }]   every report, oldest first (a task may have several)
+//                 risks, shared_files, text, diff }]   every report, oldest first (a task may have several); diff
+//                 as recorded, or null
 //   findings   [{ number, title, description, classification, origin_task, new_task, agent, recorded_at,
 //                 linked_at }]   in the order they were recorded
 // and to each TaskState: finding (the number of the finding the task came from, or null). The new task of a
@@ -431,6 +433,9 @@ const texts = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') 
 const rawText = (v) => (typeof v === 'string' ? v : null);
 const agentOf = (e) => ({ role: e.agent && e.agent.role ? e.agent.role : null, name: e.agent && e.agent.name ? e.agent.name : null });
 
+/** The diff summary as recorded (an object), or null. */
+const diffOf = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : null);
+
 function newTaskOf(v) {
   return v && isNumber(v.number) ? { number: v.number, title: textOrNull(v.title) } : null;
 }
@@ -445,7 +450,7 @@ function reviewState(list, tasks) {
       reports.push({
         id: e.id, at: e.at, task_number: e.task_number, agent: agentOf(e), status: p.status, blocked_reason: rawText(p.blocked_reason),
         branch: textOrNull(p.branch), sha: textOrNull(p.sha), tests: rawText(p.tests), changes: rawText(p.changes), decisions: texts(p.decisions),
-        risks: rawText(p.risks), shared_files: texts(p.shared_files), text: rawText(p.text),
+        risks: rawText(p.risks), shared_files: texts(p.shared_files), text: rawText(p.text), diff: diffOf(p.diff),
       });
     } else if (e.type === EVENT_TYPES.findingRecorded && isNumber(p.finding) && !findings.has(p.finding) && textOrNull(p.title)
       && FINDING_CLASSIFICATIONS.includes(p.classification)) {

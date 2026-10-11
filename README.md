@@ -193,11 +193,13 @@ flow status "Preciso do certificado de HML" --state blocked
 flow status "Pronto para revisar" --state review                    # done também conta como revisão
 flow report --json - < relatorio.json                               # antes de mandar o relatório ao maestro
 flow report --status blocked --reason "Falta o certificado" --json - < relatorio.json
+flow report --base integra/carrinho --json - < relatorio.json       # integradora fora da convenção (ou "base" no JSON)
 ```
 
 - O `status` é o comando único do trabalhador: dentro de um terminal do Maestri (com `MAESTRI_TERMINAL_ID`) ele também roda `maestri floor status` com os mesmos argumentos; fora do Maestri (subagente) só grava. Se o `maestri` falhar, o evento fica gravado e o comando sai com 1.
 - A task vem de `--item`/`--task` ou, sem eles, da branch atual: a task despachada com essa branch ou `task/<id>-…`.
 - O relatório (`status`, `blocked_reason`, `branch`, `sha`, `tests`, `changes`, `decisions`, `risks`, `shared_files`, `text`) fica exatamente como escrito; branch e SHA, quando não vêm, saem do worktree.
+- **Resumo do diff** (#41): com SHA (o `--sha` ou o HEAD do worktree), o `report` calcula sozinho os arquivos que a task commitou desde que saiu da branch integradora, com as linhas `+`/`-` e os totais, e os grava no campo `diff` do próprio relatório (`git diff --numstat -z -M` do `merge-base(base, sha)` até o `sha`, só commits: uma task que saiu da integradora antes de outra ser integrada não mostra os arquivos da outra). A base é, nesta ordem, `--base` (ou `base` no JSON), a branch gravada no `flow pr --branch` e a convenção do tracker (`feature/issue-<n>` no GitHub, `feature/pbi-<n>` no Azure DevOps); para cada nome vale a ref local e depois `origin/<nome>`. Sem resumo (sem SHA, sem base, erro ou timeout de 10 s do git), o relatório é gravado sem `diff`, o comando sai com 0 e uma segunda linha diz o motivo. A página do item mostra o resumo dentro de cada relatório.
 
 **Pendências (maestro):**
 

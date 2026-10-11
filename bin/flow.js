@@ -31,7 +31,8 @@ const { spawnSync } = require('child_process');
 const lib = require('./lib');
 const { t } = require('./i18n');
 const { openStore, flowDir, STAGES, SchemaTooNew } = require('./flow-store');
-const { originOf, branchOf, describeRemote, parseBranch } = require('./flow-repo');
+const { originOf, branchOf, describeRemote, parseBranch, integrationBranch } = require('./flow-repo');
+const { taskDiff } = require('./flow-diff');
 const { projectItem, trackerRef, EVENT_TYPES, WORKER_STATES } = require('./flow-projection');
 const { PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES, MAX_PENDING_DECISION } = require('./flow-projection');
 const { createAdmin, isAdminCommand } = require('./flow-admin');
@@ -472,11 +473,15 @@ function recordDelivery(store, cmd, { project, events, base, key, ref }) {
 
 // ---------- reports and findings (#8): the worker's report of a task and the maestro's findings ----------
 //
-//   flow report [--item N] [--task N] [--status ok|blocked] [--reason "..."] [--branch B] [--sha S] --json -
+//   flow report [--item N] [--task N] [--status ok|blocked] [--reason "..."] [--branch B] [--sha S] [--base B] --json -
 //       → task-report: the whole report the worker sends to the maestro, recorded before it is sent. The long
 //         fields (tests, changes, decisions, risks, shared_files, text) come by JSON on standard input and are kept
 //         exactly as written. The task is found like in "status" (--item/--task or the current branch); branch and
 //         SHA default to the current folder's when the task was found by the branch or the folder is on its branch.
+//         With a SHA the report also gets the diff summary (payload.diff, bin/flow-diff.js) against the base:
+//         --base (or "base" in the JSON), else the item's pr.branch, else the tracker's convention (integrationBranch
+//         of flow-repo.js). Without it (no SHA, no base, git failing) the report is recorded all the same, exit 0,
+//         and a second line says why; the reason is not recorded.
 //   flow finding add <number> --title "..." --classification defect|owner_decision|discarded [--description "..."]
 //         [--task <origin task>] [--new-task <n> [--new-task-title "..."]]                    → finding-recorded
 //   flow finding link <number> <finding> --new-task <n> [--new-task-title "..."]             → finding-linked
@@ -490,7 +495,7 @@ const REVIEW_COMMANDS = ['report', 'finding'];
 const FINDING_KINDS = ['finding-add', 'finding-link'];
 
 Object.assign(OPTIONS, {
-  report: ['item', 'task', 'status', 'reason', 'branch', 'sha', ...AGENT],
+  report: ['item', 'task', 'status', 'reason', 'branch', 'sha', 'base', ...AGENT],
   'finding-add': ['title', 'classification', 'description', 'task', 'new-task', 'new-task-title', ...AGENT],
   'finding-link': ['new-task', 'new-task-title', ...AGENT],
 });
@@ -528,6 +533,7 @@ function parseReport(rest) {
   return {
     kind: 'report', status, fields,
     branch: lineText(pick(opts.branch, jsonText(json, 'branch')), 'branch'),
+    base: lineText(pick(opts.base, jsonText(json, 'base')), 'base'),
     sha: shaValue === undefined || !String(shaValue).trim() ? null : sha(shaValue, 'sha'),
     item: item === undefined ? null : itemNumber(item), task: task === undefined ? null : taskNumber(task),
     ...agentFields(opts, json, 'worker'),
@@ -616,26 +622,44 @@ function headOf(cwd) {
   return String(r.stdout || '').trim().toLowerCase() || null;
 }
 
-/** The worker's report: find the task (as "status" does) and record task-report. */
+/**
+ * The worker's report: find the task (as "status" does), compute the diff summary outside the transaction (git may
+ * take up to 10 s per call) and record task-report, with payload.diff when there is a summary.
+ */
 function recordReport(store, cmd, origin, at, cwd) {
   const branch = branchOf(cwd);
-  return withProject(store, origin, at, (project) => {
+  let found = null;
+  const lines = withProject(store, origin, at, (project) => {
     const target = locateTask(store, project, cmd, branch);
     const task = target.item.tasks.find((x) => x.number === target.task);
-    const fromCwd = !cmd.task || (branch && task && task.branch === branch);
-    const payload = {
-      status: cmd.status, blocked_reason: cmd.fields.blocked_reason,
-      branch: cmd.branch || (fromCwd ? branch : null) || (task && task.branch) || null,
-      sha: cmd.sha || (fromCwd ? headOf(cwd) : null),
-      tests: cmd.fields.tests, changes: cmd.fields.changes, decisions: cmd.fields.decisions, risks: cmd.fields.risks,
-      shared_files: cmd.fields.shared_files, text: cmd.fields.text,
+    const pr = target.item.pr;
+    found = {
+      target, task, fromCwd: !cmd.task || (branch && task && task.branch === branch), key: `${project.id}/${target.item.number}`,
+      bases: [cmd.base, pr && pr.branch, integrationBranch(project.tracker, target.item.number)],
     };
+    return [];
+  });
+  const { target, task, fromCwd, key, bases } = found;
+  const sha = cmd.sha || (fromCwd ? headOf(cwd) : null);
+  const summary = taskDiff(cwd, { sha, bases });
+  const payload = {
+    status: cmd.status, blocked_reason: cmd.fields.blocked_reason,
+    branch: cmd.branch || (fromCwd ? branch : null) || (task && task.branch) || null,
+    sha,
+    tests: cmd.fields.tests, changes: cmd.fields.changes, decisions: cmd.fields.decisions, risks: cmd.fields.risks,
+    shared_files: cmd.fields.shared_files, text: cmd.fields.text,
+    ...(summary.diff ? { diff: summary.diff } : {}),
+  };
+  withProject(store, origin, at, (project) => {
     store.appendEvent({
       at, projectId: project.id, itemNumber: target.item.number, taskNumber: target.task, agentRole: cmd.agentRole, agentName: cmd.agentName,
       source: SOURCE, type: projection.EVENT_TYPES.taskReport, payload,
     });
-    return [t('review.done.report', { key: `${project.id}/${target.item.number}`, task: target.task, status: cmd.status })];
+    return [];
   });
+  lines.push(t('review.done.report', { key, task: target.task, status: cmd.status }));
+  if (!summary.diff) lines.push(t('review.done.reportWithoutDiff', { reason: t(`review.diff.${summary.reason}`, summary.params) }));
+  return lines;
 }
 
 // ---------- commands ----------

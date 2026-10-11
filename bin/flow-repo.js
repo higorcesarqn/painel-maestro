@@ -15,6 +15,8 @@
  *       feature/issue-<n>, feature/pbi-<id>…   { kind: 'maestro', item }            the maestro of the item (integration branch)
  *       anything else (or none)                { kind: 'other' }
  *     Used by the hook (bin/hook-log.js), by flow status/report (bin/flow.js) and mirrored by integrate.sh (skills).
+ *   integrationBranch(tracker, item) → the item's integration branch by the convention: "feature/issue-<n>" (GitHub)
+ *                            or "feature/pbi-<n>" (Azure DevOps); the base of the report's diff summary (bin/flow-diff.js)
  */
 const fs = require('fs');
 const path = require('path');
@@ -49,6 +51,11 @@ function parseBranch(name) {
   m = RE_ITEM_BRANCH.exec(s);
   if (positive(m)) return { kind: 'maestro', item: Number(m[1]) };
   return { kind: 'other' };
+}
+
+/** The integration branch of an item by the tracker's convention (the maestro's branch that parseBranch recognizes). */
+function integrationBranch(tracker, item) {
+  return `feature/${tracker === 'azure_devops' ? 'pbi' : 'issue'}-${item}`;
 }
 
 function normalizeRemote(url) {
@@ -145,4 +152,4 @@ function repoInfo(cwd, env = process.env) {
   return { origin: origin || null, branch };
 }
 
-module.exports = { originOf, branchOf, normalizeRemote, describeRemote, repoInfo, parseBranch };
+module.exports = { originOf, branchOf, normalizeRemote, describeRemote, repoInfo, parseBranch, integrationBranch };

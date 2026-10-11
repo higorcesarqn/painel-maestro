@@ -217,6 +217,19 @@ suite.test('no pt-BR text of the page or of the CLI says "empresa": the term is 
   }
 });
 
+suite.test('CLI (#54): every reason for a report without the diff summary has its pt-BR line, and the dictionary has no other', () => {
+  const cli = require(path.join(REPO, 'bin', 'i18n'));
+  const reasons = [...new Set([...fs.readFileSync(path.join(REPO, 'bin', 'flow-diff.js'), 'utf8').matchAll(/(?:reason: |new GitFailed\()'(\w+)'/g)].map((m) => m[1]))];
+  assert.deepStrictEqual(reasons.slice().sort(), Object.keys(require(path.join(REPO, 'bin', 'i18n', 'pt-BR.js')).review.diff).sort());
+  const params = { names: 'feature/issue-41, origin/feature/issue-41', sha: 'abc1234', base: 'feature/issue-41', seconds: 10, detail: 'fatal: bad object' };
+  for (const r of reasons) {
+    const text = cli.t(`review.diff.${r}`, params);
+    assert.ok(text !== `review.diff.${r}` && !/\{\w+\}/.test(text), `${r}: ${text}`);
+  }
+  assert.strictEqual(cli.t('review.done.reportWithoutDiff', { reason: cli.t('review.diff.noBase', params) }),
+    'Relatório gravado sem o resumo do diff: nenhuma base encontrada (feature/issue-41, origin/feature/issue-41); passe --base <branch>.');
+});
+
 suite.test('the provisional bridge (compat.js) is gone and the old folders were renamed', () => {
   assert.ok(!fs.existsSync(path.join(SOURCE, 'dados')) && !fs.existsSync(path.join(SOURCE, 'data', 'compat.js')));
   for (const dir of ['telas', 'componentes', 'estilo']) assert.ok(!fs.existsSync(path.join(SOURCE, dir)), `ui/src/${dir} still exists`);

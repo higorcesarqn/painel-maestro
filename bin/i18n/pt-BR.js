@@ -447,6 +447,7 @@ CÓDIGOS DE SAÍDA
   review: {
     done: {
       report: (p) => `Relatório da task ${p.task} do item ${p.key} gravado (${p.status === 'ok' ? 'ok' : 'bloqueado'}). Agora envie-o ao maestro.`,
+      reportWithoutDiff: 'Relatório gravado sem o resumo do diff: {reason}.',
       findingRecorded: (p) => `Achado ${p.finding} do item ${p.key} (${p.ref}) registrado: ${FINDING_CLASSES[p.classification] || p.classification}${p.task ? `; virou a task ${p.task} (fora, para triagem)` : ''}.`,
       findingLinked: 'Achado {finding} do item {key} ({ref}) ligado à task {task} (fora, para triagem).',
     },
@@ -466,6 +467,15 @@ CÓDIGOS DE SAÍDA
       findingNotFound: 'o item {key} não tem o achado {finding}.',
       findingAlreadyLinked: 'o achado {finding} do item {key} já virou a task {task}.',
       taskAlreadyInItem: 'a task {task} já é do item {key}; o achado vira uma task nova (use outro número).',
+    },
+    // Why a report went without the diff summary (bin/flow-diff.js): the second line of flow report.
+    diff: {
+      noSha: 'o relatório não tem SHA (rode no worktree da task ou passe --sha)',
+      unknownCommit: 'o commit {sha} não está no repositório',
+      noBase: 'nenhuma base encontrada ({names}); passe --base <branch>',
+      noMergeBase: 'o commit {sha} não tem ancestral comum com {base}',
+      gitTimeout: 'o git não respondeu em {seconds} s',
+      gitFailed: 'o git falhou ({detail})',
     },
   },
   // flow --version (#36): the semver of the root package.json and the commit of the code (none outside a clone).
@@ -539,11 +549,16 @@ PENDÊNCIAS (maestro)
       depois de cada pending open. Decisão que veio do painel já está gravada: não rode pending resolve.
 
 RELATÓRIO (trabalhador, antes de enviá-lo ao maestro)
-  node bin/flow.js report [--item <número>] [--task <task>] [--status ok|blocked] [--reason "..."] [--branch <b>] [--sha <sha>] --json - < relatorio.json
+  node bin/flow.js report [--item <número>] [--task <task>] [--status ok|blocked] [--reason "..."] [--branch <b>] [--sha <sha>] [--base <branch>] --json - < relatorio.json
       Grava o relatório completo da task. Os campos longos vêm pelo JSON e ficam exatamente como escritos:
       status (ok|blocked), blocked_reason, branch, sha, tests, changes, decisions (lista), risks,
       shared_files (lista) e text (o relatório inteiro, em texto livre). A task vem como no status (--item/--task
       ou a branch atual); branch e SHA, quando não vêm, saem da pasta atual. Papel padrão: worker.
+      Com SHA, o relatório leva o resumo do diff: os arquivos que a task commitou desde que saiu da branch
+      integradora, com as linhas + e -. A base é --base (ou "base" no JSON), senão a branch do flow pr --branch,
+      senão feature/issue-<n> (GitHub) ou feature/pbi-<n> (Azure DevOps); vale a ref local e depois origin/<nome>.
+      Sem o resumo (sem SHA, sem base, erro do git), o relatório é gravado igual, o comando sai com 0 e uma
+      segunda linha diz o motivo.
 
 ACHADOS (maestro)
   node bin/flow.js finding add <número> --title "..." --classification defect|owner_decision|discarded [--description "..."] [--task <origem>] [--new-task <n> [--new-task-title "..."]]
@@ -569,7 +584,7 @@ JSON PELA ENTRADA PADRÃO (texto com acentos, aspas e várias linhas chega intac
   Campos: number (o item), title, stage, role, agent; task, tasks ([{number, title, blocked_by, out}]), floor,
   worker, branch, sha, sha_before, text, state, progress (tasks e status); state, url, pr, branch (pr);
   action, outcome, summary (final-adjustment); passed, failed, blocked, card, summary (hml); status,
-  blocked_reason, tests, changes, decisions, risks, shared_files, text (report); title, description,
+  blocked_reason, tests, changes, decisions, risks, shared_files, text, base (report); title, description,
   classification, task, new_task, new_task_title, finding (finding).
   Pendências: id, kind, severity, title, context, options (lista de textos), recommendation, workspace, terminal,
   decision, reason.

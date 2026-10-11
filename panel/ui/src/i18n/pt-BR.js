@@ -407,7 +407,18 @@ export default {
       decisions: 'Decisões',
       risks: 'Riscos e pendências',
       sharedFiles: 'Arquivos compartilhados',
+      diff: 'Resumo do diff',
       text: 'Relatório completo',
+    },
+    // The diff summary of a report (#54): what the task committed since it left the integration branch.
+    diff: {
+      files: { one: '{count} arquivo', other: '{count} arquivos' },
+      added: '+{count}',
+      removed: '−{count}',
+      addedTitle: 'linhas adicionadas',
+      removedTitle: 'linhas removidas',
+      base: 'desde {base}',
+      empty: 'Nenhum arquivo alterado desde a base.',
     },
     findings: {
       title: 'Achados',

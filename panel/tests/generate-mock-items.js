@@ -178,6 +178,12 @@ const report = (status, fields) => ({
   status, blocked_reason: null, branch: null, sha: null, tests: null, changes: null, decisions: [], risks: null, shared_files: [], text: null, ...fields,
 });
 const reportText = (lines) => lines.join('\n');
+/** The diff summary flow report records (TaskDiff, #54): files as [path, added, removed], totals over all of them. */
+const diffSummary = (baseRef, base, rows) => {
+  const files = rows.map(([p, added, removed]) => ({ path: p, added, removed, binary: false }));
+  const sum = (k) => files.reduce((n, f) => n + f[k], 0);
+  return { base, base_ref: baseRef, files, total: { files: files.length, added: sum('added'), removed: sum('removed') }, truncated: false, uncommitted: 0 };
+};
 const finding = (n, title, classification, origin, newTask, description) => ({
   finding: n, title, description: description || null, classification, origin_task: origin, new_task: newTask,
 });
@@ -199,6 +205,13 @@ TASKS.push(
       'Riscos: tabelas com mais de 200 linhas quebram a página no meio da linha.',
       'Arquivos compartilhados: src/report/layout.ts e package.json (a 3114 também mexe).',
     ]),
+    diff: diffSummary('feature/pbi-3112', '7d1c0e94b2a8f6e5d3c1b0a9f8e7d6c5b4a39281', [
+      ['package.json', 1, 0],
+      ['src/report/fonts/noto-sans.ts', 6, 0],
+      ['src/report/layout.ts', 64, 12],
+      ['src/report/statement-pdf.test.ts', 92, 0],
+      ['src/report/statement-pdf.ts', 148, 0],
+    ]),
   })],
   ['portal', 3112, '2026-10-08T13:50:00', 'finding-recorded', 3113, MAESTRO, finding(1, 'Quebra de página no meio de uma linha da tabela', 'defect', 3113,
     { number: 3119, title: 'Não quebrar linhas da tabela entre páginas' }, 'Com mais de 200 lançamentos a linha 201 aparece cortada entre duas páginas.')],
@@ -219,6 +232,10 @@ TASKS.push(
       'Decisões: 1. adaptador para a rota da 3114, com PDF de exemplo até ela integrar.',
       'Riscos: depende da 3114. Arquivos compartilhados: src/screens/Statement.tsx.',
     ]),
+    diff: diffSummary('feature/pbi-3112', '7d1c0e94b2a8f6e5d3c1b0a9f8e7d6c5b4a39281', [
+      ['src/api/export-adapter.ts', 38, 0],
+      ['src/screens/Statement.tsx', 21, 4],
+    ]),
   })],
   ['portal', 3112, '2026-10-09T10:06:00', 'task-report', 3116, ['worker', 'subagente'], report('blocked', {
     blocked_reason: 'Falta o certificado A1 de homologação para assinar o PDF.',
@@ -233,6 +250,10 @@ TASKS.push(
     branch: 'task/49-carrinho', sha: '0b7a6c5d4e3f',
     tests: 'npm test: 0 falhas', changes: 'O carrinho fica salvo na conta do cliente.', decisions: ['Carrinho guardado por 30 dias.'],
     text: 'Task 49 pronta: o carrinho fica salvo na conta (30 dias). npm test: 0 falhas.',
+    diff: diffSummary('feature/issue-48', '3e2d1c0b9a8f7e6d5c4b3a291807f6e5d4c3b2a1', [
+      ['src/cart/saved-cart.js', 57, 9],
+      ['src/cart/saved-cart.test.js', 40, 0],
+    ]),
   })],
   ['storefront', 48, '2026-10-08T16:50:00', 'task-report', 50, ['worker', 'Caio'], report('ok', {
     branch: 'task/50-juntar', sha: '5f4e3d2c1b0a', tests: 'npm test: 0 falhas', changes: 'Ao entrar, o carrinho do visitante se junta ao da conta.',

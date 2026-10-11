@@ -16,6 +16,16 @@
 .report-field dd { margin: 0; color: var(--text); }
 .report-decisions { padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
 .report-files { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+/* The diff summary of a report (#54): totals, then one line per file with its + and -. */
+.report-diff { display: flex; flex-direction: column; gap: 6px; }
+.report-diff-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.report-diff-total .mono { display: inline-flex; gap: 8px; }
+.report-diff-files { list-style: none; display: flex; flex-direction: column; gap: 2px; max-height: 16em; overflow: auto; }
+.report-diff-files li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline; }
+.diff-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.diff-added { color: var(--ok); }
+.diff-removed { color: var(--danger); }
+.report-diff-files .diff-added, .report-diff-files .diff-removed { min-width: 3.5em; text-align: right; }
 .report-text { max-height: 18em; overflow: auto; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
 
 .finding-list { list-style: none; display: flex; flex-direction: column; }
