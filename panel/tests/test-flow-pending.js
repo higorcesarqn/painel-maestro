@@ -119,9 +119,60 @@ suite.test('the maestro opens a pending decision on a task; the API shows it wit
       task: { number: 13, title: 'Gerar o PDF', state: 'waiting' },
       maestri: { workspace: 'Contoso', terminal: 'Maestro 12' }, notification: 'sent',
       opened_at: p.opened_at, opened_by: { role: 'maestro', name: null },
-      closed_at: null, closed_by: null, resolution: null, decision: null, reason: null, derived_from: null,
+      closed_at: null, closed_by: null, resolution: null, decision: null, reason: null, derived_from: null, report: null,
     });
     assert.ok(Date.parse(p.opened_at) > 0, p.opened_at);
+  });
+});
+
+// ---------- the last report of the task on its review (#57) ----------
+
+/** Writes the files ({ path: text }) in the folder and commits them; returns the new HEAD. */
+function commit(dir, files) {
+  for (const [file, text] of Object.entries(files)) fs.writeFileSync(path.join(dir, file), text);
+  git(dir, 'add', '-A');
+  git(dir, 'commit', '-q', '-m', 'mudança');
+  return git(dir, 'rev-parse', 'HEAD');
+}
+
+suite.test('a task_review carries the last report of its task (at, sha, tests, diff), even one recorded after it opened; null without a report; the other kinds have no report', async () => {
+  const r = buildRoot('report');
+  startItem(r);
+  const floor = path.join(r.root, 'floor-13');
+  git(r.repo, 'worktree', 'add', '-q', '-b', 'task/13-gerar-pdf', floor);
+  git(floor, 'config', 'core.autocrlf', 'false');
+  ok(flow(r, ['task', 'dispatch', '12', '13', '--worker', 'Ária', '--branch', 'task/13-gerar-pdf']));
+  // In the floor's worktree: the task comes from the dispatched branch, the SHA and the diff summary from git.
+  const report = (tests) => ok(flow(r, ['report', '--agent', 'Ária', '--json', '-'], {
+    cwd: floor, input: JSON.stringify({ status: 'ok', tests, text: 'Pronto.' }),
+  }));
+  const first = commit(floor, { 'pdf.js': 'a\nb\n' });
+  report('npm test: 1 falha');
+  const review13 = openedId(flow(r, ['pending', 'open', '12', '--task', '13', '--kind', 'task_review', '--title', 'Revisar a task 13']));
+  const review14 = openedId(flow(r, ['pending', 'open', '12', '--task', '14', '--kind', 'task_review', '--title', 'Revisar a task 14']));
+  const decision = openedId(flow(r, ['pending', 'open', '12', '--task', '13', '--kind', 'decision', '--title', 'A4 ou Carta?']));
+  await withServer(r, async (get) => {
+    const p = (await list(get)).find((x) => x.id === review13);
+    assert.deepStrictEqual({ sha: p.report.sha, tests: p.report.tests }, { sha: first, tests: 'npm test: 1 falha' });
+  });
+  // The fix arrives after the pending decision opened: the review shows it, not the report it opened with.
+  const second = commit(floor, { 'pdf.js': 'a\nc\nd\n', 'pdf.test.js': 't\n' });
+  report('npm test: 2 rodadas, 0 falhas\nnpm run check: ok');
+  await withServer(r, async (get) => {
+    const all = await list(get);
+    const p = all.find((x) => x.id === review13);
+    assert.deepStrictEqual(Object.keys(p.report).sort(), ['at', 'diff', 'sha', 'tests']);
+    assert.strictEqual(p.report.sha, second);
+    assert.strictEqual(p.report.tests, 'npm test: 2 rodadas, 0 falhas\nnpm run check: ok');
+    assert.ok(Date.parse(p.report.at) >= Date.parse(p.opened_at), `${p.report.at} after ${p.opened_at}`);
+    // The diff summary as the item's reports show it (the projection's own).
+    const item = (await get('/api/items/widgets/12')).item;
+    const last = item.reports[item.reports.length - 1];
+    assert.deepStrictEqual(p.report, { at: last.at, sha: last.sha, tests: last.tests, diff: last.diff });
+    assert.deepStrictEqual(p.report.diff.files.map((f) => [f.path, f.added, f.removed]), [['pdf.js', 3, 0], ['pdf.test.js', 1, 0]]);
+    assert.strictEqual(p.report.diff.base_ref, 'feature/issue-12');
+    assert.strictEqual(all.find((x) => x.id === review14).report, null, 'a task without a report');
+    assert.ok(!('report' in all.find((x) => x.id === decision)), 'another kind, even on the same task');
   });
 });
 

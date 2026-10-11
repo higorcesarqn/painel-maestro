@@ -560,6 +560,8 @@ export default {
     derivedHml: 'Validação HML: {failed} com falha e {blocked} bloqueado(s) de {total} cenários',
     derivedHmlContext: 'Aberta sozinha pelo resultado da validação HML ({passed} aprovado(s), {failed} com falha, {blocked} bloqueado(s)); fecha quando uma validação seguinte passar em tudo ou o item for concluído.',
     derivedHmlCard: 'Card de validação',
+    // the last report of the task on its review (#57)
+    report: { title: 'Último relatório da task', at: 'recebido {age}' },
     // the Maestri's notification failed when it opened (#44)
     notificationFailed: 'O aviso do Maestri falhou quando esta pendência abriu (maestri notify): você pode não ter sido notificado.',
     cancelReason: 'Motivo do cancelamento',

@@ -188,6 +188,34 @@ suite.test('mock-items.json: items in different stages, both trackers, several o
   assert.ok(js.includes('/api/pending-decisions'), 'the Pending decisions screen reads the new model');
 });
 
+suite.test('the last report on the task review (#57): in the mock, and the diff summary, tests and short SHA in the pending decision\'s detail', async () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const pd = m.pending_decisions.pending_decisions;
+  const reviews = pd.filter((p) => p.kind === 'task_review');
+  assert.ok(pd.filter((p) => p.kind !== 'task_review').every((p) => !('report' in p)), 'the other kinds have no report');
+  const withReport = reviews.filter((p) => p.report);
+  assert.ok(withReport.some((p) => p.status === 'open' && p.report.diff && p.report.tests && p.report.sha), 'an open review with a report and its summary');
+  for (const p of withReport) {
+    assert.deepStrictEqual(Object.keys(p.report).sort(), ['at', 'diff', 'sha', 'tests']);
+    // The last report of the task, as the item page lists it.
+    const last = m.details[p.item.key].reports.filter((r) => r.task_number === p.task.number).pop();
+    assert.deepStrictEqual(p.report, { at: last.at, sha: last.sha, tests: last.tests, diff: last.diff });
+  }
+  // The source: only the task review shows the block, with the item page's own DiffSummary; nothing without a report.
+  const screen = source['screens/PendingDecisions.jsx'];
+  assert.ok(/import \{[^}]*\bDiffSummary\b[^}]*\} from '\.\/ItemReview\.jsx';/.test(screen), 'the diff summary comes from the item page');
+  assert.ok(/export function DiffSummary\(/.test(source['screens/ItemReview.jsx']), 'and stays there');
+  assert.ok(/\{p\.kind === 'task_review' && <PendingReport report=\{p\.report\} tracker=\{\(obj\(it\.project\) \|\| \{\}\)\.tracker\} \/>\}/.test(screen),
+    'only on a task review, with the item\'s tracker');
+  const block = /function PendingReport\(\{[\s\S]*?\r?\n\}\r?\n/.exec(screen)[0];
+  assert.ok(/if \(!r\) return null;/.test(block), 'nothing without a report');
+  assert.ok(/<DiffSummary diff=\{r\.diff\} tracker=\{tracker\} \/>/.test(block) && /r\.tests &&/.test(block) && /String\(r\.sha\)\.slice\(0, 7\)/.test(block), 'summary, tests and short SHA');
+  // The build carries the block, and the texts come from the dictionary.
+  assert.ok(js.includes('pending-report') && html.includes('.pending-report'), 'the build has the block and its style');
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  assert.deepStrictEqual([t('pending.report.title'), t('pending.report.at', { age: 'há 2 h' })], ['Último relatório da task', 'recebido há 2 h']);
+});
+
 suite.test('the address picks the screen: a malformed address (bad percent-encoding) falls back to the Overview instead of breaking the page', async () => {
   const { parseHash } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
   assert.deepStrictEqual(parseHash('#items/widgets/12'), { id: 'items', sub: 'widgets/12' });

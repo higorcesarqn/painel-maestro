@@ -8,7 +8,8 @@
 // the others or the older ones). Reads GET /api/pending-decisions every 20 s; each column scrolls inside. The
 // organization comes from the selector at the top of the panel (#6, organizationFilter), like in the other screens of
 // the new model. A pending decision linked from the Overview or a browser notification (#45) that the selector or the
-// screen's filters leave out of the list shows up anyway, read without them; the selector and the filters stay.
+// screen's filters leave out of the list shows up anyway, read without them; the selector and the filters stay. The
+// review of a task also shows the last report of the task (#57): the diff summary, the tests and the short SHA.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { usePanel } from '../data/context.js';
 import { REFRESH_MS, readPendingDecisions, answerPendingDecision } from '../data/api.js';
@@ -18,6 +19,7 @@ import { Card, Kpi, Badge, Segmented, Empty, InfoHint } from '../components/base
 import { Icon, Inbox, Send, X } from '../components/Icon.jsx';
 import { pendingTitle, SEVERITIES, SEVERITY_TONE, MAX_DECISION, optionLetters, recommendedLetter, decisionText } from '../data/domain.js';
 import { TrackerLink } from './ItemDelivery.jsx';
+import { ReportField, DiffSummary } from './ItemReview.jsx';
 import '../styles/pending-decisions.css';
 
 const STATUSES = ['open', 'resolved', 'canceled'];
@@ -276,6 +278,7 @@ function PendingDetail({ p, goTo }) {
           {p.derived_from.card_url && <> <TrackerLink url={p.derived_from.card_url}>{t('pending.derivedHmlCard')}</TrackerLink></>}
         </p>
       )}
+      {p.kind === 'task_review' && <PendingReport report={p.report} tracker={(obj(it.project) || {}).tracker} />}
       {options.length > 0 && (
         <div class="pending-options-read">
           <span class="label">{t('pending.options')}</span>
@@ -296,6 +299,29 @@ function PendingDetail({ p, goTo }) {
       {p.status === 'canceled' && (
         <div class="pending-answer"><span class="label">{t('pending.cancelReason')}</span><p class="pre">{txt(p.reason) || t('pending.noReason')}</p></div>
       )}
+    </div>
+  );
+}
+
+/**
+ * The last report of the task under review (#57), whenever it arrived: the short SHA, the tests and the diff summary
+ * (the same block as the item page, with the item's tracker for the task numbers). A report without a summary shows only
+ * the tests and the SHA; no report, nothing.
+ */
+function PendingReport({ report, tracker }) {
+  const r = obj(report);
+  if (!r) return null;
+  return (
+    <div class="pending-report">
+      <p class="pending-report-head">
+        <span class="label">{t('pending.report.title')}</span>
+        {r.sha && <span class="small mono" title={txt(r.sha)}>{String(r.sha).slice(0, 7)}</span>}
+        {r.at && <span class="muted small" title={dateTime(r.at)}>{t('pending.report.at', { age: age(r.at) })}</span>}
+      </p>
+      <dl class="report-body">
+        {r.tests && <ReportField label={t('review.fields.tests')}><p class="pre small">{txt(r.tests)}</p></ReportField>}
+        <DiffSummary diff={r.diff} tracker={tracker} />
+      </dl>
     </div>
   );
 }

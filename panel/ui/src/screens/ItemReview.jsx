@@ -21,7 +21,7 @@ const agentLine = (agent) => {
   return arr([a.role ? t(`items.roles.${a.role}`) : '', txt(a.name)]).filter(Boolean).join(' · ');
 };
 
-function ReportField({ label, children }) {
+export function ReportField({ label, children }) {
   return (
     <div class="report-field">
       <dt class="label">{label}</dt>
@@ -35,7 +35,7 @@ function ReportField({ label, children }) {
  * integration branch, with the lines added and removed, and the "also in task #N" tag on the files another task of the
  * item also changed (also_in, #56; tracker formats the number). Nothing when the report has none (old, or no base).
  */
-function DiffSummary({ diff, tracker }) {
+export function DiffSummary({ diff, tracker }) {
   const d = obj(diff);
   if (!d) return null;
   const files = objs(d.files).filter((f) => typeof f.path === 'string');

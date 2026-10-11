@@ -4856,6 +4856,47 @@
           "number": 3115,
           "title": "Botão de exportar na tela do extrato",
           "state": "review"
+        },
+        "report": {
+          "at": "2026-10-09T08:42:00-03:00",
+          "sha": "9c8b7a6d5e4f",
+          "tests": "npm test: 0 falhas (2 rodadas)\nTeste manual no Chrome e no Edge",
+          "diff": {
+            "base": "7d1c0e94b2a8f6e5d3c1b0a9f8e7d6c5b4a39281",
+            "base_ref": "feature/pbi-3112",
+            "files": [
+              {
+                "path": "package.json",
+                "added": 2,
+                "removed": 1,
+                "binary": false,
+                "also_in": [
+                  3113
+                ]
+              },
+              {
+                "path": "src/api/export-adapter.ts",
+                "added": 38,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "src/screens/Statement.tsx",
+                "added": 21,
+                "removed": 4,
+                "binary": false,
+                "also_in": []
+              }
+            ],
+            "total": {
+              "files": 3,
+              "added": 61,
+              "removed": 5
+            },
+            "truncated": false,
+            "uncommitted": 0
+          }
         }
       },
       {
@@ -5294,6 +5335,61 @@
           "number": 3113,
           "title": "Modelo do extrato em PDF",
           "state": "integrated"
+        },
+        "report": {
+          "at": "2026-10-08T13:12:00-03:00",
+          "sha": "e41f0a6b3c2d",
+          "tests": "npm test: 2 rodadas seguidas, 0 falhas (banco portal-3113.db recriado vazio)\nnpm run check: ok",
+          "diff": {
+            "base": "7d1c0e94b2a8f6e5d3c1b0a9f8e7d6c5b4a39281",
+            "base_ref": "feature/pbi-3112",
+            "files": [
+              {
+                "path": "package.json",
+                "added": 1,
+                "removed": 0,
+                "binary": false,
+                "also_in": [
+                  3115
+                ]
+              },
+              {
+                "path": "src/report/fonts/noto-sans.ts",
+                "added": 6,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "src/report/layout.ts",
+                "added": 64,
+                "removed": 12,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "src/report/statement-pdf.test.ts",
+                "added": 92,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "src/report/statement-pdf.ts",
+                "added": 148,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              }
+            ],
+            "total": {
+              "files": 5,
+              "added": 311,
+              "removed": 12
+            },
+            "truncated": false,
+            "uncommitted": 0
+          }
         }
       },
       {
