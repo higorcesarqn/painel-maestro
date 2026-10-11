@@ -95,14 +95,14 @@ const ADMIN_HELP = `ORGANIZAÇÕES E PROJETOS (dono; não precisam rodar dentro 
   node bin/flow.js org add <id> --name "<nome>"
       Cadastra uma organização. O trabalho pessoal é uma organização como as outras (ex.: personal, "Pessoal").
       O nome tem até 80 caracteres e não repete o de outra organização nem o de "Sem organização", mesmo com outras
-      maiúsculas (a tela Organizações do painel cria com a mesma regra). O id não muda depois.
+      maiúsculas (Configurações → Organizações, no painel, cria com a mesma regra). O id não muda depois.
   node bin/flow.js org rename <id> --name "<nome>"
-      Renomeia uma organização; o id continua o mesmo (a tela Organizações do painel também renomeia). O nome novo
-      segue a regra do cadastro, e o próprio nome com outras maiúsculas é aceito. "Sem organização" (unassigned) não
-      se renomeia.
+      Renomeia uma organização; o id continua o mesmo (Configurações → Organizações, no painel, também renomeia).
+      O nome novo segue a regra do cadastro, e o próprio nome com outras maiúsculas é aceito. "Sem organização"
+      (unassigned) não se renomeia.
   node bin/flow.js org remove <id>
-      Exclui uma organização sem projetos (a tela Organizações do painel também exclui). Com projetos, mova-os antes
-      (flow project move); "Sem organização" (unassigned) não se exclui.
+      Exclui uma organização sem projetos (Configurações → Organizações, no painel, também exclui). Com projetos,
+      mova-os antes (flow project move); "Sem organização" (unassigned) não se exclui.
   node bin/flow.js org hide <id>
   node bin/flow.js org unhide <id>
       Oculta uma organização (ela sai das listagens do painel, o trabalho dela segue normal) e a mostra de novo.
@@ -118,7 +118,7 @@ const ADMIN_HELP = `ORGANIZAÇÕES E PROJETOS (dono; não precisam rodar dentro 
         [--stages] [--done-state] [--workspace]
       Muda o cadastro (um --done-state ou --workspace vazio apaga o valor). O id não muda.
   node bin/flow.js project move <id> <organização>
-      Move o projeto para outra organização (o painel também faz isso, na tela Organizações e no card
+      Move o projeto para outra organização (o painel também faz isso, em Configurações → Organizações e no card
       "Sem organização" da tela Itens). "Sem organização" (unassigned) não é destino: ela só recebe os repositórios
       sem cadastro.
   JSON (--json -): id, name, organization, tracker, repos, remove_repos, stages, done_state, maestri_workspace.

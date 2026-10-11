@@ -121,6 +121,8 @@ suite.test('help lists org hide and org unhide', () => {
   const r = buildRoot('help');
   const out = ok(flow(r, ['--help']));
   assert.ok(/org hide <id>/.test(out) && /org unhide <id>/.test(out), out);
+  // The Organizations screen moved into Configurações (#48): the help points there, not to a screen that is gone.
+  assert.ok(!/tela Organizações/.test(out) && /Configurações → Organizações/.test(out), out);
 });
 
 suite.test('POST /api/organizations/<id>/hide and /unhide answer { organization } as GET lists it, under the POST rules; 404 when unknown', async () => {

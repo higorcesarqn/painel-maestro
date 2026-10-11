@@ -317,7 +317,7 @@ export default {
     moving: 'Movendo…',
     moved: 'Projeto {project} movido para {organization}.',
     moveFailed: 'Não consegui mover {project}: {message}',
-    noTarget: 'Nenhuma organização cadastrada para receber os projetos. Crie uma pelo botão "Nova organização" da tela Organizações (ou pelo CLI: node bin/flow.js org add <id> --name "<nome>").',
+    noTarget: 'Nenhuma organização disponível para receber os projetos. Crie uma pelo botão "Nova organização" em Configurações → Organizações (ou pelo CLI: node bin/flow.js org add <id> --name "<nome>").',
     screenNote: 'Esta tela mostra todas as organizações, as ocultas inclusive, qualquer que seja a escolha do seletor do topo.',
     none: 'Nenhuma organização cadastrada ainda. Crie a primeira pelo botão "Nova organização", acima.',
     noProjects: 'Nenhum projeto nesta organização.',
@@ -848,7 +848,7 @@ export default {
         ? `Id inválido: "${c.value}". Use letras minúsculas sem acento, números e hífen, começando por letra ou número, até 80 caracteres.`
         : `Campo "${c.field}" inválido: "${c.value}".`),
     // The destination of a move, or the organization renamed (#23) or removed (#24): gone, or never registered.
-    organization_not_found: 'Organização não encontrada: {organization}. Ela pode ter sido excluída em outro lugar; a tela Organizações mostra o cadastro atual.',
+    organization_not_found: 'Organização não encontrada: {organization}. Ela pode ter sido excluída em outro lugar; Configurações → Organizações mostra o cadastro atual.',
     project_not_found: 'Projeto não encontrado: {project}.',
     // Moving a project to, removing (#24) or renaming (#23) "Sem organização".
     organization_reserved: '"Sem organização" é reservada aos repositórios sem cadastro: não é destino de mover, não se renomeia e não se exclui.',

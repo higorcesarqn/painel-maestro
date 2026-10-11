@@ -227,6 +227,10 @@ suite.test('Configurações (#48): #organizations, #settings and #settings/organ
   // The dictionary through i18n/index.js, which pt-BR.js imports back (importing pt-BR.js first breaks the cycle).
   const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
   assert.deepStrictEqual([t('nav.settings'), t('screens.settings'), t('settings.tabs.organizations')], ['Configurações', 'Configurações', 'Organizações']);
+  // No text sends the owner to the Organizations screen of before: it is Configurações → Organizações now.
+  assert.ok(!/tela Organizações/.test(source['i18n/pt-BR.js']), 'no "tela Organizações" in the dictionary');
+  assert.ok(/Configurações → Organizações/.test(t('organizations.noTarget')), t('organizations.noTarget'));
+  assert.ok(/Configurações → Organizações/.test(t('codes.organization_not_found', { organization: 'x' })));
 });
 
 suite.test('the Items filters offer the server\'s stages and trackers (the page keeps its own copy of the lists)', async () => {
