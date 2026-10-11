@@ -43,6 +43,11 @@ Algo encontrado numa revisão que pode virar uma task nova para triagem.
 Em código: `Finding`.
 _Avoid_: issue de revisão
 
+**Resumo do diff**:
+Os arquivos que uma task alterou desde que saiu da branch integradora, com as linhas adicionadas e removidas de cada um; acompanha o relatório do trabalhador.
+Em código: `TaskDiff`.
+_Avoid_: patch, mudanças, arquivos compartilhados
+
 **Pendência**:
 Algo do fluxo de um item que espera uma decisão do dono, com contexto, opções e recomendação; o dono decide no terminal do maestro ou no painel. A revisão de uma task e o OK para integrá-la são a mesma pendência.
 Em código: `PendingDecision`.
