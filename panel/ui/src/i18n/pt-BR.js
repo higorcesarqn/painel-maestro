@@ -92,10 +92,16 @@ export default {
   },
 
   groups: { workspace: 'Workspace' },
-  // Name of each screen in the menu (and in the browser tab title).
-  nav: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso', organizations: 'Organizações' },
+  // Name of each screen in the menu (and in the browser tab title); settings is the gear on the menu's footer (#48).
+  nav: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências', log: 'Log', agents: 'Agentes', usage: 'Uso', settings: 'Configurações' },
   // Title of each screen in the header.
-  screens: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude', organizations: 'Organizações' },
+  screens: { overview: 'Visão geral', items: 'Itens', pending: 'Pendências do dono', log: 'Log de eventos', agents: 'Agentes', usage: 'Uso do Claude', settings: 'Configurações' },
+
+  // Configurações (#48): its sub-tabs, #settings/<sub>.
+  settings: {
+    tabsLabel: 'Seções de Configurações',
+    tabs: { organizations: 'Organizações' },
+  },
 
   sidebar: {
     brand: 'painel',

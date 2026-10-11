@@ -6,7 +6,7 @@
 // a pending decision that opened while the tab was hidden becomes a browser notification; the shell is the only one
 // touching the Notification API.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { PanelContext, SCREENS, parseHash, newFilter } from '../data/context.js';
+import { PanelContext, screenAt, parseHash, newFilter } from '../data/context.js';
 import { REFRESH_MS, MOCK, readState, recalculateUsage, readLog } from '../data/api.js';
 import { syncClock, time, txt, obj } from '../data/format.js';
 import { logParams } from '../data/queries.js';
@@ -23,15 +23,18 @@ import { PendingDecisions } from '../screens/PendingDecisions.jsx';
 import { Log } from '../screens/Log.jsx';
 import { Agents } from '../screens/Agents.jsx';
 import { Usage } from '../screens/Usage.jsx';
-import { Organizations } from '../screens/Organizations.jsx';
+import { Settings } from '../screens/Settings.jsx';
 import { Icon, TriangleAlert, Info, RefreshCw } from '../components/Icon.jsx';
 
 // One screen per item of SCREENS (data/screens.js). A new screen goes here and there.
-const SCREEN_COMPONENTS = { overview: Overview, items: Items, pending: PendingDecisions, log: Log, agents: Agents, usage: Usage, organizations: Organizations };
-// URL: #<screen> or #<screen>/<sub-tab> (data/screens.js); a malformed address opens the Overview.
+const SCREEN_COMPONENTS = { overview: Overview, items: Items, pending: PendingDecisions, log: Log, agents: Agents, usage: Usage, settings: Settings };
+// URL: #<screen> or #<screen>/<sub-tab> (data/screens.js); a malformed address opens the Overview, and an old one (#organizations)
+// is written back as the address of today (#settings/organizations).
 const hashParts = () => parseHash(location.hash);
 const screenFromHash = () => hashParts().id;
 const hashOf = (id, sub) => `#${id}${sub ? `/${sub}` : ''}`;
+// Writes the address of a screen without a new history entry (and without a hashchange) when it is not the current one.
+const writeHash = (id, sub) => { if (location.hash !== hashOf(id, sub)) history.replaceState(null, '', hashOf(id, sub)); };
 // The browser's Notification API: absent in some embedded browsers (the Maestri portal, probably), and then no bell.
 const NOTIFICATIONS = typeof window !== 'undefined' && 'Notification' in window;
 
@@ -78,18 +81,23 @@ export function App() {
   }, []);
 
   // ---------- navigation ----------
-  // goTo('log') changes the screen; goTo('<screen>', '<sub-tab>') opens the screen already on the sub-tab.
+  // goTo('log') changes the screen; goTo('<screen>', '<sub-tab>') opens the screen already on the sub-tab (goTo('settings'):
+  // its default sub-tab).
   const goTo = useCallback((id, sub = '') => {
-    const target = SCREENS.some((a) => a.id === id) ? id : 'overview';
-    const s = target === id ? String(sub || '') : '';
-    setScreen(target);
-    setSubroute(s);
-    if (location.hash !== hashOf(target, s)) history.replaceState(null, '', hashOf(target, s));
+    const p = screenAt(id, sub);
+    setScreen(p.id);
+    setSubroute(p.sub);
+    writeHash(p.id, p.sub);
   }, []);
   useEffect(() => {
-    const h = () => { const p = hashParts(); setScreen(p.id); setSubroute(p.sub); };
+    const h = () => {
+      const p = hashParts();
+      setScreen(p.id);
+      setSubroute(p.sub);
+      writeHash(p.id, p.sub);
+    };
     window.addEventListener('hashchange', h);
-    if (location.hash !== hashOf(screen, subroute)) history.replaceState(null, '', hashOf(screen, subroute));
+    writeHash(screen, subroute);
     return () => window.removeEventListener('hashchange', h);
   }, []);
   // ---------- browser tab (#43): "(n) " in the title and a dot in the favicon ----------

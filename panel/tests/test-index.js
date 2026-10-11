@@ -186,6 +186,37 @@ suite.test('the address picks the screen: a malformed address (bad percent-encod
   for (const bad of ['#items/%E0%A4%A', '#log/%', '#%ZZ']) assert.deepStrictEqual(parseHash(bad), { id: 'overview', sub: '' }, bad);
 });
 
+suite.test('Configurações (#48): #organizations, #settings and #settings/organizations open Configurações → Organizações; the arrows skip it', async () => {
+  const { SCREENS, ARROW_SCREENS, parseHash, screenAt } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
+  const organizations = { id: 'settings', sub: 'organizations' };
+  for (const h of ['#organizations', '#settings', '#settings/organizations', '#settings/nao-existe', '#organizations/x']) {
+    assert.deepStrictEqual(parseHash(h), organizations, h);
+  }
+  // goTo goes through the same rule: the default sub-tab, and an unknown screen opens the Overview.
+  assert.deepStrictEqual(screenAt('settings', ''), organizations);
+  assert.deepStrictEqual(screenAt('items', 'widgets/12'), { id: 'items', sub: 'widgets/12' });
+  assert.deepStrictEqual(screenAt('nao-existe', 'x'), { id: 'overview', sub: '' });
+  assert.ok(!SCREENS.some((s) => s.id === 'organizations'), 'Organizations is no longer a screen of its own');
+  assert.deepStrictEqual(ARROW_SCREENS, ['overview', 'items', 'pending', 'log', 'agents', 'usage'], 'the arrows only go through the work screens');
+  // The menu: the arrows follow ARROW_SCREENS; the gear on the footer opens Configurações, named and marked when it is open.
+  const sidebar = source['app/Sidebar.jsx'];
+  assert.ok(/ARROW_SCREENS/.test(sidebar) && !/GROUPS\.flatMap/.test(sidebar), 'the arrows read ARROW_SCREENS');
+  const foot = sidebar.slice(sidebar.indexOf('class="sidebar-foot"'));
+  assert.ok(/<Icon of=\{Gear\}/.test(foot) && /onClick=\{\(\) => goTo\('settings'\)\}/.test(foot), 'the gear is on the footer');
+  assert.ok(/aria-label=\{t\('nav\.settings'\)\}/.test(foot) && /aria-current=\{screen === 'settings' \? 'page' : undefined\}/.test(foot), 'named and marked');
+  // The shell resolves every address and goTo with screenAt, and writes the canonical address back (#organizations → #settings/organizations).
+  const app = source['app/App.jsx'];
+  assert.ok(/settings: Settings/.test(app) && !/organizations: Organizations/.test(app), 'Settings in SCREEN_COMPONENTS');
+  assert.ok(/screenAt\(id, sub\)/.test(app), 'goTo goes through screenAt');
+  // The screen: one tab per sub-tab, from the dictionary; Organizations is the screen of before.
+  const settings = source['screens/Settings.jsx'];
+  assert.ok(/role="tablist"/.test(settings) && /role="tab"/.test(settings) && /t\(`settings\.tabs\.\$\{/.test(settings), 'the sub-tabs are tabs');
+  assert.ok(/organizations: Organizations/.test(settings), 'Organizations is a sub-tab');
+  // The dictionary through i18n/index.js, which pt-BR.js imports back (importing pt-BR.js first breaks the cycle).
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  assert.deepStrictEqual([t('nav.settings'), t('screens.settings'), t('settings.tabs.organizations')], ['Configurações', 'Configurações', 'Organizações']);
+});
+
 suite.test('the Items filters offer the server\'s stages and trackers (the page keeps its own copy of the lists)', async () => {
   const { STAGES, TRACKERS } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'domain.js')).href);
   // Parity between the page's copy and the server's lists (a contract constant, not a database read): same exception
@@ -242,10 +273,9 @@ suite.test('organizations (#6): the demo has two organizations and "Pessoal" wit
   assert.ok(js.includes('painel-maestro.organization'));
 });
 
-suite.test('Organizations screen (#21): in the menu, sharing the project line with "Sem organização"; the mock refuses "Sem organização" as a destination, renames and removes only an empty organization', async () => {
-  const { SCREENS, parseHash } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
-  assert.ok(SCREENS.some((s) => s.id === 'organizations' && s.group === 'workspace'));
-  assert.deepStrictEqual(parseHash('#organizations'), { id: 'organizations', sub: '' });
+suite.test('Organizations screen (#21): a sub-tab of Configurações (#48), sharing the project line with "Sem organização"; the mock refuses "Sem organização" as a destination, renames and removes only an empty organization', async () => {
+  const { SCREENS } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
+  assert.ok(SCREENS.some((s) => s.id === 'settings' && s.subs[0] === 'organizations'));
   for (const f of ['screens/Organizations.jsx', 'screens/UnassignedProjects.jsx']) assert.ok(/import \{ ProjectRow \} from '\.\/ProjectRow\.jsx'/.test(source[f]), f);
   // Exception to the seam rule (panel/README.md, Testes): the mock lives only in the page (?mock=1), with no server or
   // process to drive, so its refusal of "Sem organização" is checked by calling mockApi() with the page's address and its

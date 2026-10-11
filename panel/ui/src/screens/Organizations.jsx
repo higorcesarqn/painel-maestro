@@ -1,5 +1,5 @@
-// Organizations (#21): the whole register, one card per organization with its projects, whatever the organization selector at the
-// top says (a note tells so: a move's destination is never hidden). The cards come in the order of GET /api/organizations
+// Organizations (#21), the first sub-tab of Settings (#48, screens/Settings.jsx): the whole register, one card per
+// organization with its projects, whatever the organization selector at the top says (a note tells so: a move's destination is never hidden). The cards come in the order of GET /api/organizations
 // (alphabetical, "unassigned" last); "unassigned" shows only when it has projects. Each project is a ProjectRow,
 // shared with the "unassigned" card of the Items screen. The new organization button opens OrganizationCreateModal (#22);
 // with no organization yet, the screen points to it. Each organization but "unassigned" has Renomear (#23), which opens
