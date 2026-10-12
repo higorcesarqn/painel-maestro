@@ -421,6 +421,17 @@ export default {
       empty: 'Nenhum arquivo alterado desde a base.',
       // Another task of the item also changed the file (#56): a warning of a possible conflict, never "compartilhado".
       alsoIn: 'também na task {task}',
+      // The edge cases (#55): a binary file has no line counts, a renamed one shows both paths, a cut summary says how
+      // many files were left out, and the files left outside a commit in the worktree are only counted.
+      binary: 'binário',
+      binaryTitle: 'arquivo binário: sem contagem de linhas',
+      renamed: '{from} → {path}',
+      more: { one: 'e mais {count} arquivo', other: 'e mais {count} arquivos' },
+      uncommitted: {
+        one: '{count} arquivo com mudança fora de commit no worktree no momento do relatório',
+        other: '{count} arquivos com mudanças fora de commit no worktree no momento do relatório',
+      },
+      uncommittedTitle: 'Essas mudanças não estão no SHA do relatório: não entram na integração.',
     },
     findings: {
       title: 'Achados',

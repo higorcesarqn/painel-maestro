@@ -28,6 +28,11 @@
 .diff-added { color: var(--ok); }
 .diff-removed { color: var(--danger); }
 .report-diff-files .diff-added, .report-diff-files .diff-removed { min-width: 3.5em; text-align: right; }
+/* The edge cases (#55): "old → new" wraps instead of cutting the new path; "binário" takes the place of the + and -
+   columns; the warning about uncommitted files. */
+.diff-renamed { white-space: normal; overflow-wrap: anywhere; }
+.diff-binary { grid-column: span 2; text-align: right; font-family: var(--font); }
+.report-diff-uncommitted { display: flex; align-items: center; gap: 6px; color: var(--warning); }
 .report-text { max-height: 18em; overflow: auto; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
 
 .finding-list { list-style: none; display: flex; flex-direction: column; }

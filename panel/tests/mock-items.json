@@ -29,7 +29,7 @@
         },
         "open": [
           {
-            "id": 99,
+            "id": 100,
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
@@ -58,7 +58,7 @@
             }
           },
           {
-            "id": 72,
+            "id": 73,
             "kind": "hml",
             "severity": "high",
             "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
@@ -83,7 +83,7 @@
             "task": null
           },
           {
-            "id": 84,
+            "id": 85,
             "kind": "task_review",
             "severity": "high",
             "title": "Revisar e integrar a task 3115 (botão de exportar)",
@@ -112,7 +112,7 @@
             }
           },
           {
-            "id": 90,
+            "id": 91,
             "kind": "worker_blocked",
             "severity": "high",
             "title": "Em que formato sai o extrato exportado?",
@@ -141,7 +141,7 @@
             }
           },
           {
-            "id": 93,
+            "id": 94,
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
@@ -166,7 +166,7 @@
             "task": null
           },
           {
-            "id": 97,
+            "id": 98,
             "kind": "decision",
             "severity": "normal",
             "title": "Como chamar o carrinho juntado na tela?",
@@ -949,7 +949,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 79,
+          "id": 80,
           "at": "2026-10-09T07:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -964,7 +964,7 @@
           }
         },
         {
-          "id": 80,
+          "id": 81,
           "at": "2026-10-09T07:35:00-03:00",
           "type": "task-dispatched",
           "task_number": 5,
@@ -980,7 +980,7 @@
           }
         },
         {
-          "id": 81,
+          "id": 82,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 5,
@@ -1004,7 +1004,7 @@
           }
         },
         {
-          "id": 87,
+          "id": 88,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": 5,
@@ -1014,12 +1014,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 81,
+            "pending_decision": 82,
             "decision": "B: vira task nova para triagem."
           }
         },
         {
-          "id": 100,
+          "id": 101,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -1258,7 +1258,7 @@
       "hml": null,
       "reports": [
         {
-          "id": 60,
+          "id": 61,
           "at": "2026-10-08T13:12:00-03:00",
           "task_number": 3113,
           "agent": {
@@ -1333,7 +1333,7 @@
           }
         },
         {
-          "id": 83,
+          "id": 84,
           "at": "2026-10-09T08:42:00-03:00",
           "task_number": 3115,
           "agent": {
@@ -1368,6 +1368,13 @@
                 ]
               },
               {
+                "path": "public/icons/pdf.png",
+                "added": null,
+                "removed": null,
+                "binary": true,
+                "also_in": []
+              },
+              {
                 "path": "src/api/export-adapter.ts",
                 "added": 38,
                 "removed": 0,
@@ -1380,19 +1387,27 @@
                 "removed": 4,
                 "binary": false,
                 "also_in": []
+              },
+              {
+                "path": "src/screens/statement/ExportButton.tsx",
+                "from": "src/screens/ExportButton.tsx",
+                "added": 9,
+                "removed": 3,
+                "binary": false,
+                "also_in": []
               }
             ],
             "total": {
-              "files": 3,
-              "added": 61,
-              "removed": 5
+              "files": 5,
+              "added": 70,
+              "removed": 8
             },
             "truncated": false,
-            "uncommitted": 0
+            "uncommitted": 2
           }
         },
         {
-          "id": 98,
+          "id": 99,
           "at": "2026-10-09T10:06:00-03:00",
           "task_number": 3116,
           "agent": {
@@ -1461,7 +1476,7 @@
       ],
       "timeline": [
         {
-          "id": 45,
+          "id": 46,
           "at": "2026-10-07T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1476,7 +1491,7 @@
           }
         },
         {
-          "id": 52,
+          "id": 53,
           "at": "2026-10-08T10:20:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -1490,7 +1505,7 @@
           }
         },
         {
-          "id": 53,
+          "id": 54,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -1506,7 +1521,7 @@
           }
         },
         {
-          "id": 54,
+          "id": 55,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "task-graph",
           "task_number": null,
@@ -1566,7 +1581,7 @@
           }
         },
         {
-          "id": 55,
+          "id": 56,
           "at": "2026-10-08T10:30:00-03:00",
           "type": "task-dispatched",
           "task_number": 3113,
@@ -1582,7 +1597,7 @@
           }
         },
         {
-          "id": 59,
+          "id": 60,
           "at": "2026-10-08T13:10:00-03:00",
           "type": "task-status",
           "task_number": 3113,
@@ -1602,7 +1617,7 @@
           }
         },
         {
-          "id": 60,
+          "id": 61,
           "at": "2026-10-08T13:12:00-03:00",
           "type": "task-report",
           "task_number": 3113,
@@ -1674,7 +1689,7 @@
           }
         },
         {
-          "id": 61,
+          "id": 62,
           "at": "2026-10-08T13:12:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3113,
@@ -1700,7 +1715,7 @@
           }
         },
         {
-          "id": 62,
+          "id": 63,
           "at": "2026-10-08T13:50:00-03:00",
           "type": "finding-recorded",
           "task_number": 3113,
@@ -1722,7 +1737,7 @@
           }
         },
         {
-          "id": 63,
+          "id": 64,
           "at": "2026-10-08T13:52:00-03:00",
           "type": "finding-recorded",
           "task_number": 3113,
@@ -1741,7 +1756,7 @@
           }
         },
         {
-          "id": 64,
+          "id": 65,
           "at": "2026-10-08T13:55:00-03:00",
           "type": "finding-recorded",
           "task_number": 3113,
@@ -1760,7 +1775,7 @@
           }
         },
         {
-          "id": 65,
+          "id": 66,
           "at": "2026-10-08T14:02:00-03:00",
           "type": "task-integrated",
           "task_number": 3113,
@@ -1775,7 +1790,7 @@
           }
         },
         {
-          "id": 66,
+          "id": 67,
           "at": "2026-10-08T14:04:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1801,7 +1816,7 @@
           }
         },
         {
-          "id": 67,
+          "id": 68,
           "at": "2026-10-08T14:08:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -1811,12 +1826,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 66,
+            "pending_decision": 67,
             "decision": "Pode paralelizar. A 3115 integra primeiro."
           }
         },
         {
-          "id": 68,
+          "id": 69,
           "at": "2026-10-08T14:10:00-03:00",
           "type": "task-dispatched",
           "task_number": 3114,
@@ -1832,7 +1847,7 @@
           }
         },
         {
-          "id": 69,
+          "id": 70,
           "at": "2026-10-08T14:12:00-03:00",
           "type": "task-dispatched",
           "task_number": 3115,
@@ -1848,7 +1863,7 @@
           }
         },
         {
-          "id": 82,
+          "id": 83,
           "at": "2026-10-09T08:40:00-03:00",
           "type": "task-status",
           "task_number": 3115,
@@ -1868,7 +1883,7 @@
           }
         },
         {
-          "id": 83,
+          "id": 84,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "task-report",
           "task_number": 3115,
@@ -1903,6 +1918,12 @@
                   "binary": false
                 },
                 {
+                  "path": "public/icons/pdf.png",
+                  "added": null,
+                  "removed": null,
+                  "binary": true
+                },
+                {
                   "path": "src/api/export-adapter.ts",
                   "added": 38,
                   "removed": 0,
@@ -1913,20 +1934,27 @@
                   "added": 21,
                   "removed": 4,
                   "binary": false
+                },
+                {
+                  "path": "src/screens/statement/ExportButton.tsx",
+                  "from": "src/screens/ExportButton.tsx",
+                  "added": 9,
+                  "removed": 3,
+                  "binary": false
                 }
               ],
               "total": {
-                "files": 3,
-                "added": 61,
-                "removed": 5
+                "files": 5,
+                "added": 70,
+                "removed": 8
               },
               "truncated": false,
-              "uncommitted": 0
+              "uncommitted": 2
             }
           }
         },
         {
-          "id": 84,
+          "id": 85,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3115,
@@ -1954,7 +1982,7 @@
           }
         },
         {
-          "id": 89,
+          "id": 90,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "task_number": 3114,
@@ -1974,7 +2002,7 @@
           }
         },
         {
-          "id": 90,
+          "id": 91,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3114,
@@ -1996,7 +2024,7 @@
           }
         },
         {
-          "id": 94,
+          "id": 95,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "task_number": 3116,
@@ -2012,7 +2040,7 @@
           }
         },
         {
-          "id": 96,
+          "id": 97,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "task_number": 3116,
@@ -2029,7 +2057,7 @@
           }
         },
         {
-          "id": 98,
+          "id": 99,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "task_number": 3116,
@@ -2052,7 +2080,7 @@
           }
         },
         {
-          "id": 99,
+          "id": 100,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -2166,7 +2194,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 95,
+          "id": 96,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2312,7 +2340,7 @@
       "hml": null,
       "reports": [
         {
-          "id": 32,
+          "id": 33,
           "at": "2026-10-05T11:20:00-03:00",
           "task_number": 49,
           "agent": {
@@ -2360,7 +2388,7 @@
           }
         },
         {
-          "id": 73,
+          "id": 74,
           "at": "2026-10-08T16:50:00-03:00",
           "task_number": 50,
           "agent": {
@@ -2491,7 +2519,7 @@
           }
         },
         {
-          "id": 32,
+          "id": 33,
           "at": "2026-10-05T11:20:00-03:00",
           "type": "task-report",
           "task_number": 49,
@@ -2541,7 +2569,7 @@
           }
         },
         {
-          "id": 33,
+          "id": 34,
           "at": "2026-10-05T11:30:00-03:00",
           "type": "task-integrated",
           "task_number": 49,
@@ -2556,7 +2584,7 @@
           }
         },
         {
-          "id": 34,
+          "id": 35,
           "at": "2026-10-05T11:40:00-03:00",
           "type": "task-dispatched",
           "task_number": 50,
@@ -2572,7 +2600,7 @@
           }
         },
         {
-          "id": 73,
+          "id": 74,
           "at": "2026-10-08T16:50:00-03:00",
           "type": "task-report",
           "task_number": 50,
@@ -2595,7 +2623,7 @@
           }
         },
         {
-          "id": 74,
+          "id": 75,
           "at": "2026-10-08T17:00:00-03:00",
           "type": "task-integrated",
           "task_number": 50,
@@ -2610,7 +2638,7 @@
           }
         },
         {
-          "id": 75,
+          "id": 76,
           "at": "2026-10-08T17:05:00-03:00",
           "type": "finding-recorded",
           "task_number": 50,
@@ -2632,7 +2660,7 @@
           }
         },
         {
-          "id": 92,
+          "id": 93,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2644,7 +2672,7 @@
           "payload": {}
         },
         {
-          "id": 93,
+          "id": 94,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2670,7 +2698,7 @@
           }
         },
         {
-          "id": 97,
+          "id": 98,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2779,7 +2807,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 85,
+          "id": 86,
           "at": "2026-10-09T08:50:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2794,7 +2822,7 @@
           }
         },
         {
-          "id": 86,
+          "id": 87,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2818,7 +2846,7 @@
           }
         },
         {
-          "id": 91,
+          "id": 92,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "task_number": null,
@@ -2828,7 +2856,7 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 86,
+            "pending_decision": 87,
             "reason": "Entrou na especificação do item."
           }
         }
@@ -2915,7 +2943,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 44,
+          "id": 45,
           "at": "2026-10-07T10:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2930,7 +2958,7 @@
           }
         },
         {
-          "id": 51,
+          "id": 52,
           "at": "2026-10-08T09:30:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -2944,7 +2972,7 @@
           }
         },
         {
-          "id": 88,
+          "id": 89,
           "at": "2026-10-09T09:10:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -3060,7 +3088,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 26,
+          "id": 27,
           "at": "2026-10-04T11:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -3075,7 +3103,7 @@
           }
         },
         {
-          "id": 39,
+          "id": 40,
           "at": "2026-10-06T13:20:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3091,7 +3119,7 @@
           }
         },
         {
-          "id": 78,
+          "id": 79,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3241,7 +3269,7 @@
       ],
       "timeline": [
         {
-          "id": 20,
+          "id": 21,
           "at": "2026-10-03T08:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -3256,7 +3284,7 @@
           }
         },
         {
-          "id": 21,
+          "id": 22,
           "at": "2026-10-03T08:40:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3272,7 +3300,7 @@
           }
         },
         {
-          "id": 46,
+          "id": 47,
           "at": "2026-10-07T16:45:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -3284,7 +3312,7 @@
           "payload": {}
         },
         {
-          "id": 47,
+          "id": 48,
           "at": "2026-10-07T17:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -3310,7 +3338,7 @@
           }
         },
         {
-          "id": 49,
+          "id": 50,
           "at": "2026-10-07T18:20:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -3320,12 +3348,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 47,
+            "pending_decision": 48,
             "decision": "A: 3 retentativas, com intervalo de 24 h."
           }
         },
         {
-          "id": 56,
+          "id": 57,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -3340,7 +3368,7 @@
           }
         },
         {
-          "id": 58,
+          "id": 59,
           "at": "2026-10-08T11:35:00-03:00",
           "type": "finding-recorded",
           "task_number": null,
@@ -3362,7 +3390,7 @@
           }
         },
         {
-          "id": 70,
+          "id": 71,
           "at": "2026-10-08T15:00:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -3374,7 +3402,7 @@
           "payload": {}
         },
         {
-          "id": 76,
+          "id": 77,
           "at": "2026-10-08T17:50:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -3388,7 +3416,7 @@
           }
         },
         {
-          "id": 77,
+          "id": 78,
           "at": "2026-10-08T18:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3526,7 +3554,1440 @@
         "summary": "Cenário 4 reprovado: o extrato de outubro veio sem a tarifa.\nCenário 6 bloqueado: sem massa de boletos vencidos em HML.",
         "recorded_at": "2026-10-08T09:05:00-03:00"
       },
-      "reports": [],
+      "reports": [
+        {
+          "id": 19,
+          "at": "2026-10-02T18:05:00-03:00",
+          "task_number": 3101,
+          "agent": {
+            "role": "worker",
+            "name": "Ária"
+          },
+          "status": "ok",
+          "blocked_reason": null,
+          "branch": "task/3101-extrato-ofx",
+          "sha": "4be1c2d9a7f0",
+          "tests": "npm test: 0 falhas (2 rodadas), com os 240 extratos de exemplo",
+          "changes": "Importação do extrato OFX, com 240 extratos de exemplo do banco para os testes.",
+          "decisions": [],
+          "risks": null,
+          "shared_files": [],
+          "text": "Task 3101 pronta: importação do extrato OFX, testada com 240 extratos de exemplo. npm test: 0 falhas.",
+          "diff": {
+            "base": "9a01f3c5b7d2e4f6a8c0b1d3e5f7a9c2b4d6e8f0",
+            "base_ref": "feature/pbi-3100",
+            "files": [
+              {
+                "path": "src/ofx/import.test.ts",
+                "added": 86,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "src/ofx/import.ts",
+                "added": 112,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-001.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-002.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-003.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-004.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-005.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-006.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-007.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-008.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-009.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-010.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-011.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-012.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-013.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-014.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-015.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-016.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-017.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-018.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-019.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-020.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-021.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-022.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-023.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-024.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-025.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-026.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-027.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-028.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-029.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-030.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-031.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-032.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-033.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-034.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-035.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-036.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-037.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-038.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-039.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-040.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-041.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-042.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-043.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-044.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-045.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-046.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-047.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-048.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-049.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-050.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-051.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-052.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-053.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-054.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-055.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-056.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-057.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-058.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-059.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-060.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-061.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-062.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-063.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-064.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-065.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-066.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-067.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-068.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-069.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-070.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-071.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-072.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-073.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-074.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-075.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-076.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-077.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-078.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-079.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-080.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-081.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-082.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-083.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-084.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-085.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-086.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-087.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-088.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-089.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-090.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-091.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-092.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-093.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-094.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-095.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-096.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-097.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-098.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-099.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-100.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-101.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-102.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-103.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-104.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-105.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-106.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-107.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-108.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-109.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-110.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-111.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-112.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-113.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-114.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-115.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-116.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-117.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-118.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-119.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-120.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-121.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-122.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-123.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-124.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-125.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-126.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-127.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-128.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-129.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-130.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-131.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-132.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-133.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-134.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-135.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-136.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-137.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-138.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-139.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-140.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-141.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-142.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-143.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-144.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-145.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-146.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-147.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-148.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-149.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-150.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-151.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-152.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-153.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-154.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-155.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-156.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-157.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-158.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-159.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-160.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-161.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-162.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-163.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-164.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-165.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-166.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-167.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-168.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-169.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-170.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-171.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-172.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-173.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-174.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-175.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-176.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-177.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-178.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-179.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-180.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-181.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-182.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-183.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-184.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-185.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-186.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-187.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-188.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-189.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-190.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-191.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-192.ofx",
+                "added": 32,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-193.ofx",
+                "added": 33,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-194.ofx",
+                "added": 34,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-195.ofx",
+                "added": 35,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-196.ofx",
+                "added": 36,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-197.ofx",
+                "added": 30,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              },
+              {
+                "path": "test/fixtures/ofx/extrato-198.ofx",
+                "added": 31,
+                "removed": 0,
+                "binary": false,
+                "also_in": []
+              }
+            ],
+            "total": {
+              "files": 242,
+              "added": 8113,
+              "removed": 0
+            },
+            "truncated": true,
+            "uncommitted": 0
+          }
+        }
+      ],
       "findings": [],
       "timeline": [
         {
@@ -3621,6 +5082,1242 @@
         },
         {
           "id": 19,
+          "at": "2026-10-02T18:05:00-03:00",
+          "type": "task-report",
+          "task_number": 3101,
+          "agent": {
+            "role": "worker",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "status": "ok",
+            "blocked_reason": null,
+            "branch": "task/3101-extrato-ofx",
+            "sha": "4be1c2d9a7f0",
+            "tests": "npm test: 0 falhas (2 rodadas), com os 240 extratos de exemplo",
+            "changes": "Importação do extrato OFX, com 240 extratos de exemplo do banco para os testes.",
+            "decisions": [],
+            "risks": null,
+            "shared_files": [],
+            "text": "Task 3101 pronta: importação do extrato OFX, testada com 240 extratos de exemplo. npm test: 0 falhas.",
+            "diff": {
+              "base": "9a01f3c5b7d2e4f6a8c0b1d3e5f7a9c2b4d6e8f0",
+              "base_ref": "feature/pbi-3100",
+              "files": [
+                {
+                  "path": "src/ofx/import.test.ts",
+                  "added": 86,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "src/ofx/import.ts",
+                  "added": 112,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-001.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-002.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-003.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-004.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-005.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-006.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-007.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-008.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-009.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-010.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-011.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-012.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-013.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-014.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-015.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-016.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-017.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-018.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-019.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-020.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-021.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-022.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-023.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-024.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-025.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-026.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-027.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-028.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-029.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-030.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-031.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-032.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-033.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-034.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-035.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-036.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-037.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-038.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-039.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-040.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-041.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-042.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-043.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-044.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-045.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-046.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-047.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-048.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-049.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-050.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-051.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-052.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-053.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-054.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-055.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-056.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-057.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-058.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-059.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-060.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-061.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-062.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-063.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-064.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-065.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-066.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-067.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-068.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-069.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-070.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-071.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-072.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-073.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-074.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-075.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-076.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-077.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-078.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-079.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-080.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-081.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-082.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-083.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-084.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-085.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-086.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-087.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-088.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-089.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-090.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-091.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-092.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-093.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-094.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-095.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-096.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-097.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-098.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-099.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-100.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-101.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-102.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-103.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-104.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-105.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-106.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-107.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-108.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-109.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-110.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-111.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-112.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-113.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-114.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-115.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-116.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-117.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-118.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-119.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-120.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-121.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-122.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-123.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-124.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-125.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-126.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-127.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-128.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-129.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-130.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-131.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-132.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-133.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-134.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-135.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-136.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-137.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-138.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-139.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-140.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-141.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-142.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-143.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-144.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-145.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-146.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-147.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-148.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-149.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-150.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-151.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-152.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-153.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-154.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-155.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-156.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-157.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-158.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-159.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-160.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-161.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-162.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-163.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-164.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-165.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-166.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-167.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-168.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-169.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-170.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-171.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-172.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-173.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-174.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-175.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-176.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-177.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-178.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-179.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-180.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-181.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-182.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-183.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-184.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-185.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-186.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-187.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-188.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-189.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-190.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-191.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-192.ofx",
+                  "added": 32,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-193.ofx",
+                  "added": 33,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-194.ofx",
+                  "added": 34,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-195.ofx",
+                  "added": 35,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-196.ofx",
+                  "added": 36,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-197.ofx",
+                  "added": 30,
+                  "removed": 0,
+                  "binary": false
+                },
+                {
+                  "path": "test/fixtures/ofx/extrato-198.ofx",
+                  "added": 31,
+                  "removed": 0,
+                  "binary": false
+                }
+              ],
+              "total": {
+                "files": 242,
+                "added": 8113,
+                "removed": 0
+              },
+              "truncated": true,
+              "uncommitted": 0
+            }
+          }
+        },
+        {
+          "id": 20,
           "at": "2026-10-02T18:20:00-03:00",
           "type": "task-integrated",
           "task_number": 3101,
@@ -3635,7 +6332,7 @@
           }
         },
         {
-          "id": 22,
+          "id": 23,
           "at": "2026-10-03T09:00:00-03:00",
           "type": "task-dispatched",
           "task_number": 3102,
@@ -3651,7 +6348,7 @@
           }
         },
         {
-          "id": 30,
+          "id": 31,
           "at": "2026-10-05T10:40:00-03:00",
           "type": "task-integrated",
           "task_number": 3102,
@@ -3666,7 +6363,7 @@
           }
         },
         {
-          "id": 31,
+          "id": 32,
           "at": "2026-10-05T11:02:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -3678,7 +6375,7 @@
           "payload": {}
         },
         {
-          "id": 35,
+          "id": 36,
           "at": "2026-10-05T16:20:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -3693,7 +6390,7 @@
           }
         },
         {
-          "id": 38,
+          "id": 39,
           "at": "2026-10-06T10:15:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3707,7 +6404,7 @@
           }
         },
         {
-          "id": 48,
+          "id": 49,
           "at": "2026-10-07T17:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3721,7 +6418,7 @@
           }
         },
         {
-          "id": 50,
+          "id": 51,
           "at": "2026-10-08T09:05:00-03:00",
           "type": "hml-recorded",
           "task_number": null,
@@ -3739,7 +6436,7 @@
           }
         },
         {
-          "id": 72,
+          "id": 73,
           "at": "2026-10-08T16:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -3852,7 +6549,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 71,
+          "id": 72,
           "at": "2026-10-08T15:20:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -3949,7 +6646,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 40,
+          "id": 41,
           "at": "2026-10-06T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -3964,7 +6661,7 @@
           }
         },
         {
-          "id": 57,
+          "id": 58,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -4068,7 +6765,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 36,
+          "id": 37,
           "at": "2026-10-06T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -4083,7 +6780,7 @@
           }
         },
         {
-          "id": 41,
+          "id": 42,
           "at": "2026-10-06T18:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -4099,7 +6796,7 @@
           }
         },
         {
-          "id": 42,
+          "id": 43,
           "at": "2026-10-07T08:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -4113,7 +6810,7 @@
           }
         },
         {
-          "id": 43,
+          "id": 44,
           "at": "2026-10-07T08:12:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -4212,7 +6909,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 27,
+          "id": 28,
           "at": "2026-10-05T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -4227,7 +6924,7 @@
           }
         },
         {
-          "id": 37,
+          "id": 38,
           "at": "2026-10-06T10:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -4346,7 +7043,7 @@
           }
         },
         {
-          "id": 25,
+          "id": 26,
           "at": "2026-10-03T17:00:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -4362,7 +7059,7 @@
           }
         },
         {
-          "id": 28,
+          "id": 29,
           "at": "2026-10-05T10:00:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -4376,7 +7073,7 @@
           }
         },
         {
-          "id": 29,
+          "id": 30,
           "at": "2026-10-05T10:05:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -4581,7 +7278,7 @@
           }
         },
         {
-          "id": 23,
+          "id": 24,
           "at": "2026-10-03T15:40:00-03:00",
           "type": "hml-recorded",
           "task_number": null,
@@ -4598,7 +7295,7 @@
           }
         },
         {
-          "id": 24,
+          "id": 25,
           "at": "2026-10-03T16:00:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -4712,7 +7409,7 @@
   "pending_decisions": {
     "pending_decisions": [
       {
-        "id": 99,
+        "id": 100,
         "kind": "worker_blocked",
         "severity": "critical",
         "status": "open",
@@ -4762,7 +7459,7 @@
         }
       },
       {
-        "id": 72,
+        "id": 73,
         "kind": "hml",
         "severity": "high",
         "status": "open",
@@ -4808,7 +7505,7 @@
         "task": null
       },
       {
-        "id": 84,
+        "id": 85,
         "kind": "task_review",
         "severity": "high",
         "status": "open",
@@ -4875,6 +7572,13 @@
                 ]
               },
               {
+                "path": "public/icons/pdf.png",
+                "added": null,
+                "removed": null,
+                "binary": true,
+                "also_in": []
+              },
+              {
                 "path": "src/api/export-adapter.ts",
                 "added": 38,
                 "removed": 0,
@@ -4887,20 +7591,28 @@
                 "removed": 4,
                 "binary": false,
                 "also_in": []
+              },
+              {
+                "path": "src/screens/statement/ExportButton.tsx",
+                "from": "src/screens/ExportButton.tsx",
+                "added": 9,
+                "removed": 3,
+                "binary": false,
+                "also_in": []
               }
             ],
             "total": {
-              "files": 3,
-              "added": 61,
-              "removed": 5
+              "files": 5,
+              "added": 70,
+              "removed": 8
             },
             "truncated": false,
-            "uncommitted": 0
+            "uncommitted": 2
           }
         }
       },
       {
-        "id": 90,
+        "id": 91,
         "kind": "worker_blocked",
         "severity": "high",
         "status": "open",
@@ -4947,7 +7659,7 @@
         }
       },
       {
-        "id": 88,
+        "id": 89,
         "kind": "decision",
         "severity": "normal",
         "status": "open",
@@ -4993,7 +7705,7 @@
         "task": null
       },
       {
-        "id": 93,
+        "id": 94,
         "kind": "finding",
         "severity": "normal",
         "status": "open",
@@ -5039,7 +7751,7 @@
         "task": null
       },
       {
-        "id": 97,
+        "id": 98,
         "kind": "decision",
         "severity": "normal",
         "status": "open",
@@ -5082,7 +7794,7 @@
         "task": null
       },
       {
-        "id": 86,
+        "id": 87,
         "kind": "decision",
         "severity": "low",
         "status": "canceled",
@@ -5131,7 +7843,7 @@
         "task": null
       },
       {
-        "id": 81,
+        "id": 82,
         "kind": "finding",
         "severity": "low",
         "status": "resolved",
@@ -5184,7 +7896,7 @@
         }
       },
       {
-        "id": 50,
+        "id": 51,
         "kind": "hml",
         "severity": "high",
         "status": "resolved",
@@ -5236,7 +7948,7 @@
         "task": null
       },
       {
-        "id": 66,
+        "id": 67,
         "kind": "parallelize",
         "severity": "normal",
         "status": "resolved",
@@ -5285,7 +7997,7 @@
         "task": null
       },
       {
-        "id": 61,
+        "id": 62,
         "kind": "task_review",
         "severity": "normal",
         "status": "resolved",
@@ -5393,7 +8105,7 @@
         }
       },
       {
-        "id": 47,
+        "id": 48,
         "kind": "decision",
         "severity": "normal",
         "status": "resolved",
@@ -5683,7 +8395,7 @@
         },
         "open": [
           {
-            "id": 99,
+            "id": 100,
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
@@ -5712,7 +8424,7 @@
             }
           },
           {
-            "id": 72,
+            "id": 73,
             "kind": "hml",
             "severity": "high",
             "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
@@ -5737,7 +8449,7 @@
             "task": null
           },
           {
-            "id": 84,
+            "id": 85,
             "kind": "task_review",
             "severity": "high",
             "title": "Revisar e integrar a task 3115 (botão de exportar)",
@@ -5766,7 +8478,7 @@
             }
           },
           {
-            "id": 90,
+            "id": 91,
             "kind": "worker_blocked",
             "severity": "high",
             "title": "Em que formato sai o extrato exportado?",
@@ -5795,7 +8507,7 @@
             }
           },
           {
-            "id": 93,
+            "id": 94,
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
@@ -5820,7 +8532,7 @@
             "task": null
           },
           {
-            "id": 97,
+            "id": 98,
             "kind": "decision",
             "severity": "normal",
             "title": "Como chamar o carrinho juntado na tela?",
@@ -5889,7 +8601,7 @@
       "events_today": 21,
       "recent_events": [
         {
-          "id": 100,
+          "id": 101,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "project": {
@@ -5922,7 +8634,7 @@
           }
         },
         {
-          "id": 99,
+          "id": 100,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -5962,7 +8674,7 @@
           }
         },
         {
-          "id": 98,
+          "id": 99,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "project": {
@@ -5998,7 +8710,7 @@
           }
         },
         {
-          "id": 97,
+          "id": 98,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6033,7 +8745,7 @@
           }
         },
         {
-          "id": 96,
+          "id": 97,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "project": {
@@ -6063,7 +8775,7 @@
           }
         },
         {
-          "id": 95,
+          "id": 96,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "project": {
@@ -6091,7 +8803,7 @@
           }
         },
         {
-          "id": 94,
+          "id": 95,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -6120,7 +8832,7 @@
           }
         },
         {
-          "id": 93,
+          "id": 94,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6159,7 +8871,7 @@
           }
         },
         {
-          "id": 92,
+          "id": 93,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "project": {
@@ -6184,7 +8896,7 @@
           "payload": {}
         },
         {
-          "id": 91,
+          "id": 92,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "project": {
@@ -6207,12 +8919,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 86,
+            "pending_decision": 87,
             "reason": "Entrou na especificação do item."
           }
         },
         {
-          "id": 90,
+          "id": 91,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6247,7 +8959,7 @@
           }
         },
         {
-          "id": 89,
+          "id": 90,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "project": {
@@ -6369,7 +9081,7 @@
         },
         "open": [
           {
-            "id": 99,
+            "id": 100,
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
@@ -6398,7 +9110,7 @@
             }
           },
           {
-            "id": 72,
+            "id": 73,
             "kind": "hml",
             "severity": "high",
             "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
@@ -6423,7 +9135,7 @@
             "task": null
           },
           {
-            "id": 84,
+            "id": 85,
             "kind": "task_review",
             "severity": "high",
             "title": "Revisar e integrar a task 3115 (botão de exportar)",
@@ -6452,7 +9164,7 @@
             }
           },
           {
-            "id": 90,
+            "id": 91,
             "kind": "worker_blocked",
             "severity": "high",
             "title": "Em que formato sai o extrato exportado?",
@@ -6486,7 +9198,7 @@
       "events_today": 12,
       "recent_events": [
         {
-          "id": 99,
+          "id": 100,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6526,7 +9238,7 @@
           }
         },
         {
-          "id": 98,
+          "id": 99,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "project": {
@@ -6562,7 +9274,7 @@
           }
         },
         {
-          "id": 96,
+          "id": 97,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "project": {
@@ -6592,7 +9304,7 @@
           }
         },
         {
-          "id": 94,
+          "id": 95,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -6621,7 +9333,7 @@
           }
         },
         {
-          "id": 91,
+          "id": 92,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "project": {
@@ -6644,12 +9356,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 86,
+            "pending_decision": 87,
             "reason": "Entrou na especificação do item."
           }
         },
         {
-          "id": 90,
+          "id": 91,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6684,7 +9396,7 @@
           }
         },
         {
-          "id": 89,
+          "id": 90,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "project": {
@@ -6717,7 +9429,7 @@
           }
         },
         {
-          "id": 86,
+          "id": 87,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6754,7 +9466,7 @@
           }
         },
         {
-          "id": 85,
+          "id": 86,
           "at": "2026-10-09T08:50:00-03:00",
           "type": "item-started",
           "project": {
@@ -6782,7 +9494,7 @@
           }
         },
         {
-          "id": 84,
+          "id": 85,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -6823,7 +9535,7 @@
           }
         },
         {
-          "id": 83,
+          "id": 84,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "task-report",
           "project": {
@@ -6871,6 +9583,12 @@
                   "binary": false
                 },
                 {
+                  "path": "public/icons/pdf.png",
+                  "added": null,
+                  "removed": null,
+                  "binary": true
+                },
+                {
                   "path": "src/api/export-adapter.ts",
                   "added": 38,
                   "removed": 0,
@@ -6881,20 +9599,27 @@
                   "added": 21,
                   "removed": 4,
                   "binary": false
+                },
+                {
+                  "path": "src/screens/statement/ExportButton.tsx",
+                  "from": "src/screens/ExportButton.tsx",
+                  "added": 9,
+                  "removed": 3,
+                  "binary": false
                 }
               ],
               "total": {
-                "files": 3,
-                "added": 61,
-                "removed": 5
+                "files": 5,
+                "added": 70,
+                "removed": 8
               },
               "truncated": false,
-              "uncommitted": 0
+              "uncommitted": 2
             }
           }
         },
         {
-          "id": 82,
+          "id": 83,
           "at": "2026-10-09T08:40:00-03:00",
           "type": "task-status",
           "project": {
@@ -6998,7 +9723,7 @@
         },
         "open": [
           {
-            "id": 93,
+            "id": 94,
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
@@ -7023,7 +9748,7 @@
             "task": null
           },
           {
-            "id": 97,
+            "id": 98,
             "kind": "decision",
             "severity": "normal",
             "title": "Como chamar o carrinho juntado na tela?",
@@ -7092,7 +9817,7 @@
       "events_today": 3,
       "recent_events": [
         {
-          "id": 97,
+          "id": 98,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -7127,7 +9852,7 @@
           }
         },
         {
-          "id": 93,
+          "id": 94,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -7166,7 +9891,7 @@
           }
         },
         {
-          "id": 92,
+          "id": 93,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "project": {
@@ -7191,7 +9916,7 @@
           "payload": {}
         },
         {
-          "id": 78,
+          "id": 79,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -7218,7 +9943,7 @@
           }
         },
         {
-          "id": 75,
+          "id": 76,
           "at": "2026-10-08T17:05:00-03:00",
           "type": "finding-recorded",
           "project": {
@@ -7253,7 +9978,7 @@
           }
         },
         {
-          "id": 74,
+          "id": 75,
           "at": "2026-10-08T17:00:00-03:00",
           "type": "task-integrated",
           "project": {
@@ -7281,7 +10006,7 @@
           }
         },
         {
-          "id": 73,
+          "id": 74,
           "at": "2026-10-08T16:50:00-03:00",
           "type": "task-report",
           "project": {
@@ -7317,7 +10042,7 @@
           }
         },
         {
-          "id": 39,
+          "id": 40,
           "at": "2026-10-06T13:20:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -7346,7 +10071,7 @@
           }
         },
         {
-          "id": 37,
+          "id": 38,
           "at": "2026-10-06T10:00:00-03:00",
           "type": "stage-changed",
           "project": {
@@ -7373,7 +10098,7 @@
           }
         },
         {
-          "id": 34,
+          "id": 35,
           "at": "2026-10-05T11:40:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -7402,7 +10127,7 @@
           }
         },
         {
-          "id": 33,
+          "id": 34,
           "at": "2026-10-05T11:30:00-03:00",
           "type": "task-integrated",
           "project": {
@@ -7430,7 +10155,7 @@
           }
         },
         {
-          "id": 32,
+          "id": 33,
           "at": "2026-10-05T11:20:00-03:00",
           "type": "task-report",
           "project": {
@@ -7568,7 +10293,7 @@
       "events_today": 5,
       "recent_events": [
         {
-          "id": 100,
+          "id": 101,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "project": {
@@ -7601,7 +10326,7 @@
           }
         },
         {
-          "id": 87,
+          "id": 88,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-resolved",
           "project": {
@@ -7624,12 +10349,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 81,
+            "pending_decision": 82,
             "decision": "B: vira task nova para triagem."
           }
         },
         {
-          "id": 81,
+          "id": 82,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -7666,7 +10391,7 @@
           }
         },
         {
-          "id": 80,
+          "id": 81,
           "at": "2026-10-09T07:35:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -7695,7 +10420,7 @@
           }
         },
         {
-          "id": 79,
+          "id": 80,
           "at": "2026-10-09T07:30:00-03:00",
           "type": "item-started",
           "project": {
@@ -7723,7 +10448,7 @@
           }
         },
         {
-          "id": 43,
+          "id": 44,
           "at": "2026-10-07T08:12:00-03:00",
           "type": "item-done",
           "project": {
@@ -7748,7 +10473,7 @@
           "payload": {}
         },
         {
-          "id": 42,
+          "id": 43,
           "at": "2026-10-07T08:10:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -7775,7 +10500,7 @@
           }
         },
         {
-          "id": 41,
+          "id": 42,
           "at": "2026-10-06T18:30:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -7804,7 +10529,7 @@
           }
         },
         {
-          "id": 36,
+          "id": 37,
           "at": "2026-10-06T09:00:00-03:00",
           "type": "item-started",
           "project": {
@@ -7904,7 +10629,7 @@
       "events_today": 1,
       "recent_events": [
         {
-          "id": 95,
+          "id": 96,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "project": {
@@ -7932,7 +10657,7 @@
           }
         },
         {
-          "id": 71,
+          "id": 72,
           "at": "2026-10-08T15:20:00-03:00",
           "type": "item-started",
           "project": {
@@ -9621,7 +12346,7 @@
         "task": null,
         "active_tasks": 1,
         "last_event": {
-          "id": 81,
+          "id": 82,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 5,
@@ -9694,7 +12419,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 100,
+          "id": 101,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -9755,7 +12480,7 @@
         "task": null,
         "active_tasks": 3,
         "last_event": {
-          "id": 99,
+          "id": 100,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -9835,7 +12560,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 90,
+          "id": 91,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3114,
@@ -9910,7 +12635,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 84,
+          "id": 85,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3115,
@@ -9988,7 +12713,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 99,
+          "id": 100,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -10056,7 +12781,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 95,
+          "id": 96,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -10096,7 +12821,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 97,
+          "id": 98,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -10159,7 +12884,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 91,
+          "id": 92,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "task_number": null,
@@ -10168,7 +12893,7 @@
             "name": "Bento"
           },
           "payload": {
-            "pending_decision": 86,
+            "pending_decision": 87,
             "reason": "Entrou na especificação do item."
           }
         },
@@ -10199,7 +12924,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 88,
+          "id": 89,
           "at": "2026-10-09T09:10:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -10266,7 +12991,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 78,
+          "id": 79,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -10305,7 +13030,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 77,
+          "id": 78,
           "at": "2026-10-08T18:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -10352,7 +13077,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 48,
+          "id": 49,
           "at": "2026-10-07T17:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -10399,7 +13124,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 71,
+          "id": 72,
           "at": "2026-10-08T15:20:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -10439,7 +13164,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 57,
+          "id": 58,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -10478,7 +13203,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 37,
+          "id": 38,
           "at": "2026-10-06T10:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,

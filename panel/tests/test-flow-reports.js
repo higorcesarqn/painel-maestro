@@ -33,12 +33,21 @@ function buildRoot(name, { branch = 'feature/issue-12', remote = 'https://github
   return { root, data, repo };
 }
 
-/** Writes the files ({ path: text }) in the folder and commits them; returns the new HEAD. */
-function commit(dir, files, message = 'mudança') {
+/** Writes the files ({ path: text | Buffer }) in the folder without committing them; null removes the file. */
+function write(dir, files) {
   for (const [file, text] of Object.entries(files)) {
+    if (text === null) {
+      fs.rmSync(path.join(dir, file));
+      continue;
+    }
     fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
     fs.writeFileSync(path.join(dir, file), text);
   }
+}
+
+/** Writes the files ({ path: text | Buffer | null }, as write does) in the folder and commits them; returns the new HEAD. */
+function commit(dir, files, message = 'mudança') {
+  write(dir, files);
   git(dir, 'add', '-A');
   git(dir, 'commit', '-q', '-m', message);
   return git(dir, 'rev-parse', 'HEAD');
@@ -397,6 +406,85 @@ suite.test('without a summary (no SHA, unknown commit, no base, no common ancest
   });
 });
 
+// ---------- edge cases of the summary: binary, renamed, cut at 200 files, uncommitted (#55) ----------
+
+/** Ten lines of text: a file git recognizes as renamed when only one of them changes. */
+const tenLines = (last = 'dez') => `${['um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', last].join('\n')}\n`;
+const BINARY = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00, 0x00, 0x0d, 0xff, 0x00, 0x01]);
+
+suite.test('edge cases: a binary file has no line counts and stays out of the line totals; a renamed one has "from" and its lines', async () => {
+  const r = buildRoot('diff-binary-renamed');
+  const start = commit(r.repo, { 'logo.png': BINARY, 'velho.txt': tenLines(), 'leia.md': 'leia\n' }, 'base');
+  startItem(r, 12, 13, 'task/13-borda');
+  const wt = addWorktree(r, 'floor-13', 'task/13-borda');
+  commit(wt, {
+    'logo.png': Buffer.concat([BINARY, Buffer.from([0x00, 0x02])]), 'icone.bin': BINARY,
+    'velho.txt': null, 'src/novo.txt': tenLines('DEZ'), 'leia.md': 'leia\nmais\n',
+  }, 'borda');
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT }));
+  await withServer(r, async (get) => {
+    assert.deepStrictEqual((await get('/api/items/widgets/12')).item.reports[0].diff, {
+      base: start, base_ref: 'feature/issue-12',
+      files: [
+        { path: 'icone.bin', added: null, removed: null, binary: true, also_in: [] },
+        fileRow('leia.md', 1, 0),
+        { path: 'logo.png', added: null, removed: null, binary: true, also_in: [] },
+        { path: 'src/novo.txt', from: 'velho.txt', added: 1, removed: 1, binary: false, also_in: [] },
+      ],
+      total: { files: 4, added: 2, removed: 1 }, truncated: false, uncommitted: 0,
+    });
+  });
+});
+
+suite.test('edge cases: more than 200 files keeps the first 200 in git\'s order (by path), truncated, with the totals of the whole diff', async () => {
+  const r = buildRoot('diff-cut');
+  const start = git(r.repo, 'rev-parse', 'HEAD');
+  startItem(r, 12, 13, 'task/13-corte');
+  const wt = addWorktree(r, 'floor-13', 'task/13-corte');
+  const name = (i) => `f/${String(i).padStart(3, '0')}.txt`;
+  const files = (from, to, text) => Object.fromEntries(Array.from({ length: to - from + 1 }, (_, k) => [name(from + k), text]));
+  // Exactly 200 files: nothing is cut.
+  const exact = commit(wt, files(1, 200, 'a\n'), '200');
+  // 205 files: the last five (by path) are cut, but their lines (two each, and a binary one) count in the totals.
+  commit(wt, { ...files(201, 204, 'b\nb\n'), 'z.bin': BINARY }, 'mais 5');
+  ok(flow(r, ['report', '--sha', exact, '--json', '-'], { cwd: wt, input: REPORT }));
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT }));
+  await withServer(r, async (get) => {
+    const [full, cut] = (await get('/api/items/widgets/12')).item.reports.map((x) => x.diff);
+    assert.deepStrictEqual([full.files.length, full.truncated, full.total], [200, false, { files: 200, added: 200, removed: 0 }]);
+    assert.strictEqual(cut.base, start);
+    assert.deepStrictEqual(cut.files.map((f) => f.path), Array.from({ length: 200 }, (_, k) => name(k + 1)));
+    assert.deepStrictEqual([cut.truncated, cut.total], [true, { files: 205, added: 208, removed: 0 }]);
+  });
+});
+
+suite.test('edge cases: uncommitted counts the files changed outside a commit in the worktree, only when the SHA is its HEAD', async () => {
+  const r = buildRoot('diff-uncommitted');
+  commit(r.repo, { 'a.txt': 'a\n', 'b.txt': tenLines() }, 'base');
+  startItem(r, 12, 13, 'task/13-sujo');
+  const wt = addWorktree(r, 'floor-13', 'task/13-sujo');
+  const first = commit(wt, { 'c.txt': 'c\n' }, 'c');
+  commit(wt, { 'd.txt': 'd\n' }, 'd');
+  // A clean worktree: 0.
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT }));
+  // Modified (a.txt), renamed in the index (b.txt → e.txt) and two untracked files in a new folder: 4 files.
+  write(wt, { 'a.txt': 'a\nsem commit\n', 'novos/um.txt': '1\n', 'novos/dois.txt': '2\n' });
+  git(wt, 'mv', 'b.txt', 'e.txt');
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT }));
+  // An explicit --sha that is the HEAD counts too; one that is not the HEAD does not.
+  ok(flow(r, ['report', '--sha', git(wt, 'rev-parse', 'HEAD'), '--json', '-'], { cwd: wt, input: REPORT }));
+  ok(flow(r, ['report', '--sha', first, '--json', '-'], { cwd: wt, input: REPORT }));
+  await withServer(r, async (get) => {
+    const diffs = (await get('/api/items/widgets/12')).item.reports.map((x) => x.diff);
+    assert.deepStrictEqual(diffs.map((d) => [d.uncommitted, d.files.map((f) => f.path)]), [
+      [0, ['c.txt', 'd.txt']],
+      [4, ['c.txt', 'd.txt']],
+      [4, ['c.txt', 'd.txt']],
+      [0, ['c.txt']],
+    ]);
+  });
+});
+
 // ---------- "também na task #N": the other tasks of the item that changed the same file (#56) ----------
 
 suite.test('also_in: two tasks that change the same file cite each other, different files do not, and only the last report with a summary of each task counts', async () => {
@@ -437,6 +525,29 @@ suite.test('also_in: two tasks that change the same file cite each other, differ
     for (const e of item.timeline.filter((x) => x.type === 'task-report' && x.payload.diff)) {
       assert.ok(e.payload.diff.files.every((f) => !('also_in' in f)), 'also_in is not recorded (ADR 0002)');
     }
+  });
+});
+
+suite.test('also_in: a file renamed in one task whose old path (from) is the path another task changed; the two cite each other', async () => {
+  const r = buildRoot('also-in-renamed');
+  commit(r.repo, { 'velho.txt': tenLines(), 'outro.txt': 'outro\n' }, 'base');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Resumo do diff', '--stage', 'implementation']));
+  ok(flow(r, ['task', 'graph', '12', '--task', '13|Renomeia', '--task', '14|Altera']));
+  for (const [task, branch] of [[13, 'task/13-renomeia'], [14, 'task/14-altera']]) {
+    ok(flow(r, ['task', 'dispatch', '12', String(task), '--worker', 'Atlas', '--branch', branch]));
+  }
+  const a = addWorktree(r, 'floor-13', 'task/13-renomeia');
+  const b = addWorktree(r, 'floor-14', 'task/14-altera');
+  commit(a, { 'velho.txt': null, 'novo.txt': tenLines('DEZ') }, 'renomeia');
+  commit(b, { 'velho.txt': tenLines('10'), 'outro.txt': 'outro\nda 14\n' }, 'altera');
+  ok(flow(r, ['report', '--json', '-'], { cwd: a, input: REPORT }));
+  ok(flow(r, ['report', '--json', '-'], { cwd: b, input: REPORT }));
+  await withServer(r, async (get) => {
+    const reports = (await get('/api/items/widgets/12')).item.reports;
+    assert.deepStrictEqual(reports.map((x) => [x.task_number, x.diff.files.map((f) => [f.from || null, f.path, f.also_in])]), [
+      [13, [['velho.txt', 'novo.txt', [14]]]],
+      [14, [[null, 'outro.txt', []], [null, 'velho.txt', [13]]]],
+    ]);
   });
 });
 

@@ -7,7 +7,7 @@
 import { arr, obj, objs, txt, dateTime, age, number } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Badge, Empty } from '../components/base.jsx';
-import { FileText, Search } from '../components/Icon.jsx';
+import { Icon, FileText, Search, TriangleAlert } from '../components/Icon.jsx';
 import { TaskStateBadge } from './ItemTasks.jsx';
 import '../styles/item-review.css';
 
@@ -33,13 +33,16 @@ export function ReportField({ label, children }) {
 /**
  * The diff summary of a report (TaskDiff, #54): the totals and the files the task committed since it left the
  * integration branch, with the lines added and removed, and the "also in task #N" tag on the files another task of the
- * item also changed (also_in, #56; tracker formats the number). Nothing when the report has none (old, or no base).
+ * item also changed (also_in, #56; tracker formats the number). The edge cases (#55): a binary file is marked without
+ * + and -, a renamed one shows "old → new", a cut summary ends with "e mais N arquivos" (total over the whole diff), and
+ * the warning about files outside a commit shows when there were any. Nothing when the report has none (old, or no base).
  */
 export function DiffSummary({ diff, tracker }) {
   const d = obj(diff);
   if (!d) return null;
   const files = objs(d.files).filter((f) => typeof f.path === 'string');
   const total = obj(d.total) || {};
+  const more = d.truncated === true && Number.isInteger(total.files) ? total.files - arr(d.files).length : 0;
   const plusMinus = (added, removed) => (
     <>
       <span class="diff-added" title={t('review.diff.addedTitle')}>{t('review.diff.added', { count: number(added) })}</span>
@@ -59,16 +62,26 @@ export function DiffSummary({ diff, tracker }) {
             {files.map((f, i) => (
               <li key={i}>
                 <span class="diff-name">
-                  <span class="diff-path" title={f.path}>{f.path}</span>
+                  {typeof f.from === 'string' ? (
+                    <span class="diff-path diff-renamed" title={t('review.diff.renamed', { from: f.from, path: f.path })}>{t('review.diff.renamed', { from: f.from, path: f.path })}</span>
+                  ) : <span class="diff-path" title={f.path}>{f.path}</span>}
                   {arr(f.also_in).filter(Number.isInteger).map((n) => (
                     <Badge key={n} tone="warning" class="diff-also">{t('review.diff.alsoIn', { task: taskRef(tracker, n) })}</Badge>
                   ))}
                 </span>
-                {plusMinus(f.added, f.removed)}
+                {f.binary === true
+                  ? <span class="diff-binary muted" title={t('review.diff.binaryTitle')}>{t('review.diff.binary')}</span>
+                  : plusMinus(f.added, f.removed)}
               </li>
             ))}
           </ul>
         ) : <p class="muted small">{t('review.diff.empty')}</p>}
+        {more > 0 && <p class="muted small">{t('review.diff.more', { count: more })}</p>}
+        {Number.isInteger(d.uncommitted) && d.uncommitted > 0 && (
+          <p class="report-diff-uncommitted small" title={t('review.diff.uncommittedTitle')}>
+            <Icon of={TriangleAlert} size={14} />{t('review.diff.uncommitted', { count: d.uncommitted })}
+          </p>
+        )}
       </div>
     </ReportField>
   );

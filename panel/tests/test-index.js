@@ -500,10 +500,15 @@ suite.test('diff summary (#54): reports with and without it in the mock, and the
   assert.ok(withDiff.length >= 2 && withDiff.length < reports.length, 'reports with and without a summary');
   for (const { diff: d } of withDiff) {
     assert.deepStrictEqual(Object.keys(d).sort(), ['base', 'base_ref', 'files', 'total', 'truncated', 'uncommitted']);
-    assert.deepStrictEqual(d.total, {
-      files: d.files.length, added: d.files.reduce((n, f) => n + f.added, 0), removed: d.files.reduce((n, f) => n + f.removed, 0),
-    }, 'totals over the files');
-    for (const f of d.files) assert.deepStrictEqual(Object.keys(f).sort(), ['added', 'also_in', 'binary', 'path', 'removed']);
+    // A cut summary (#55) has its totals over the whole diff, not over the files kept.
+    if (!d.truncated) {
+      assert.deepStrictEqual(d.total, {
+        files: d.files.length, added: d.files.reduce((n, f) => n + (f.added || 0), 0), removed: d.files.reduce((n, f) => n + (f.removed || 0), 0),
+      }, 'totals over the files');
+    }
+    for (const f of d.files) {
+      assert.deepStrictEqual(Object.keys(f).filter((k) => k !== 'from').sort(), ['added', 'also_in', 'binary', 'path', 'removed']);
+    }
   }
   assert.ok(reports.some((r) => r.diff && r.shared_files.length), 'the summary and the shared files side by side');
   assert.ok(reports.filter((r) => !r.diff).every((r) => r.diff === null), 'a report without a summary comes with diff null');
@@ -543,6 +548,33 @@ suite.test('"também na task #N" (#56): a crossing between tasks in the mock, an
   assert.ok(js.includes('review.diff.alsoIn') && html.includes('.diff-also'), 'the build has the tag and its style');
   const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
   assert.deepStrictEqual([t('review.diff.alsoIn', { task: '#14' }), t('review.diff.alsoIn', { task: '3115' })], ['também na task #14', 'também na task 3115']);
+});
+
+suite.test('edge cases of the diff summary (#55): binary, renamed, cut at 200 files and uncommitted in the mock, and how the item page shows them', async () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const diffs = Object.values(m.details).flatMap((d) => d.reports).filter((r) => r.diff).map((r) => r.diff);
+  const files = diffs.flatMap((d) => d.files);
+  assert.ok(files.some((f) => f.binary && f.added === null && f.removed === null), 'a binary file, without line counts');
+  assert.ok(files.some((f) => typeof f.from === 'string' && f.from !== f.path && Number.isInteger(f.added)), 'a renamed file, with its lines');
+  const cut = diffs.find((d) => d.truncated);
+  assert.ok(cut && cut.files.length === 200 && cut.total.files > 200, 'a summary cut at 200 files, with the total of the whole diff');
+  assert.deepStrictEqual(cut.files.map((f) => f.path), cut.files.map((f) => f.path).slice().sort(), 'the files kept in git\'s order (by path)');
+  assert.ok(diffs.some((d) => d.uncommitted > 0) && diffs.some((d) => d.uncommitted === 0), 'with and without changes outside a commit');
+  // The source: each case in the summary block, with its text from the dictionary.
+  const summary = /function DiffSummary\([\s\S]*?\r?\n\}\r?\n/.exec(source['screens/ItemReview.jsx'])[0];
+  assert.ok(/f\.binary[\s\S]*t\('review\.diff\.binary'\)/.test(summary), 'a binary file is marked, without + and -');
+  assert.ok(/f\.from[\s\S]*t\('review\.diff\.renamed', \{ from: f\.from, path: f\.path \}\)/.test(summary), '"old → new"');
+  assert.ok(/d\.truncated[\s\S]*t\('review\.diff\.more', \{ count: /.test(summary), '"e mais N arquivos" when cut');
+  assert.ok(/d\.uncommitted > 0[\s\S]*t\('review\.diff\.uncommitted', \{ count: d\.uncommitted \}\)/.test(summary), 'the warning only above zero');
+  for (const k of ['review.diff.binary', 'review.diff.renamed', 'review.diff.more', 'review.diff.uncommitted']) assert.ok(js.includes(k), `${k} in the build`);
+  assert.ok(html.includes('.diff-binary') && html.includes('.report-diff-uncommitted'), 'the build has their style');
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  assert.deepStrictEqual(
+    [t('review.diff.binary'), t('review.diff.renamed', { from: 'a/velho.js', path: 'b/novo.js' }), t('review.diff.more', { count: 1 }), t('review.diff.more', { count: 42 }),
+      t('review.diff.uncommitted', { count: 1 }), t('review.diff.uncommitted', { count: 2 })],
+    ['binário', 'a/velho.js → b/novo.js', 'e mais 1 arquivo', 'e mais 42 arquivos',
+      '1 arquivo com mudança fora de commit no worktree no momento do relatório', '2 arquivos com mudanças fora de commit no worktree no momento do relatório'],
+  );
 });
 
 suite.test('mock-items.json: usage per item and per agent and the active agents (#13), from the real collector and API', () => {

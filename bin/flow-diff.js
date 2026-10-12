@@ -8,11 +8,14 @@
  *     sha     the report's commit (--sha or the worktree's HEAD); without it there is no summary
  *     bases   the names to try, in order (--base, the item's pr.branch, integrationBranch of flow-repo.js); for each
  *             one the local ref and then origin/<name>; the first that resolves is base_ref
- *     diff    { base, base_ref, files: [{ path, added, removed, binary }], total: { files, added, removed },
+ *     diff    { base, base_ref, files: [{ path, from?, added, removed, binary }], total: { files, added, removed },
  *               truncated, uncommitted }
  *             base = merge-base(base_ref, sha) and the diff goes from it to sha: only commits, so a task that left the
  *             integration branch before another one was integrated does not show the other's files. files in git's
- *             order (by path).
+ *             order (by path), at most MAX_FILES (truncated: true when there were more); total is over the whole
+ *             diff. A binary file (#55) has binary: true and added/removed null: it counts in total.files and stays
+ *             out of the line totals. A renamed one has from, the old path. uncommitted is the number of files
+ *             changed outside a commit in the worktree (git status), counted only when sha is the worktree's HEAD.
  *     reason  why there is no summary, a key of review.diff in the CLI dictionary (params fill it): noSha,
  *             unknownCommit, noBase, noMergeBase, gitTimeout, gitFailed (git's first error line; outside a repository
  *             too, though flow already refuses a folder without a git origin before it gets here)
@@ -22,6 +25,7 @@ const { spawnSync } = require('child_process');
 
 const GIT_TIMEOUT_MS = 10000;
 const MAX_OUTPUT = 64 * 1024 * 1024;
+const MAX_FILES = 200;
 
 /** A git call failed (timeout, error or an unexpected exit code): the summary is left out, for this reason. */
 class GitFailed extends Error {
@@ -62,25 +66,47 @@ function resolveBase(cwd, bases) {
   return { base: null, tried };
 }
 
-// "-" is a binary file: its lines are #55's; until then it counts as 0.
-const lineCount = (v) => (v === '-' ? 0 : Number(v));
-
-/** Lines of "git diff --numstat -z -M": [{ path, added, removed, binary }]. */
+/** Lines of "git diff --numstat -z -M": [{ path, from?, added, removed, binary }]; "-" in the counts is a binary file. */
 function parseNumstat(out) {
   const parts = String(out).split('\0');
   const files = [];
   for (let i = 0; i < parts.length; i++) {
     const m = /^(-|\d+)\t(-|\d+)\t([\s\S]*)$/.exec(parts[i]);
     if (!m) continue;
-    let file = m[3];
-    // A renamed file comes as "added\tremoved\t" followed by the old and the new path (the old one is #55's).
-    if (file === '') {
-      file = parts[i + 2];
+    const binary = m[1] === '-' || m[2] === '-';
+    const counts = { added: binary ? null : Number(m[1]), removed: binary ? null : Number(m[2]), binary };
+    // A renamed file comes as "added\tremoved\t" followed by the old and the new path.
+    if (m[3] === '') {
+      files.push({ path: parts[i + 2], from: parts[i + 1], ...counts });
       i += 2;
+    } else {
+      files.push({ path: m[3], ...counts });
     }
-    files.push({ path: file, added: lineCount(m[1]), removed: lineCount(m[2]), binary: false });
   }
   return files;
+}
+
+/**
+ * The files changed outside a commit in the worktree (staged, not staged or untracked, each file of a new folder
+ * counted): the entries of "git status --porcelain -z", where a renamed or copied one carries its old path as the
+ * next part. 0 when git status fails or times out: the count is a warning and never costs the summary.
+ */
+function uncommittedFiles(cwd) {
+  let out;
+  try {
+    out = git(cwd, ['status', '--porcelain', '-z', '--untracked-files=all']).stdout;
+  } catch (e) {
+    if (e instanceof GitFailed) return 0;
+    throw e;
+  }
+  const parts = String(out).split('\0');
+  let n = 0;
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i].length < 4) continue;
+    n++;
+    if (/[RC]/.test(parts[i].slice(0, 2))) i++;
+  }
+  return n;
 }
 
 function taskDiff(cwd, { sha, bases }) {
@@ -96,10 +122,15 @@ function taskDiff(cwd, { sha, bases }) {
     const files = parseNumstat(git(cwd, ['diff', '--numstat', '-z', '-M', from, head]).stdout);
     const total = {
       files: files.length,
-      added: files.reduce((n, f) => n + f.added, 0),
-      removed: files.reduce((n, f) => n + f.removed, 0),
+      added: files.reduce((n, f) => n + (f.added || 0), 0),
+      removed: files.reduce((n, f) => n + (f.removed || 0), 0),
     };
-    return { diff: { base: from, base_ref: base.name, files, total, truncated: false, uncommitted: 0 } };
+    return {
+      diff: {
+        base: from, base_ref: base.name, files: files.slice(0, MAX_FILES), total, truncated: files.length > MAX_FILES,
+        uncommitted: commitOf(cwd, 'HEAD') === head ? uncommittedFiles(cwd) : 0,
+      },
+    };
   } catch (e) {
     // Nothing here keeps the report from being recorded.
     if (e instanceof GitFailed) return { reason: e.reason, params: e.params };
