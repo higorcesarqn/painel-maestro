@@ -68,6 +68,19 @@ You are on a Maestri **floor**; the maestro is a Claude Code terminal on the wor
 
 ## Orca
 
-> To be written in #65, the ticket of the Orca flow (`orchestration-orca`, in `~/.claude/docs/`). Until then, there is no Orca flow that dispatches Workers.
+You are in an **Orca worktree**, started by the Orca's orchestrator (`worker-start`); the maestro is the coordinator of the Orca Run. Your terminal has `ORCA_TERMINAL_HANDLE` and `ORCA_WORKTREE_ID`. The flow is `~/.claude/docs/orchestration-orca/README.md`.
 
-What is already known: your terminal has `ORCA_TERMINAL_HANDLE` and `ORCA_WORKTREE_ID`, and `flow status` moves your worktree's card on the Orca board (`orca worktree set --workspace-status`). If a briefing ever sends you here before #65, follow the common rules, record the report with `flow report` and deliver it the way the briefing says.
+- **The preamble is authoritative.** Above the briefing, the Orca pasted a preamble with your Task and Dispatch IDs and the exact `ask`, `check`, heartbeat and `worker_done` commands (executable, `--from` handle and IDs). Copy those commands as they are, adding only what this section says; never rebuild their flags.
+- **The `implement` process.** The briefing has no slash command (the Orca pastes it as text, so a `/` would not run). Read the `SKILL.md` of `mattpocock-skills:implement` (Glob `~/.claude/plugins/cache/*/mattpocock-skills/*/skills/engineering/implement/SKILL.md`, the highest version) and follow it for your Task, together with the common rules above. Its last step (`/code-review`) is common rule 6.
+- **Status**: `flow status` also moves your worktree's card on the Orca board (`orca worktree set --worktree current --workspace-status ...`: `working` and `blocked` → `in-progress`, `blocked` also marks it unread; `review` → `in-review`). Without the panel (exit code 1, the panel did not answer), post the same status directly: `orca worktree set --worktree current --workspace-status in-progress|in-review --comment "<text>" --json` (add `--unread` when blocked).
+- **Heartbeats** only at the cadence the preamble asks for, and never while blocked in an `ask`.
+- **Asking the maestro** (common rule 9): post `--state blocked`, then run the preamble's `ask` command with your question (`--question "<question>"`, and `--options "<a>,<b>"` when there are choices). It blocks until the maestro replies; the answer may take a while when it is the user's. If it times out, resume the **same** question with the preamble's `ask` and `--resume <message_id>`; never ask it again as a new one. Never open a local question prompt (the `AskUserQuestion` tool): nobody answers it.
+- **Follow-ups from the maestro** (e.g. "the integration branch moved, rebase"): they do not interrupt you. Read them at each natural checkpoint (before a new file, after a test run) with the preamble's `check` (`orca orchestration check --terminal "$ORCA_TERMINAL_HANDLE" --json`), and once more right before `worker_done`. If `check` answers `consumer_fenced`, your Dispatch is no longer yours: stop and do not send `worker_done`.
+- **Delivering the report** (step 3 of the Report): after `flow report`, run the `check` one last time, then send the preamble's `worker_done` command **once**, with:
+  - `--subject` a short status and `--body` three sentences (what changed, what you found, what is left), in Portuguese;
+  - `--report-path "<the report.json you recorded>"` (the same file as `flow report`, absolute path);
+  - `--outcome succeeded` when the Task is done (`status: ok`), `--outcome failed` when it is not (`status: blocked`); never hide a failure in the text.
+
+  Then stop and stay idle: no polling, no new work, do not close your terminal. The maestro reads the report in the panel. A new instruction from the user typed in your terminal is new work of theirs.
+- **Final adjustment worktree** (branch `task/<id>-ajuste-final`): it is not a Task in the panel. Post the status directly with `orca worktree set --worktree current ...` (as above) and skip `flow report`; write the `report.json` all the same and send it in the `worker_done` (`--report-path`); the maestro records the result.
+- **Do not** run `orca worktree rm`, `worker-release` or `terminal close`: cleaning up is the maestro's.
