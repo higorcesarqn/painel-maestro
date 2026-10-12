@@ -9,7 +9,7 @@
 // skills/links.json declares what is installed: {"links": [{"source": "skills/x", "target": "skills/x"}]}, the
 // source relative to the repository and the target relative to the Claude folder. Only those entries are touched.
 // Its optional "retired" list (same shape) holds names this repository no longer installs (the Portuguese names
-// of #61): install removes such a target only when it is our link (it still names that source), and leaves
+// of #61, the -maestri variants of #64): install removes such a target only when it is our link (it still names that source), and leaves
 // anything else there as it is; --undo also removes it and restores its backup.
 // Each link is a directory junction on
 // Windows (no admin needed) and a directory symlink elsewhere. Whatever already exists at a target and is not
@@ -55,7 +55,7 @@ function safeRelative(value) {
 
 /**
  * The entries to install ("links") followed by the retired ones ("retired", optional: names this repository no longer
- * installs, whose source folder is gone, #61). A retired entry has `retired: true`.
+ * installs, whose source folder is gone, #61 and #64). A retired entry has `retired: true`.
  */
 function readManifest(file = MANIFEST) {
   let manifest;
