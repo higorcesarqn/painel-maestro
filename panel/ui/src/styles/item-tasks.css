@@ -36,6 +36,7 @@ table.task-table .col-task { width: 72px; }
 table.task-table .col-state { width: 118px; }
 table.task-table .col-blockers { width: 136px; }
 table.task-table .col-worker { width: 128px; }
+table.task-table .col-mode { width: 104px; }
 table.task-table .col-floor { width: 130px; }
 table.task-table .col-branch { width: 160px; }
 table.task-table .col-sha { width: 82px; }

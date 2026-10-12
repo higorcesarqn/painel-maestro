@@ -282,7 +282,7 @@ suite.test('empty root: everything missing becomes null/zero with clear reason c
     const rc = await request(s.port, '/api/recalculate', { method: 'POST', headers: POST });
     assert.strictEqual(rc.status, 200);
     assert.strictEqual(rc.json.kpis.usage.available, false);
-    assert.strictEqual(rc.json.kpis.usage.reason.code, 'plan_file_missing');
+    assert.strictEqual(rc.json.kpis.usage.reason.code, 'plan_no_source');
     assert.ok(rc.json.kpis.usage.reason.file.endsWith('.status.json'));
   } finally {
     kill(s.pid);

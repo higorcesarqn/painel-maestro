@@ -184,7 +184,11 @@ suite.test('mock-items.json: items in different stages, both trackers, several o
   assert.deepStrictEqual([...new Set(pd.map((p) => p.kind))].sort(), ['decision', 'finding', 'hml', 'parallelize', 'task_review', 'worker_blocked']);
   assert.deepStrictEqual([...new Set(pd.map((p) => p.status))].sort(), ['canceled', 'open', 'resolved']);
   assert.ok(pd.some((p) => p.resolution === 'task_integrated') && pd.some((p) => p.resolution === 'decision' && p.decision), 'resolved by integration and by decision');
-  assert.ok(pd.filter((p) => p.status === 'open').every((p) => p.maestri.workspace && p.maestri.terminal), 'open ones say where to answer');
+  assert.ok(pd.filter((p) => p.status === 'open').every((p) => p.host.workspace && p.host.terminal), 'open ones say where to answer');
+  // The Host (#62): the demo has a pending decision answered in the Orca and the older ones, read as the Maestri; the
+  // HML one derived on an item never dispatched has no environment (#60).
+  assert.deepStrictEqual([...new Set(pd.map((p) => p.host.kind))].sort(), ['maestri', 'none', 'orca']);
+  assert.deepStrictEqual(pd.filter((p) => p.derived_from).map((p) => p.host), [{ kind: 'none', workspace: null, terminal: null }]);
   assert.ok(js.includes('/api/pending-decisions'), 'the Pending decisions screen reads the new model');
 });
 
@@ -269,6 +273,17 @@ suite.test('the Items filters offer the server\'s stages and trackers (the page 
   assert.deepStrictEqual(STAGES, store.STAGES);
   assert.deepStrictEqual(TRACKERS, store.TRACKERS);
   assert.ok(/stage/.test(source['screens/Items.jsx']) && /tracker/.test(source['screens/Items.jsx']), 'the Items screen filters by stage and tracker');
+});
+
+suite.test('the Hosts and dispatch modes of the screens are the server\'s, from data/domain.js (#60)', async () => {
+  const { HOST_KINDS, DISPATCH_MODES } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'domain.js')).href);
+  // Parity between the page's copy and the server's lists (contract constants): same exception as the stages above.
+  const projection = require('../../bin/flow-projection.js');
+  assert.deepStrictEqual(HOST_KINDS, projection.HOST_KINDS);
+  assert.deepStrictEqual(DISPATCH_MODES, projection.DISPATCH_MODES);
+  // The screens use them, with no copy of their own.
+  assert.ok(/DISPATCH_MODES/.test(source['screens/ItemTasks.jsx']) && !/const MODES\b/.test(source['screens/ItemTasks.jsx']), 'ItemTasks reads DISPATCH_MODES');
+  assert.ok(/HOST_KINDS/.test(source['screens/PendingDecisions.jsx']) && !/const HOSTS\b/.test(source['screens/PendingDecisions.jsx']), 'PendingDecisions reads HOST_KINDS');
 });
 
 suite.test('links of the item page only go to the trackers (github.com, dev.azure.com, *.visualstudio.com)', async () => {
@@ -623,6 +638,25 @@ suite.test('Pendências (#32): the page\'s copy of the answer rules (option lett
   assert.strictEqual(domain.decisionText('B: Pedir ajuste', 'mantenha o nome'), 'B: Pedir ajuste — mantenha o nome');
 });
 
+suite.test('Uso (#63): without the Maestri file the plan has no source in this environment, without the Maestri settings; the other codes keep today\'s text', async () => {
+  const domain = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'domain.js')).href);
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  const file = 'C:/Users/x/.maestri/usage/providers/.status.json';
+  const none = domain.planUnavailableText({ code: 'plan_no_source', file });
+  assert.ok(/sem fonte/i.test(none) && /neste ambiente/.test(none), none);
+  assert.ok(!/Configurações/.test(none) && !/Agentes → Uso/.test(none), none);
+  assert.strictEqual(domain.planSourceText({ source: { code: 'maestri_claude_provider', file }, reason: { code: 'plan_no_source', file } }), t('usage.noPlanSource'));
+  // The other reasons: the same sentence as before, pointing to the Maestri settings and file.
+  const off = domain.planUnavailableText({ code: 'plan_provider_off' });
+  assert.strictEqual(off, t('usage.planUnavailable', { reason: t('codes.plan_provider_off').replace(/[.\s]+$/, '') }));
+  assert.ok(/Configurações → Agentes → Uso no Maestri/.test(off), off);
+  assert.ok(/Configurações → Agentes → Uso no Maestri/.test(domain.planUnavailableText(null)));
+  assert.strictEqual(domain.planSourceText({ source: { code: 'maestri_claude_provider' }, reason: { code: 'plan_provider_off' } }), t('codes.maestri_claude_provider'));
+  assert.strictEqual(domain.planSourceText({}), t('codes.maestri_claude_provider'));
+  const screen = source['screens/Usage.jsx'];
+  assert.ok(/planUnavailableText\(ku\.reason\)/.test(screen) && /planSourceText\(ku\)/.test(screen), 'the Usage screen uses both texts');
+});
+
 suite.test('Pendências (#32): the demo has open pending decisions to answer, with and without options and of different kinds; the screen answers through the API', () => {
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
@@ -676,14 +710,19 @@ suite.test('browser tab (#43): the title counts the open pending decisions of ev
   assert.ok(/<link rel="icon" href="data:,">/.test(html), 'the build keeps the empty icon until the script swaps it (no /favicon.ico request)');
 });
 
-suite.test('Pendências (#44): the demo has an open pending decision whose Maestri notification failed; the screen shows the line only for an open one with failed', () => {
+suite.test('Pendências (#44): the demo has an open pending decision whose Maestri notification failed; the screen shows the line only for an open one with failed', async () => {
+  const href = (rel) => require('url').pathToFileURL(path.join(SOURCE, ...rel.split('/'))).href;
+  const dictionary = (await import(href('i18n/pt-BR.js'))).default;
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const pd = m.pending_decisions.pending_decisions;
   assert.ok(pd.some((p) => p.status === 'open' && p.notification === 'failed'), 'an open one with notification failed');
   assert.ok(pd.some((p) => p.notification === null), 'older ones, without the field, still in the demo');
   const screen = source['screens/PendingDecisions.jsx'];
-  assert.ok(/p\.status === 'open' && p\.notification === 'failed' && <p\b[^>]*>\{t\('pending\.notificationFailed'\)\}<\/p>/.test(screen), 'the line only for an open one with failed; nothing once closed');
+  assert.ok(/p\.status === 'open' && p\.notification === 'failed' && <p\b[^>]*>\{t\(`pending\.notificationFailed\.\$\{noticeHost\(p\)\}`\)\}<\/p>/.test(screen), 'the line only for an open one with failed; nothing once closed');
   assert.strictEqual(screen.match(/notificationFailed/g).length, 1, 'and nowhere else');
+  // The Host (#62): the text names the notice that failed, the Maestri's or the Orca's, never only "maestri notify".
+  assert.deepStrictEqual(Object.keys(dictionary.pending.notificationFailed).sort(), ['maestri', 'orca']);
+  assert.ok(/maestri notify/.test(dictionary.pending.notificationFailed.maestri) && /Orca/.test(dictionary.pending.notificationFailed.orca));
 });
 
 suite.test('browser notification (#45): the notice rule, imported from the page\'s source, notifies only the new pending decisions with the tab hidden', async () => {

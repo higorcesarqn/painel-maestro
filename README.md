@@ -44,7 +44,7 @@ A página se atualiza sozinha a cada 20 segundos. O rodapé do menu mostra a ver
 - **Node.js 22.13 ou mais novo** (o painel usa o SQLite embutido do Node, `node:sqlite`, sem nenhuma dependência npm; desenvolvido e testado no Node 22.23). Compilar a página (só se mudar a fonte dela) pede Node 20.19+ ou 22.12+.
 - **git** no `PATH` (o projeto é reconhecido pelo `git remote origin`).
 - Para o verificador de merge: o **`gh`** autenticado (GitHub) e/ou o **`az`** com `az login` (Azure DevOps). Sem eles o painel funciona; só a consulta automática do merge falha, com o motivo, e o botão "Marcar como mergeado" resolve.
-- Para o uso do plano: o app **Maestri**, com o uso dos agentes ligado (Configurações → Agentes → Uso). Fora dele, o plano aparece como indisponível, com o motivo.
+- Para o uso do plano: o app **Maestri**, com o uso dos agentes ligado (Configurações → Agentes → Uso). Fora dele (no Orca ou num terminal comum), o plano aparece como indisponível e sem fonte, sem número inventado: o Orca não guarda o percentual do plano. Os tokens por item e por agente vêm das transcrições do Claude Code em qualquer ambiente.
 - Desenvolvido e testado no Windows (os scripts das skills rodam no Git Bash, que vem com o Git for Windows).
 
 ### 1. Clonar
@@ -76,21 +76,26 @@ node bin/install-skills.js --undo    # desfaz: remove os links e devolve o que h
 node bin/install-skills.js --help
 ```
 
-- **O que é ligado:** só o que `skills/links.json` declara (origem relativa a este repositório, destino relativo à pasta do Claude): as skills `especificar`, `implementar-issue`, `implementar-pbi`, `implementar-issue-maestri`, `implementar-pbi-maestri` e `trabalhador-floor` em `~/.claude/skills/<nome>`, e os documentos de orquestração `skills/docs/orquestracao-subagentes` → `~/.claude/docs/orquestracao-subagentes` e `skills/docs/orquestracao-maestri` → `~/.claude/docs/orquestracao-maestri` (com os scripts `open-floor.sh` e `integrate.sh`).
+- **O que é ligado:** só o que `skills/links.json` declara (origem relativa a este repositório, destino relativo à pasta do Claude): as skills `specify`, `implement-issue`, `implement-pbi` e `maestro-worker` em `~/.claude/skills/<nome>`, e os documentos de orquestração `skills/docs/orchestration-subagents` → `~/.claude/docs/orchestration-subagents` `skills/docs/orchestration-maestri` → `~/.claude/docs/orchestration-maestri` (com os scripts `open-floor.sh` e `integrate.sh`) e `skills/docs/orchestration-orca` → `~/.claude/docs/orchestration-orca` (com o `integrate.sh` do Orca).
 - **Como:** cada destino vira uma *junction* de diretório no Windows (não exige administrador; funciona com o repositório e o `~/.claude` em discos diferentes) e um symlink de diretório nos outros sistemas. Editar a skill no repositório já vale no Claude Code.
-- **Backups:** o que já existir no destino e não for um link deste repositório (por exemplo, uma versão antiga de `implementar-issue-maestri`) vai para `~/.claude/backups/painel-maestro/<destino>` (fora de `skills/`, para o Claude Code não carregar duas skills com o mesmo nome). O `--undo` remove só os links deste repositório (nunca o conteúdo deles) e devolve os backups.
+- **Backups:** o que já existir no destino e não for um link deste repositório (por exemplo, uma cópia antiga de `implement-issue`) vai para `~/.claude/backups/painel-maestro/<destino>` (fora de `skills/`, para o Claude Code não carregar duas skills com o mesmo nome). O `--undo` remove só os links deste repositório (nunca o conteúdo deles) e devolve os backups.
 - **Conflitos:** a instalação planeja tudo antes de mexer em qualquer coisa. Se um backup já ocupar o lugar, ou se no `--undo` o destino não for mais um link deste repositório e houver backup, o comando sai com **código 2** e nada é alterado; a mensagem diz o que mover.
+- **Nomes antigos:** a lista `retired` do `skills/links.json` guarda os nomes em português que as skills tinham até a #61 (`especificar`, `implementar-issue`, `implementar-pbi`, `implementar-issue-maestri`, `implementar-pbi-maestri`, `trabalhador-floor`, `docs/orquestracao-subagentes` e `docs/orquestracao-maestri`) e as variantes `implement-issue-maestri` e `implement-pbi-maestri`, que a #64 juntou à skill de cada tracker. A instalação remove esses destinos só quando são links deste repositório; o que não for link nosso fica como está. O `--undo` também remove um link antigo que tenha sobrado e devolve o backup que o nome antigo tinha.
 - **Pasta do Claude:** `--claude-dir <pasta>`, senão `CLAUDE_CONFIG_DIR`, senão `~/.claude`.
 - **Depois de atualizar o painel-maestro**, rode `node bin/install-skills.js` de novo (é seguro repetir): ele confere que `~/.claude` aponta para as skills desta versão e põe no backup uma cópia antiga que não seja link. Mudanças de comportamento das skills, como esperar cada pendência com `flow pending wait` (#33), só valem para o maestro com as skills desta versão instaladas.
 
 As skills:
 
-- **`/especificar`**: roda `grill-with-docs` → `to-spec` → `to-tickets`; grava o item em **Especificação** assim que o `to-spec` publica a issue ou o PBI, e em **Implementação** quando o `to-tickets` termina.
-- **`/implementar-issue`** e **`/implementar-pbi`**: o maestro (a sessão que roda a skill) implementa o item num PR só, com um **subagente** em worktree por task, sem Maestri; o fluxo comum está em `~/.claude/docs/orquestracao-subagentes/README.md`.
-- **`/implementar-issue-maestri`** e **`/implementar-pbi-maestri`**: o maestro, no Ground de um workspace do Maestri, implementa o item num PR só, com um **floor** e um terminal Claude Code por task; o fluxo comum está em `~/.claude/docs/orquestracao-maestri/README.md`. O portal do canvas abre a página do item no painel.
-- **`trabalhador-floor`**: o protocolo do trabalhador num floor: status pelo `flow status` (que também roda o `maestri floor status`) e relatório gravado com `flow report` antes de ir ao maestro.
+- **`/specify`**: roda `grill-with-docs` → `to-spec` → `to-tickets`; grava o item em **Especificação** assim que o `to-spec` publica a issue ou o PBI, e em **Implementação** quando o `to-tickets` termina.
+- **`/implement-issue <número> [modo]`** (GitHub) e **`/implement-pbi <id> [modo]`** (Azure DevOps): uma skill por tracker. O maestro (a sessão que roda a skill) implementa o item num PR só, com um trabalhador por task, e o adaptador do tracker é o mesmo em todos os modos. O modo diz onde os trabalhadores rodam:
+  - **`subagents`**: um **subagente** em worktree por task, invisível; funciona em qualquer terminal. Fluxo em `~/.claude/docs/orchestration-subagents/README.md`.
+  - **`maestri`**: o maestro no Ground de um workspace do Maestri, com um **floor** e um terminal Claude Code por task; o portal do canvas abre a página do item no painel. Fluxo em `~/.claude/docs/orchestration-maestri/README.md`.
+  - **`orca`**: o maestro num terminal do Orca, no worktree do próprio repositório, com um **worktree do Orca** (branch `task/<id>-<slug>`) e um trabalhador Claude Code por task, iniciado e supervisionado pelo orquestrador do Orca (`orca orchestration worker-start`, um Run por item); o trabalhador pergunta com `ask` e entrega com `worker_done`, o maestro espera com `check --wait`, integra com o `integrate.sh` do Orca (que remove o worktree com `orca worktree rm`) e abre a página do item numa aba do navegador do Orca. Fluxo em `~/.claude/docs/orchestration-orca/README.md`.
 
-Todas funcionam com GitHub e Azure DevOps (o tracker vem do `docs/agents/issue-tracker.md` do repositório onde elas rodam). A `especificacao-atdd-hml` continua sincronizada do claude.ai, sem mudança: as skills lembram de registrar o resultado da HML com `flow hml`.
+  **Sem o modo**, a skill roda `flow host` e escolhe pelo ambiente: `orca` no Orca, `maestri` no Maestri, `subagents` num terminal comum. **Para forçar um modo**, passe-o depois do número: `/implement-issue 60 subagents` usa subagentes mesmo dentro do Orca ou do Maestri. O modo passado vale mais que a detecção (ADR 0006). Antes de começar, a skill confere os pré-requisitos do modo (no Maestri, por exemplo, o workspace na raiz do repositório); se um falha, ela para, diz qual e oferece os subagentes, sem trocar de modo sozinha. Cada task despachada grava o modo, que a página do item mostra.
+- **`maestro-worker`**: o protocolo do trabalhador num terminal visível: regras comuns (status pelo `flow status`, relatório gravado com `flow report` antes de ir ao maestro, só a sua task, sem push nem tracker) e uma seção por ambiente. No Maestri, o `flow status` também roda o `maestri floor status` e o relatório vai ao maestro com `maestri ask`; no Orca, o `flow status` move o card do worktree, a pergunta vai pelo `ask` do preâmbulo do Orca e o relatório, gravado com `flow report`, é entregue com `worker_done --report-path` (#65). No modo subagentes, o contrato do trabalhador vai no prompt.
+
+As skills são em inglês, porque são contrato lido por agente; o agente fala com o dono em português e grava no painel em português, e as frases do `flow` e dos scripts que elas citam ficam em português, ao pé da letra (ADR 0004). Todas funcionam com GitHub e Azure DevOps (o tracker vem do `docs/agents/issue-tracker.md` do repositório onde elas rodam). A `especificacao-atdd-hml` continua sincronizada do claude.ai, sem mudança: as skills lembram de registrar o resultado da HML com `flow hml`.
 
 ### 4. Instalar o hook do Claude Code
 
@@ -141,7 +146,7 @@ Abra **http://127.0.0.1:4777** (use `127.0.0.1`, não `localhost`). O servidor g
 
 ### 7. Conferir
 
-Rode `/especificar` num repositório de teste e acompanhe o item em `http://127.0.0.1:4777/#items/<projeto>/<número>`: ele aparece em Especificação depois da spec e passa para Implementação depois dos tickets. Depois rode `/implementar-issue <número>` (ou `/implementar-pbi <id>`, ou as versões `-maestri` no Ground de um workspace do Maestri): o grafo aparece com as tasks, cada uma com trabalhador, branch, status, relatório e o SHA da integração, seguido do PR em rascunho, dos achados, do ajuste final e do PR pronto. O selo de saúde fica verde quando o hook está gravando as sessões.
+Rode `/specify` num repositório de teste e acompanhe o item em `http://127.0.0.1:4777/#items/<projeto>/<número>`: ele aparece em Especificação depois da spec e passa para Implementação depois dos tickets. Depois rode `/implement-issue <número>` (ou `/implement-pbi <id>`; no Ground de um workspace do Maestri, a mesma skill usa os floors): o grafo aparece com as tasks, cada uma com trabalhador, branch, status, relatório e o SHA da integração, seguido do PR em rascunho, dos achados, do ajuste final e do PR pronto. O selo de saúde fica verde quando o hook está gravando as sessões.
 
 ### Vindo do painel original
 
@@ -169,7 +174,7 @@ Os nomes mudaram (código em inglês, ADR 0004) e não há apelidos para os anti
 
 ```
 flow item start 3100 --title "Conciliação de boletos"                  # entra em Especificação (a 1ª etapa do projeto)
-flow item start 12 --title "Exportar PDF" --stage implementation       # sem /especificar: as etapas anteriores contam como concluídas
+flow item start 12 --title "Exportar PDF" --stage implementation       # sem /specify: as etapas anteriores contam como concluídas
 flow stage 3100 implementation
 flow item start --json - < item.json                                   # {"number": 12, "title": "...", "stage": "...", "agent": "..."}
 ```
@@ -180,6 +185,8 @@ flow item start --json - < item.json                                   # {"numbe
 flow task graph 12 --task "13|Gerar o PDF" --task "14|Enviar por e-mail|13" [--out 15]   # <task>|<título>[|<bloqueios>]; o último grafo vale
 flow task graph --json - < grafo.json        # {"number": 12, "tasks": [{"number": 13, "title": "...", "blocked_by": [], "out": false}]}
 flow task dispatch 12 13 --floor "Gerar PDF" --worker "Ária" --branch task/13-gerar-pdf   # --worker subagente, sem floor, fora do Maestri
+flow task dispatch 12 14 --worker subagente --mode subagents        # o modo; sem --mode, vale o do flow host (none → subagents)
+flow host --json                                                    # o ambiente: {kind: orca|maestri|none, mode, terminal, workspace, checks}
 flow task integrate 12 13 --sha 4be1c2d9 --sha-before 9a01f3c
 ```
 
@@ -196,7 +203,8 @@ flow report --status blocked --reason "Falta o certificado" --json - < <scratchp
 flow report --base integra/carrinho --json - < <scratchpad>/relatorio.json   # integradora fora da convenção (ou "base" no JSON)
 ```
 
-- O `status` é o comando único do trabalhador: dentro de um terminal do Maestri (com `MAESTRI_TERMINAL_ID`) ele também roda `maestri floor status` com os mesmos argumentos; fora do Maestri (subagente) só grava. Se o `maestri` falhar, o evento fica gravado e o comando sai com 1.
+- O `status` é o comando único do trabalhador e passa pelo **ambiente** (#62, `bin/flow-host.js`): num terminal do Maestri (com `MAESTRI_TERMINAL_ID`) ele também roda `maestri floor status` com os mesmos argumentos; num terminal do Orca (com `ORCA_TERMINAL_HANDLE`, que vale mais que o do Maestri) roda `orca worktree set --worktree current --workspace-status <coluna> --comment "<texto>" --json`, que move o card do worktree (`working` e `blocked` → `in-progress`, `blocked` também `--unread`; `review` e `done` → `in-review`; o progresso vai no fim do comentário); num terminal comum (subagente) só grava. Só o status do trabalhador vai para o ambiente: com `--role maestro` (ou `owner`) ele só grava (#60). Se o `maestri` ou o `orca` falhar, o evento fica gravado e o comando sai com 1. O evento guarda `host: {kind, result}` (`result: recorded` no do maestro; os de antes da #62 guardavam `maestri` e continuam lidos como `kind: maestri`).
+- O `flow host` diz o ambiente (`orca`, `maestri` ou `none`, com o modo de despacho dele, `mode`, e o terminal e o worktree ou workspace) e, no Orca, se o `orca status --json` responde com o runtime pronto (`ready`); sai com 0 em todos os casos e não precisa de repositório. O `task dispatch` grava o modo (`--mode subagents|maestri|orca`; sem ele, o do ambiente), e a página do item o mostra em cada task.
 - A task vem de `--item`/`--task` ou, sem eles, da branch atual: a task despachada com essa branch ou `task/<id>-…`.
 - O relatório (`status`, `blocked_reason`, `branch`, `sha`, `tests`, `changes`, `decisions`, `risks`, `shared_files`, `text`) fica exatamente como escrito; branch e SHA, quando não vêm, saem do worktree. O `relatorio.json` vai num arquivo fora do repositório (o scratchpad da sessão): dentro do worktree ele conta como não commitado no resumo do diff.
 - **Resumo do diff** (#41): com SHA (o `--sha` ou o HEAD do worktree), o `report` calcula sozinho os arquivos que a task commitou desde que saiu da branch integradora, com as linhas `+`/`-` e os totais, e os grava no campo `diff` do próprio relatório (`git diff --numstat -z -M` do `merge-base(base, sha)` até o `sha`, só commits: uma task que saiu da integradora antes de outra ser integrada não mostra os arquivos da outra). A base é, nesta ordem, `--base` (ou `base` no JSON), a branch gravada no `flow pr --branch` e a convenção do tracker (`feature/issue-<n>` no GitHub, `feature/pbi-<n>` no Azure DevOps); para cada nome vale a ref local e depois `origin/<nome>`. Arquivo binário vem com `binary: true` e sem contagem de linhas (conta no total de arquivos, fica fora dos totais de linhas); renomeado vem com `from`, o caminho antigo. Acima de 200 arquivos ficam os 200 primeiros na ordem do git, com `truncated: true` e os totais do diff inteiro. `uncommitted` é o número de arquivos com mudança fora de commit no worktree (`git status --porcelain`), contado só quando o SHA é o HEAD do próprio worktree da task (outra pasta no mesmo commit, como a do maestro, não conta). Sem resumo (sem SHA, sem base, erro ou timeout de 10 s do git), o relatório é gravado sem `diff`, o comando sai com 0 e uma segunda linha diz o motivo. A página do item mostra o resumo dentro de cada relatório.
@@ -213,6 +221,8 @@ flow pending wait P-7                                         # espera ela fecha
 ```
 
 Uma pendência que o dono já respondeu pelo painel não aceita outra resolução: o `pending resolve` sai com o "não está aberta" de sempre (código 2).
+
+No Orca (#62), o `pending open` marca o worktree do maestro como não lido (`orca worktree set --worktree current --unread --json`) e grava onde responder: o worktree (`ORCA_WORKTREE_ID`) e o terminal (`ORCA_TERMINAL_HANDLE`) do maestro, salvo `--workspace`/`--terminal`. Uma falha do aviso no Orca segue a mesma regra do Maestri, abaixo.
 
 O `pending open` rodado num terminal do Maestri (com `MAESTRI_TERMINAL_ID`, o Maestro Mode) avisa o dono com `maestri notify` (#44): uma notificação do sistema, de até 500 caracteres, com a severidade, o tipo, o item, a task e o título da pendência ("Pendência nova (alta): revisão de task no item painel-maestro/40 (#40), task 44. Revisar a task 44"), pelo mesmo executável e prazo do `maestri floor status` (`FLOW_MAESTRI_CLI`). Fora do Maestri (subagentes) nada é chamado. Uma falha do aviso nunca falha o comando: a pendência é gravada, o comando sai com **0** e imprime a pendência como sempre, e uma linha no stderr diz que o dono pode não ter sido avisado. O evento guarda como foi (`notification`: `sent`, `failed` ou `outside`) e a tela Pendências mostra quando falhou, enquanto a pendência está aberta. A pendência de HML derivada do `flow hml` não chama o `maestri`.
 
@@ -284,7 +294,10 @@ O merge do PR costuma acontecer na interface do tracker, sem agente presente (um
 | `PANEL_AZURE_DEVOPS_URL` | `https://dev.azure.com` | base da REST do Azure DevOps |
 | `FLOW_MAESTRI_CLI` | `MAESTRI_CLI` ou `maestri` | executável do `maestri` usado pelo `flow status` e pelo `flow pending open` (um caminho `.js` roda com o `node`) |
 | `FLOW_WAIT_INTERVAL_MS` | `3000` | intervalo entre as leituras do `flow pending wait`, em ms (os testes usam 50) |
+| `FLOW_ORCA_CLI` | `orca` | executável do `orca` usado pelo `flow host`, pelo `flow status` e pelo `flow pending open` no Orca (um caminho `.js` roda com o `node`) |
+| `ORCA_TERMINAL_HANDLE`, `ORCA_WORKTREE_ID` | (do Orca) | terminal e worktree do Orca onde o comando roda: com `ORCA_TERMINAL_HANDLE`, o ambiente é o Orca (vale mais que o Maestri); a pendência diz onde responder |
 | `MAESTRI_CLI` | `maestri` | executável do Maestri usado pelos scripts das skills (o Maestri define nos terminais dele) |
+| `ORCA_CLI` | `orca` | executável do Orca usado pelo `integrate.sh` do fluxo do Orca (o teste usa um falso) |
 | `MAESTRI_TERMINAL_ID`, `MAESTRI_TERMINAL_NAME`, `MAESTRI_WORKSPACE_ID`, `MAESTRI_WORKSPACE_NAME` | (do Maestri) | terminal e workspace onde o comando roda: o `flow status` chama o `maestri floor status`, o `flow pending open` chama o `maestri notify` e a pendência diz onde responder |
 | `MAESTRI_DATA_DIR` | `~/.maestri` | onde está o `usage/providers/.status.json` do plano Claude |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | pasta do Claude Code (transcrições e o destino do `install-skills.js`) |
@@ -395,11 +408,10 @@ painel-maestro/
 │   └── tests/                   testes, demonstração (mock-items.json) e geradores
 ├── skills/
 │   ├── links.json               o que o install-skills.js liga ao ~/.claude
-│   ├── especificar/             /especificar
-│   ├── implementar-issue/, implementar-pbi/                    fluxo com subagentes (GitHub, Azure DevOps)
-│   ├── implementar-issue-maestri/, implementar-pbi-maestri/    fluxo com floors do Maestri
-│   ├── trabalhador-floor/       protocolo do trabalhador num floor
-│   └── docs/                    orquestracao-subagentes/ e orquestracao-maestri/ (com open-floor.sh e integrate.sh)
+│   ├── specify/                 /specify
+│   ├── implement-issue/, implement-pbi/   uma skill por tracker (GitHub, Azure DevOps); o modo vem do ambiente ou do argumento
+│   ├── maestro-worker/          protocolo do trabalhador num floor do Maestri ou num worktree do Orca
+│   └── docs/                    orchestration-subagents/, orchestration-maestri/ (com open-floor.sh e integrate.sh) e orchestration-orca/ (com integrate.sh)
 ├── docs/adr/                    decisões de arquitetura
 ├── docs/agents/                 configuração das skills de engenharia neste repositório (tracker, rótulos, domínio, versão)
 ├── CONTEXT.md                   vocabulário do domínio

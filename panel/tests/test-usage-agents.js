@@ -274,6 +274,31 @@ suite.test('without a collection the usage says so; without bruto.db the collect
   });
 });
 
+suite.test('without the Maestri file the API says the plan has no source (#63), with no number; old Maestri data shows with its age', async () => {
+  const r = buildRoot('no-source');
+  itemWithSessions(r);
+  fs.rmSync(r.maestri, { recursive: true, force: true });
+  collect(r);
+  await withServer(r, async (get) => {
+    const u = (await get('/api/usage')).json;
+    assert.deepStrictEqual([u.plan.available, u.plan.reason.code, u.plan.window_5h_pct, u.plan.weekly_pct, u.plan.age_min],
+      [false, 'plan_no_source', null, null, null]);
+    assert.ok(u.plan.reason.file.endsWith('usage/providers/.status.json'), u.plan.reason.file);
+    assert.deepStrictEqual(u.by_item.window_5h.map(pick), [['widgets/12', 250, 83.3, null], ['widgets/-', 50, 16.7, null]],
+      'the tokens per item still come from the transcripts, without a plan share');
+    const k = (await get('/api/state')).json.kpis.usage;
+    assert.deepStrictEqual([k.available, k.reason.code], [false, 'plan_no_source']);
+  });
+  // The owner left Maestri two days ago: its last file still shows, with the age (the week has not reset).
+  writeJson(path.join(r.maestri, 'usage', 'providers', '.status.json'),
+    Object.assign(planStatus(), { updatedAt: '2026-10-06T18:50:00Z' }, { providers: [Object.assign(planStatus().providers[0], { lastSuccessAt: '2026-10-06T18:50:00Z' })] }));
+  collect(r);
+  await withServer(r, async (get) => {
+    const u = (await get('/api/usage')).json;
+    assert.deepStrictEqual([u.plan.available, u.plan.weekly_pct, u.plan.age_min], [true, 20, 2 * 24 * 60]);
+  });
+});
+
 suite.run().then(() => {
   if (!process.env.KEEP_TMP) for (const d of roots) remove(d);
 });

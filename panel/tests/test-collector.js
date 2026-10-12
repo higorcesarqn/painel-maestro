@@ -311,9 +311,9 @@ suite.test('plan unavailable: no .status.json, provider missing, off, no windows
   fs.unlinkSync(file);
   let usage = await collector.collect(options(b));
   assert.strictEqual(usage.plan.available, false);
-  assert.strictEqual(usage.plan.reason.code, 'plan_file_missing');
+  assert.strictEqual(usage.plan.reason.code, 'plan_no_source');
   assert.ok(usage.plan.reason.file.endsWith('.status.json'), usage.plan.reason.file);
-  assert.strictEqual(usage.plan.window_5h_pct, null);
+  assert.deepStrictEqual([usage.plan.window_5h_pct, usage.plan.weekly_pct, usage.plan.age_min, usage.plan.updated_at], [null, null, null, null]);
   assert.strictEqual(line(usage, 'window_5h', C).estimated_plan_pct, null);
   assert.strictEqual(line(usage, '7d', C).estimated_plan_pct, null);
   assert.ok(line(usage, 'window_5h', C).consumption_pct > 0, 'the share goes on without the plan');
@@ -335,6 +335,32 @@ suite.test('plan unavailable: no .status.json, provider missing, off, no windows
   usage = await collector.collect(options(b));
   assert.strictEqual(usage.plan.available, false);
   assert.deepStrictEqual(usage.plan.reason, { code: 'plan_read_failed', state: 'executableNotFound', error: 'The executable wasn\'t found' });
+});
+
+suite.test('without the Maestri file (Orca, plain terminal) the plan has no source (#63): its own code, no number, and the summary does not send the owner to the Maestri settings', async () => {
+  const b = buildBase('no-source');
+  fs.rmSync(b.maestri, { recursive: true, force: true });
+  const usage = await collector.collect(options(b));
+  assert.strictEqual(usage.plan.available, false);
+  assert.strictEqual(usage.plan.reason.code, 'plan_no_source');
+  assert.ok(!['plan_file_unreadable', 'plan_provider_missing', 'plan_provider_off'].includes(usage.plan.reason.code));
+  assert.deepStrictEqual([usage.plan.window_5h_pct, usage.plan.weekly_pct, usage.plan.age_min], [null, null, null]);
+  assert.ok(line(usage, 'window_5h', C).consumption_pct > 0, 'the tokens per agent still come from the transcripts');
+  const r = runCli(b, ['--no-write', '--now', '2026-10-08T15:50:00-03:00']);
+  assert.strictEqual(r.status, 0, r.stderr);
+  const planLine = r.stdout.split('\n').find((l) => l.startsWith('Plano:'));
+  assert.ok(/sem fonte/i.test(planLine) && !/Configurações/.test(planLine), planLine);
+});
+
+suite.test('old Maestri data (the owner left Maestri days ago) still shows, with its age (#63)', async () => {
+  const b = buildBase('stale');
+  const file = path.join(b.maestri, 'usage', 'providers', '.status.json');
+  writeJson(file, planStatus({ at: '2026-10-06T18:50:00Z', reset5: '2026-10-06T20:00:00Z' }));
+  const usage = await collector.collect(options(b));
+  assert.strictEqual(usage.plan.available, true);
+  assert.strictEqual(usage.plan.weekly_pct, 20);
+  assert.strictEqual(usage.plan.age_min, 2 * 24 * 60);
+  assert.strictEqual(usage.plan.window_5h_reason.code, 'window_reset');
 });
 
 suite.test('5 h window that already reset: null % with a reason; a failed read becomes a warning', async () => {

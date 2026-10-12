@@ -2,10 +2,11 @@
 // on the left with the status filter, the pending decision in the middle (item, task, context, options, recommendation
 // and, once closed, the decision) and, on the right, the answer (#32): for an open one, the form (options that only
 // select, the recommended one highlighted, a comment and "Enviar resposta", POST /api/pending-decisions/<id>/answer), a
-// note on when the maestro learns of it and, below, the workspace and the terminal of the maestro in the Maestri, the
-// other way to answer; for a closed one, the dates and who closed it. A discreet line under the title of an open one
-// says when the Maestri's notification failed as it opened (#44, notification 'failed'; nothing once closed, nor for
-// the others or the older ones). Reads GET /api/pending-decisions every 20 s; each column scrolls inside. The
+// note on when the maestro learns of it and, below, where the maestro runs (#62, host): its worktree and terminal in the
+// Orca, or its workspace and terminal in the Maestri, the other way to answer; for a closed one, the dates and who closed
+// it. A discreet line under the title of an open one says when the owner's notice failed as it opened (#44, notification
+// 'failed': the Maestri's "maestri notify" or the Orca's unread worktree; nothing once closed, nor for the others or the
+// older ones). Reads GET /api/pending-decisions every 20 s; each column scrolls inside. The
 // organization comes from the selector at the top of the panel (#6, organizationFilter), like in the other screens of
 // the new model. A pending decision linked from the Overview or a browser notification (#45) that the selector or the
 // screen's filters leave out of the list shows up anyway, read without them; the selector and the filters stay. The
@@ -17,7 +18,7 @@ import { objs, obj, arr, txt, age, dateTime, number } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Kpi, Badge, Segmented, Empty, InfoHint } from '../components/base.jsx';
 import { Icon, Inbox, Send, X } from '../components/Icon.jsx';
-import { pendingTitle, SEVERITIES, SEVERITY_TONE, MAX_DECISION, optionLetters, recommendedLetter, decisionText } from '../data/domain.js';
+import { pendingTitle, SEVERITIES, SEVERITY_TONE, MAX_DECISION, HOST_KINDS, optionLetters, recommendedLetter, decisionText } from '../data/domain.js';
 import { TrackerLink } from './ItemDelivery.jsx';
 import { ReportField, DiffSummary } from './ItemReview.jsx';
 import '../styles/pending-decisions.css';
@@ -28,6 +29,13 @@ const STATUSES = ['open', 'resolved', 'canceled'];
 const AUTO_RESOLUTIONS = ['task_integrated', 'hml_approved', 'item_done', 'replaced'];
 const STATUS_TONE = { open: 'blue', resolved: 'ok', canceled: 'neutral' };
 const ref = (p) => t('pending.ref', { id: p.id });
+/** Where the maestro runs (#62): host.kind of the API; an unknown one reads as the Maestri, the only Host before it. */
+const hostOf = (p) => {
+  const h = obj(p.host) || {};
+  return { kind: HOST_KINDS.includes(h.kind) ? h.kind : 'maestri', workspace: txt(h.workspace), terminal: txt(h.terminal) };
+};
+// A notice fails only in the Maestri or the Orca: a plain terminal never notifies.
+const noticeHost = (p) => (hostOf(p).kind === 'orca' ? 'orca' : 'maestri');
 const domId = (p) => `pending-${p.id}`;
 /** Whether p is the pending decision of this id: "P-7" (a link) or 7. */
 const isPending = (p, id) => ref(p) === id || String(p.id) === String(id);
@@ -256,7 +264,7 @@ function PendingDetail({ p, goTo }) {
         <span class="muted" title={dateTime(p.opened_at)}>{t('pending.openedAgo', { age: age(p.opened_at) })}</span>
       </div>
       <h2 class="pending-heading">{pendingTitle(p)}</h2>
-      {p.status === 'open' && p.notification === 'failed' && <p class="muted small pending-notification">{t('pending.notificationFailed')}</p>}
+      {p.status === 'open' && p.notification === 'failed' && <p class="muted small pending-notification">{t(`pending.notificationFailed.${noticeHost(p)}`)}</p>}
       <dl class="pending-facts">
         <dt>{t('pending.item')}</dt>
         <dd>
@@ -398,13 +406,13 @@ function Answer({ p, onAnswered, onClosed }) {
   );
 }
 
-/** Where to answer (the maestro's Maestri terminal) and the dates of a closed pending decision. */
+/** Where to answer (the maestro's terminal in its Host) and the dates of a closed pending decision. */
 function WhereToAnswer({ p }) {
   return (
     <div class="pending-form">
       <div class="pending-form-head">
         <h2 class="label">{t('pending.whereTitle')}</h2>
-        <InfoHint text={t('pending.whereInfo')} />
+        <InfoHint text={t(`pending.whereInfo.${hostOf(p).kind}`)} />
       </div>
       <MaestroTerminal p={p} />
       <PendingDates p={p} />
@@ -412,14 +420,14 @@ function WhereToAnswer({ p }) {
   );
 }
 
-/** The workspace and the terminal of the maestro in the Maestri. */
+/** Where the maestro runs: its worktree and terminal in the Orca, its workspace and terminal in the Maestri (#62). */
 function MaestroTerminal({ p }) {
-  const m = obj(p.maestri) || {};
-  if (!m.workspace && !m.terminal) return <p class="muted">{t('pending.whereUnknown')}</p>;
+  const h = hostOf(p);
+  if (!h.workspace && !h.terminal) return <p class="muted">{t(`pending.whereUnknown.${h.kind}`)}</p>;
   return (
     <dl class="pending-dates pending-where">
-      <dt>{t('pending.workspace')}</dt><dd>{txt(m.workspace) || '—'}</dd>
-      <dt>{t('pending.terminal')}</dt><dd>{txt(m.terminal) || '—'}</dd>
+      <dt>{t(`pending.where.${h.kind}.workspace`)}</dt><dd>{h.workspace || '—'}</dd>
+      <dt>{t(`pending.where.${h.kind}.terminal`)}</dt><dd>{h.terminal || '—'}</dd>
     </dl>
   );
 }
