@@ -1,5 +1,5 @@
 ---
-name: trabalhador-floor
+name: maestro-worker
 description: "Protocolo do trabalhador num floor do Maestri: implementar uma task na branch do floor, sem push nem tracker, gravar status e relatório no painel-maestro e reportar ao maestro. Use quando o briefing disser que você é o trabalhador de um floor do Maestri."
 ---
 

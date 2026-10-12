@@ -1,10 +1,10 @@
 ---
-name: implementar-pbi
+name: implement-pbi
 description: "Implementa um PBI do Azure DevOps inteiro num PR, com um subagente em worktree por task, e grava o fluxo no painel-maestro."
 disable-model-invocation: true
 ---
 
-O usuário passou o ID de um PBI do Azure DevOps. Siga o fluxo em `~/.claude/docs/orquestracao-subagentes/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `pbi` (ex.: `feature/pbi-10`). Um PBI sem tasks filhas é a própria task.
+O usuário passou o ID de um PBI do Azure DevOps. Siga o fluxo em `~/.claude/docs/orchestration-subagents/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `pbi` (ex.: `feature/pbi-10`). Um PBI sem tasks filhas é a própria task.
 
 ## Adaptador Azure DevOps
 

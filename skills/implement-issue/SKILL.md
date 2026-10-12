@@ -1,10 +1,10 @@
 ---
-name: implementar-issue
+name: implement-issue
 description: "Implementa uma issue do GitHub e suas sub-issues num PR, com um subagente em worktree por sub-issue, e grava o fluxo no painel-maestro."
 disable-model-invocation: true
 ---
 
-O usuário passou o número de uma issue pai do GitHub. Siga o fluxo em `~/.claude/docs/orquestracao-subagentes/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `issue` (ex.: `feature/issue-10`). As "tasks" do fluxo são as sub-issues; uma issue sem sub-issues é a própria task.
+O usuário passou o número de uma issue pai do GitHub. Siga o fluxo em `~/.claude/docs/orchestration-subagents/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `issue` (ex.: `feature/issue-10`). As "tasks" do fluxo são as sub-issues; uma issue sem sub-issues é a própria task.
 
 ## Adaptador GitHub
 

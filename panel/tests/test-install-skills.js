@@ -31,9 +31,9 @@ const isLink = (p) => { try { return fs.lstatSync(p).isSymbolicLink(); } catch {
 const exists = (p) => { try { fs.lstatSync(p); return true; } catch { return false; } };
 const same = (a, b) => fs.realpathSync(a).toLowerCase() === fs.realpathSync(b).toLowerCase();
 
-suite.test('the manifest declares /especificar; every declared source exists and the repository has no other skills', () => {
+suite.test('the manifest declares /specify; every declared source exists and the repository has no other skills', () => {
   const sources = MANIFEST.links.map((l) => l.source);
-  assert.ok(sources.includes('skills/especificar'), sources.join(', '));
+  assert.ok(sources.includes('skills/specify'), sources.join(', '));
   for (const s of sources) assert.ok(fs.existsSync(path.join(REPO, s)), `${s} is declared but missing`);
   const folders = fs.readdirSync(path.join(REPO, 'skills'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => `skills/${d.name}`);
   assert.deepStrictEqual(folders.filter((f) => f !== 'skills/docs' && !sources.includes(f)), [], 'a skill folder outside the manifest');
@@ -41,15 +41,15 @@ suite.test('the manifest declares /especificar; every declared source exists and
 
 suite.test('the manifest declares the subagent skills and the folder of the document they follow (#17)', () => {
   const byTarget = new Map(MANIFEST.links.map((l) => [l.target, l.source]));
-  assert.strictEqual(byTarget.get('skills/implementar-issue'), 'skills/implementar-issue');
-  assert.strictEqual(byTarget.get('skills/implementar-pbi'), 'skills/implementar-pbi');
-  assert.strictEqual(byTarget.get('docs/orquestracao-subagentes'), 'skills/docs/orquestracao-subagentes');
-  for (const skill of ['implementar-issue', 'implementar-pbi']) {
+  assert.strictEqual(byTarget.get('skills/implement-issue'), 'skills/implement-issue');
+  assert.strictEqual(byTarget.get('skills/implement-pbi'), 'skills/implement-pbi');
+  assert.strictEqual(byTarget.get('docs/orchestration-subagents'), 'skills/docs/orchestration-subagents');
+  for (const skill of ['implement-issue', 'implement-pbi']) {
     const text = fs.readFileSync(path.join(REPO, 'skills', skill, 'SKILL.md'), 'utf8');
     assert.ok(text.includes(`name: ${skill}`), skill);
-    assert.ok(text.includes('~/.claude/docs/orquestracao-subagentes/README.md'), `${skill} points to the installed document`);
+    assert.ok(text.includes('~/.claude/docs/orchestration-subagents/README.md'), `${skill} points to the installed document`);
   }
-  assert.ok(fs.existsSync(path.join(REPO, 'skills', 'docs', 'orquestracao-subagentes', 'README.md')));
+  assert.ok(fs.existsSync(path.join(REPO, 'skills', 'docs', 'orchestration-subagents', 'README.md')));
 });
 
 suite.test('install links every declared skill into an empty Claude folder', () => {
@@ -60,16 +60,16 @@ suite.test('install links every declared skill into an empty Claude folder', () 
     assert.ok(isLink(target), `${l.target} is not a link`);
     assert.ok(same(target, path.join(REPO, l.source)), `${l.target} points elsewhere`);
   }
-  assert.ok(fs.readFileSync(path.join(r.claude, 'skills', 'especificar', 'SKILL.md'), 'utf8').includes('name: especificar'));
-  assert.ok(fs.existsSync(path.join(r.claude, 'docs', 'orquestracao-subagentes', 'README.md')), 'the document is reachable where the skills point');
+  assert.ok(fs.readFileSync(path.join(r.claude, 'skills', 'specify', 'SKILL.md'), 'utf8').includes('name: specify'));
+  assert.ok(fs.existsSync(path.join(r.claude, 'docs', 'orchestration-subagents', 'README.md')), 'the document is reachable where the skills point');
 });
 
 suite.test('the Maestri skills and their orchestration folder are declared, the folder where the skills look for it', () => {
   const pairs = MANIFEST.links.map((l) => `${l.source} → ${l.target}`);
-  for (const name of ['implementar-issue-maestri', 'implementar-pbi-maestri', 'trabalhador-floor']) {
+  for (const name of ['implement-issue-maestri', 'implement-pbi-maestri', 'maestro-worker']) {
     assert.ok(pairs.includes(`skills/${name} → skills/${name}`), pairs.join(', '));
   }
-  assert.ok(pairs.includes('skills/docs/orquestracao-maestri → docs/orquestracao-maestri'), pairs.join(', '));
+  assert.ok(pairs.includes('skills/docs/orchestration-maestri → docs/orchestration-maestri'), pairs.join(', '));
 });
 
 suite.test('after install, every ~/.claude path the installed skills and documents cite exists', () => {
@@ -88,13 +88,13 @@ suite.test('after install, every ~/.claude path the installed skills and documen
     }
   };
   for (const l of MANIFEST.links) scan(path.join(REPO, l.source));
-  assert.ok(cited.has('docs/orquestracao-maestri/README.md'), [...cited].join(', '));
-  assert.ok(cited.has('docs/orquestracao-maestri/scripts/integrate.sh'), [...cited].join(', '));
+  assert.ok(cited.has('docs/orchestration-maestri/README.md'), [...cited].join(', '));
+  assert.ok(cited.has('docs/orchestration-maestri/scripts/integrate.sh'), [...cited].join(', '));
   for (const rel of cited) assert.ok(exists(path.join(r.claude, rel)), `~/.claude/${rel} is cited but not installed`);
-  assert.ok(!exists(path.join(r.claude, 'docs', 'orquestracao-maestri', 'scripts', 'fluxo.py')), 'fluxo.py is gone');
+  assert.ok(!exists(path.join(r.claude, 'docs', 'orchestration-maestri', 'scripts', 'fluxo.py')), 'fluxo.py is gone');
 });
 
-/** Every entry of a Claude folder: { 'skills/especificar': 'link' | 'dir' | 'file' }, links not followed. */
+/** Every entry of a Claude folder: { 'skills/specify': 'link' | 'dir' | 'file' }, links not followed. */
 function snapshot(dir, base = dir, acc = {}) {
   for (const n of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, n.name);
@@ -117,7 +117,7 @@ suite.test('reinstalling is idempotent: same links, no backup', () => {
 
 suite.test('an existing skill folder is backed up, and undo puts it back', () => {
   const r = buildRoot('backup');
-  const own = path.join(r.claude, 'skills', 'especificar');
+  const own = path.join(r.claude, 'skills', 'specify');
   fs.mkdirSync(own, { recursive: true });
   fs.writeFileSync(path.join(own, 'SKILL.md'), 'a versão antiga do dono');
   const other = path.join(r.claude, 'skills', 'outra');
@@ -125,8 +125,8 @@ suite.test('an existing skill folder is backed up, and undo puts it back', () =>
   fs.writeFileSync(path.join(other, 'SKILL.md'), 'skill que não é do repositório');
 
   ok(install(r));
-  assert.ok(isLink(own) && same(own, path.join(REPO, 'skills', 'especificar')));
-  const backup = path.join(r.claude, 'backups', 'painel-maestro', 'skills', 'especificar', 'SKILL.md');
+  assert.ok(isLink(own) && same(own, path.join(REPO, 'skills', 'specify')));
+  const backup = path.join(r.claude, 'backups', 'painel-maestro', 'skills', 'specify', 'SKILL.md');
   assert.strictEqual(fs.readFileSync(backup, 'utf8'), 'a versão antiga do dono');
 
   ok(install(r, ['--undo']));
@@ -134,7 +134,7 @@ suite.test('an existing skill folder is backed up, and undo puts it back', () =>
   assert.strictEqual(fs.readFileSync(path.join(own, 'SKILL.md'), 'utf8'), 'a versão antiga do dono');
   assert.strictEqual(fs.readFileSync(path.join(other, 'SKILL.md'), 'utf8'), 'skill que não é do repositório');
   assert.ok(!exists(path.join(r.claude, 'backups')), 'empty backup folders are removed');
-  assert.ok(fs.existsSync(path.join(REPO, 'skills', 'especificar', 'SKILL.md')), 'undo never touches the repository');
+  assert.ok(fs.existsSync(path.join(REPO, 'skills', 'specify', 'SKILL.md')), 'undo never touches the repository');
 });
 
 suite.test('undo after a fresh install removes the links and leaves the repository intact', () => {
@@ -150,10 +150,10 @@ suite.test('undo after a fresh install removes the links and leaves the reposito
 
 suite.test('a taken backup slot is a conflict: exit 2 and nothing changes', () => {
   const r = buildRoot('conflict');
-  const own = path.join(r.claude, 'skills', 'especificar');
+  const own = path.join(r.claude, 'skills', 'specify');
   fs.mkdirSync(own, { recursive: true });
   fs.writeFileSync(path.join(own, 'SKILL.md'), 'atual');
-  const slot = path.join(r.claude, 'backups', 'painel-maestro', 'skills', 'especificar');
+  const slot = path.join(r.claude, 'backups', 'painel-maestro', 'skills', 'specify');
   fs.mkdirSync(slot, { recursive: true });
   fs.writeFileSync(path.join(slot, 'SKILL.md'), 'backup anterior');
   const before = snapshot(r.claude);
@@ -168,7 +168,7 @@ suite.test('without --claude-dir the folder comes from CLAUDE_CONFIG_DIR', () =>
   const r = buildRoot('env');
   const env = Object.assign({}, process.env, { HOME: r.root, USERPROFILE: r.root, CLAUDE_CONFIG_DIR: r.claude });
   ok(spawnSync(process.execPath, [INSTALL], { cwd: r.root, env, encoding: 'utf8', windowsHide: true, timeout: 30000 }));
-  assert.ok(isLink(path.join(r.claude, 'skills', 'especificar')));
+  assert.ok(isLink(path.join(r.claude, 'skills', 'specify')));
   assert.ok(!exists(path.join(r.root, '.claude')));
 });
 

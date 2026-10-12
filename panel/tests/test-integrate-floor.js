@@ -1,5 +1,5 @@
 'use strict';
-// Tests for the Maestri orchestration's integration script (#16): skills/docs/orquestracao-maestri/scripts/integrate.sh
+// Tests for the Maestri orchestration's integration script (#16): skills/docs/orchestration-maestri/scripts/integrate.sh
 // runs as a process (Git Bash) on the Ground of a temporary repository whose origin is a local bare repository, with
 // a fake maestri (MAESTRI_CLI) that only records its arguments. The result is checked on git and through the items
 // API, the same seam the flow tests use. Without Git Bash (bash.exe next to git) the suite is skipped.
@@ -9,7 +9,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { assert, REPO, createSuite, tmpDir, remove, freePort, request } = require('./util');
 
-const SCRIPT = path.join(REPO, 'skills', 'docs', 'orquestracao-maestri', 'scripts', 'integrate.sh');
+const SCRIPT = path.join(REPO, 'skills', 'docs', 'orchestration-maestri', 'scripts', 'integrate.sh');
 const FLOW = path.join(REPO, 'bin', 'flow.js');
 const srv = require(path.join(REPO, 'panel', 'server.js'));
 const suite = createSuite('integrate.sh: floor branch → integration branch → task integrated in the panel');

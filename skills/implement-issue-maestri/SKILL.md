@@ -1,12 +1,12 @@
 ---
-name: implementar-issue-maestri
+name: implement-issue-maestri
 description: "Implementa uma issue do GitHub e suas sub-issues num PR, com um floor do Maestri e um terminal Claude Code por sub-issue, gravando o fluxo no painel-maestro. Use só dentro do Maestri, como maestro no Ground."
 disable-model-invocation: true
 ---
 
-O usuário passou o número de uma issue pai do GitHub. Siga o fluxo em `~/.claude/docs/orquestracao-maestri/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `issue` (ex.: `feature/issue-10`). As "tasks" do fluxo são as sub-issues.
+O usuário passou o número de uma issue pai do GitHub. Siga o fluxo em `~/.claude/docs/orchestration-maestri/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `issue` (ex.: `feature/issue-10`). As "tasks" do fluxo são as sub-issues.
 
-Fora do Maestri (sem `$MAESTRI_CLI`, ou sem Maestro Mode no Ground), pare e sugira `/implementar-issue`, que usa subagentes (o fluxo está em `~/.claude/docs/orquestracao-subagentes/README.md`).
+Fora do Maestri (sem `$MAESTRI_CLI`, ou sem Maestro Mode no Ground), pare e sugira `/implement-issue`, que usa subagentes (o fluxo está em `~/.claude/docs/orchestration-subagents/README.md`).
 
 ## Adaptador GitHub
 

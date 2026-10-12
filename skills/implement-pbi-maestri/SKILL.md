@@ -1,12 +1,12 @@
 ---
-name: implementar-pbi-maestri
+name: implement-pbi-maestri
 description: "Implementa um PBI do Azure DevOps inteiro num PR, com um floor do Maestri e um terminal Claude Code por task, gravando o fluxo no painel-maestro. Use só dentro do Maestri, como maestro no Ground."
 disable-model-invocation: true
 ---
 
-O usuário passou o ID de um PBI do Azure DevOps. Siga o fluxo em `~/.claude/docs/orquestracao-maestri/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `pbi` (ex.: `feature/pbi-10`).
+O usuário passou o ID de um PBI do Azure DevOps. Siga o fluxo em `~/.claude/docs/orchestration-maestri/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `pbi` (ex.: `feature/pbi-10`).
 
-Fora do Maestri (sem `$MAESTRI_CLI`, ou sem Maestro Mode no Ground), pare e sugira `/implementar-pbi`, que usa subagentes (o fluxo está em `~/.claude/docs/orquestracao-subagentes/README.md`).
+Fora do Maestri (sem `$MAESTRI_CLI`, ou sem Maestro Mode no Ground), pare e sugira `/implement-pbi`, que usa subagentes (o fluxo está em `~/.claude/docs/orchestration-subagents/README.md`).
 
 ## Adaptador Azure DevOps
 

@@ -1,5 +1,5 @@
 ---
-name: especificar
+name: specify
 description: "Especifica um item novo (issue do GitHub ou PBI do Azure DevOps) com grill-with-docs → to-spec → to-tickets e registra as etapas no painel-maestro."
 disable-model-invocation: true
 ---
@@ -75,4 +75,4 @@ Entregue ao usuário:
 - o item (link no tracker) e os tickets publicados, com os bloqueios;
 - a página do item no painel: `http://127.0.0.1:4777/#items/<chave>` (a chave do passo 3, ex.: `#items/cidax/3100`);
 - o que não foi gravado no painel e por quê, se algo falhou;
-- o próximo passo: implementar o item com a skill de implementação do tracker (`/implementar-issue`, `/implementar-pbi` ou as variantes `-maestri`).
+- o próximo passo: implementar o item com a skill de implementação do tracker (`/implement-issue`, `/implement-pbi` ou as variantes `-maestri`).

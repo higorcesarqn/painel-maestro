@@ -1,15 +1,15 @@
 # Orquestração por floors do Maestri
 
-Fluxo compartilhado por `/implementar-pbi-maestri` (Azure DevOps) e `/implementar-issue-maestri` (GitHub). A skill que apontou para cá fornece o **adaptador do tracker**: como ler o item pai e as tasks, achar os bloqueios, marcar uma task concluída e abrir e finalizar o PR. Tudo abaixo é agnóstico de tracker.
+Fluxo compartilhado por `/implement-pbi-maestri` (Azure DevOps) e `/implement-issue-maestri` (GitHub). A skill que apontou para cá fornece o **adaptador do tracker**: como ler o item pai e as tasks, achar os bloqueios, marcar uma task concluída e abrir e finalizar o PR. Tudo abaixo é agnóstico de tracker.
 
-É a versão para o Maestri do fluxo de `/implementar-issue` e `/implementar-pbi` com subagentes, descrito em `~/.claude/docs/orquestracao-subagentes/README.md`. O resultado é o mesmo, **um único PR** numa **branch integradora**, mas cada task roda num **floor** (worktree git) com um **terminal Claude Code** visível no canvas, em vez de um subagente invisível. O usuário vê cada trabalhador, pode falar com ele e aprova cada integração.
+É a versão para o Maestri do fluxo de `/implement-issue` e `/implement-pbi` com subagentes, descrito em `~/.claude/docs/orchestration-subagents/README.md`. O resultado é o mesmo, **um único PR** numa **branch integradora**, mas cada task roda num **floor** (worktree git) com um **terminal Claude Code** visível no canvas, em vez de um subagente invisível. O usuário vê cada trabalhador, pode falar com ele e aprova cada integração.
 
 Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel](#painel)); o portal do canvas abre a página do item no painel.
 
 ## Papéis
 
 - **Maestro**: você, o terminal com Maestro Mode ligado no **Ground** do workspace. Lê o grafo, abre os floors, revisa, integra e fala com o usuário. Não implementa task.
-- **Trabalhador**: um terminal Claude Code num floor. Roda `/mattpocock-skills:implement` sobre uma task e segue a skill `trabalhador-floor`.
+- **Trabalhador**: um terminal Claude Code num floor. Roda `/mattpocock-skills:implement` sobre uma task e segue a skill `maestro-worker`.
 - **Caldeira** (opcional): um terminal Shell no Ground para processos longos (docker, servidor, banco).
 
 ## Pré-requisitos (confira antes do passo 1)
@@ -24,7 +24,7 @@ Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel]
 
 **`flow`**, neste documento, é `node "$PAINEL_MAESTRO/bin/flow.js"`, rodado pelo Bash (Git Bash) de dentro do repositório: o CLI reconhece o projeto pelo `git remote origin` (também no worktree de um floor). Escreva o comando inteiro a cada chamada.
 
-- **Quem grava**: você passa sempre `--role maestro --agent "<seu nome no canvas>"`. O trabalhador grava o próprio status e relatório (skill `trabalhador-floor`). Se um dia precisar gravar o status de uma task por ele (o terminal dele morreu), rode `MAESTRI_TERMINAL_ID= node "$PAINEL_MAESTRO/bin/flow.js" status "..." --item <n> --task <task> --role maestro --agent "<seu nome>"`: sem a variável, o CLI só grava e não posta o status no seu próprio terminal.
+- **Quem grava**: você passa sempre `--role maestro --agent "<seu nome no canvas>"`. O trabalhador grava o próprio status e relatório (skill `maestro-worker`). Se um dia precisar gravar o status de uma task por ele (o terminal dele morreu), rode `MAESTRI_TERMINAL_ID= node "$PAINEL_MAESTRO/bin/flow.js" status "..." --item <n> --task <task> --role maestro --agent "<seu nome>"`: sem a variável, o CLI só grava e não posta o status no seu próprio terminal.
 - **Texto com acento, aspas ou várias linhas** (títulos, contexto, opções, resumos): escreva um JSON UTF-8 no scratchpad com o Write tool e rode `flow <comando> --json - < <scratchpad>/<arquivo>.json`. Os campos do JSON têm os nomes da ajuda (`flow --help`, seção "JSON pela entrada padrão"); um argumento vale mais que o JSON. Pipe do PowerShell estraga os acentos.
 - **Códigos de saída**: 0 ok; **2** dado inválido, a mensagem diz o que corrigir (corrija e rode de novo); **1** falha do painel: não pare o fluxo, anote e avise o usuário no relatório final com a mensagem.
 - **Chave do item**: `<projeto>/<número>`, impressa pelo `flow item start` (ou pela recusa "já foi iniciado"). A página do item é `http://127.0.0.1:4777/#items/<projeto>/<número>`; ela se atualiza sozinha a cada 20 s. O que o painel calcula (estado de cada task, relatórios, pendências) também sai em `curl -s http://127.0.0.1:4777/api/items/<projeto>/<número>`.
@@ -53,7 +53,7 @@ Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel]
 ## Passos
 
 1. **Ler o grafo.** Pelo adaptador, carregue o item pai, as tasks filhas, o estado de cada uma e as arestas de bloqueio. Leia `docs/agents/` do repo para convenções locais (estados do tracker, comandos de teste, banco de teste, falhas já conhecidas da suíte). Grave no painel:
-   - o item, se a `/especificar` ainda não o gravou: `flow item start <n> --stage implementation` com o título pelo JSON (`{"number": <n>, "title": "...", "stage": "implementation", "role": "maestro", "agent": "..."}`). "Já foi iniciado" (código 2) significa que ele já está lá: siga. Guarde a chave do item que a mensagem traz;
+   - o item, se a `/specify` ainda não o gravou: `flow item start <n> --stage implementation` com o título pelo JSON (`{"number": <n>, "title": "...", "stage": "implementation", "role": "maestro", "agent": "..."}`). "Já foi iniciado" (código 2) significa que ele já está lá: siga. Guarde a chave do item que a mensagem traz;
    - o grafo: `flow task graph --json - < grafo.json` com `{"number": <n>, "tasks": [{"number": <task>, "title": "...", "blocked_by": [<task>, ...]}, ...]}`; task fechada antes desta execução ou fora do escopo vai com `"out": true`. Um item sem tasks filhas não tem grafo: ele é a própria task.
 
    Pronto quando: cada task tem estado e bloqueadores conhecidos e o grafo está no painel.
@@ -77,7 +77,7 @@ Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel]
    Para cada task: escreva o briefing (modelo abaixo) num arquivo do scratchpad, grave o despacho e abra o floor, do Ground:
    ```bash
    node "$PAINEL_MAESTRO/bin/flow.js" task dispatch <n> <task> --floor "<floor>" --worker "<trabalhador>" --branch task/<id>-<slug> --role maestro --agent "<seu nome>"
-   bash ~/.claude/docs/orquestracao-maestri/scripts/open-floor.sh "<floor>" task/<id>-<slug> "<trabalhador>" <scratchpad>/brief-<id>.txt <integradora>
+   bash ~/.claude/docs/orchestration-maestri/scripts/open-floor.sh "<floor>" task/<id>-<slug> "<trabalhador>" <scratchpad>/brief-<id>.txt <integradora>
    ```
    O script cria o floor (esperando o timeout), recruta o trabalhador sem role e manda o briefing em segundo plano. Dê codinomes curtos e distintos aos trabalhadores (sem acento).
 
@@ -94,7 +94,7 @@ Cada passo grava o fluxo no **painel-maestro** pelo CLI `flow` (seção [Painel]
 
 8. **Integrar, com o OK do usuário.** Uma task por vez:
    ```bash
-   bash ~/.claude/docs/orquestracao-maestri/scripts/integrate.sh "<floor>" task/<id>-<slug> <integradora> [<n> <task>]
+   bash ~/.claude/docs/orchestration-maestri/scripts/integrate.sh "<floor>" task/<id>-<slug> <integradora> [<n> <task>]
    ```
    O script recusa Ground sujo, floor com alteração não commitada e merge que não seja fast-forward. Se não for fast-forward, peça ao trabalhador (ainda vivo) um rebase sobre a integradora e um novo gate, e rode de novo. Depois do push ele grava `flow task integrate` com os SHAs de antes e depois (item e task saem de `feature/<tipo>-<n>` e `task/<id>-…`; fora dessa convenção, passe-os como 4º e 5º argumentos). A última linha diz `integrar: painel: task <task> integrada no item <n>`; se disser `integrar: aviso: o painel não registrou ...`, a integração valeu e o comando para gravá-la vem logo abaixo: corrija a causa e rode-o. Depois: marque a task concluída pelo adaptador e avise os trabalhadores ainda ativos de que a integradora andou, pedindo rebase antes do commit final.
 
@@ -122,7 +122,7 @@ A **primeira linha é o comando de barra**: é ela que faz o trabalhador rodar o
 
 ```text
 /mattpocock-skills:implement <tracker> <id> — <título da task>
-Você é o trabalhador do floor "<floor>" do Maestri, na branch task/<id>-<slug>, criada a partir da integradora <integradora> em <sha>. O maestro é o terminal "<nome do maestro>". Siga o protocolo da skill trabalhador-floor.
+Você é o trabalhador do floor "<floor>" do Maestri, na branch task/<id>-<slug>, criada a partir da integradora <integradora> em <sha>. O maestro é o terminal "<nome do maestro>". Siga o protocolo da skill maestro-worker.
 
 PAINEL
 - Item <n>, task <id>, codinome "<trabalhador>" (status e relatório pelo flow, como diz a skill)

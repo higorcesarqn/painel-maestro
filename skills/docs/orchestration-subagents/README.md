@@ -1,6 +1,6 @@
 # Orquestração de subagentes por task
 
-Fluxo compartilhado por `/implementar-pbi` (Azure DevOps) e `/implementar-issue` (GitHub). A skill que apontou para cá fornece o **adaptador do tracker**: como ler o item pai e as tasks, como achar os bloqueios, como abrir e finalizar o PR. Tudo abaixo é agnóstico de tracker.
+Fluxo compartilhado por `/implement-pbi` (Azure DevOps) e `/implement-issue` (GitHub). A skill que apontou para cá fornece o **adaptador do tracker**: como ler o item pai e as tasks, como achar os bloqueios, como abrir e finalizar o PR. Tudo abaixo é agnóstico de tracker.
 
 O objetivo é **um único PR** que implementa o item pai inteiro, numa única **branch integradora**. Você é o **maestro**: lê o grafo, despacha, integra e revisa; quem implementa são os subagentes. Cada passo do fluxo é gravado no painel-maestro pelo CLI `flow` (seção [Painel](#painel)).
 
@@ -39,7 +39,7 @@ Nos passos abaixo, `flow <comando>` abrevia essa linha. `node "$PAINEL_MAESTRO/b
 0. **Conferir o painel.** `node "$PAINEL_MAESTRO/bin/flow.js" --help >/dev/null && git remote get-url origin`. `PAINEL_MAESTRO` é a pasta do código do painel-maestro (o README dele explica). Se falhar, pergunte ao usuário se ele define a variável agora ou se o fluxo segue sem painel; sem painel, pule as linhas `flow` dos passos. Pronto quando: os dois comandos saíram com 0, ou o usuário decidiu seguir sem painel.
 
 1. **Ler o grafo.** Pelo adaptador, carregue o item pai, as tasks filhas e as arestas de bloqueio. Leia `docs/agents/` do repositório, se existir, para convenções locais (nome de branch, comandos de typecheck/teste, estados do tracker). Task sem aresta declarada é independente; se duas tasks independentes claramente tocam o mesmo fluxo, pergunte ao usuário antes de paralelizar. Pronto quando: cada task tem estado (aberta/fechada) e lista de bloqueadores conhecidos, e o painel tem o item e o grafo:
-   - Item: `flow item start --json - < item.json` com `{"number": <n>, "title": "<título do item>", "stage": "implementation"}`. "Já foi iniciado" (código 2) significa que o `/especificar` ou uma execução anterior já gravou o item: siga em frente.
+   - Item: `flow item start --json - < item.json` com `{"number": <n>, "title": "<título do item>", "stage": "implementation"}`. "Já foi iniciado" (código 2) significa que o `/specify` ou uma execução anterior já gravou o item: siga em frente.
    - Grafo (só se o item tem tasks): `flow task graph --json - < grafo.json` com `{"number": <n>, "tasks": [{"number": 12, "title": "..."}, {"number": 13, "title": "...", "blocked_by": [12]}, {"number": 11, "title": "...", "out": true}]}`. Entram todas as tasks do item; as que já estavam fechadas no tracker vão com `"out": true`, e os bloqueios por elas continuam no grafo.
    - Paralelizar: a pergunta ao usuário é uma pendência, `flow pending open <n> --kind parallelize --json - < pendencia.json` com `title`, `context`, `options` (lista, ex.: `"A: em paralelo"`, `"B: 13 depois da 12"`) e `recommendation`. O CLI imprime o id `P-<id>`; deixe o `flow pending wait P-<id>` rodando em segundo plano (seção Painel). Com a resposta nesta sessão, `flow pending resolve P-<id> --json - < decisao.json` com `{"decision": "..."}`; a resposta pelo painel já chega gravada, pelo fim do `wait`. Outras perguntas ao usuário durante o fluxo seguem o mesmo par, com `--kind decision`.
 
