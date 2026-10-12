@@ -117,7 +117,7 @@ suite.test('the maestro opens a pending decision on a task; the API shows it wit
         project: { id: 'widgets', name: 'widgets', tracker: 'github', organization: { id: 'unassigned', name: 'Sem organização' } },
       },
       task: { number: 13, title: 'Gerar o PDF', state: 'waiting' },
-      maestri: { workspace: 'Contoso', terminal: 'Maestro 12' }, notification: 'sent',
+      host: { kind: 'maestri', workspace: 'Contoso', terminal: 'Maestro 12' }, notification: 'sent',
       opened_at: p.opened_at, opened_by: { role: 'maestro', name: null },
       closed_at: null, closed_by: null, resolution: null, decision: null, reason: null, derived_from: null, report: null,
     });
@@ -357,11 +357,11 @@ suite.test('the maestro resolves with the owner\'s decision or cancels; the deci
     const all = await list(get);
     const d = all.find((p) => p.id === decision);
     assert.deepStrictEqual(
-      [d.status, d.resolution, d.decision, d.context, d.options, d.maestri, d.task, d.closed_by],
-      ['resolved', 'decision', 'Fila, com retentativa.\nSem cron.', 'Linha 1 com acentuação\nLinha 2', ['A: Fila', 'B: Cron'], { workspace: 'Pessoal', terminal: 'Maestro widgets' }, null, { role: 'owner', name: null }],
+      [d.status, d.resolution, d.decision, d.context, d.options, d.host, d.task, d.closed_by],
+      ['resolved', 'decision', 'Fila, com retentativa.\nSem cron.', 'Linha 1 com acentuação\nLinha 2', ['A: Fila', 'B: Cron'], { kind: 'none', workspace: 'Pessoal', terminal: 'Maestro widgets' }, null, { role: 'owner', name: null }],
     );
     const c = all.find((p) => p.id === parallel);
-    assert.deepStrictEqual([c.status, c.resolution, c.reason, c.maestri], ['canceled', null, 'O grafo mudou', { workspace: null, terminal: null }]);
+    assert.deepStrictEqual([c.status, c.resolution, c.reason, c.host], ['canceled', null, 'O grafo mudou', { kind: 'none', workspace: null, terminal: null }]);
     const timeline = (await get('/api/items/widgets/12')).item.timeline.filter((e) => e.type.startsWith('pending-decision-'));
     assert.deepStrictEqual(timeline.map((e) => [e.type, e.payload.pending_decision || e.id]), [
       ['pending-decision-opened', decision], ['pending-decision-opened', parallel],

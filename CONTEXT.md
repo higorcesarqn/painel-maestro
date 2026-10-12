@@ -1,6 +1,6 @@
 # Painel Maestro
 
-Painel local que acompanha itens de trabalho sendo especificados, implementados e validados por agentes Claude Code (no Maestri ou por subagentes), organizados por organização e projeto.
+Painel local que acompanha itens de trabalho sendo especificados, implementados e validados por agentes Claude Code (no Maestri, no Orca ou por subagentes), organizados por organização e projeto.
 
 O código é em inglês e a interface em português: cada termo traz o nome usado no código. O _Avoid_ vale para o texto em português.
 
@@ -71,6 +71,11 @@ Em código: `Maestro`.
 _Avoid_: Cérebro, orquestrador
 
 **Trabalhador**:
-O agente que implementa uma task, num floor do Maestri ou como subagente; existe só enquanto a task dura.
+O agente que implementa uma task, num floor do Maestri, num worktree do Orca ou como subagente; existe só enquanto a task dura.
 Em código: `Worker`.
 _Avoid_: sub-agente, sub-cérebro
+
+**Ambiente**:
+Onde o maestro e os trabalhadores rodam: um terminal comum (subagentes), o Maestri ou o Orca. O `flow host` diz qual é, e o status do trabalhador e o aviso de pendência nova passam por ele.
+Em código: `Host`.
+_Avoid_: plataforma, IDE

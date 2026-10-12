@@ -13,7 +13,7 @@ const STAGES = {
   done: 'Concluído',
 };
 
-// What a worker posts with "flow status --state" (the states of "maestri floor status").
+// What a worker posts with "flow status --state" (the states of "maestri floor status"; the Orca's board columns in flow-host.js).
 const WORKER_STATES = {
   working: 'trabalhando',
   blocked: 'bloqueada',
@@ -22,6 +22,10 @@ const WORKER_STATES = {
 };
 
 const PR_STATES = { draft: 'em rascunho', ready: 'pronto', merged: 'mergeado' };
+
+// The Host (#62): where the flow runs, and how each one tells the owner of a new pending decision.
+const HOST_NAMES = { orca: 'Orca', maestri: 'Maestri', none: 'terminal comum' };
+const HOST_NOTICE = { orca: 'aviso do Orca (orca worktree set --unread)', maestri: 'maestri notify' };
 
 // Pending decisions (#10): kinds and severities of "flow pending open".
 const PENDING_KINDS = {
@@ -48,15 +52,18 @@ const PENDING = {
   severities: PENDING_SEVERITIES,
   done: {
     opened: (p) => `Pendência P-${p.id} (${PENDING_KINDS[p.kind] || p.kind}) aberta no item ${p.key} (${p.ref})${p.task ? `, task ${p.task}` : ''}.`
-      + (p.workspace || p.terminal ? ` Responder em: ${[p.workspace && `workspace "${p.workspace}"`, p.terminal && `terminal "${p.terminal}"`].filter(Boolean).join(', ')}.` : ' Sem workspace/terminal do Maestri: informe --workspace e --terminal para o dono saber onde responder.'),
+      + (p.workspace || p.terminal
+        ? ` Responder em: ${[p.workspace && `${p.host === 'orca' ? 'worktree' : 'workspace'} "${p.workspace}"`, p.terminal && `terminal "${p.terminal}"`].filter(Boolean).join(', ')}${!p.host || p.host === 'none' ? '' : ` (${HOST_NAMES[p.host] || p.host})`}.`
+        : ' Sem onde responder: informe --workspace e --terminal para o dono saber onde responder.'),
     resolved: 'Pendência P-{id} do item {key} resolvida; a decisão ficou na linha do tempo do item.',
     canceled: 'Pendência P-{id} do item {key} cancelada.',
   },
-  // The owner's notification of pending open inside a Maestri terminal (#44): "maestri notify", up to 500 characters.
+  // The owner's notification of pending open (#44): the text of "maestri notify" (up to 500 characters) and, in the
+  // Maestri or the Orca (#62), the line on stderr when the notice failed.
   notify: {
     message: (p) => `Pendência nova (${PENDING_SEVERITIES[p.severity] || p.severity}): ${PENDING_KINDS[p.kind] || p.kind} no item ${p.key} (${p.ref})`
       + `${p.task ? `, task ${p.task}` : ''}. ${p.title}`,
-    failed: 'aviso: a pendência P-{id} foi gravada, mas o maestri notify falhou: {detail}; o dono pode não ter sido avisado.',
+    failed: (p) => `aviso: a pendência P-${p.id} foi gravada, mas o ${HOST_NOTICE[p.host] || p.host} falhou: ${p.detail}; o dono pode não ter sido avisado.`,
   },
   errors: {
     missingKind: 'falta o tipo da pendência (--kind): {allowed}.',
@@ -360,12 +367,21 @@ CÓDIGOS DE SAÍDA
     stageChanged: (p) => `Item ${p.key} (${p.ref}) agora em ${STAGES[p.stage] || p.stage}.`,
     projectRegistered: 'Projeto "{project}" cadastrado em "{organization}" a partir de {remote}. Mova-o para a organização certa pelo painel.',
     taskGraph: (p) => `Grafo de tasks do item ${p.key} (${p.ref}) registrado: ${p.count} task${p.count === 1 ? '' : 's'}.`,
-    taskDispatched: (p) => `Task ${p.task} do item ${p.key} (${p.ref}) despachada${p.floor ? ` no floor "${p.floor}"` : ''}${p.worker ? ` para ${p.worker}` : ''}${p.branch ? ` (branch ${p.branch})` : ''}.`,
+    taskDispatched: (p) => `Task ${p.task} do item ${p.key} (${p.ref}) despachada${p.floor ? ` no floor "${p.floor}"` : ''}${p.worker ? ` para ${p.worker}` : ''}${p.branch ? ` (branch ${p.branch})` : ''}, modo ${p.mode}.`,
     taskIntegrated: 'Task {task} do item {key} ({ref}) integrada em {sha}.',
     taskStatus: (p) => `Status da task ${p.task} do item ${p.key}: ${WORKER_STATES[p.state] || p.state} · "${p.text}".`,
-    floorStatusPosted: 'Status do floor atualizado no Maestri (maestri floor status).',
-    floorStatusFailed: 'O status foi gravado no painel, mas o maestri floor status falhou.',
-    outsideMaestri: 'Fora do Maestri (sem MAESTRI_TERMINAL_ID): só gravado no painel.',
+    // How flow status went in the Host it runs in (#62).
+    hostStatus: {
+      maestri: {
+        posted: 'Status do floor atualizado no Maestri (maestri floor status).',
+        failed: 'O status foi gravado no painel, mas o maestri floor status falhou.',
+      },
+      orca: {
+        posted: 'Card do worktree atualizado no Orca (orca worktree set).',
+        failed: 'O status foi gravado no painel, mas o orca worktree set falhou.',
+      },
+      none: { outside: 'Fora do Maestri e do Orca (sem MAESTRI_TERMINAL_ID nem ORCA_TERMINAL_HANDLE): só gravado no painel.' },
+    },
   },
   errors: {
     prefix: 'erro: {message}',
@@ -417,6 +433,9 @@ CÓDIGOS DE SAÍDA
     invalidProgress: 'progresso inválido: "{value}" (use n/m, ex.: 3/5).',
     maestriNotFound: 'não achei o executável "{cli}" (configure FLOW_MAESTRI_CLI ou MAESTRI_CLI)',
     maestriFailed: 'o status foi gravado no painel, mas o maestri floor status falhou: {detail}',
+    orcaNotFound: 'não achei o executável "{cli}" (configure FLOW_ORCA_CLI)',
+    orcaFailed: 'o status foi gravado no painel, mas o orca worktree set falhou: {detail}',
+    invalidMode: (p) => `modo inválido: "${p.value}" (use ${p.allowed.slice(0, -1).join(', ')} ou ${p.allowed[p.allowed.length - 1]}).`,
     unexpected: 'falha inesperada: {detail}',
     schemaTooNew: 'o banco {file} foi atualizado por uma versão mais nova do painel-maestro (schema v{db_version}; este código lê até a v{code_version}): atualize o código (git pull no painel-maestro). Nada foi gravado.',
   },
@@ -481,6 +500,18 @@ CÓDIGOS DE SAÍDA
       gitFailed: 'o git falhou ({detail})',
     },
   },
+  // flow host (#62): the Host this runs in, as a person reads it (--json gives { kind, terminal, workspace, checks }).
+  host: {
+    kind: {
+      orca: (p) => `Ambiente: Orca (terminal ${p.terminal}${p.workspace ? `, worktree ${p.workspace}` : ''}). O status move o card do worktree, a pendência marca o worktree como não lido e o despacho usa o modo orca.`,
+      maestri: (p) => `Ambiente: Maestri (terminal ${p.terminal}${p.workspace ? `, workspace ${p.workspace}` : ''}). O status vai para o floor, a pendência avisa com maestri notify e o despacho usa o modo maestri.`,
+      none: 'Ambiente: terminal comum (sem ORCA_TERMINAL_HANDLE nem MAESTRI_TERMINAL_ID). O status e a pendência só gravam no painel e o despacho usa o modo subagents.',
+    },
+    orcaStatusOk: 'orca status: o runtime do Orca responde.',
+    orcaStatusFailed: 'orca status falhou: {detail}. O status e o aviso de pendência no Orca podem falhar.',
+    orcaUnreachable: 'o runtime do Orca não está acessível (estado "{state}")',
+    bothTerminals: 'Também há um terminal do Maestri (MAESTRI_TERMINAL_ID): o Orca vale mais.',
+  },
   // flow --version (#36): the semver of the root package.json and the commit of the code (none outside a clone).
   version: (p) => `painel-maestro${p.product ? ` ${p.product}` : ''}${p.commit ? ` (${p.commit})` : ''}`,
   help: (p) => `flow · registra o fluxo dos itens no painel (eventos em ${p.db})
@@ -515,18 +546,22 @@ TASKS (maestro)
       vírgula, que precisam estar integradas antes desta. --out marca tasks fora do item. O último grafo
       registrado vale; um item sem grafo é uma task só, ele mesmo (o número da task é o do item).
       ex.: --task "13|Gerar o PDF" --task "14|Enviar por e-mail|13"
-  node bin/flow.js task dispatch <número> <task> [--floor "<floor>"] [--worker "<codinome>"] [--branch <branch>]
-      Registra a task despachada: floor do Maestri, trabalhador (codinome ou "subagente") e branch.
+  node bin/flow.js task dispatch <número> <task> [--floor "<floor>"] [--worker "<codinome>"] [--branch <branch>] [--mode subagents|maestri|orca]
+      Registra a task despachada: floor do Maestri, trabalhador (codinome ou "subagente"), branch e o modo do
+      despacho. Sem --mode, vale o do ambiente (flow host): orca no Orca, maestri no Maestri, subagents fora deles.
   node bin/flow.js task integrate <número> <task> --sha <sha> [--sha-before <sha>]
       Registra a task integrada na branch integradora (SHA depois e, opcional, antes da integração).
 
 STATUS (trabalhador)
   node bin/flow.js status "<texto>" [--state working|blocked|review|done] [--progress n/m] [--item <número>] [--task <task>]
-      O comando único de status: dentro do Maestri (com MAESTRI_TERMINAL_ID) roda "maestri floor status"
-      com os mesmos argumentos e grava o evento; fora do Maestri (subagente) só grava. --state padrão: working;
+      O comando único de status: grava o evento e posta o status no ambiente. No Maestri (com MAESTRI_TERMINAL_ID)
+      roda "maestri floor status" com os mesmos argumentos; no Orca (com ORCA_TERMINAL_HANDLE) roda
+      "orca worktree set --worktree current --workspace-status <coluna> --comment <texto>": working e blocked →
+      in-progress (blocked também --unread), review e done → in-review. Num terminal comum (subagente) só grava.
+      --state padrão: working;
       "done" conta como pronta para revisão. Sem --item/--task, a task vem da branch atual: a task despachada
       com esta branch ou, senão, task/<task>-… (--item resolve quando a task existe em mais de um item).
-      Papel padrão: worker. Se o maestri falhar, o evento é gravado e o comando sai com 1.
+      Papel padrão: worker. Se o maestri ou o orca falhar, o evento é gravado e o comando sai com 1.
 
 PENDÊNCIAS (maestro)
   node bin/flow.js pending open <número> --kind <tipo> --title "..." [--task <task>] [--severity <severidade>]
@@ -534,12 +569,14 @@ PENDÊNCIAS (maestro)
       Abre uma pendência para o dono, ligada ao item e, opcional, a uma task; mostra o id (P-<n>).
       Tipos: ${Object.entries(PENDING_KINDS).map(([id, name]) => `${id} (${name})`).join(', ')}.
       Severidades: ${Object.entries(PENDING_SEVERITIES).map(([id, name]) => `${id} (${name})`).join(', ')}; padrão normal.
-      Onde o dono responde: --workspace/--terminal, senão o terminal do Maestri onde o comando roda
-      (MAESTRI_WORKSPACE_NAME ou MAESTRI_WORKSPACE_ID, MAESTRI_TERMINAL_NAME ou MAESTRI_TERMINAL_ID).
+      Onde o dono responde: --workspace/--terminal, senão o terminal onde o comando roda: no Orca, o worktree
+      (ORCA_WORKTREE_ID) e o terminal (ORCA_TERMINAL_HANDLE) do maestro; no Maestri, MAESTRI_WORKSPACE_NAME ou
+      MAESTRI_WORKSPACE_ID e MAESTRI_TERMINAL_NAME ou MAESTRI_TERMINAL_ID; fora deles, o workspace do projeto.
       A revisão de uma task (task_review, exige --task) se resolve sozinha quando a task é integrada.
-      Dentro do Maestri (com MAESTRI_TERMINAL_ID), avisa o dono com "maestri notify" (a pendência, a severidade,
-      o item e o título); se o aviso falhar, a pendência é gravada mesmo assim, o comando sai com 0 e uma linha no
-      stderr diz que o dono pode não ter sido avisado. Fora do Maestri, nada é chamado.
+      Avisa o dono no ambiente: no Maestri, com "maestri notify" (a pendência, a severidade, o item e o título); no
+      Orca, marcando o worktree do maestro como não lido (orca worktree set --worktree current --unread). Se o aviso
+      falhar, a pendência é gravada mesmo assim, o comando sai com 0 e uma linha no stderr diz que o dono pode não
+      ter sido avisado. Num terminal comum, nada é chamado.
   node bin/flow.js pending resolve <id> --decision "..."
       Resolve a pendência com o que o dono decidiu; a decisão fica na linha do tempo do item.
   node bin/flow.js pending cancel <id> [--reason "..."]
@@ -572,6 +609,13 @@ ACHADOS (maestro)
   node bin/flow.js finding link <número> <achado> --new-task <n> [--new-task-title "..."]
       Liga depois um achado já registrado à task nova que ele virou.
 
+AMBIENTE
+  node bin/flow.js host [--json]
+      Mostra o ambiente onde o comando roda: orca (ORCA_TERMINAL_HANDLE definida), maestri (MAESTRI_TERMINAL_ID
+      definida) ou none (terminal comum). Com as duas, vale o Orca. No Orca, confere se "orca status --json"
+      responde. --json devolve {kind, terminal, workspace, checks}, com checks {orca_terminal, maestri_terminal,
+      orca_status: {ok, detail} | null}. Sai com 0 em todos os casos; não precisa rodar dentro de um repositório.
+
 ${ADMIN_HELP}
 VERSÃO
   node bin/flow.js --version  (ou -v)
@@ -586,7 +630,7 @@ OPÇÕES DO AGENTE
 JSON PELA ENTRADA PADRÃO (texto com acentos, aspas e várias linhas chega intacto em qualquer shell)
   --json -     os campos vêm num objeto JSON pela entrada padrão; os argumentos valem mais que o JSON
   Campos: number (o item), title, stage, role, agent; task, tasks ([{number, title, blocked_by, out}]), floor,
-  worker, branch, sha, sha_before, text, state, progress (tasks e status); state, url, pr, branch (pr);
+  worker, branch, mode, sha, sha_before, text, state, progress (tasks e status); state, url, pr, branch (pr);
   action, outcome, summary (final-adjustment); passed, failed, blocked, card, summary (hml); status,
   blocked_reason, tests, changes, decisions, risks, shared_files, text, base (report); title, description,
   classification, task, new_task, new_task_title, finding (finding).
@@ -604,6 +648,9 @@ VARIÁVEIS
   MAESTRO_DIR           pasta dos dados (padrão: ~/.painel-maestro)
   MAESTRI_TERMINAL_ID   presente num terminal do Maestri: o status também roda "maestri floor status"
   FLOW_MAESTRI_CLI      executável do maestri usado pelo status (padrão: MAESTRI_CLI ou "maestri")
+  ORCA_TERMINAL_HANDLE  presente num terminal do Orca: o status e o aviso de pendência rodam "orca worktree set"
+  ORCA_WORKTREE_ID      o worktree do Orca onde o comando roda (onde responder a uma pendência aberta no Orca)
+  FLOW_ORCA_CLI         executável do orca (padrão: "orca"; um caminho .js roda com node)
   FLOW_WAIT_INTERVAL_MS intervalo entre as leituras do pending wait, em ms (padrão: 3000)
 `,
 };

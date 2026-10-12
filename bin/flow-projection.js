@@ -22,6 +22,9 @@
  *     state,                   waiting | working | review | blocked | integrated | out  (TASK_STATES)
  *     blocked_by: [number],    tasks that must be integrated before this one (from the graph)
  *     worker, floor, branch,   from the last task-dispatched (worker falls back to the name of whoever posted status)
+ *     mode,                    the dispatch mode of the last task-dispatched (#62): subagents | maestri | orca, or null
+ *                              (dispatched before #62)
+ *     status_host,             how the last task-status went in its Host (#62): { kind, result } or null (see hostOfStatus)
  *     sha, sha_before,         from task-integrated (the integrating branch after and before the integration)
  *     status_text, progress,   the last task-status: its line of text and { done, total } or null
  *     dispatched_at, integrated_at, updated_at
@@ -34,9 +37,10 @@
  *   stage-changed    payload { stage }
  *   task-graph       payload { tasks: [{ number, title, blocked_by: [number], out: boolean }] }
  *                    the whole graph: the last one replaces the previous ones. A task with out=true is "out".
- *   task-dispatched  task_number, payload { floor, worker, branch }            → working
+ *   task-dispatched  task_number, payload { floor, worker, branch, mode }      → working
  *   task-status      task_number, payload { state: working|blocked|review|done, text, progress: {done, total} | null,
- *                    maestri: 'posted' | 'failed' | 'outside' }
+ *                    host: { kind: 'orca' | 'maestri' | 'none', result: 'posted' | 'failed' | 'outside' } }
+ *                    (before #62: maestri: 'posted' | 'failed' | 'outside', read as { kind: 'maestri', result })
  *                    → working | blocked | review (a worker's "done" means ready for the maestro: review)
  *   task-integrated  task_number, payload { sha, sha_before }                  → integrated
  *   PR, final adjustment, HML and conclusion (#9): see the "delivery" block below.
@@ -59,6 +63,10 @@ const EVENT_TYPES = {
 const TASK_STATES = ['waiting', 'working', 'review', 'blocked', 'integrated', 'out'];
 /** What a worker posts (the states of "maestri floor status") → the state of the task. */
 const WORKER_STATES = { working: 'working', blocked: 'blocked', review: 'review', done: 'review' };
+/** Where the flow runs (#62, bin/flow-host.js) and the dispatch modes. */
+const HOST_KINDS = ['orca', 'maestri', 'none'];
+const DISPATCH_MODES = ['subagents', 'maestri', 'orca'];
+const STATUS_RESULTS = ['posted', 'failed', 'outside'];
 
 function trackerRef(tracker, number) {
   return tracker === 'azure_devops' ? `PBI ${number}` : `#${number}`;
@@ -67,11 +75,34 @@ function trackerRef(tracker, number) {
 const payloadOf = (e) => ((e.payload && typeof e.payload === 'object' && !Array.isArray(e.payload)) ? e.payload : {});
 const textOrNull = (v) => (typeof v === 'string' && v.trim() ? v : null);
 const isNumber = (v) => Number.isInteger(v) && v > 0;
+const objectOf = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : null);
+
+/**
+ * How a task-status went in its Host: payload.host { kind, result } (#62), or the payload.maestri of an older event
+ * read as { kind: 'maestri', result } (the log is append-only, ADR 0002). null when neither says it.
+ */
+function hostOfStatus(p) {
+  const h = objectOf(p.host);
+  if (h && HOST_KINDS.includes(h.kind)) return { kind: h.kind, result: STATUS_RESULTS.includes(h.result) ? h.result : null };
+  if (STATUS_RESULTS.includes(p.maestri)) return { kind: 'maestri', result: p.maestri };
+  return null;
+}
+
+/**
+ * Where the owner answers a pending decision: payload.host { kind, workspace, terminal } (#62), or the payload.maestri
+ * { workspace, terminal } of an older event read as kind 'maestri'.
+ */
+function hostOfPending(p) {
+  const h = objectOf(p.host);
+  if (h && HOST_KINDS.includes(h.kind)) return { kind: h.kind, workspace: textOrNull(h.workspace), terminal: textOrNull(h.terminal) };
+  const m = objectOf(p.maestri) || {};
+  return { kind: 'maestri', workspace: textOrNull(m.workspace), terminal: textOrNull(m.terminal) };
+}
 
 function newTask(number, title, extra = {}) {
   return {
-    number, title, self: false, state: 'waiting', blocked_by: [], worker: null, floor: null, branch: null, sha: null, sha_before: null,
-    status_text: null, progress: null, dispatched_at: null, integrated_at: null, updated_at: null, ...extra,
+    number, title, self: false, state: 'waiting', blocked_by: [], worker: null, floor: null, branch: null, mode: null, sha: null, sha_before: null,
+    status_text: null, progress: null, status_host: null, dispatched_at: null, integrated_at: null, updated_at: null, ...extra,
   };
 }
 
@@ -102,7 +133,7 @@ function projectTasks(list, itemNumber, itemTitle) {
     if (e.type === EVENT_TYPES.taskDispatched) {
       Object.assign(taskOf(e.task_number), {
         state: 'working', floor: textOrNull(p.floor), worker: textOrNull(p.worker), branch: textOrNull(p.branch),
-        status_text: null, progress: null, dispatched_at: e.at, updated_at: e.at,
+        mode: DISPATCH_MODES.includes(p.mode) ? p.mode : null, status_text: null, progress: null, status_host: null, dispatched_at: e.at, updated_at: e.at,
       });
     } else if (e.type === EVENT_TYPES.taskStatus && WORKER_STATES[p.state]) {
       const t = taskOf(e.task_number);
@@ -110,6 +141,7 @@ function projectTasks(list, itemNumber, itemTitle) {
       t.status_text = textOrNull(p.text);
       const pr = p.progress;
       t.progress = pr && isNumber(pr.total) && Number.isInteger(pr.done) ? { done: pr.done, total: pr.total } : null;
+      t.status_host = hostOfStatus(p);
       if (!t.worker && e.agent && textOrNull(e.agent.name)) t.worker = e.agent.name;
       t.updated_at = e.at;
     } else if (e.type === EVENT_TYPES.taskIntegrated) {
@@ -294,9 +326,12 @@ function deliveryState() {
 //     status,                   open | resolved | canceled
 //     title, context, options: [text], recommendation,
 //     task_number,              the task it is about, or null (the item as a whole)
-//     maestri: { workspace, terminal },   where the owner answers (the maestro's Maestri terminal)
-//     notification,             how the owner was told when it opened (#44): 'sent' (maestri notify) | 'failed' |
-//                               'outside' (not run in a Maestri terminal) | null (derived, or opened before #44)
+//     host: { kind, workspace, terminal },   where the owner answers (#62): the maestro's terminal in its Host — in
+//                               the Orca the worktree (workspace) and the terminal; in the Maestri the workspace and the
+//                               terminal; 'none' a plain terminal. An event before #62 (payload.maestri) reads as 'maestri'.
+//     notification,             how the owner was told when it opened (#44): 'sent' (maestri notify, or the worktree
+//                               marked unread in the Orca) | 'failed' | 'outside' (a plain terminal) | null (derived, or
+//                               opened before #44)
 //     opened_at, opened_by: { role, name },
 //     closed_at, closed_by: { role, name } | null,
 //     resolution,               'decision' (resolved with the owner's decision) | 'task_integrated' | 'hml_approved' |
@@ -307,7 +342,8 @@ function deliveryState() {
 //
 // Events:
 //   pending-decision-opened    task_number?, payload { kind, severity, title, context, options, recommendation,
-//                              maestri: { workspace, terminal }, notification: 'sent' | 'failed' | 'outside' }
+//                              host: { kind, workspace, terminal }, notification: 'sent' | 'failed' | 'outside' }
+//                              (before #62: maestri: { workspace, terminal } in place of host)
 //   pending-decision-resolved  payload { pending_decision: id, decision }
 //   pending-decision-canceled  payload { pending_decision: id, reason }
 //   task-integrated            also resolves the open task_review of that task (the review and the OK to integrate are
@@ -315,7 +351,8 @@ function deliveryState() {
 //   hml-recorded               with failed or blocked scenarios, opens an "hml" pending decision by itself (#1, story
 //                              51), derived, with no event of its own: id = the hml-recorded event's id, severity high,
 //                              title null and derived_from { type: 'hml-recorded', passed, failed, blocked, card_url }
-//                              (the page writes the sentence); where to answer: the project's Maestri workspace. Rule
+//                              (the page writes the sentence); where to answer: the project's Maestri workspace (host
+//                              kind 'maestri'). Rule
 //                              against duplicates: none is derived while the item has an open "hml" pending decision
 //                              (the maestro's own or the derived one, which then takes the latest numbers). It is
 //                              resolved by a later hml-recorded with everything passed (resolution 'hml_approved'), by
@@ -341,7 +378,6 @@ function projectPendingDecisions(list, project) {
   for (const e of list) {
     const p = payloadOf(e);
     if (e.type === EVENT_TYPES.pendingDecisionOpened) {
-      const maestri = p.maestri && typeof p.maestri === 'object' ? p.maestri : {};
       // The maestro's own "hml" pending decision takes the place of the derived one.
       if (p.kind === 'hml') for (const pd of byId.values()) if (pd.status === 'open' && pd.derived_from) close(pd, e, { status: 'resolved', resolution: 'replaced' });
       byId.set(e.id, {
@@ -354,7 +390,7 @@ function projectPendingDecisions(list, project) {
         options: Array.isArray(p.options) ? p.options.filter((o) => typeof o === 'string' && o.trim()) : [],
         recommendation: textOrNull(p.recommendation),
         task_number: isNumber(e.task_number) ? e.task_number : null,
-        maestri: { workspace: textOrNull(maestri.workspace), terminal: textOrNull(maestri.terminal) },
+        host: hostOfPending(p),
         notification: PENDING_DECISION_NOTIFICATIONS.includes(p.notification) ? p.notification : null,
         opened_at: e.at,
         opened_by: agentOf(e),
@@ -384,7 +420,7 @@ function projectPendingDecisions(list, project) {
         const workspace = project && typeof project.maestri_workspace === 'string' ? textOrNull(project.maestri_workspace) : null;
         byId.set(e.id, {
           id: e.id, kind: 'hml', severity: 'high', status: 'open', title: null, context: null, options: [], recommendation: null,
-          task_number: null, maestri: { workspace, terminal: null }, notification: null, opened_at: e.at, opened_by: agentOf(e), closed_at: null, closed_by: null,
+          task_number: null, host: { kind: 'maestri', workspace, terminal: null }, notification: null, opened_at: e.at, opened_by: agentOf(e), closed_at: null, closed_by: null,
           resolution: null, decision: null, reason: null, derived_from: hmlOrigin(p, passed, failed, blocked),
         });
       }
@@ -505,5 +541,5 @@ function withAlsoIn(reports) {
 module.exports = {
   projectItem, trackerRef, EVENT_TYPES, TASK_STATES, WORKER_STATES, trackerUrl, PR_STATES, FINAL_ADJUSTMENT_OUTCOMES,
   PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES, PENDING_DECISION_STATUSES, MAX_PENDING_DECISION,
-  REPORT_STATUSES, FINDING_CLASSIFICATIONS,
+  REPORT_STATUSES, FINDING_CLASSIFICATIONS, HOST_KINDS, DISPATCH_MODES,
 };

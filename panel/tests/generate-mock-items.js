@@ -131,7 +131,9 @@ for (const [projectId, number, title, steps] of ITEMS) {
 }
 
 // Tasks: [project, number, ISO moment, type, task, [role, name], payload]. PBI 3112 has a task in every state; the other
-// items with a graph are part way; items without one show a single task, themselves.
+// items with a graph are part way; items without one show a single task, themselves. The Host (#62): PBI 3112's tasks
+// were dispatched with a mode (Maestri floors and a subagent) and #5 runs in the Orca (dispatch mode, status and pending
+// decision with host); the older events keep payload.maestri, read as the Maestri.
 const MAESTRO = ['maestro', 'Bento'];
 const TASKS = [
   ['portal', 3100, '2026-10-01T15:45:00', 'task-graph', null, MAESTRO, { tasks: [
@@ -151,15 +153,15 @@ const TASKS = [
     { number: 3117, title: 'Enviar o PDF por e-mail', blocked_by: [3114, 3115], out: false },
     { number: 3118, title: 'Extrato em CSV', blocked_by: [], out: true },
   ] }],
-  ['portal', 3112, '2026-10-08T10:30:00', 'task-dispatched', 3113, MAESTRO, { floor: 'Modelo PDF', worker: 'Ária', branch: 'task/3113-modelo-pdf' }],
+  ['portal', 3112, '2026-10-08T10:30:00', 'task-dispatched', 3113, MAESTRO, { floor: 'Modelo PDF', worker: 'Ária', branch: 'task/3113-modelo-pdf', mode: 'maestri' }],
   ['portal', 3112, '2026-10-08T13:10:00', 'task-status', 3113, ['worker', 'Ária'], { state: 'review', text: 'Modelo pronto, testes verdes', progress: { done: 3, total: 3 }, maestri: 'posted' }],
   ['portal', 3112, '2026-10-08T14:02:00', 'task-integrated', 3113, MAESTRO, { sha: 'e41f0a6b3c2d', sha_before: '1d2c3b4' }],
-  ['portal', 3112, '2026-10-08T14:10:00', 'task-dispatched', 3114, MAESTRO, { floor: 'PDF no servidor', worker: 'Caio', branch: 'task/3114-pdf-servidor' }],
-  ['portal', 3112, '2026-10-08T14:12:00', 'task-dispatched', 3115, MAESTRO, { floor: 'Botão exportar', worker: 'Dora', branch: 'task/3115-botao-exportar' }],
+  ['portal', 3112, '2026-10-08T14:10:00', 'task-dispatched', 3114, MAESTRO, { floor: 'PDF no servidor', worker: 'Caio', branch: 'task/3114-pdf-servidor', mode: 'maestri' }],
+  ['portal', 3112, '2026-10-08T14:12:00', 'task-dispatched', 3115, MAESTRO, { floor: 'Botão exportar', worker: 'Dora', branch: 'task/3115-botao-exportar', mode: 'maestri' }],
   ['portal', 3112, '2026-10-09T08:40:00', 'task-status', 3115, ['worker', 'Dora'], { state: 'review', text: 'Botão pronto, aguardando revisão', progress: { done: 4, total: 4 }, maestri: 'posted' }],
   ['portal', 3112, '2026-10-09T09:15:00', 'task-status', 3114, ['worker', 'Caio'], { state: 'working', text: 'Layout gerado, faltam as fontes', progress: { done: 2, total: 5 }, maestri: 'posted' }],
-  ['portal', 3112, '2026-10-09T09:50:00', 'task-dispatched', 3116, MAESTRO, { floor: null, worker: 'subagente', branch: 'task/3116-assinatura' }],
-  ['portal', 3112, '2026-10-09T10:05:00', 'task-status', 3116, ['worker', 'subagente'], { state: 'blocked', text: 'Preciso do certificado de homologação', progress: null, maestri: 'outside' }],
+  ['portal', 3112, '2026-10-09T09:50:00', 'task-dispatched', 3116, MAESTRO, { floor: null, worker: 'subagente', branch: 'task/3116-assinatura', mode: 'subagents' }],
+  ['portal', 3112, '2026-10-09T10:05:00', 'task-status', 3116, ['worker', 'subagente'], { state: 'blocked', text: 'Preciso do certificado de homologação', progress: null, host: { kind: 'none', result: 'outside' } }],
 
   ['storefront', 48, '2026-10-02T16:05:00', 'task-graph', null, MAESTRO, { tasks: [
     { number: 49, title: 'Persistir o carrinho na conta', blocked_by: [], out: false },
@@ -170,8 +172,8 @@ const TASKS = [
   ['storefront', 48, '2026-10-05T11:40:00', 'task-dispatched', 50, MAESTRO, { floor: 'Juntar carrinhos', worker: 'Caio', branch: 'task/50-juntar' }],
   ['storefront', 48, '2026-10-08T17:00:00', 'task-integrated', 50, MAESTRO, { sha: '5f4e3d2c1b0a', sha_before: '0b7a6c5' }],
 
-  ['painel-maestro', 5, '2026-10-09T07:35:00', 'task-dispatched', 5, MAESTRO, { floor: 'Item ponta a ponta', worker: 'Ária', branch: 'task/5-item-ponta-a-ponta' }],
-  ['painel-maestro', 5, '2026-10-09T10:10:00', 'task-status', 5, ['worker', 'Ária'], { state: 'working', text: 'API e telas prontas, faltam os testes', progress: { done: 4, total: 6 }, maestri: 'posted' }],
+  ['painel-maestro', 5, '2026-10-09T07:35:00', 'task-dispatched', 5, MAESTRO, { floor: 'item-ponta-a-ponta', worker: 'Ária', branch: 'task/5-item-ponta-a-ponta', mode: 'orca' }],
+  ['painel-maestro', 5, '2026-10-09T10:10:00', 'task-status', 5, ['worker', 'Ária'], { state: 'working', text: 'API e telas prontas, faltam os testes', progress: { done: 4, total: 6 }, host: { kind: 'orca', result: 'posted' } }],
 ];
 // Reports and findings (#8): [project, number, ISO moment, type, task (the origin, for a finding), [role, name], payload].
 const report = (status, fields) => ({
@@ -345,7 +347,8 @@ const PENDING = [
     options: [], maestri: { workspace: 'Fabrikam', terminal: 'Maestro #48' } }],
   ['finding-5', 'painel-maestro', 5, '2026-10-09T08:30:00', 'pending-decision-opened', 5, ['maestro', 'Ária'], {
     kind: 'finding', severity: 'low', title: 'Achado: o selo de saúde não conta o maestro.db',
-    options: ['A: Corrigir agora', 'B: Task nova para triagem'], maestri: { workspace: 'Pessoal', terminal: 'Maestro #5' } }],
+    options: ['A: Corrigir agora', 'B: Task nova para triagem'],
+    host: { kind: 'orca', workspace: 'painel-maestro::~/orca/workspaces/painel-maestro/item-5', terminal: 'term_maestro_5' }, notification: 'sent' }],
   [null, 'painel-maestro', 5, '2026-10-09T09:00:00', 'pending-decision-resolved', 5, ['owner', null], { pending_decision: 'finding-5', decision: 'B: vira task nova para triagem.' }],
   // The hidden Northwind (#50): its open pending decision is only counted on its card in Configurações.
   [null, 'intranet', 12, '2026-10-09T09:10:00', 'pending-decision-opened', null, ['maestro', 'Bento'], {

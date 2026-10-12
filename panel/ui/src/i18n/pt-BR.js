@@ -206,7 +206,7 @@ export default {
     },
     tasks: {
       title: 'Tasks',
-      info: 'As tasks do item e os bloqueios entre elas, como o maestro registrou (flow task graph). Uma seta vai da task que bloqueia para a bloqueada; tracejada enquanto a que bloqueia não foi integrada. Um item sem grafo registrado é uma task só, ele mesmo.',
+      info: 'As tasks do item e os bloqueios entre elas, como o maestro registrou (flow task graph). Uma seta vai da task que bloqueia para a bloqueada; tracejada enquanto a que bloqueia não foi integrada. Um item sem grafo registrado é uma task só, ele mesmo. O modo diz como a task foi despachada: subagentes, Maestri ou Orca.',
       stateCount: '{count} {state}',
       graphLabel: { one: 'Grafo de tasks: {count} task, {edges} bloqueio(s)', other: 'Grafo de tasks: {count} tasks, {edges} bloqueio(s)' },
       nodeTitle: '{ref} {title} · {state}',
@@ -215,9 +215,11 @@ export default {
       statusWithProgress: '{text} ({done}/{total})',
       shaRange: '{before} → {after}',
       columns: {
-        task: 'Task', title: 'Título', state: 'Estado', blockedBy: 'Bloqueada por', worker: 'Trabalhador', floor: 'Floor',
+        task: 'Task', title: 'Título', state: 'Estado', blockedBy: 'Bloqueada por', worker: 'Trabalhador', mode: 'Modo', floor: 'Floor',
         branch: 'Branch', sha: 'SHA', updated: 'Atualizada',
       },
+      // How the task was dispatched (#62, flow task dispatch --mode): the column "Modo".
+      modes: { subagents: 'subagentes', maestri: 'Maestri', orca: 'Orca' },
       states: {
         waiting: 'aguardando', working: 'trabalhando', review: 'revisão', blocked: 'bloqueada', integrated: 'integrada', out: 'fora',
       },
@@ -506,7 +508,7 @@ export default {
     openLog: 'Abrir o log',
   },
 
-  // Pending decisions of the new model (#10): the owner answers on this screen (#32) or in the maestro's Maestri terminal.
+  // Pending decisions of the new model (#10): the owner answers on this screen (#32) or in the maestro's terminal (Maestri or Orca, #62).
   pending: {
     ref: 'P-{id}',
     kinds: {
@@ -573,15 +575,30 @@ export default {
     derivedHmlCard: 'Card de validação',
     // the last report of the task on its review (#57)
     report: { title: 'Último relatório da task', at: 'recebido {age}' },
-    // the Maestri's notification failed when it opened (#44)
-    notificationFailed: 'O aviso do Maestri falhou quando esta pendência abriu (maestri notify): você pode não ter sido notificado.',
+    // the owner's notice failed when it opened (#44), in the Maestri or in the Orca (#62)
+    notificationFailed: {
+      maestri: 'O aviso do Maestri falhou quando esta pendência abriu (maestri notify): você pode não ter sido notificado.',
+      orca: 'O aviso do Orca falhou quando esta pendência abriu (o worktree do maestro não foi marcado como não lido): você pode não ter sido notificado.',
+    },
     cancelReason: 'Motivo do cancelamento',
     noReason: 'Sem motivo registrado.',
     whereTitle: 'Onde responder',
-    whereInfo: 'O terminal do maestro no Maestri, onde você também pode conversar com ele sobre esta pendência.',
-    whereUnknown: 'O maestro não informou o workspace nem o terminal do Maestri.',
-    workspace: 'Workspace',
-    terminal: 'Terminal',
+    // where the maestro runs (#62): in the Orca, in the Maestri or in a plain terminal
+    whereInfo: {
+      orca: 'O worktree e o terminal do maestro no Orca, onde você também pode conversar com ele sobre esta pendência.',
+      maestri: 'O terminal do maestro no Maestri, onde você também pode conversar com ele sobre esta pendência.',
+      none: 'O terminal onde o maestro roda, fora do Maestri e do Orca, onde você também pode conversar com ele sobre esta pendência.',
+    },
+    whereUnknown: {
+      orca: 'O maestro não informou o worktree nem o terminal do Orca.',
+      maestri: 'O maestro não informou o workspace nem o terminal do Maestri.',
+      none: 'O maestro não informou onde responder.',
+    },
+    where: {
+      orca: { workspace: 'Worktree (Orca)', terminal: 'Terminal (Orca)' },
+      maestri: { workspace: 'Workspace (Maestri)', terminal: 'Terminal (Maestri)' },
+      none: { workspace: 'Workspace', terminal: 'Terminal' },
+    },
     // the owner's answer (#32)
     answerTitle: 'Responder',
     answerInfo: 'Escolha uma opção, escreva um comentário se quiser e envie. O painel grava a decisão em seu nome e a pendência fica resolvida na hora; clicar numa opção só a seleciona.',
