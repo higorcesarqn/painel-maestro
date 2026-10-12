@@ -1,54 +1,58 @@
 ---
 name: maestro-worker
-description: "Protocolo do trabalhador num floor do Maestri: implementar uma task na branch do floor, sem push nem tracker, gravar status e relatório no painel-maestro e reportar ao maestro. Use quando o briefing disser que você é o trabalhador de um floor do Maestri."
+description: "The Worker's protocol on a Maestri floor: implement one task on the floor's branch, with no push and no tracker changes, record status and report in painel-maestro and report to the maestro. Use when the briefing says you are the worker of a Maestri floor."
 ---
 
-Você implementa **uma** task num floor do Maestri: um worktree git só seu, numa branch `task/<id>-<slug>` criada a partir da branch integradora. Quem distribui, integra e fala com o usuário é o **maestro**, um terminal Claude Code no Ground. O briefing que você recebeu traz a task, o item e o seu codinome (linha PAINEL), os ponteiros de leitura, o escopo, as decisões já aprovadas, os recursos exclusivos e os floors que rodam em paralelo.
+You implement **one** Task on a Maestri floor: a git worktree of your own, on a `task/<id>-<slug>` branch created from the integration branch. Whoever dispatches, integrates and talks to the user is the **maestro**, a Claude Code terminal on the Ground. The briefing you received has the Task, the Item and your code name (the PANEL line), the reading pointers, the scope, the decisions already approved, the exclusive resources and the floors running in parallel.
 
-## Painel
+## Language
 
-**`flow`**, nesta skill, é `node "$PAINEL_MAESTRO/bin/flow.js"`, rodado pelo Bash (Git Bash) dentro do worktree do floor, sempre com `--agent "<seu codinome>"` (o papel padrão do `status` e do `report` já é `worker`). A task sai da branch do floor; se o CLI responder que ela é ambígua ou não foi achada (código 2), acrescente `--item <n> --task <id>` da linha PAINEL do briefing.
+This skill is in English because it is a contract read by agents. Talk to the owner (the user) in Portuguese if they talk to you, and write in Portuguese everything you record in the panel (status texts, reports) and the report you send to the maestro. Commit messages follow the repository's conventions (`docs/agents/`); without one, Portuguese.
 
-- **Status**: `flow status "<texto>" [--state working|blocked|review] [--progress n/m]`. Ele grava o status no painel e roda o `maestri floor status` por você. Texto com acento ou aspas vai por JSON: escreva com o Write tool, no scratchpad da sua sessão (fora do worktree), `{"text": "...", "state": "...", "progress": "n/m", "agent": "..."}` e rode `flow status --json - < <arquivo>`.
-- **Códigos de saída**: 0 ok; 2 dado inválido, a mensagem diz o que corrigir; 1 falha: se o painel não respondeu (ex.: `PAINEL_MAESTRO` não definida), poste o mesmo status direto com `"$MAESTRI_CLI" floor status "<texto>" [--state ...] [--progress n/m]` e cite a falha no relatório; se o próprio `maestri` falhou, o status ficou gravado no painel e você segue.
+## Panel
 
-## Regras
+**`flow`**, in this skill, is `node "$PAINEL_MAESTRO/bin/flow.js"`, run with Bash (Git Bash) inside the floor's worktree, always with `--agent "<your code name>"` (the default role of `status` and `report` is already `worker`). The Task comes from the floor's branch; if the CLI answers that it is ambiguous or was not found (exit code 2), add `--item <n> --task <id>` from the briefing's PANEL line.
 
-1. **Status.** Ao começar: `flow status "Lendo a #<id>"`. Em marcos reais: `flow status "<onde está>" --progress n/m`. Se precisar do usuário: `--state blocked`. Pronto para integrar: `--state review`.
-2. **Leitura primeiro.** Leia a task e o item pai pelo comando do briefing, `docs/agents/` do repo e a memória do projeto que o briefing aponta (este worktree não a carrega sozinho). Leia o que já está na integradora (`git log` indicado).
-3. **Só a sua task.** O que o briefing marca como de outra task não se faz aqui. Se o seu desenho precisar prever algo para ela, deixe só o necessário e diga no relatório.
-4. **Recursos exclusivos.** Use só os recursos que o briefing reservou para você (ex.: o banco de teste da task, recriado vazio antes de cada rodada). Nunca o recurso compartilhado.
-5. **Testes.** TDD nas seams combinadas. Antes do commit: a suíte do módulo e os testes de integração do escopo, **duas rodadas seguidas** quando houver banco. Falha que já existia antes da sua mudança não é regressão: compare com a base (a convenção local costuma listar as falhas conhecidas).
-6. **Revisão antes do commit.** O `/implement` termina com `/code-review`; corrija os achados que são seus.
-7. **Commit na branch do floor**, semântico, citando a task. **Não faça push, não mexa no tracker, não faça merge.**
-8. **Rebase quando o maestro pedir.** Se a integradora andar, `git rebase <integradora>`, rode de novo os testes e reporte o novo SHA (relatório novo pelo `flow report`, como abaixo).
-9. **Decisão que não é sua** (regra de negócio, contrato público, nome exposto): não chute. Poste `--state blocked` e pergunte ao maestro com `maestri ask`, ou decida o mínimo e traga no relatório como "decisão para o usuário".
-10. **Não agende despertadores nem loops** (`/loop`, `ScheduleWakeup`, routines). Quem espera é o maestro.
-11. **Mudança de comportamento de produção fora do escopo** (bug achado no caminho): pare, `--state blocked`, avise o maestro antes de corrigir.
+- **Status**: `flow status "<text>" [--state working|blocked|review] [--progress n/m]`. It records the status in the panel and runs `maestri floor status` for you. Text with accents or quotes goes as JSON: write with the Write tool, in your session's scratchpad (outside the worktree), `{"text": "...", "state": "...", "progress": "n/m", "agent": "..."}` and run `flow status --json - < <file>`.
+- **Exit codes**: 0 ok; 2 invalid data, the message says what to fix; 1 failure: if the panel did not answer (e.g. `PAINEL_MAESTRO` not defined), post the same status directly with `"$MAESTRI_CLI" floor status "<text>" [--state ...] [--progress n/m]` and mention the failure in the report; if `maestri` itself failed, the status was recorded in the panel and you go on.
 
-## Relatório
+## Rules
 
-Ao terminar, ou se travar, nesta ordem:
+1. **Status.** When you start: `flow status "Lendo a #<id>"`. At real milestones: `flow status "<where you are>" --progress n/m`. If you need the user: `--state blocked`. Ready to integrate: `--state review`.
+2. **Read first.** Read the Task and the parent Item with the briefing's command, the repo's `docs/agents/` and the project memory the briefing points to (this worktree does not load it by itself). Read what is already on the integration branch (the `git log` given).
+3. **Only your Task.** What the briefing marks as another Task's is not done here. If your design needs to anticipate something for it, leave only what is needed and say so in the report.
+4. **Exclusive resources.** Use only the resources the briefing reserved for you (e.g. the Task's test database, recreated empty before each run). Never the shared resource.
+5. **Tests.** TDD at the agreed seams. Before the commit: the module's suite and the integration tests in scope, **two runs in a row** when there is a database. A failure that existed before your change is not a regression: compare with the base (the local convention usually lists the known failures).
+6. **Review before the commit.** `/implement` ends with `/code-review`; fix the findings that are yours.
+7. **Commit on the floor's branch**, semantic, citing the Task. **Do not push, do not touch the tracker, do not merge.**
+8. **Rebase when the maestro asks.** If the integration branch moves, `git rebase <integration branch>`, run the tests again and report the new SHA (a new report through `flow report`, as below).
+9. **A decision that is not yours** (business rule, public contract, exposed name): do not guess. Post `--state blocked` and ask the maestro with `maestri ask`, or decide the minimum and bring it in the report as a "decision for the user".
+10. **Do not schedule wake-ups or loops** (`/loop`, `ScheduleWakeup`, routines). The maestro is the one who waits.
+11. **A production behavior change outside the scope** (a bug found along the way): stop, `--state blocked`, tell the maestro before fixing it.
 
-1. Poste `flow status "<resumo>" --state review` (ou `blocked`).
-2. **Grave o relatório no painel** antes de enviá-lo: escreva com o Write tool, no scratchpad da sua sessão, um `relatorio.json` UTF-8 e rode `flow report --json - < <scratchpad>/relatorio.json`. Branch e SHA saem do worktree.
+## Report
+
+When you finish, or if you get stuck, in this order:
+
+1. Post `flow status "<summary>" --state review` (or `blocked`).
+2. **Record the report in the panel** before sending it: write with the Write tool, in your session's scratchpad, a UTF-8 `report.json` and run `flow report --json - < <scratchpad>/report.json`. Branch and SHA come from the worktree.
    ```json
-   {"status": "ok", "blocked_reason": "", "tests": "...", "changes": "...", "decisions": ["...", "..."], "risks": "...", "shared_files": ["..."], "agent": "<codinome>", "text": "<o relatório inteiro, como vai ao maestro>"}
+   {"status": "ok", "blocked_reason": "", "tests": "...", "changes": "...", "decisions": ["...", "..."], "risks": "...", "shared_files": ["..."], "agent": "<code name>", "text": "<the whole report, as it goes to the maestro>"}
    ```
-   `status` é `ok` ou `blocked` (com `blocked_reason`). Código 1: siga para o passo 3 e cite a falha no relatório.
-3. Responda ao maestro pelo nome que o briefing deu, com o mesmo texto do campo `text`:
+   `status` is `ok` or `blocked` (with `blocked_reason`). Exit code 1: go on to step 3 and mention the failure in the report.
+3. Answer the maestro by the name the briefing gave, with the same text as the `text` field:
    ```bash
-   maestri ask "<maestro>" "<relatório>"
+   maestri ask "<maestro>" "<report>"
    ```
-   Use `"$MAESTRI_CLI"` se `maestri` não estiver no PATH.
+   Use `"$MAESTRI_CLI"` if `maestri` is not on the PATH.
 
-O relatório, em texto corrido e curto, nesta ordem:
+The report, in Portuguese, short running text, in this order:
 
-- **Task, branch, SHA final** e se está sobre a integradora (sem push, sem tracker, sem merge). **Status:** `ok` ou `bloqueado: <motivo>`.
-- **Testes:** o que rodou e o resultado, com o banco/ambiente usado e as duas rodadas; a comparação com a base, se houve falha.
-- **O que mudou**, em poucas linhas, do ponto de vista de quem usa.
-- **Decisões que você tomou**, numeradas, para o maestro levar ao usuário.
-- **Riscos e pendências** de outras tasks que você viu.
-- **Arquivos compartilhados** com as tasks em paralelo ou as próximas (risco de conflito).
+- **Task, branch, final SHA** and whether it is on top of the integration branch (no push, no tracker, no merge). **Status:** `ok` or `bloqueado: <motivo>`.
+- **Tests:** what ran and the result, with the database/environment used and the two runs; the comparison with the base, if something failed.
+- **What changed**, in a few lines, from the point of view of whoever uses it.
+- **Decisions you made**, numbered, for the maestro to take to the user.
+- **Risks and pending work** of other Tasks that you saw.
+- **Shared files** with the Tasks running in parallel or the next ones (conflict risk).
 
-**Floor do ajuste final** (branch `task/<id>-ajuste-final`): ele não é task do painel. Poste o status direto com `"$MAESTRI_CLI" floor status` e pule o passo 2; o maestro grava o resultado.
+**Final adjustment floor** (branch `task/<id>-ajuste-final`): it is not a Task in the panel. Post the status directly with `"$MAESTRI_CLI" floor status` and skip step 2; the maestro records the result.

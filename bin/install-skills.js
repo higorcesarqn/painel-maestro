@@ -8,6 +8,9 @@
 //
 // skills/links.json declares what is installed: {"links": [{"source": "skills/x", "target": "skills/x"}]}, the
 // source relative to the repository and the target relative to the Claude folder. Only those entries are touched.
+// Its optional "retired" list (same shape) holds names this repository no longer installs (the Portuguese names
+// of #61): install removes such a target only when it is our link (it still names that source), and leaves
+// anything else there as it is; --undo also removes it and restores its backup.
 // Each link is a directory junction on
 // Windows (no admin needed) and a directory symlink elsewhere. Whatever already exists at a target and is not
 // our link is moved to <claude>/backups/painel-maestro/<target> first; --undo puts it back.
@@ -50,6 +53,10 @@ function safeRelative(value) {
   return norm;
 }
 
+/**
+ * The entries to install ("links") followed by the retired ones ("retired", optional: names this repository no longer
+ * installs, whose source folder is gone, #61). A retired entry has `retired: true`.
+ */
 function readManifest(file = MANIFEST) {
   let manifest;
   try {
@@ -57,9 +64,11 @@ function readManifest(file = MANIFEST) {
   } catch (e) {
     throw new InvalidData('installSkills.errors.manifestUnreadable', { file: lib.slashes(file), detail: e.message });
   }
-  if (!manifest || !Array.isArray(manifest.links)) throw new InvalidData('installSkills.errors.manifestShape', { file: lib.slashes(file) });
+  if (!manifest || !Array.isArray(manifest.links) || (manifest.retired !== undefined && !Array.isArray(manifest.retired))) {
+    throw new InvalidData('installSkills.errors.manifestShape', { file: lib.slashes(file) });
+  }
   const seen = new Set();
-  return manifest.links.map((l) => {
+  const entry = (l, retired) => {
     const source = safeRelative(l && l.source);
     const target = safeRelative(l && l.target);
     if (!source || !target) throw new InvalidData('installSkills.errors.manifestEntry', { entry: JSON.stringify(l) });
@@ -67,11 +76,13 @@ function readManifest(file = MANIFEST) {
     if (seen.has(key)) throw new InvalidData('installSkills.errors.manifestRepeated', { target: lib.slashes(target) });
     seen.add(key);
     const abs = path.join(REPO, source);
+    if (retired) return { source: abs, target, label: lib.slashes(target), retired: true };
     let st = null;
     try { st = fs.statSync(abs); } catch { /* checked below */ }
     if (!st || !st.isDirectory()) throw new InvalidData('installSkills.errors.sourceMissing', { source: lib.slashes(source) });
     return { source: abs, target, label: lib.slashes(target) };
-  });
+  };
+  return [...manifest.links.map((l) => entry(l, false)), ...(manifest.retired || []).map((l) => entry(l, true))];
 }
 
 // ---------- file system ----------
@@ -90,6 +101,21 @@ function stateOf(target, source) {
     return 'foreign';
   }
 }
+
+/** The same states for a retired entry, whose source is gone: a link is ours when it still names that source. */
+function retiredStateOf(target, source) {
+  let st;
+  try { st = fs.lstatSync(target); } catch { return 'missing'; }
+  if (!st.isSymbolicLink()) return 'foreign';
+  const clean = (p) => path.resolve(p.replace(/^\\\\\?\\|^\\\?\?\\/, '')).replace(/[\\/]+$/, '');
+  try {
+    return samePath(clean(path.resolve(path.dirname(target), fs.readlinkSync(target))), clean(source)) ? 'ours' : 'foreign';
+  } catch {
+    return 'foreign';
+  }
+}
+
+const entryState = (e, target) => (e.retired ? retiredStateOf : stateOf)(target, e.source);
 
 function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -142,7 +168,7 @@ function pruneEmpty(dir, stop) {
 
 function planInstall(entries, claude) {
   const conflicts = [];
-  const steps = entries.map((e) => {
+  const steps = entries.filter((e) => !e.retired).map((e) => {
     const target = path.join(claude, e.target);
     const backup = path.join(claude, BACKUP_DIR, e.target);
     const state = stateOf(target, e.source);
@@ -167,6 +193,17 @@ function install(entries, claude) {
     link(s.source, s.abs);
     lines.push(t('installSkills.done.linked', { target: s.label, source: lib.slashes(s.source) }));
   }
+  // A retired name loses only our link; anything else there is not ours and stays (a backup of it stays for --undo).
+  for (const e of entries.filter((x) => x.retired)) {
+    const target = path.join(claude, e.target);
+    const state = entryState(e, target);
+    if (state === 'ours') {
+      unlink(target);
+      lines.push(t('installSkills.done.retiredUnlinked', { target: e.label }));
+    } else if (state === 'foreign') {
+      lines.push(t('installSkills.done.retiredNotOurs', { target: e.label }));
+    }
+  }
   return lines;
 }
 
@@ -175,7 +212,7 @@ function planUndo(entries, claude) {
   const steps = entries.map((e) => {
     const target = path.join(claude, e.target);
     const backup = path.join(claude, BACKUP_DIR, e.target);
-    const state = stateOf(target, e.source);
+    const state = entryState(e, target);
     const hasBackup = exists(backup);
     if (state === 'foreign' && hasBackup) conflicts.push(t('installSkills.errors.targetReplaced', { target: e.label, backup: lib.slashes(backup) }));
     return { ...e, abs: target, backup, state, hasBackup };
@@ -197,7 +234,7 @@ function undo(entries, claude) {
       move(s.backup, s.abs);
       pruneEmpty(path.dirname(s.backup), claude);
       lines.push(t('installSkills.done.restored', { target: s.label }));
-    } else if (s.state === 'missing') {
+    } else if (s.state === 'missing' && !s.retired) {
       lines.push(t('installSkills.done.nothingToUndo', { target: s.label }));
     }
   }

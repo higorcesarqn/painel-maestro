@@ -321,12 +321,14 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       restored: '{target}: backup restaurado.',
       notOurs: '{target}: não é um link deste repositório; ficou como está.',
       nothingToUndo: '{target}: nada para desfazer.',
+      retiredUnlinked: '{target}: nome antigo; link removido.',
+      retiredNotOurs: '{target}: nome antigo, mas não é um link deste repositório; ficou como está.',
     },
     errors: {
       unknownArgument: 'argumento desconhecido: "{value}" (veja node bin/install-skills.js --help).',
       missingValue: 'falta o valor de --{option}.',
       manifestUnreadable: 'não consegui ler {file}: {detail}',
-      manifestShape: '{file} precisa ser um objeto com a lista "links".',
+      manifestShape: '{file} precisa ser um objeto com a lista "links" (e, se houver, a lista "retired").',
       manifestEntry: 'entrada inválida em skills/links.json: {entry} (use "source" e "target" relativos, sem "..").',
       manifestRepeated: 'o destino {target} aparece mais de uma vez em skills/links.json.',
       sourceMissing: 'a pasta {source} declarada em skills/links.json não existe no repositório.',
@@ -344,6 +346,7 @@ O que é instalado: ${p.manifest} ({"links": [{"source": "skills/x", "target": "
 Cada link é uma junction de diretório no Windows (não exige administrador). O que já existir no destino e
 não for um link deste repositório vai para <pasta do Claude>/backups/painel-maestro/<destino>; --undo devolve.
 Rodar de novo é seguro: o que já está ligado fica como está. Um conflito para tudo antes de mudar qualquer coisa.
+Os nomes da lista "retired" do mesmo arquivo (nomes antigos) perdem só o link deste repositório; o resto fica.
 
 PASTA DO CLAUDE
   --claude-dir, senão CLAUDE_CONFIG_DIR, senão ~/.claude

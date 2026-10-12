@@ -1,25 +1,27 @@
 ---
 name: implement-issue-maestri
-description: "Implementa uma issue do GitHub e suas sub-issues num PR, com um floor do Maestri e um terminal Claude Code por sub-issue, gravando o fluxo no painel-maestro. Use só dentro do Maestri, como maestro no Ground."
+description: "Implements a GitHub issue and its sub-issues in one PR, with one Maestri floor and one Claude Code terminal per sub-issue, recording the flow in painel-maestro. Use only inside Maestri, as the maestro on the Ground."
 disable-model-invocation: true
 ---
 
-O usuário passou o número de uma issue pai do GitHub. Siga o fluxo em `~/.claude/docs/orchestration-maestri/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `issue` (ex.: `feature/issue-10`). As "tasks" do fluxo são as sub-issues.
+The user passed the number of a GitHub parent issue (the **Item**). Follow the flow in `~/.claude/docs/orchestration-maestri/README.md`, using this file as the **tracker adapter**. Type in the branch: `issue` (e.g. `feature/issue-10`). The flow's **Tasks** are the sub-issues.
 
-Fora do Maestri (sem `$MAESTRI_CLI`, ou sem Maestro Mode no Ground), pare e sugira `/implement-issue`, que usa subagentes (o fluxo está em `~/.claude/docs/orchestration-subagents/README.md`).
+Outside Maestri (no `$MAESTRI_CLI`, or no Maestro Mode on the Ground), stop and suggest `/implement-issue`, which uses subagents (its flow is in `~/.claude/docs/orchestration-subagents/README.md`).
 
-## Adaptador GitHub
+Talk to the owner (the user) in Portuguese, and write in Portuguese what you record in the panel (titles, context, options, decisions, summaries, reports); the document above says more.
 
-Use a CLI `gh`, no repo atual (`gh repo view --json nameWithOwner` dá `{owner}/{repo}`). Para texto com acento no Windows, passe o corpo por arquivo (`--body-file`), não por argumento.
+## GitHub adapter
 
-- **Números no painel**: o item é o número da issue pai; cada task, o número da sub-issue. Uma issue sem sub-issues é a própria task (sem `flow task graph`).
-- **Item pai e tasks**: `gh issue view <n> --json number,title,body,state,comments` e `gh api repos/{owner}/{repo}/issues/<n>/sub_issues --paginate`. Sem sub-issues nativas, use a task list do corpo da issue pai (`- [ ] #<n>`).
-- **Arestas de bloqueio**: `gh api repos/{owner}/{repo}/issues/<n>/dependencies/blocked_by` para cada sub-issue. Complemente com linhas `Blocked by #<n>` / `Bloqueada por #<n>` no corpo.
-- **Estado**: task fechada é issue com `state: CLOSED`, ou sub-issue já integrada nesta execução (comentário "Integrada em ...", e `integrated` no painel).
-- **Comando de leitura para o briefing do trabalhador**: `gh issue view <x> --json number,title,body,comments` e o mesmo para a issue pai.
-- **Marcar task concluída**: o `Closes` do PR fecha as issues no merge; durante a execução, comente na sub-issue `gh issue comment <x> --body "Integrada em <integradora> (<sha>)"`.
-- **Editar texto** (regra que mudou na revisão): `gh issue edit <n> --body-file corpo.md`, depois `gh issue view` para conferir.
-- **Criar item** (achado que fica para depois): `gh issue create --title "..." --body-file corpo.md --label needs-triage` e ligue como sub-issue da pai (`gh api repos/{owner}/{repo}/issues/<pai>/sub_issues -f sub_issue_id=<id numérico>`). O número da issue criada é o `--new-task` do `flow finding`.
-- **Abrir PR em rascunho**: `gh pr create --draft --base <origem> --head <integradora> --title "#<n> — <título>" --body-file corpo.md`, com uma linha `Closes #<x>` para a issue pai e para cada sub-issue. A URL que ele imprime é o `--url` do `flow pr <n> draft`.
-- **Finalizar PR**: `gh pr edit <pr> --body-file corpo-final.md` e `gh pr ready <pr>`.
-- **Link do card** (`flow hml --card`): `https://github.com/{owner}/{repo}/issues/<n>`.
+Use the `gh` CLI, in the current repo (`gh repo view --json nameWithOwner` gives `{owner}/{repo}`). For text with accents on Windows, pass the body through a file (`--body-file`), not as an argument.
+
+- **Numbers in the panel**: the Item is the parent issue's number; each Task, the sub-issue's number. An issue without sub-issues is its own Task (no `flow task graph`).
+- **Parent Item and Tasks**: `gh issue view <n> --json number,title,body,state,comments` and `gh api repos/{owner}/{repo}/issues/<n>/sub_issues --paginate`. Without native sub-issues, use the task list in the parent issue's body (`- [ ] #<n>`).
+- **Blocking edges**: `gh api repos/{owner}/{repo}/issues/<n>/dependencies/blocked_by` for each sub-issue. Complement it with `Blocked by #<n>` / `Bloqueada por #<n>` lines in the body.
+- **State**: a closed Task is an issue with `state: CLOSED`, or a sub-issue already integrated in this run (a comment "Integrada em ...", and `integrated` in the panel).
+- **Read command for the Worker's briefing**: `gh issue view <x> --json number,title,body,comments` and the same for the parent issue.
+- **Mark a Task done**: the PR's `Closes` closes the issues when it is merged; during the run, comment on the sub-issue `gh issue comment <x> --body "Integrada em <integration branch> (<sha>)"`.
+- **Edit text** (a rule that changed in the review): `gh issue edit <n> --body-file body.md`, then `gh issue view` to check.
+- **Create an item** (a Finding left for later): `gh issue create --title "..." --body-file body.md --label needs-triage` and link it as a sub-issue of the parent (`gh api repos/{owner}/{repo}/issues/<parent>/sub_issues -f sub_issue_id=<numeric id>`). The number of the created issue is the `--new-task` of `flow finding`.
+- **Open the draft PR**: `gh pr create --draft --base <origin branch> --head <integration branch> --title "#<n> — <title>" --body-file body.md`, with a `Closes #<x>` line for the parent issue and for each sub-issue. The URL it prints is the `--url` of `flow pr <n> draft`.
+- **Finish the PR**: `gh pr edit <pr> --body-file final-body.md` and `gh pr ready <pr>`.
+- **Card link** (`flow hml --card`): `https://github.com/{owner}/{repo}/issues/<n>`.

@@ -76,21 +76,22 @@ node bin/install-skills.js --undo    # desfaz: remove os links e devolve o que h
 node bin/install-skills.js --help
 ```
 
-- **O que é ligado:** só o que `skills/links.json` declara (origem relativa a este repositório, destino relativo à pasta do Claude): as skills `especificar`, `implementar-issue`, `implementar-pbi`, `implementar-issue-maestri`, `implementar-pbi-maestri` e `trabalhador-floor` em `~/.claude/skills/<nome>`, e os documentos de orquestração `skills/docs/orquestracao-subagentes` → `~/.claude/docs/orquestracao-subagentes` e `skills/docs/orquestracao-maestri` → `~/.claude/docs/orquestracao-maestri` (com os scripts `open-floor.sh` e `integrate.sh`).
+- **O que é ligado:** só o que `skills/links.json` declara (origem relativa a este repositório, destino relativo à pasta do Claude): as skills `specify`, `implement-issue`, `implement-pbi`, `implement-issue-maestri`, `implement-pbi-maestri` e `maestro-worker` em `~/.claude/skills/<nome>`, e os documentos de orquestração `skills/docs/orchestration-subagents` → `~/.claude/docs/orchestration-subagents` e `skills/docs/orchestration-maestri` → `~/.claude/docs/orchestration-maestri` (com os scripts `open-floor.sh` e `integrate.sh`).
 - **Como:** cada destino vira uma *junction* de diretório no Windows (não exige administrador; funciona com o repositório e o `~/.claude` em discos diferentes) e um symlink de diretório nos outros sistemas. Editar a skill no repositório já vale no Claude Code.
-- **Backups:** o que já existir no destino e não for um link deste repositório (por exemplo, uma versão antiga de `implementar-issue-maestri`) vai para `~/.claude/backups/painel-maestro/<destino>` (fora de `skills/`, para o Claude Code não carregar duas skills com o mesmo nome). O `--undo` remove só os links deste repositório (nunca o conteúdo deles) e devolve os backups.
+- **Backups:** o que já existir no destino e não for um link deste repositório (por exemplo, uma versão antiga de `implement-issue-maestri`) vai para `~/.claude/backups/painel-maestro/<destino>` (fora de `skills/`, para o Claude Code não carregar duas skills com o mesmo nome). O `--undo` remove só os links deste repositório (nunca o conteúdo deles) e devolve os backups.
 - **Conflitos:** a instalação planeja tudo antes de mexer em qualquer coisa. Se um backup já ocupar o lugar, ou se no `--undo` o destino não for mais um link deste repositório e houver backup, o comando sai com **código 2** e nada é alterado; a mensagem diz o que mover.
+- **Nomes antigos:** a lista `retired` do `skills/links.json` guarda os nomes em português que as skills tinham até a #61 (`especificar`, `implementar-issue`, `implementar-pbi`, `implementar-issue-maestri`, `implementar-pbi-maestri`, `trabalhador-floor`, `docs/orquestracao-subagentes` e `docs/orquestracao-maestri`). A instalação remove esses destinos só quando são links deste repositório; o que não for link nosso fica como está. O `--undo` também remove um link antigo que tenha sobrado e devolve o backup que o nome antigo tinha.
 - **Pasta do Claude:** `--claude-dir <pasta>`, senão `CLAUDE_CONFIG_DIR`, senão `~/.claude`.
 - **Depois de atualizar o painel-maestro**, rode `node bin/install-skills.js` de novo (é seguro repetir): ele confere que `~/.claude` aponta para as skills desta versão e põe no backup uma cópia antiga que não seja link. Mudanças de comportamento das skills, como esperar cada pendência com `flow pending wait` (#33), só valem para o maestro com as skills desta versão instaladas.
 
 As skills:
 
-- **`/especificar`**: roda `grill-with-docs` → `to-spec` → `to-tickets`; grava o item em **Especificação** assim que o `to-spec` publica a issue ou o PBI, e em **Implementação** quando o `to-tickets` termina.
-- **`/implementar-issue`** e **`/implementar-pbi`**: o maestro (a sessão que roda a skill) implementa o item num PR só, com um **subagente** em worktree por task, sem Maestri; o fluxo comum está em `~/.claude/docs/orquestracao-subagentes/README.md`.
-- **`/implementar-issue-maestri`** e **`/implementar-pbi-maestri`**: o maestro, no Ground de um workspace do Maestri, implementa o item num PR só, com um **floor** e um terminal Claude Code por task; o fluxo comum está em `~/.claude/docs/orquestracao-maestri/README.md`. O portal do canvas abre a página do item no painel.
-- **`trabalhador-floor`**: o protocolo do trabalhador num floor: status pelo `flow status` (que também roda o `maestri floor status`) e relatório gravado com `flow report` antes de ir ao maestro.
+- **`/specify`**: roda `grill-with-docs` → `to-spec` → `to-tickets`; grava o item em **Especificação** assim que o `to-spec` publica a issue ou o PBI, e em **Implementação** quando o `to-tickets` termina.
+- **`/implement-issue`** e **`/implement-pbi`**: o maestro (a sessão que roda a skill) implementa o item num PR só, com um **subagente** em worktree por task, sem Maestri; o fluxo comum está em `~/.claude/docs/orchestration-subagents/README.md`.
+- **`/implement-issue-maestri`** e **`/implement-pbi-maestri`**: o maestro, no Ground de um workspace do Maestri, implementa o item num PR só, com um **floor** e um terminal Claude Code por task; o fluxo comum está em `~/.claude/docs/orchestration-maestri/README.md`. O portal do canvas abre a página do item no painel.
+- **`maestro-worker`**: o protocolo do trabalhador num floor: status pelo `flow status` (que também roda o `maestri floor status`) e relatório gravado com `flow report` antes de ir ao maestro.
 
-Todas funcionam com GitHub e Azure DevOps (o tracker vem do `docs/agents/issue-tracker.md` do repositório onde elas rodam). A `especificacao-atdd-hml` continua sincronizada do claude.ai, sem mudança: as skills lembram de registrar o resultado da HML com `flow hml`.
+As skills são em inglês, porque são contrato lido por agente; o agente fala com o dono em português e grava no painel em português, e as frases do `flow` e dos scripts que elas citam ficam em português, ao pé da letra (ADR 0004). Todas funcionam com GitHub e Azure DevOps (o tracker vem do `docs/agents/issue-tracker.md` do repositório onde elas rodam). A `especificacao-atdd-hml` continua sincronizada do claude.ai, sem mudança: as skills lembram de registrar o resultado da HML com `flow hml`.
 
 ### 4. Instalar o hook do Claude Code
 
@@ -141,7 +142,7 @@ Abra **http://127.0.0.1:4777** (use `127.0.0.1`, não `localhost`). O servidor g
 
 ### 7. Conferir
 
-Rode `/especificar` num repositório de teste e acompanhe o item em `http://127.0.0.1:4777/#items/<projeto>/<número>`: ele aparece em Especificação depois da spec e passa para Implementação depois dos tickets. Depois rode `/implementar-issue <número>` (ou `/implementar-pbi <id>`, ou as versões `-maestri` no Ground de um workspace do Maestri): o grafo aparece com as tasks, cada uma com trabalhador, branch, status, relatório e o SHA da integração, seguido do PR em rascunho, dos achados, do ajuste final e do PR pronto. O selo de saúde fica verde quando o hook está gravando as sessões.
+Rode `/specify` num repositório de teste e acompanhe o item em `http://127.0.0.1:4777/#items/<projeto>/<número>`: ele aparece em Especificação depois da spec e passa para Implementação depois dos tickets. Depois rode `/implement-issue <número>` (ou `/implement-pbi <id>`, ou as versões `-maestri` no Ground de um workspace do Maestri): o grafo aparece com as tasks, cada uma com trabalhador, branch, status, relatório e o SHA da integração, seguido do PR em rascunho, dos achados, do ajuste final e do PR pronto. O selo de saúde fica verde quando o hook está gravando as sessões.
 
 ### Vindo do painel original
 
@@ -169,7 +170,7 @@ Os nomes mudaram (código em inglês, ADR 0004) e não há apelidos para os anti
 
 ```
 flow item start 3100 --title "Conciliação de boletos"                  # entra em Especificação (a 1ª etapa do projeto)
-flow item start 12 --title "Exportar PDF" --stage implementation       # sem /especificar: as etapas anteriores contam como concluídas
+flow item start 12 --title "Exportar PDF" --stage implementation       # sem /specify: as etapas anteriores contam como concluídas
 flow stage 3100 implementation
 flow item start --json - < item.json                                   # {"number": 12, "title": "...", "stage": "...", "agent": "..."}
 ```
@@ -395,11 +396,11 @@ painel-maestro/
 │   └── tests/                   testes, demonstração (mock-items.json) e geradores
 ├── skills/
 │   ├── links.json               o que o install-skills.js liga ao ~/.claude
-│   ├── especificar/             /especificar
-│   ├── implementar-issue/, implementar-pbi/                    fluxo com subagentes (GitHub, Azure DevOps)
-│   ├── implementar-issue-maestri/, implementar-pbi-maestri/    fluxo com floors do Maestri
-│   ├── trabalhador-floor/       protocolo do trabalhador num floor
-│   └── docs/                    orquestracao-subagentes/ e orquestracao-maestri/ (com open-floor.sh e integrate.sh)
+│   ├── specify/                 /specify
+│   ├── implement-issue/, implement-pbi/                        fluxo com subagentes (GitHub, Azure DevOps)
+│   ├── implement-issue-maestri/, implement-pbi-maestri/        fluxo com floors do Maestri
+│   ├── maestro-worker/          protocolo do trabalhador num floor
+│   └── docs/                    orchestration-subagents/ e orchestration-maestri/ (com open-floor.sh e integrate.sh)
 ├── docs/adr/                    decisões de arquitetura
 ├── docs/agents/                 configuração das skills de engenharia neste repositório (tracker, rótulos, domínio, versão)
 ├── CONTEXT.md                   vocabulário do domínio

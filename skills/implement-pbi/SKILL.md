@@ -1,33 +1,35 @@
 ---
 name: implement-pbi
-description: "Implementa um PBI do Azure DevOps inteiro num PR, com um subagente em worktree por task, e grava o fluxo no painel-maestro."
+description: "Implements a whole Azure DevOps PBI in one PR, with one subagent in a worktree per task, and records the flow in painel-maestro."
 disable-model-invocation: true
 ---
 
-O usuário passou o ID de um PBI do Azure DevOps. Siga o fluxo em `~/.claude/docs/orchestration-subagents/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `pbi` (ex.: `feature/pbi-10`). Um PBI sem tasks filhas é a própria task.
+The user passed the ID of an Azure DevOps PBI (the **Item**). Follow the flow in `~/.claude/docs/orchestration-subagents/README.md`, using this file as the **tracker adapter**. Type in the branch: `pbi` (e.g. `feature/pbi-10`). A PBI without child tasks is its own **Task**.
 
-## Adaptador Azure DevOps
+Talk to the owner (the user) in Portuguese, and write in Portuguese what you record in the panel (titles, context, options, decisions, summaries, reports); the document above says more.
 
-Use a CLI `az` com a extensão `azure-devops`. Organização e projeto vêm de `docs/agents/` do repo ou de `az devops configure --list`; se nenhum estiver definido, pergunte ao usuário e configure com `az devops configure --defaults organization=... project=...`.
+## Azure DevOps adapter
 
-- **Item pai e tasks**: `az boards work-item show --id <pbi> --expand relations`. Tasks filhas são as relações `System.LinkTypes.Hierarchy-Forward`; carregue cada uma com `az boards work-item show --id <task> --expand relations`.
-- **Arestas de bloqueio**: numa task, a relação `System.LinkTypes.Dependency-Reverse` (Predecessor) aponta para quem a bloqueia. Complemente com linhas `Bloqueada por: #<id>` na descrição (`System.Description`).
-- **Estado**: task fechada é a que está em estado da categoria Completed (`Done`, `Closed`...). O estado concluído do projeto vem de `docs/agents/` (ou do `--done-state` do projeto no painel, `node "$PAINEL_MAESTRO/bin/flow.js" project list`); sem convenção escrita, leia-o com `az boards work-item show` num item já concluído. Em boards customizados `Done` pode ser outra etapa do negócio: use o estado que a convenção diz.
-- **Abrir PR em rascunho**: `az repos pr create --draft true --source-branch <integradora> --target-branch <origem> --title "PBI <id> — <título>" --work-items <pbi> <tasks...> --description "..."`. A URL para o `flow pr <n> draft --url` é `<repository.webUrl>/pullrequest/<pullRequestId>`, campos da resposta.
-- **Marcar task concluída**: `az boards work-item update --id <task> --state <estado concluído>`.
-- **Criar task para depois** (achado que o usuário mandou deixar para depois): `az boards work-item create --type Task --title "..."` e ligue ao PBI com `az boards work-item relation add --id <task nova> --relation-type parent --target-id <pbi>`; tags e área seguem `docs/agents/`.
-- **Finalizar PR**: `az repos pr update --id <pr> --draft false`.
+Use the `az` CLI with the `azure-devops` extension. Organization and project come from the repo's `docs/agents/` or from `az devops configure --list`; if neither is set, ask the user and configure them with `az devops configure --defaults organization=... project=...`.
 
-### Acentos no Windows
+- **Parent Item and Tasks**: `az boards work-item show --id <pbi> --expand relations`. Child tasks are the `System.LinkTypes.Hierarchy-Forward` relations; load each one with `az boards work-item show --id <task> --expand relations`.
+- **Blocking edges**: on a task, the `System.LinkTypes.Dependency-Reverse` (Predecessor) relation points to what blocks it. Complement it with `Bloqueada por: #<id>` lines in the description (`System.Description`).
+- **State**: a closed Task is one in a state of the Completed category (`Done`, `Closed`...). The project's done state comes from `docs/agents/` (or from the project's `--done-state` in the panel, `node "$PAINEL_MAESTRO/bin/flow.js" project list`); without a written convention, read it with `az boards work-item show` on an item that is already done. On customized boards `Done` may be another business stage: use the state the convention says.
+- **Open the draft PR**: `az repos pr create --draft true --source-branch <integration branch> --target-branch <origin branch> --title "PBI <id> — <title>" --work-items <pbi> <tasks...> --description "..."`. The URL for `flow pr <n> draft --url` is `<repository.webUrl>/pullrequest/<pullRequestId>`, fields of the response.
+- **Mark a Task done**: `az boards work-item update --id <task> --state <done state>`.
+- **Create a Task for later** (a Finding the user decided to leave for later): `az boards work-item create --type Task --title "..."` and link it to the PBI with `az boards work-item relation add --id <new task> --relation-type parent --target-id <pbi>`; tags and area follow `docs/agents/`.
+- **Finish the PR**: `az repos pr update --id <pr> --draft false`.
 
-No Windows o `az` apaga acentos do texto que recebe como argumento e da saída redirecionada (a do Bash tool inclusive). Ids, relações e estados passam ilesos; títulos e descrições, não. Confira todo texto que o `az` leu ou gravou: título que vai para o painel e para o PR, descrição do PR, task criada. Se houver `?` ou `�` no lugar de uma letra acentuada, leia ou corrija esse texto pela REST, com arquivos UTF-8:
+### Accents on Windows
+
+On Windows `az` strips accents from the text it receives as an argument and from redirected output (the Bash tool's included). Ids, relations and states come through unharmed; titles and descriptions do not. Check every text `az` read or wrote: the title that goes to the panel and to the PR, the PR description, a created task. If there is a `?` or `�` in place of an accented letter, read or fix that text through REST, with UTF-8 files:
 
 ```bash
 TOKEN=$(az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798 --query accessToken -o tsv)
-API="https://dev.azure.com/<org>/<projeto>/_apis"
+API="https://dev.azure.com/<org>/<project>/_apis"
 curl -s -H "Authorization: Bearer $TOKEN" "$API/wit/workItems/<id>?api-version=7.1" -o item.json
 ```
 
-- Leia a resposta com `python -X utf8`, abrindo o arquivo em UTF-8 (JSON pelo stdin do Python passa pelo console cp1252 e perde os acentos), ou com o Read tool.
-- Work item: `PATCH "$API/wit/workItems/<id>?api-version=7.1"` com `-H "Content-Type: application/json-patch+json; charset=utf-8" --data-binary @patch.json` (`[{"op":"add","path":"/fields/System.Title","value":"..."}]`).
-- PR: `PATCH "$API/git/repositories/<repositório>/pullrequests/<pr>?api-version=7.1"` com `-H "Content-Type: application/json; charset=utf-8" --data-binary @pr.json` (`{"title":"...","description":"..."}`; a descrição tem limite de 4.000 caracteres). O repositório é o último trecho de `git remote get-url origin`.
+- Read the response with `python -X utf8`, opening the file as UTF-8 (JSON through Python's stdin goes through the cp1252 console and loses the accents), or with the Read tool.
+- Work item: `PATCH "$API/wit/workItems/<id>?api-version=7.1"` with `-H "Content-Type: application/json-patch+json; charset=utf-8" --data-binary @patch.json` (`[{"op":"add","path":"/fields/System.Title","value":"..."}]`).
+- PR: `PATCH "$API/git/repositories/<repository>/pullrequests/<pr>?api-version=7.1"` with `-H "Content-Type: application/json; charset=utf-8" --data-binary @pr.json` (`{"title":"...","description":"..."}`; the description is limited to 4,000 characters). The repository is the last segment of `git remote get-url origin`.

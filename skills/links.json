@@ -8,5 +8,15 @@
     { "source": "skills/implement-pbi-maestri", "target": "skills/implement-pbi-maestri" },
     { "source": "skills/maestro-worker", "target": "skills/maestro-worker" },
     { "source": "skills/docs/orchestration-maestri", "target": "docs/orchestration-maestri" }
+  ],
+  "retired": [
+    { "source": "skills/especificar", "target": "skills/especificar" },
+    { "source": "skills/implementar-issue", "target": "skills/implementar-issue" },
+    { "source": "skills/implementar-pbi", "target": "skills/implementar-pbi" },
+    { "source": "skills/docs/orquestracao-subagentes", "target": "docs/orquestracao-subagentes" },
+    { "source": "skills/implementar-issue-maestri", "target": "skills/implementar-issue-maestri" },
+    { "source": "skills/implementar-pbi-maestri", "target": "skills/implementar-pbi-maestri" },
+    { "source": "skills/trabalhador-floor", "target": "skills/trabalhador-floor" },
+    { "source": "skills/docs/orquestracao-maestri", "target": "docs/orquestracao-maestri" }
   ]
 }

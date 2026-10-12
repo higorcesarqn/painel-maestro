@@ -1,19 +1,21 @@
 ---
 name: implement-issue
-description: "Implementa uma issue do GitHub e suas sub-issues num PR, com um subagente em worktree por sub-issue, e grava o fluxo no painel-maestro."
+description: "Implements a GitHub issue and its sub-issues in one PR, with one subagent in a worktree per sub-issue, and records the flow in painel-maestro."
 disable-model-invocation: true
 ---
 
-O usuário passou o número de uma issue pai do GitHub. Siga o fluxo em `~/.claude/docs/orchestration-subagents/README.md`, usando este arquivo como **adaptador do tracker**. Tipo na branch: `issue` (ex.: `feature/issue-10`). As "tasks" do fluxo são as sub-issues; uma issue sem sub-issues é a própria task.
+The user passed the number of a GitHub parent issue (the **Item**). Follow the flow in `~/.claude/docs/orchestration-subagents/README.md`, using this file as the **tracker adapter**. Type in the branch: `issue` (e.g. `feature/issue-10`). The flow's **Tasks** are the sub-issues; an issue without sub-issues is its own Task.
 
-## Adaptador GitHub
+Talk to the owner (the user) in Portuguese, and write in Portuguese what you record in the panel (titles, context, options, decisions, summaries, reports); the document above says more.
 
-Use a CLI `gh`, no repo atual (`gh repo view --json nameWithOwner` dá `{owner}/{repo}`). Texto com acento, aspas ou várias linhas (corpo de PR, de issue, de comentário) vai por arquivo (`--body-file`), escrito com o Write tool: no Windows os shells estragam o texto passado como argumento.
+## GitHub adapter
 
-- **Item pai e tasks**: `gh issue view <n> --json number,title,body,state` e `gh api repos/{owner}/{repo}/issues/<n>/sub_issues --paginate`. Sem sub-issues nativas, use a task list do corpo da issue pai (`- [ ] #<n>`).
-- **Arestas de bloqueio**: `gh api repos/{owner}/{repo}/issues/<n>/dependencies/blocked_by` para cada sub-issue. Complemente com linhas `Blocked by #<n>` / `Bloqueada por #<n>` no corpo.
-- **Estado**: task fechada é issue com `state: CLOSED`.
-- **Abrir PR em rascunho**: `gh pr create --draft --base <origem> --head <integradora> --title "#<n> — <título>" --body-file <arquivo>`, com uma linha `Closes #<x>` para a issue pai e para cada sub-issue. O comando imprime a URL do PR, a que vai para o `flow pr <n> draft --url`.
-- **Marcar task concluída**: o `Closes` fecha as issues no merge do PR; durante a execução, comente na sub-issue `gh issue comment <x> --body "Integrada em <integradora> (<sha>)"`.
-- **Criar task para depois** (achado que o usuário mandou deixar para depois): `gh issue create --title "..." --body-file <arquivo> --label needs-triage` e ligue como sub-issue da pai (`gh api repos/{owner}/{repo}/issues/<pai>/sub_issues -F sub_issue_id=<id numérico>`, o id de `gh api repos/{owner}/{repo}/issues/<x> --jq .id`).
-- **Finalizar PR**: `gh pr ready <pr>`.
+Use the `gh` CLI, in the current repo (`gh repo view --json nameWithOwner` gives `{owner}/{repo}`). Text with accents, quotes or several lines (the body of a PR, an issue or a comment) goes through a file (`--body-file`), written with the Write tool: on Windows the shells mangle text passed as an argument.
+
+- **Parent Item and Tasks**: `gh issue view <n> --json number,title,body,state` and `gh api repos/{owner}/{repo}/issues/<n>/sub_issues --paginate`. Without native sub-issues, use the task list in the parent issue's body (`- [ ] #<n>`).
+- **Blocking edges**: `gh api repos/{owner}/{repo}/issues/<n>/dependencies/blocked_by` for each sub-issue. Complement it with `Blocked by #<n>` / `Bloqueada por #<n>` lines in the body.
+- **State**: a closed Task is an issue with `state: CLOSED`.
+- **Open the draft PR**: `gh pr create --draft --base <origin branch> --head <integration branch> --title "#<n> — <title>" --body-file <file>`, with a `Closes #<x>` line for the parent issue and for each sub-issue. The command prints the PR URL, the one that goes to `flow pr <n> draft --url`.
+- **Mark a Task done**: `Closes` closes the issues when the PR is merged; during the run, comment on the sub-issue `gh issue comment <x> --body "Integrada em <integration branch> (<sha>)"`.
+- **Create a Task for later** (a Finding the user decided to leave for later): `gh issue create --title "..." --body-file <file> --label needs-triage` and link it as a sub-issue of the parent (`gh api repos/{owner}/{repo}/issues/<parent>/sub_issues -F sub_issue_id=<numeric id>`, the id from `gh api repos/{owner}/{repo}/issues/<x> --jq .id`).
+- **Finish the PR**: `gh pr ready <pr>`.
