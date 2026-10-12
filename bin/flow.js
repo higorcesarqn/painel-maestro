@@ -640,8 +640,9 @@ function recordReport(store, cmd, origin, at, cwd) {
     return [];
   });
   const { target, task, fromCwd, key, bases } = found;
-  const sha = cmd.sha || (fromCwd ? headOf(cwd) : null);
-  const summary = taskDiff(cwd, { sha, bases });
+  const worktreeHead = fromCwd ? headOf(cwd) : null;
+  const sha = cmd.sha || worktreeHead;
+  const summary = taskDiff(cwd, { sha, bases, worktreeHead });
   const payload = {
     status: cmd.status, blocked_reason: cmd.fields.blocked_reason,
     branch: cmd.branch || (fromCwd ? branch : null) || (task && task.branch) || null,

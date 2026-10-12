@@ -4,10 +4,12 @@
  * integration branch, with the lines added and removed. flow report (bin/flow.js) computes it in the task's worktree
  * and records it in the task-report itself.
  *
- *   taskDiff(cwd, { sha, bases }) → { diff } | { reason, params }   never throws
+ *   taskDiff(cwd, { sha, bases, worktreeHead }) → { diff } | { reason, params }   never throws
  *     sha     the report's commit (--sha or the worktree's HEAD); without it there is no summary
  *     bases   the names to try, in order (--base, the item's pr.branch, integrationBranch of flow-repo.js); for each
  *             one the local ref and then origin/<name>; the first that resolves is base_ref
+ *     worktreeHead  the HEAD of cwd when cwd is the task's own worktree (the report found the task by its branch),
+ *             else null
  *     diff    { base, base_ref, files: [{ path, from?, added, removed, binary }], total: { files, added, removed },
  *               truncated, uncommitted }
  *             base = merge-base(base_ref, sha) and the diff goes from it to sha: only commits, so a task that left the
@@ -15,7 +17,8 @@
  *             order (by path), at most MAX_FILES (truncated: true when there were more); total is over the whole
  *             diff. A binary file (#55) has binary: true and added/removed null: it counts in total.files and stays
  *             out of the line totals. A renamed one has from, the old path. uncommitted is the number of files
- *             changed outside a commit in the worktree (git status), counted only when sha is the worktree's HEAD.
+ *             changed outside a commit in the worktree (git status), counted only when sha is the HEAD of the task's
+ *             own worktree (worktreeHead): another folder at the same commit, like the maestro's, does not count.
  *     reason  why there is no summary, a key of review.diff in the CLI dictionary (params fill it): noSha,
  *             unknownCommit, noBase, noMergeBase, gitTimeout, gitFailed (git's first error line; outside a repository
  *             too, though flow already refuses a folder without a git origin before it gets here)
@@ -35,9 +38,12 @@ class GitFailed extends Error {
   }
 }
 
-/** Runs git in cwd; GitFailed unless the exit code is one of okCodes. */
+/**
+ * Runs git in cwd, without optional locks (git status never takes the index.lock of the worker's worktree); GitFailed
+ * unless the exit code is one of okCodes.
+ */
 function git(cwd, args, okCodes = [0]) {
-  const r = spawnSync('git', args, { cwd, encoding: 'utf8', windowsHide: true, timeout: GIT_TIMEOUT_MS, maxBuffer: MAX_OUTPUT });
+  const r = spawnSync('git', ['--no-optional-locks', ...args], { cwd, encoding: 'utf8', windowsHide: true, timeout: GIT_TIMEOUT_MS, maxBuffer: MAX_OUTPUT });
   if (r.error && r.error.code === 'ETIMEDOUT') throw new GitFailed('gitTimeout', { seconds: GIT_TIMEOUT_MS / 1000 });
   if (r.error) throw new GitFailed('gitFailed', { detail: r.error.message });
   if (!okCodes.includes(r.status)) {
@@ -89,16 +95,10 @@ function parseNumstat(out) {
 /**
  * The files changed outside a commit in the worktree (staged, not staged or untracked, each file of a new folder
  * counted): the entries of "git status --porcelain -z", where a renamed or copied one carries its old path as the
- * next part. 0 when git status fails or times out: the count is a warning and never costs the summary.
+ * next part. Like any other call, a git status that fails or times out leaves the summary out (GitFailed).
  */
 function uncommittedFiles(cwd) {
-  let out;
-  try {
-    out = git(cwd, ['status', '--porcelain', '-z', '--untracked-files=all']).stdout;
-  } catch (e) {
-    if (e instanceof GitFailed) return 0;
-    throw e;
-  }
+  const out = git(cwd, ['status', '--porcelain', '-z', '--untracked-files=all']).stdout;
   const parts = String(out).split('\0');
   let n = 0;
   for (let i = 0; i < parts.length; i++) {
@@ -109,7 +109,7 @@ function uncommittedFiles(cwd) {
   return n;
 }
 
-function taskDiff(cwd, { sha, bases }) {
+function taskDiff(cwd, { sha, bases, worktreeHead }) {
   if (!sha) return { reason: 'noSha', params: {} };
   try {
     const head = commitOf(cwd, sha);
@@ -128,7 +128,7 @@ function taskDiff(cwd, { sha, bases }) {
     return {
       diff: {
         base: from, base_ref: base.name, files: files.slice(0, MAX_FILES), total, truncated: files.length > MAX_FILES,
-        uncommitted: commitOf(cwd, 'HEAD') === head ? uncommittedFiles(cwd) : 0,
+        uncommitted: worktreeHead && worktreeHead === head ? uncommittedFiles(cwd) : 0,
       },
     };
   } catch (e) {

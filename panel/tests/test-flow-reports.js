@@ -485,6 +485,40 @@ suite.test('edge cases: uncommitted counts the files changed outside a commit in
   });
 });
 
+suite.test('edge cases: uncommitted is not counted from another folder (the maestro\'s) that happens to be at the reported SHA', async () => {
+  const r = buildRoot('diff-uncommitted-elsewhere');
+  const start = commit(r.repo, { 'a.txt': 'a\n' }, 'base');
+  startItem(r, 12, 13, 'task/13-limpa');
+  const wt = addWorktree(r, 'floor-13', 'task/13-limpa');
+  const head = commit(wt, { 'c.txt': 'c\n' }, 'c');
+  // The maestro's checkout sits on the task's commit with its own edits: they are not the task's.
+  const maestro = addWorktree(r, 'maestro', 'integra/13', head);
+  write(maestro, { 'a.txt': 'a\ndo maestro\n', 'rascunho.txt': 'x\n' });
+  ok(flow(r, ['report', '--item', '12', '--task', '13', '--sha', head, '--base', start, '--json', '-'], { cwd: maestro, input: REPORT }));
+  await withServer(r, async (get) => {
+    const [d] = (await get('/api/items/widgets/12')).item.reports.map((x) => x.diff);
+    assert.deepStrictEqual([d.uncommitted, d.files.map((f) => f.path)], [0, ['c.txt']]);
+  });
+});
+
+suite.test('edge cases: when git status fails in the worktree the report is recorded without "diff", exit 0, and a second line says why', async () => {
+  const r = buildRoot('diff-status-fails');
+  commit(r.repo, { 'a.txt': 'a\n' }, 'base');
+  startItem(r, 12, 13, 'task/13-indice');
+  const wt = addWorktree(r, 'floor-13', 'task/13-indice');
+  commit(wt, { 'c.txt': 'c\n' }, 'c');
+  // A corrupt index: the commits still resolve and diff, only git status fails.
+  fs.writeFileSync(path.resolve(wt, git(wt, 'rev-parse', '--git-path', 'index')), 'lixo');
+  const x = flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT });
+  ok(x);
+  const out = lines(x);
+  assert.strictEqual(out.length, 2, x.stdout);
+  assert.ok(/^Relatório gravado sem o resumo do diff: o git falhou \(.+\)/.test(out[1]), out[1]);
+  await withServer(r, async (get) => {
+    assert.deepStrictEqual((await get('/api/items/widgets/12')).item.reports.map((y) => y.diff), [null]);
+  });
+});
+
 // ---------- "também na task #N": the other tasks of the item that changed the same file (#56) ----------
 
 suite.test('also_in: two tasks that change the same file cite each other, different files do not, and only the last report with a summary of each task counts', async () => {

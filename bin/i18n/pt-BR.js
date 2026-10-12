@@ -549,7 +549,7 @@ PENDÊNCIAS (maestro)
       depois de cada pending open. Decisão que veio do painel já está gravada: não rode pending resolve.
 
 RELATÓRIO (trabalhador, antes de enviá-lo ao maestro)
-  node bin/flow.js report [--item <número>] [--task <task>] [--status ok|blocked] [--reason "..."] [--branch <b>] [--sha <sha>] [--base <branch>] --json - < relatorio.json
+  node bin/flow.js report [--item <número>] [--task <task>] [--status ok|blocked] [--reason "..."] [--branch <b>] [--sha <sha>] [--base <branch>] --json - < <scratchpad>/relatorio.json
       Grava o relatório completo da task. Os campos longos vêm pelo JSON e ficam exatamente como escritos:
       status (ok|blocked), blocked_reason, branch, sha, tests, changes, decisions (lista), risks,
       shared_files (lista) e text (o relatório inteiro, em texto livre). A task vem como no status (--item/--task
@@ -558,7 +558,8 @@ RELATÓRIO (trabalhador, antes de enviá-lo ao maestro)
       integradora, com as linhas + e -. A base é --base (ou "base" no JSON), senão a branch do flow pr --branch,
       senão feature/issue-<n> (GitHub) ou feature/pbi-<n> (Azure DevOps); vale a ref local e depois origin/<nome>.
       Sem o resumo (sem SHA, sem base, erro do git), o relatório é gravado igual, o comando sai com 0 e uma
-      segunda linha diz o motivo.
+      segunda linha diz o motivo. O relatorio.json fica fora do repositório (o scratchpad): dentro do worktree
+      ele conta como mudança não commitada no resumo.
 
 ACHADOS (maestro)
   node bin/flow.js finding add <número> --title "..." --classification defect|owner_decision|discarded [--description "..."] [--task <origem>] [--new-task <n> [--new-task-title "..."]]
