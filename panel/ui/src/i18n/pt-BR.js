@@ -765,6 +765,9 @@ export default {
     sessions: 'Sessões',
     sessionsText: '{sessions} sessão(ões) ligada(s) pelo hook · {transcripts} transcrição(ões)',
     planUnavailable: 'Plano indisponível: {reason}. O painel não inventa número: confira Configurações → Agentes → Uso no Maestri e ~/.maestri/usage/providers/.status.json.',
+    // #63: no Maestri file (Orca, a plain terminal): nothing keeps the plan's %, so no pointer to the Maestri settings.
+    planNoSource: 'Plano indisponível: {reason}. O painel não inventa número; os tokens por item e por agente seguem vindo das transcrições do Claude Code.',
+    noPlanSource: 'nenhuma neste ambiente (o % do plano só vem do Maestri)',
     periodRange: 'Período: {start} a {end}{basis}.',
     barExplain: 'Barra: parte de cada item no consumo do período (a conta inteira).',
     planShare: '"≈ % do plano" = essa parte × {pct} usado do plano (Maestri){week}.',
@@ -835,7 +838,7 @@ export default {
     since_midnight: 'desde 00:00 (São Paulo)',
     last_7_days: 'últimos 7 dias',
     plan_week: 'semana do plano (reset semanal − 7 dias)',
-    plan_file_missing: 'O Maestri ainda não gravou o uso do plano ({file} não existe). Ligue o uso dos agentes no Maestri (Configurações → Agentes → Uso) e deixe os anéis visíveis.',
+    plan_no_source: 'Sem fonte para o plano neste ambiente: o % da conta só vem do arquivo de uso do Maestri ({file} não existe)',
     plan_file_unreadable: (c, h) => `Não consegui ler ${c.file}: ${h.display(c.error)}.`,
     plan_provider_missing: 'O arquivo de uso do Maestri não tem o provedor "claude".',
     plan_provider_off: 'O provedor Claude está desligado no Maestri (Configurações → Agentes → Uso).',

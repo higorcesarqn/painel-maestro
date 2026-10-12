@@ -44,7 +44,7 @@ A página se atualiza sozinha a cada 20 segundos. O rodapé do menu mostra a ver
 - **Node.js 22.13 ou mais novo** (o painel usa o SQLite embutido do Node, `node:sqlite`, sem nenhuma dependência npm; desenvolvido e testado no Node 22.23). Compilar a página (só se mudar a fonte dela) pede Node 20.19+ ou 22.12+.
 - **git** no `PATH` (o projeto é reconhecido pelo `git remote origin`).
 - Para o verificador de merge: o **`gh`** autenticado (GitHub) e/ou o **`az`** com `az login` (Azure DevOps). Sem eles o painel funciona; só a consulta automática do merge falha, com o motivo, e o botão "Marcar como mergeado" resolve.
-- Para o uso do plano: o app **Maestri**, com o uso dos agentes ligado (Configurações → Agentes → Uso). Fora dele, o plano aparece como indisponível, com o motivo.
+- Para o uso do plano: o app **Maestri**, com o uso dos agentes ligado (Configurações → Agentes → Uso). Fora dele (no Orca ou num terminal comum), o plano aparece como indisponível e sem fonte, sem número inventado: o Orca não guarda o percentual do plano. Os tokens por item e por agente vêm das transcrições do Claude Code em qualquer ambiente.
 - Desenvolvido e testado no Windows (os scripts das skills rodam no Git Bash, que vem com o Git for Windows).
 
 ### 1. Clonar

@@ -1,6 +1,6 @@
 // Domain lists and texts the screens share: the flow's stages, the trackers, the usage periods and the title of a
 // pending decision (names come from the dictionary).
-import { t } from '../i18n/index.js';
+import { t, display } from '../i18n/index.js';
 
 // The flow's stages in order and the trackers, as the server names them (bin/flow-store.js STAGES and TRACKERS).
 export const STAGES = ['specification', 'implementation', 'final_adjustment', 'pr_ready', 'merge', 'hml_validation', 'done'];
@@ -62,3 +62,19 @@ export const USAGE_PERIODS = [
 ];
 export const usagePeriodName = (id) => t(`usage.period.${id}.name`);
 export const usagePeriodShort = (id) => t(`usage.period.${id}.short`);
+
+// The plan without a source (#63): no Maestri file, as in Orca or a plain terminal. Nothing else keeps the plan's %,
+// so the Usage screen says so instead of sending the owner to the Maestri settings.
+const noSource = (reason) => !!(reason && reason.code === 'plan_no_source');
+
+/** The Usage screen's note when the plan is unavailable: the reason, and where to look unless there is no source. */
+export function planUnavailableText(reason) {
+  const why = (display(reason) || t('overview.noMaestriData')).trim().replace(/[.\s]+$/, '');
+  return noSource(reason) ? t('usage.planNoSource', { reason: why }) : t('usage.planUnavailable', { reason: why });
+}
+
+/** Where the plan comes from: the usage.json source (the Maestri Claude provider), or none in this environment. */
+export function planSourceText(plan) {
+  const p = plan || {};
+  return noSource(p.reason) ? t('usage.noPlanSource') : display(p.source) || t('codes.maestri_claude_provider');
+}

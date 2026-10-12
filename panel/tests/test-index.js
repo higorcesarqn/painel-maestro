@@ -623,6 +623,25 @@ suite.test('Pendências (#32): the page\'s copy of the answer rules (option lett
   assert.strictEqual(domain.decisionText('B: Pedir ajuste', 'mantenha o nome'), 'B: Pedir ajuste — mantenha o nome');
 });
 
+suite.test('Uso (#63): without the Maestri file the plan has no source in this environment, without the Maestri settings; the other codes keep today\'s text', async () => {
+  const domain = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'domain.js')).href);
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  const file = 'C:/Users/x/.maestri/usage/providers/.status.json';
+  const none = domain.planUnavailableText({ code: 'plan_no_source', file });
+  assert.ok(/sem fonte/i.test(none) && /neste ambiente/.test(none), none);
+  assert.ok(!/Configurações/.test(none) && !/Agentes → Uso/.test(none), none);
+  assert.strictEqual(domain.planSourceText({ source: { code: 'maestri_claude_provider', file }, reason: { code: 'plan_no_source', file } }), t('usage.noPlanSource'));
+  // The other reasons: the same sentence as before, pointing to the Maestri settings and file.
+  const off = domain.planUnavailableText({ code: 'plan_provider_off' });
+  assert.strictEqual(off, t('usage.planUnavailable', { reason: t('codes.plan_provider_off').replace(/[.\s]+$/, '') }));
+  assert.ok(/Configurações → Agentes → Uso no Maestri/.test(off), off);
+  assert.ok(/Configurações → Agentes → Uso no Maestri/.test(domain.planUnavailableText(null)));
+  assert.strictEqual(domain.planSourceText({ source: { code: 'maestri_claude_provider' }, reason: { code: 'plan_provider_off' } }), t('codes.maestri_claude_provider'));
+  assert.strictEqual(domain.planSourceText({}), t('codes.maestri_claude_provider'));
+  const screen = source['screens/Usage.jsx'];
+  assert.ok(/planUnavailableText\(ku\.reason\)/.test(screen) && /planSourceText\(ku\)/.test(screen), 'the Usage screen uses both texts');
+});
+
 suite.test('Pendências (#32): the demo has open pending decisions to answer, with and without options and of different kinds; the screen answers through the API', () => {
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const open = m.pending_decisions.pending_decisions.filter((p) => p.status === 'open');
