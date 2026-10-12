@@ -180,6 +180,8 @@ flow item start --json - < item.json                                   # {"numbe
 flow task graph 12 --task "13|Gerar o PDF" --task "14|Enviar por e-mail|13" [--out 15]   # <task>|<título>[|<bloqueios>]; o último grafo vale
 flow task graph --json - < grafo.json        # {"number": 12, "tasks": [{"number": 13, "title": "...", "blocked_by": [], "out": false}]}
 flow task dispatch 12 13 --floor "Gerar PDF" --worker "Ária" --branch task/13-gerar-pdf   # --worker subagente, sem floor, fora do Maestri
+flow task dispatch 12 14 --worker subagente --mode subagents        # o modo; sem --mode, vale o do flow host (none → subagents)
+flow host --json                                                    # o ambiente: {kind: orca|maestri|none, terminal, workspace, checks}
 flow task integrate 12 13 --sha 4be1c2d9 --sha-before 9a01f3c
 ```
 
@@ -196,7 +198,8 @@ flow report --status blocked --reason "Falta o certificado" --json - < <scratchp
 flow report --base integra/carrinho --json - < <scratchpad>/relatorio.json   # integradora fora da convenção (ou "base" no JSON)
 ```
 
-- O `status` é o comando único do trabalhador: dentro de um terminal do Maestri (com `MAESTRI_TERMINAL_ID`) ele também roda `maestri floor status` com os mesmos argumentos; fora do Maestri (subagente) só grava. Se o `maestri` falhar, o evento fica gravado e o comando sai com 1.
+- O `status` é o comando único do trabalhador e passa pelo **ambiente** (#62, `bin/flow-host.js`): num terminal do Maestri (com `MAESTRI_TERMINAL_ID`) ele também roda `maestri floor status` com os mesmos argumentos; num terminal do Orca (com `ORCA_TERMINAL_HANDLE`, que vale mais que o do Maestri) roda `orca worktree set --worktree current --workspace-status <coluna> --comment "<texto>" --json`, que move o card do worktree (`working` e `blocked` → `in-progress`, `blocked` também `--unread`; `review` e `done` → `in-review`; o progresso vai no fim do comentário); num terminal comum (subagente) só grava. Se o `maestri` ou o `orca` falhar, o evento fica gravado e o comando sai com 1. O evento guarda `host: {kind, result}` (os de antes da #62 guardavam `maestri` e continuam lidos como `kind: maestri`).
+- O `flow host` diz o ambiente (`orca`, `maestri` ou `none`, com o terminal e o worktree ou workspace) e, no Orca, se o `orca status --json` responde; sai com 0 em todos os casos e não precisa de repositório. O `task dispatch` grava o modo (`--mode subagents|maestri|orca`; sem ele, o do ambiente), e a página do item o mostra em cada task.
 - A task vem de `--item`/`--task` ou, sem eles, da branch atual: a task despachada com essa branch ou `task/<id>-…`.
 - O relatório (`status`, `blocked_reason`, `branch`, `sha`, `tests`, `changes`, `decisions`, `risks`, `shared_files`, `text`) fica exatamente como escrito; branch e SHA, quando não vêm, saem do worktree. O `relatorio.json` vai num arquivo fora do repositório (o scratchpad da sessão): dentro do worktree ele conta como não commitado no resumo do diff.
 - **Resumo do diff** (#41): com SHA (o `--sha` ou o HEAD do worktree), o `report` calcula sozinho os arquivos que a task commitou desde que saiu da branch integradora, com as linhas `+`/`-` e os totais, e os grava no campo `diff` do próprio relatório (`git diff --numstat -z -M` do `merge-base(base, sha)` até o `sha`, só commits: uma task que saiu da integradora antes de outra ser integrada não mostra os arquivos da outra). A base é, nesta ordem, `--base` (ou `base` no JSON), a branch gravada no `flow pr --branch` e a convenção do tracker (`feature/issue-<n>` no GitHub, `feature/pbi-<n>` no Azure DevOps); para cada nome vale a ref local e depois `origin/<nome>`. Arquivo binário vem com `binary: true` e sem contagem de linhas (conta no total de arquivos, fica fora dos totais de linhas); renomeado vem com `from`, o caminho antigo. Acima de 200 arquivos ficam os 200 primeiros na ordem do git, com `truncated: true` e os totais do diff inteiro. `uncommitted` é o número de arquivos com mudança fora de commit no worktree (`git status --porcelain`), contado só quando o SHA é o HEAD do próprio worktree da task (outra pasta no mesmo commit, como a do maestro, não conta). Sem resumo (sem SHA, sem base, erro ou timeout de 10 s do git), o relatório é gravado sem `diff`, o comando sai com 0 e uma segunda linha diz o motivo. A página do item mostra o resumo dentro de cada relatório.
@@ -213,6 +216,8 @@ flow pending wait P-7                                         # espera ela fecha
 ```
 
 Uma pendência que o dono já respondeu pelo painel não aceita outra resolução: o `pending resolve` sai com o "não está aberta" de sempre (código 2).
+
+No Orca (#62), o `pending open` marca o worktree do maestro como não lido (`orca worktree set --worktree current --unread --json`) e grava onde responder: o worktree (`ORCA_WORKTREE_ID`) e o terminal (`ORCA_TERMINAL_HANDLE`) do maestro, salvo `--workspace`/`--terminal`. Uma falha do aviso no Orca segue a mesma regra do Maestri, abaixo.
 
 O `pending open` rodado num terminal do Maestri (com `MAESTRI_TERMINAL_ID`, o Maestro Mode) avisa o dono com `maestri notify` (#44): uma notificação do sistema, de até 500 caracteres, com a severidade, o tipo, o item, a task e o título da pendência ("Pendência nova (alta): revisão de task no item painel-maestro/40 (#40), task 44. Revisar a task 44"), pelo mesmo executável e prazo do `maestri floor status` (`FLOW_MAESTRI_CLI`). Fora do Maestri (subagentes) nada é chamado. Uma falha do aviso nunca falha o comando: a pendência é gravada, o comando sai com **0** e imprime a pendência como sempre, e uma linha no stderr diz que o dono pode não ter sido avisado. O evento guarda como foi (`notification`: `sent`, `failed` ou `outside`) e a tela Pendências mostra quando falhou, enquanto a pendência está aberta. A pendência de HML derivada do `flow hml` não chama o `maestri`.
 
@@ -284,6 +289,8 @@ O merge do PR costuma acontecer na interface do tracker, sem agente presente (um
 | `PANEL_AZURE_DEVOPS_URL` | `https://dev.azure.com` | base da REST do Azure DevOps |
 | `FLOW_MAESTRI_CLI` | `MAESTRI_CLI` ou `maestri` | executável do `maestri` usado pelo `flow status` e pelo `flow pending open` (um caminho `.js` roda com o `node`) |
 | `FLOW_WAIT_INTERVAL_MS` | `3000` | intervalo entre as leituras do `flow pending wait`, em ms (os testes usam 50) |
+| `FLOW_ORCA_CLI` | `orca` | executável do `orca` usado pelo `flow host`, pelo `flow status` e pelo `flow pending open` no Orca (um caminho `.js` roda com o `node`) |
+| `ORCA_TERMINAL_HANDLE`, `ORCA_WORKTREE_ID` | (do Orca) | terminal e worktree do Orca onde o comando roda: com `ORCA_TERMINAL_HANDLE`, o ambiente é o Orca (vale mais que o Maestri); a pendência diz onde responder |
 | `MAESTRI_CLI` | `maestri` | executável do Maestri usado pelos scripts das skills (o Maestri define nos terminais dele) |
 | `MAESTRI_TERMINAL_ID`, `MAESTRI_TERMINAL_NAME`, `MAESTRI_WORKSPACE_ID`, `MAESTRI_WORKSPACE_NAME` | (do Maestri) | terminal e workspace onde o comando roda: o `flow status` chama o `maestri floor status`, o `flow pending open` chama o `maestri notify` e a pendência diz onde responder |
 | `MAESTRI_DATA_DIR` | `~/.maestri` | onde está o `usage/providers/.status.json` do plano Claude |

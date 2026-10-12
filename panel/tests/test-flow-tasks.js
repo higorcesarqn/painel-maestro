@@ -133,7 +133,7 @@ suite.test('an item without a task graph shows as one task, itself; outside of M
     [task] = tasks;
     assert.deepStrictEqual([task.number, task.self, task.state, task.worker, task.floor, task.branch, task.status_text], [12, true, 'working', 'subagente', null, 'feature/issue-12', 'Implementando o rodapé']);
     const status = (await get('/api/items/widgets/12')).item.timeline.find((e) => e.type === 'task-status');
-    assert.deepStrictEqual([status.agent, status.payload.maestri], [{ role: 'worker', name: 'subagente' }, 'outside']);
+    assert.deepStrictEqual([status.agent, status.payload.host], [{ role: 'worker', name: 'subagente' }, { kind: 'none', result: 'outside' }]);
   });
   assert.deepStrictEqual(maestriCalls(r), [], 'outside of Maestri the maestri executable is never called');
 });
@@ -223,7 +223,7 @@ suite.test('when maestri floor status fails the event is still recorded and the 
   assert.ok(/não achei o executável/.test(missing.stderr), missing.stderr);
   await withServer(r, async (get) => {
     const item = (await get('/api/items/widgets/50')).item;
-    assert.deepStrictEqual(item.timeline.filter((e) => e.type === 'task-status').map((e) => [e.task_number, e.payload.maestri]), [[50, 'failed'], [50, 'failed']]);
+    assert.deepStrictEqual(item.timeline.filter((e) => e.type === 'task-status').map((e) => [e.task_number, e.payload.host]), [[50, { kind: 'maestri', result: 'failed' }], [50, { kind: 'maestri', result: 'failed' }]]);
     assert.strictEqual(item.tasks[0].state, 'working');
   });
 });

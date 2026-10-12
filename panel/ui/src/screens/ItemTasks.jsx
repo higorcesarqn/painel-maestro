@@ -1,5 +1,6 @@
 // Tasks of an item (#7): the task graph with its blockers, drawn in our own SVG (the CSP forbids a CDN), and the
-// table with state, worker, floor, branch and SHA of each task. The tasks come computed by the server's projection
+// table with state, worker, dispatch mode (#62: subagents, Maestri or Orca; none before #62), floor, branch and SHA of
+// each task. The tasks come computed by the server's projection
 // (GET /api/items/<project>/<number> → item.tasks); an item without a task graph has one task, itself.
 import { arr, obj, objs, txt, truncate, dateTime, age } from '../data/format.js';
 import { t } from '../i18n/index.js';
@@ -15,6 +16,9 @@ const GAP_Y = 18;
 const PAD = 8;
 
 const stateName = (state) => (STATE_TONE[state] ? t(`items.tasks.states.${state}`) : txt(state));
+const MODES = ['subagents', 'maestri', 'orca'];
+/** The dispatch mode of a task as the page names it, or null (dispatched before #62, or never). */
+const modeName = (mode) => (MODES.includes(mode) ? t(`items.tasks.modes.${mode}`) : null);
 /** The task number as the tracker shows it: "#13" on GitHub, the card id on Azure DevOps. */
 const taskRef = (tracker, n) => (tracker === 'azure_devops' ? String(n) : `#${n}`);
 
@@ -111,6 +115,7 @@ function TaskTable({ tasks, tracker }) {
             <th class="col-state">{t('items.tasks.columns.state')}</th>
             <th class="col-blockers">{t('items.tasks.columns.blockedBy')}</th>
             <th class="col-worker">{t('items.tasks.columns.worker')}</th>
+            <th class="col-mode">{t('items.tasks.columns.mode')}</th>
             <th class="col-floor">{t('items.tasks.columns.floor')}</th>
             <th class="col-branch">{t('items.tasks.columns.branch')}</th>
             <th class="col-sha">{t('items.tasks.columns.sha')}</th>
@@ -135,6 +140,7 @@ function TaskTable({ tasks, tracker }) {
                 <td class="col-state"><TaskStateBadge state={x.state} /></td>
                 <td class="col-blockers mono">{arr(x.blocked_by).map((b) => taskRef(tracker, b)).join(', ') || '—'}</td>
                 <td class="col-worker" title={txt(x.worker)}>{txt(x.worker) || '—'}</td>
+                <td class="col-mode">{modeName(x.mode) || '—'}</td>
                 <td class="col-floor" title={txt(x.floor)}>{txt(x.floor) || '—'}</td>
                 <td class="col-branch mono" title={txt(x.branch)}>{txt(x.branch) || '—'}</td>
                 <td class="col-sha mono" title={x.sha_before ? t('items.tasks.shaRange', { before: x.sha_before, after: x.sha }) : txt(x.sha)}>{x.sha ? String(x.sha).slice(0, 7) : '—'}</td>

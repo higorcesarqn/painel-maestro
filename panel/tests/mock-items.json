@@ -926,14 +926,19 @@
           "state": "working",
           "blocked_by": [],
           "worker": "Ária",
-          "floor": "Item ponta a ponta",
+          "floor": "item-ponta-a-ponta",
           "branch": "task/5-item-ponta-a-ponta",
+          "mode": "orca",
           "sha": null,
           "sha_before": null,
           "status_text": "API e telas prontas, faltam os testes",
           "progress": {
             "done": 4,
             "total": 6
+          },
+          "status_host": {
+            "kind": "orca",
+            "result": "posted"
           },
           "dispatched_at": "2026-10-09T07:35:00-03:00",
           "integrated_at": null,
@@ -974,9 +979,10 @@
           },
           "source": "cli",
           "payload": {
-            "floor": "Item ponta a ponta",
+            "floor": "item-ponta-a-ponta",
             "worker": "Ária",
-            "branch": "task/5-item-ponta-a-ponta"
+            "branch": "task/5-item-ponta-a-ponta",
+            "mode": "orca"
           }
         },
         {
@@ -997,10 +1003,12 @@
               "A: Corrigir agora",
               "B: Task nova para triagem"
             ],
-            "maestri": {
-              "workspace": "Pessoal",
-              "terminal": "Maestro #5"
-            }
+            "host": {
+              "kind": "orca",
+              "workspace": "painel-maestro::~/orca/workspaces/painel-maestro/item-5",
+              "terminal": "term_maestro_5"
+            },
+            "notification": "sent"
           }
         },
         {
@@ -1035,7 +1043,10 @@
               "done": 4,
               "total": 6
             },
-            "maestri": "posted"
+            "host": {
+              "kind": "orca",
+              "result": "posted"
+            }
           }
         }
       ]
@@ -1108,12 +1119,17 @@
           "worker": "Ária",
           "floor": "Modelo PDF",
           "branch": "task/3113-modelo-pdf",
+          "mode": "maestri",
           "sha": "e41f0a6b3c2d",
           "sha_before": "1d2c3b4",
           "status_text": "Modelo pronto, testes verdes",
           "progress": {
             "done": 3,
             "total": 3
+          },
+          "status_host": {
+            "kind": "maestri",
+            "result": "posted"
           },
           "dispatched_at": "2026-10-08T10:30:00-03:00",
           "integrated_at": "2026-10-08T14:02:00-03:00",
@@ -1131,12 +1147,17 @@
           "worker": "Caio",
           "floor": "PDF no servidor",
           "branch": "task/3114-pdf-servidor",
+          "mode": "maestri",
           "sha": null,
           "sha_before": null,
           "status_text": "Layout gerado, faltam as fontes",
           "progress": {
             "done": 2,
             "total": 5
+          },
+          "status_host": {
+            "kind": "maestri",
+            "result": "posted"
           },
           "dispatched_at": "2026-10-08T14:10:00-03:00",
           "integrated_at": null,
@@ -1154,12 +1175,17 @@
           "worker": "Dora",
           "floor": "Botão exportar",
           "branch": "task/3115-botao-exportar",
+          "mode": "maestri",
           "sha": null,
           "sha_before": null,
           "status_text": "Botão pronto, aguardando revisão",
           "progress": {
             "done": 4,
             "total": 4
+          },
+          "status_host": {
+            "kind": "maestri",
+            "result": "posted"
           },
           "dispatched_at": "2026-10-08T14:12:00-03:00",
           "integrated_at": null,
@@ -1177,10 +1203,15 @@
           "worker": "subagente",
           "floor": null,
           "branch": "task/3116-assinatura",
+          "mode": "subagents",
           "sha": null,
           "sha_before": null,
           "status_text": "Preciso do certificado de homologação",
           "progress": null,
+          "status_host": {
+            "kind": "none",
+            "result": "outside"
+          },
           "dispatched_at": "2026-10-09T09:50:00-03:00",
           "integrated_at": null,
           "updated_at": "2026-10-09T10:05:00-03:00",
@@ -1198,10 +1229,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": "2026-10-08T10:25:00-03:00",
@@ -1216,10 +1249,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": "2026-10-08T10:25:00-03:00",
@@ -1234,10 +1269,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": "2026-10-08T13:50:00-03:00",
@@ -1593,7 +1630,8 @@
           "payload": {
             "floor": "Modelo PDF",
             "worker": "Ária",
-            "branch": "task/3113-modelo-pdf"
+            "branch": "task/3113-modelo-pdf",
+            "mode": "maestri"
           }
         },
         {
@@ -1843,7 +1881,8 @@
           "payload": {
             "floor": "PDF no servidor",
             "worker": "Caio",
-            "branch": "task/3114-pdf-servidor"
+            "branch": "task/3114-pdf-servidor",
+            "mode": "maestri"
           }
         },
         {
@@ -1859,7 +1898,8 @@
           "payload": {
             "floor": "Botão exportar",
             "worker": "Dora",
-            "branch": "task/3115-botao-exportar"
+            "branch": "task/3115-botao-exportar",
+            "mode": "maestri"
           }
         },
         {
@@ -2036,7 +2076,8 @@
           "payload": {
             "floor": null,
             "worker": "subagente",
-            "branch": "task/3116-assinatura"
+            "branch": "task/3116-assinatura",
+            "mode": "subagents"
           }
         },
         {
@@ -2053,7 +2094,10 @@
             "state": "blocked",
             "text": "Preciso do certificado de homologação",
             "progress": null,
-            "maestri": "outside"
+            "host": {
+              "kind": "none",
+              "result": "outside"
+            }
           }
         },
         {
@@ -2176,10 +2220,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -2273,10 +2319,12 @@
           "worker": "Ária",
           "floor": "Carrinho",
           "branch": "task/49-carrinho",
+          "mode": null,
           "sha": "0b7a6c5d4e3f",
           "sha_before": "aa11bb2",
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": "2026-10-02T16:10:00-03:00",
           "integrated_at": "2026-10-05T11:30:00-03:00",
           "updated_at": "2026-10-05T11:30:00-03:00",
@@ -2293,10 +2341,12 @@
           "worker": "Caio",
           "floor": "Juntar carrinhos",
           "branch": "task/50-juntar",
+          "mode": null,
           "sha": "5f4e3d2c1b0a",
           "sha_before": "0b7a6c5",
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": "2026-10-05T11:40:00-03:00",
           "integrated_at": "2026-10-08T17:00:00-03:00",
           "updated_at": "2026-10-08T17:00:00-03:00",
@@ -2311,10 +2361,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": "2026-10-08T17:05:00-03:00",
@@ -2789,10 +2841,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -2925,10 +2979,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -3062,10 +3118,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -3202,10 +3260,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -3220,10 +3280,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": "2026-10-08T11:35:00-03:00",
@@ -3499,10 +3561,12 @@
           "worker": "Ária",
           "floor": "Extrato OFX",
           "branch": "task/3101-extrato-ofx",
+          "mode": null,
           "sha": "4be1c2d9a7f0",
           "sha_before": "9a01f3c",
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": "2026-10-01T16:00:00-03:00",
           "integrated_at": "2026-10-02T18:20:00-03:00",
           "updated_at": "2026-10-02T18:20:00-03:00",
@@ -3519,10 +3583,12 @@
           "worker": "Caio",
           "floor": "Casamento",
           "branch": "task/3102-casamento",
+          "mode": null,
           "sha": "7c3d9e0b12aa",
           "sha_before": "4be1c2d",
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": "2026-10-03T09:00:00-03:00",
           "integrated_at": "2026-10-05T10:40:00-03:00",
           "updated_at": "2026-10-05T10:40:00-03:00",
@@ -6531,10 +6597,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -6628,10 +6696,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -6739,10 +6809,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -6891,10 +6963,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -7002,10 +7076,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -7154,10 +7230,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -7371,10 +7449,12 @@
           "worker": null,
           "floor": null,
           "branch": null,
+          "mode": null,
           "sha": null,
           "sha_before": null,
           "status_text": null,
           "progress": null,
+          "status_host": null,
           "dispatched_at": null,
           "integrated_at": null,
           "updated_at": null,
@@ -7420,7 +7500,8 @@
           "B: Assinar com certificado de teste por enquanto"
         ],
         "recommendation": "B, e abrir um achado para trocar antes do HML.",
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3112"
         },
@@ -7470,7 +7551,8 @@
           "B: Aprovar e abrir um item novo"
         ],
         "recommendation": "A: é o caso que motivou o item.",
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3100"
         },
@@ -7517,7 +7599,8 @@
           "C: Esperar a 3114"
         ],
         "recommendation": "A: a 3114 não depende do botão.",
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3112"
         },
@@ -7620,7 +7703,8 @@
         "context": "O trabalhador da 3114 parou: a especificação fala em \"arquivo do extrato\" sem dizer se é PDF só, ou PDF e CSV.",
         "options": [],
         "recommendation": null,
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3112"
         },
@@ -7670,7 +7754,8 @@
           "B: Incluir a recorrente"
         ],
         "recommendation": "A: a recorrente vira um item novo.",
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Northwind",
           "terminal": "Maestro #12"
         },
@@ -7716,7 +7801,8 @@
           "B: Estender para 7 dias (task nova)"
         ],
         "recommendation": "B, como task nova para triagem.",
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Fabrikam",
           "terminal": "Maestro #48"
         },
@@ -7759,7 +7845,8 @@
         "context": "O protótipo diz \"Carrinho combinado\"; o time de produto falou em \"Meu carrinho\". Qualquer nome curto serve.",
         "options": [],
         "recommendation": null,
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Fabrikam",
           "terminal": "Maestro #48"
         },
@@ -7805,7 +7892,8 @@
           "B: Por cliente"
         ],
         "recommendation": null,
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Contoso",
           "terminal": "Maestro PBI 2901"
         },
@@ -7854,11 +7942,12 @@
           "B: Task nova para triagem"
         ],
         "recommendation": null,
-        "maestri": {
-          "workspace": "Pessoal",
-          "terminal": "Maestro #5"
+        "host": {
+          "kind": "orca",
+          "workspace": "painel-maestro::~/orca/workspaces/painel-maestro/item-5",
+          "terminal": "term_maestro_5"
         },
-        "notification": null,
+        "notification": "sent",
         "opened_at": "2026-10-09T08:30:00-03:00",
         "opened_by": {
           "role": "maestro",
@@ -7904,7 +7993,8 @@
         "context": null,
         "options": [],
         "recommendation": null,
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Contoso Portal",
           "terminal": null
         },
@@ -7959,7 +8049,8 @@
           "B: Uma depois da outra"
         ],
         "recommendation": "A: o conflito fica num arquivo só, fácil de resolver na integração.",
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3112"
         },
@@ -8008,7 +8099,8 @@
           "B: Pedir ajuste"
         ],
         "recommendation": "A: o diff está limpo e os testes cobrem o cabeçalho e o rodapé.",
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Contoso",
           "terminal": "Maestro PBI 3112"
         },
@@ -8116,7 +8208,8 @@
           "B: 4 retentativas"
         ],
         "recommendation": "A: segue o contrato.",
-        "maestri": {
+        "host": {
+          "kind": "maestri",
           "workspace": "Contoso",
           "terminal": "Maestro PBI 2875"
         },
@@ -8630,7 +8723,10 @@
               "done": 4,
               "total": 6
             },
-            "maestri": "posted"
+            "host": {
+              "kind": "orca",
+              "result": "posted"
+            }
           }
         },
         {
@@ -8771,7 +8867,10 @@
             "state": "blocked",
             "text": "Preciso do certificado de homologação",
             "progress": null,
-            "maestri": "outside"
+            "host": {
+              "kind": "none",
+              "result": "outside"
+            }
           }
         },
         {
@@ -8828,7 +8927,8 @@
           "payload": {
             "floor": null,
             "worker": "subagente",
-            "branch": "task/3116-assinatura"
+            "branch": "task/3116-assinatura",
+            "mode": "subagents"
           }
         },
         {
@@ -9300,7 +9400,10 @@
             "state": "blocked",
             "text": "Preciso do certificado de homologação",
             "progress": null,
-            "maestri": "outside"
+            "host": {
+              "kind": "none",
+              "result": "outside"
+            }
           }
         },
         {
@@ -9329,7 +9432,8 @@
           "payload": {
             "floor": null,
             "worker": "subagente",
-            "branch": "task/3116-assinatura"
+            "branch": "task/3116-assinatura",
+            "mode": "subagents"
           }
         },
         {
@@ -10322,7 +10426,10 @@
               "done": 4,
               "total": 6
             },
-            "maestri": "posted"
+            "host": {
+              "kind": "orca",
+              "result": "posted"
+            }
           }
         },
         {
@@ -10384,10 +10491,12 @@
               "A: Corrigir agora",
               "B: Task nova para triagem"
             ],
-            "maestri": {
-              "workspace": "Pessoal",
-              "terminal": "Maestro #5"
-            }
+            "host": {
+              "kind": "orca",
+              "workspace": "painel-maestro::~/orca/workspaces/painel-maestro/item-5",
+              "terminal": "term_maestro_5"
+            },
+            "notification": "sent"
           }
         },
         {
@@ -10414,9 +10523,10 @@
           },
           "source": "cli",
           "payload": {
-            "floor": "Item ponta a ponta",
+            "floor": "item-ponta-a-ponta",
             "worker": "Ária",
-            "branch": "task/5-item-ponta-a-ponta"
+            "branch": "task/5-item-ponta-a-ponta",
+            "mode": "orca"
           }
         },
         {
@@ -11301,7 +11411,7 @@
             "number": 5,
             "title": "Item ponta a ponta (tracer bullet)",
             "state": "working",
-            "floor": "Item ponta a ponta",
+            "floor": "item-ponta-a-ponta",
             "branch": "task/5-item-ponta-a-ponta",
             "status_text": "API e telas prontas, faltam os testes",
             "progress": {
@@ -11589,7 +11699,7 @@
             "number": 5,
             "title": "Item ponta a ponta (tracer bullet)",
             "state": "working",
-            "floor": "Item ponta a ponta",
+            "floor": "item-ponta-a-ponta",
             "branch": "task/5-item-ponta-a-ponta",
             "status_text": "API e telas prontas, faltam os testes",
             "progress": {
@@ -11908,7 +12018,7 @@
             "number": 5,
             "title": "Item ponta a ponta (tracer bullet)",
             "state": "working",
-            "floor": "Item ponta a ponta",
+            "floor": "item-ponta-a-ponta",
             "branch": "task/5-item-ponta-a-ponta",
             "status_text": "API e telas prontas, faltam os testes",
             "progress": {
@@ -12362,10 +12472,12 @@
               "A: Corrigir agora",
               "B: Task nova para triagem"
             ],
-            "maestri": {
-              "workspace": "Pessoal",
-              "terminal": "Maestro #5"
-            }
+            "host": {
+              "kind": "orca",
+              "workspace": "painel-maestro::~/orca/workspaces/painel-maestro/item-5",
+              "terminal": "term_maestro_5"
+            },
+            "notification": "sent"
           }
         },
         "last_activity_at": "2026-10-09T07:40:00-03:00",
@@ -12408,7 +12520,7 @@
           "number": 5,
           "title": "Item ponta a ponta (tracer bullet)",
           "state": "working",
-          "floor": "Item ponta a ponta",
+          "floor": "item-ponta-a-ponta",
           "branch": "task/5-item-ponta-a-ponta",
           "status_text": "API e telas prontas, faltam os testes",
           "progress": {
@@ -12434,7 +12546,10 @@
               "done": 4,
               "total": 6
             },
-            "maestri": "posted"
+            "host": {
+              "kind": "orca",
+              "result": "posted"
+            }
           }
         },
         "last_activity_at": "2026-10-09T10:20:00-03:00",

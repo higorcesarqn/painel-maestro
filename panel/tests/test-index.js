@@ -184,7 +184,9 @@ suite.test('mock-items.json: items in different stages, both trackers, several o
   assert.deepStrictEqual([...new Set(pd.map((p) => p.kind))].sort(), ['decision', 'finding', 'hml', 'parallelize', 'task_review', 'worker_blocked']);
   assert.deepStrictEqual([...new Set(pd.map((p) => p.status))].sort(), ['canceled', 'open', 'resolved']);
   assert.ok(pd.some((p) => p.resolution === 'task_integrated') && pd.some((p) => p.resolution === 'decision' && p.decision), 'resolved by integration and by decision');
-  assert.ok(pd.filter((p) => p.status === 'open').every((p) => p.maestri.workspace && p.maestri.terminal), 'open ones say where to answer');
+  assert.ok(pd.filter((p) => p.status === 'open').every((p) => p.host.workspace && p.host.terminal), 'open ones say where to answer');
+  // The Host (#62): the demo has a pending decision answered in the Orca and the older ones, read as the Maestri.
+  assert.deepStrictEqual([...new Set(pd.map((p) => p.host.kind))].sort(), ['maestri', 'orca']);
   assert.ok(js.includes('/api/pending-decisions'), 'the Pending decisions screen reads the new model');
 });
 
@@ -676,14 +678,19 @@ suite.test('browser tab (#43): the title counts the open pending decisions of ev
   assert.ok(/<link rel="icon" href="data:,">/.test(html), 'the build keeps the empty icon until the script swaps it (no /favicon.ico request)');
 });
 
-suite.test('Pendências (#44): the demo has an open pending decision whose Maestri notification failed; the screen shows the line only for an open one with failed', () => {
+suite.test('Pendências (#44): the demo has an open pending decision whose Maestri notification failed; the screen shows the line only for an open one with failed', async () => {
+  const href = (rel) => require('url').pathToFileURL(path.join(SOURCE, ...rel.split('/'))).href;
+  const dictionary = (await import(href('i18n/pt-BR.js'))).default;
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
   const pd = m.pending_decisions.pending_decisions;
   assert.ok(pd.some((p) => p.status === 'open' && p.notification === 'failed'), 'an open one with notification failed');
   assert.ok(pd.some((p) => p.notification === null), 'older ones, without the field, still in the demo');
   const screen = source['screens/PendingDecisions.jsx'];
-  assert.ok(/p\.status === 'open' && p\.notification === 'failed' && <p\b[^>]*>\{t\('pending\.notificationFailed'\)\}<\/p>/.test(screen), 'the line only for an open one with failed; nothing once closed');
+  assert.ok(/p\.status === 'open' && p\.notification === 'failed' && <p\b[^>]*>\{t\(`pending\.notificationFailed\.\$\{noticeHost\(p\)\}`\)\}<\/p>/.test(screen), 'the line only for an open one with failed; nothing once closed');
   assert.strictEqual(screen.match(/notificationFailed/g).length, 1, 'and nowhere else');
+  // The Host (#62): the text names the notice that failed, the Maestri's or the Orca's, never only "maestri notify".
+  assert.deepStrictEqual(Object.keys(dictionary.pending.notificationFailed).sort(), ['maestri', 'orca']);
+  assert.ok(/maestri notify/.test(dictionary.pending.notificationFailed.maestri) && /Orca/.test(dictionary.pending.notificationFailed.orca));
 });
 
 suite.test('browser notification (#45): the notice rule, imported from the page\'s source, notifies only the new pending decisions with the tab hidden', async () => {

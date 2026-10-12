@@ -8,6 +8,16 @@ const http = require('http');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
+// The Host (#62): a test may itself run inside an Orca or a Maestri terminal, and a flow process that inherits ORCA_* or
+// MAESTRI_* would call the real orca or maestri. Every test file loads this module first, so the variables of both are
+// cleared from this process here: every child process starts in a plain terminal, and a case sets only the variables
+// it wants (MAESTRI_DATA_DIR and MAESTRI_CLI included).
+for (const k of Object.keys(process.env)) if (/^(ORCA_|MAESTRI_)/i.test(k)) delete process.env[k];
+if (/^orca$/i.test(process.env.TERM_PROGRAM || '')) {
+  delete process.env.TERM_PROGRAM;
+  delete process.env.TERM_PROGRAM_VERSION;
+}
+
 const TMP = path.join(__dirname, 'tmp');
 const REPO = path.resolve(__dirname, '..', '..');
 // PANEL_TEST_PORTS=4790-4794 narrows the range, so two floors can run the suite at once without racing for a port.
