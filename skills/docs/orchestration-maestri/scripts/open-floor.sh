@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Abre o floor de uma task e entrega o briefing ao trabalhador.
+# Opens a task's floor and hands the briefing to the worker.
 #
-# Uso (do Ground, na raiz do repo):
-#   open-floor.sh "<floor>" <branch> "<trabalhador>" <briefing.txt> [<integradora>]
+# Usage (from the Ground, at the repo's root):
+#   open-floor.sh "<floor>" <branch> "<worker>" <briefing.txt> [<integration branch>]
 #
-# - Cria o floor (o create estoura o timeout da CLI e conclui: este script espera).
-# - Recruta o trabalhador "Claude Code" no floor, sem role (com role ele perde AGENTS.md, skills e permissões).
-# - Manda o briefing com maestri ask em segundo plano; a resposta da tela fica em <briefing>.ask.log.
-# O briefing deve começar com o comando de barra (ex.: /mattpocock-skills:implement ...).
+# - Creates the floor (the create times out in the CLI and completes: this script waits for it).
+# - Recruits the "Claude Code" worker on the floor, without a role (with a role it loses AGENTS.md, skills and permissions).
+# - Sends the briefing with maestri ask in the background; the screen's answer goes to <briefing>.ask.log.
+# The briefing must start with the slash command (e.g. /mattpocock-skills:implement ...).
+# Its messages stay in Portuguese (ADR 0004): the skills quote them verbatim.
 set -euo pipefail
 
 M="${MAESTRI_CLI:-maestri}"

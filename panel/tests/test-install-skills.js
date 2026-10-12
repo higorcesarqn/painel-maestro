@@ -31,9 +31,9 @@ const isLink = (p) => { try { return fs.lstatSync(p).isSymbolicLink(); } catch {
 const exists = (p) => { try { fs.lstatSync(p); return true; } catch { return false; } };
 const same = (a, b) => fs.realpathSync(a).toLowerCase() === fs.realpathSync(b).toLowerCase();
 
-suite.test('the manifest declares /especificar; every declared source exists and the repository has no other skills', () => {
+suite.test('the manifest declares /specify; every declared source exists and the repository has no other skills', () => {
   const sources = MANIFEST.links.map((l) => l.source);
-  assert.ok(sources.includes('skills/especificar'), sources.join(', '));
+  assert.ok(sources.includes('skills/specify'), sources.join(', '));
   for (const s of sources) assert.ok(fs.existsSync(path.join(REPO, s)), `${s} is declared but missing`);
   const folders = fs.readdirSync(path.join(REPO, 'skills'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => `skills/${d.name}`);
   assert.deepStrictEqual(folders.filter((f) => f !== 'skills/docs' && !sources.includes(f)), [], 'a skill folder outside the manifest');
@@ -41,15 +41,15 @@ suite.test('the manifest declares /especificar; every declared source exists and
 
 suite.test('the manifest declares the subagent skills and the folder of the document they follow (#17)', () => {
   const byTarget = new Map(MANIFEST.links.map((l) => [l.target, l.source]));
-  assert.strictEqual(byTarget.get('skills/implementar-issue'), 'skills/implementar-issue');
-  assert.strictEqual(byTarget.get('skills/implementar-pbi'), 'skills/implementar-pbi');
-  assert.strictEqual(byTarget.get('docs/orquestracao-subagentes'), 'skills/docs/orquestracao-subagentes');
-  for (const skill of ['implementar-issue', 'implementar-pbi']) {
+  assert.strictEqual(byTarget.get('skills/implement-issue'), 'skills/implement-issue');
+  assert.strictEqual(byTarget.get('skills/implement-pbi'), 'skills/implement-pbi');
+  assert.strictEqual(byTarget.get('docs/orchestration-subagents'), 'skills/docs/orchestration-subagents');
+  for (const skill of ['implement-issue', 'implement-pbi']) {
     const text = fs.readFileSync(path.join(REPO, 'skills', skill, 'SKILL.md'), 'utf8');
     assert.ok(text.includes(`name: ${skill}`), skill);
-    assert.ok(text.includes('~/.claude/docs/orquestracao-subagentes/README.md'), `${skill} points to the installed document`);
+    assert.ok(text.includes('~/.claude/docs/orchestration-subagents/README.md'), `${skill} points to the installed document`);
   }
-  assert.ok(fs.existsSync(path.join(REPO, 'skills', 'docs', 'orquestracao-subagentes', 'README.md')));
+  assert.ok(fs.existsSync(path.join(REPO, 'skills', 'docs', 'orchestration-subagents', 'README.md')));
 });
 
 suite.test('install links every declared skill into an empty Claude folder', () => {
@@ -60,16 +60,98 @@ suite.test('install links every declared skill into an empty Claude folder', () 
     assert.ok(isLink(target), `${l.target} is not a link`);
     assert.ok(same(target, path.join(REPO, l.source)), `${l.target} points elsewhere`);
   }
-  assert.ok(fs.readFileSync(path.join(r.claude, 'skills', 'especificar', 'SKILL.md'), 'utf8').includes('name: especificar'));
-  assert.ok(fs.existsSync(path.join(r.claude, 'docs', 'orquestracao-subagentes', 'README.md')), 'the document is reachable where the skills point');
+  assert.ok(fs.readFileSync(path.join(r.claude, 'skills', 'specify', 'SKILL.md'), 'utf8').includes('name: specify'));
+  assert.ok(fs.existsSync(path.join(r.claude, 'docs', 'orchestration-subagents', 'README.md')), 'the document is reachable where the skills point');
 });
 
 suite.test('the Maestri skills and their orchestration folder are declared, the folder where the skills look for it', () => {
   const pairs = MANIFEST.links.map((l) => `${l.source} → ${l.target}`);
-  for (const name of ['implementar-issue-maestri', 'implementar-pbi-maestri', 'trabalhador-floor']) {
+  for (const name of ['implement-issue-maestri', 'implement-pbi-maestri', 'maestro-worker']) {
     assert.ok(pairs.includes(`skills/${name} → skills/${name}`), pairs.join(', '));
   }
-  assert.ok(pairs.includes('skills/docs/orquestracao-maestri → docs/orquestracao-maestri'), pairs.join(', '));
+  assert.ok(pairs.includes('skills/docs/orchestration-maestri → docs/orchestration-maestri'), pairs.join(', '));
+});
+
+// The Portuguese names the skills had before #61: target in the Claude folder → the folder of this repository it
+// pointed to, which no longer exists (a link to it is left dangling once the repository is updated).
+const OLD = {
+  'skills/especificar': 'skills/especificar',
+  'skills/implementar-issue': 'skills/implementar-issue',
+  'skills/implementar-pbi': 'skills/implementar-pbi',
+  'skills/implementar-issue-maestri': 'skills/implementar-issue-maestri',
+  'skills/implementar-pbi-maestri': 'skills/implementar-pbi-maestri',
+  'skills/trabalhador-floor': 'skills/trabalhador-floor',
+  'docs/orquestracao-subagentes': 'skills/docs/orquestracao-subagentes',
+  'docs/orquestracao-maestri': 'skills/docs/orquestracao-maestri',
+};
+
+/** A link at <claude>/<target> to `to`, the way install-skills makes it (the destination may not exist). */
+function plantLink(claude, target, to) {
+  const at = path.join(claude, target);
+  fs.mkdirSync(path.dirname(at), { recursive: true });
+  fs.symlinkSync(to, at, process.platform === 'win32' ? 'junction' : 'dir');
+  return at;
+}
+
+suite.test('the old Portuguese folders are gone from the repository and the manifest retires their names (#61)', () => {
+  for (const source of Object.values(OLD)) assert.ok(!exists(path.join(REPO, source)), `${source} still in the repository`);
+  const retired = Object.fromEntries((MANIFEST.retired || []).map((l) => [l.target, l.source]));
+  assert.deepStrictEqual(retired, OLD);
+});
+
+suite.test('install removes the links of the old names that point to this repository, and links the new ones (#61)', () => {
+  const r = buildRoot('retired');
+  for (const [target, source] of Object.entries(OLD)) plantLink(r.claude, target, path.join(REPO, source));
+  ok(install(r));
+  for (const target of Object.keys(OLD)) assert.ok(!exists(path.join(r.claude, target)), `${target} is still there`);
+  for (const l of MANIFEST.links) assert.ok(same(path.join(r.claude, l.target), path.join(REPO, l.source)), `${l.target} not linked`);
+  assert.ok(!exists(path.join(r.claude, 'backups')), 'an old link is removed, not backed up');
+  ok(install(r));
+});
+
+suite.test('an old name that is not our link stays untouched by install and by undo (#61)', () => {
+  const r = buildRoot('retired-foreign');
+  const own = path.join(r.claude, 'skills', 'trabalhador-floor');
+  fs.mkdirSync(own, { recursive: true });
+  fs.writeFileSync(path.join(own, 'SKILL.md'), 'skill do dono com o nome antigo');
+  const elsewhere = path.join(r.root, 'elsewhere');
+  fs.mkdirSync(elsewhere);
+  fs.writeFileSync(path.join(elsewhere, 'SKILL.md'), 'outra pasta');
+  const foreignLink = plantLink(r.claude, 'skills/especificar', elsewhere);
+
+  const res = install(r);
+  ok(res);
+  assert.ok(res.stdout.includes('skills/trabalhador-floor: nome antigo, mas não é um link deste repositório; ficou como está.'), res.stdout);
+  assert.strictEqual(fs.readFileSync(path.join(own, 'SKILL.md'), 'utf8'), 'skill do dono com o nome antigo');
+  assert.ok(isLink(foreignLink) && same(foreignLink, elsewhere), 'a link elsewhere is not ours');
+  assert.ok(!exists(path.join(r.claude, 'backups')), 'an old name is never backed up');
+
+  ok(install(r, ['--undo']));
+  assert.strictEqual(fs.readFileSync(path.join(own, 'SKILL.md'), 'utf8'), 'skill do dono com o nome antigo');
+  assert.ok(isLink(foreignLink) && same(foreignLink, elsewhere));
+  for (const l of MANIFEST.links) assert.ok(!exists(path.join(r.claude, l.target)), `${l.target} still there`);
+});
+
+suite.test('undo restores the backup an old name had and removes an old link install never reached (#61)', () => {
+  const r = buildRoot('retired-undo');
+  // Installed before #61 over the owner's own skill: our old link in place, the owner's folder in the backup.
+  const backup = path.join(r.claude, 'backups', 'painel-maestro', 'skills', 'implementar-issue-maestri');
+  fs.mkdirSync(backup, { recursive: true });
+  fs.writeFileSync(path.join(backup, 'SKILL.md'), 'a versão antiga do dono');
+  plantLink(r.claude, 'skills/implementar-issue-maestri', path.join(REPO, 'skills', 'implementar-issue-maestri'));
+  plantLink(r.claude, 'docs/orquestracao-maestri', path.join(REPO, 'skills', 'docs', 'orquestracao-maestri'));
+
+  ok(install(r));
+  assert.ok(!exists(path.join(r.claude, 'skills', 'implementar-issue-maestri')));
+  assert.strictEqual(fs.readFileSync(path.join(backup, 'SKILL.md'), 'utf8'), 'a versão antiga do dono', 'install keeps the backup for undo');
+  plantLink(r.claude, 'docs/orquestracao-maestri', path.join(REPO, 'skills', 'docs', 'orquestracao-maestri'));
+
+  ok(install(r, ['--undo']));
+  const own = path.join(r.claude, 'skills', 'implementar-issue-maestri');
+  assert.ok(!isLink(own));
+  assert.strictEqual(fs.readFileSync(path.join(own, 'SKILL.md'), 'utf8'), 'a versão antiga do dono');
+  assert.ok(!exists(path.join(r.claude, 'docs', 'orquestracao-maestri')), 'an old link of ours is removed by undo too');
+  assert.ok(!exists(path.join(r.claude, 'backups')), 'empty backup folders are removed');
 });
 
 suite.test('after install, every ~/.claude path the installed skills and documents cite exists', () => {
@@ -88,13 +170,13 @@ suite.test('after install, every ~/.claude path the installed skills and documen
     }
   };
   for (const l of MANIFEST.links) scan(path.join(REPO, l.source));
-  assert.ok(cited.has('docs/orquestracao-maestri/README.md'), [...cited].join(', '));
-  assert.ok(cited.has('docs/orquestracao-maestri/scripts/integrate.sh'), [...cited].join(', '));
+  assert.ok(cited.has('docs/orchestration-maestri/README.md'), [...cited].join(', '));
+  assert.ok(cited.has('docs/orchestration-maestri/scripts/integrate.sh'), [...cited].join(', '));
   for (const rel of cited) assert.ok(exists(path.join(r.claude, rel)), `~/.claude/${rel} is cited but not installed`);
-  assert.ok(!exists(path.join(r.claude, 'docs', 'orquestracao-maestri', 'scripts', 'fluxo.py')), 'fluxo.py is gone');
+  assert.ok(!exists(path.join(r.claude, 'docs', 'orchestration-maestri', 'scripts', 'fluxo.py')), 'fluxo.py is gone');
 });
 
-/** Every entry of a Claude folder: { 'skills/especificar': 'link' | 'dir' | 'file' }, links not followed. */
+/** Every entry of a Claude folder: { 'skills/specify': 'link' | 'dir' | 'file' }, links not followed. */
 function snapshot(dir, base = dir, acc = {}) {
   for (const n of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, n.name);
@@ -117,7 +199,7 @@ suite.test('reinstalling is idempotent: same links, no backup', () => {
 
 suite.test('an existing skill folder is backed up, and undo puts it back', () => {
   const r = buildRoot('backup');
-  const own = path.join(r.claude, 'skills', 'especificar');
+  const own = path.join(r.claude, 'skills', 'specify');
   fs.mkdirSync(own, { recursive: true });
   fs.writeFileSync(path.join(own, 'SKILL.md'), 'a versão antiga do dono');
   const other = path.join(r.claude, 'skills', 'outra');
@@ -125,8 +207,8 @@ suite.test('an existing skill folder is backed up, and undo puts it back', () =>
   fs.writeFileSync(path.join(other, 'SKILL.md'), 'skill que não é do repositório');
 
   ok(install(r));
-  assert.ok(isLink(own) && same(own, path.join(REPO, 'skills', 'especificar')));
-  const backup = path.join(r.claude, 'backups', 'painel-maestro', 'skills', 'especificar', 'SKILL.md');
+  assert.ok(isLink(own) && same(own, path.join(REPO, 'skills', 'specify')));
+  const backup = path.join(r.claude, 'backups', 'painel-maestro', 'skills', 'specify', 'SKILL.md');
   assert.strictEqual(fs.readFileSync(backup, 'utf8'), 'a versão antiga do dono');
 
   ok(install(r, ['--undo']));
@@ -134,7 +216,7 @@ suite.test('an existing skill folder is backed up, and undo puts it back', () =>
   assert.strictEqual(fs.readFileSync(path.join(own, 'SKILL.md'), 'utf8'), 'a versão antiga do dono');
   assert.strictEqual(fs.readFileSync(path.join(other, 'SKILL.md'), 'utf8'), 'skill que não é do repositório');
   assert.ok(!exists(path.join(r.claude, 'backups')), 'empty backup folders are removed');
-  assert.ok(fs.existsSync(path.join(REPO, 'skills', 'especificar', 'SKILL.md')), 'undo never touches the repository');
+  assert.ok(fs.existsSync(path.join(REPO, 'skills', 'specify', 'SKILL.md')), 'undo never touches the repository');
 });
 
 suite.test('undo after a fresh install removes the links and leaves the repository intact', () => {
@@ -150,10 +232,10 @@ suite.test('undo after a fresh install removes the links and leaves the reposito
 
 suite.test('a taken backup slot is a conflict: exit 2 and nothing changes', () => {
   const r = buildRoot('conflict');
-  const own = path.join(r.claude, 'skills', 'especificar');
+  const own = path.join(r.claude, 'skills', 'specify');
   fs.mkdirSync(own, { recursive: true });
   fs.writeFileSync(path.join(own, 'SKILL.md'), 'atual');
-  const slot = path.join(r.claude, 'backups', 'painel-maestro', 'skills', 'especificar');
+  const slot = path.join(r.claude, 'backups', 'painel-maestro', 'skills', 'specify');
   fs.mkdirSync(slot, { recursive: true });
   fs.writeFileSync(path.join(slot, 'SKILL.md'), 'backup anterior');
   const before = snapshot(r.claude);
@@ -168,7 +250,7 @@ suite.test('without --claude-dir the folder comes from CLAUDE_CONFIG_DIR', () =>
   const r = buildRoot('env');
   const env = Object.assign({}, process.env, { HOME: r.root, USERPROFILE: r.root, CLAUDE_CONFIG_DIR: r.claude });
   ok(spawnSync(process.execPath, [INSTALL], { cwd: r.root, env, encoding: 'utf8', windowsHide: true, timeout: 30000 }));
-  assert.ok(isLink(path.join(r.claude, 'skills', 'especificar')));
+  assert.ok(isLink(path.join(r.claude, 'skills', 'specify')));
   assert.ok(!exists(path.join(r.root, '.claude')));
 });
 
