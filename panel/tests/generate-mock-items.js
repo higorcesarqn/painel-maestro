@@ -178,6 +178,21 @@ const report = (status, fields) => ({
   status, blocked_reason: null, branch: null, sha: null, tests: null, changes: null, decisions: [], risks: null, shared_files: [], text: null, ...fields,
 });
 const reportText = (lines) => lines.join('\n');
+/**
+ * The diff summary flow report records (TaskDiff, #54): files as [path, added, removed, from], with added null for a
+ * binary file and from for a renamed one (#55). Like the CLI, the first 200 files (truncated when there are more) and
+ * the totals over all of them; uncommitted as given.
+ */
+const diffSummary = (baseRef, base, rows, uncommitted = 0) => {
+  const files = rows.map(([p, added, removed, from]) => (added === null
+    ? { path: p, ...(from ? { from } : {}), added: null, removed: null, binary: true }
+    : { path: p, ...(from ? { from } : {}), added, removed, binary: false }));
+  const sum = (k) => files.reduce((n, f) => n + (f[k] || 0), 0);
+  return {
+    base, base_ref: baseRef, files: files.slice(0, 200), total: { files: files.length, added: sum('added'), removed: sum('removed') },
+    truncated: files.length > 200, uncommitted,
+  };
+};
 const finding = (n, title, classification, origin, newTask, description) => ({
   finding: n, title, description: description || null, classification, origin_task: origin, new_task: newTask,
 });
@@ -199,6 +214,13 @@ TASKS.push(
       'Riscos: tabelas com mais de 200 linhas quebram a página no meio da linha.',
       'Arquivos compartilhados: src/report/layout.ts e package.json (a 3114 também mexe).',
     ]),
+    diff: diffSummary('feature/pbi-3112', '7d1c0e94b2a8f6e5d3c1b0a9f8e7d6c5b4a39281', [
+      ['package.json', 1, 0],
+      ['src/report/fonts/noto-sans.ts', 6, 0],
+      ['src/report/layout.ts', 64, 12],
+      ['src/report/statement-pdf.test.ts', 92, 0],
+      ['src/report/statement-pdf.ts', 148, 0],
+    ]),
   })],
   ['portal', 3112, '2026-10-08T13:50:00', 'finding-recorded', 3113, MAESTRO, finding(1, 'Quebra de página no meio de uma linha da tabela', 'defect', 3113,
     { number: 3119, title: 'Não quebrar linhas da tabela entre páginas' }, 'Com mais de 200 lançamentos a linha 201 aparece cortada entre duas páginas.')],
@@ -219,6 +241,27 @@ TASKS.push(
       'Decisões: 1. adaptador para a rota da 3114, com PDF de exemplo até ela integrar.',
       'Riscos: depende da 3114. Arquivos compartilhados: src/screens/Statement.tsx.',
     ]),
+    // package.json is also in 3113's summary: both get "também na task" (#56). A binary icon, a renamed file and two
+    // files left outside a commit in the worktree (#55).
+    diff: diffSummary('feature/pbi-3112', '7d1c0e94b2a8f6e5d3c1b0a9f8e7d6c5b4a39281', [
+      ['package.json', 2, 1],
+      ['public/icons/pdf.png', null, null],
+      ['src/api/export-adapter.ts', 38, 0],
+      ['src/screens/Statement.tsx', 21, 4],
+      ['src/screens/statement/ExportButton.tsx', 9, 3, 'src/screens/ExportButton.tsx'],
+    ], 2),
+  })],
+  // A diff with more than 200 files (#55): the bank's OFX samples, cut in the first 200 by path.
+  ['portal', 3100, '2026-10-02T18:05:00', 'task-report', 3101, ['worker', 'Ária'], report('ok', {
+    branch: 'task/3101-extrato-ofx', sha: '4be1c2d9a7f0',
+    tests: 'npm test: 0 falhas (2 rodadas), com os 240 extratos de exemplo',
+    changes: 'Importação do extrato OFX, com 240 extratos de exemplo do banco para os testes.',
+    text: 'Task 3101 pronta: importação do extrato OFX, testada com 240 extratos de exemplo. npm test: 0 falhas.',
+    diff: diffSummary('feature/pbi-3100', '9a01f3c5b7d2e4f6a8c0b1d3e5f7a9c2b4d6e8f0', [
+      ['src/ofx/import.ts', 112, 0],
+      ['src/ofx/import.test.ts', 86, 0],
+      ...Array.from({ length: 240 }, (_, i) => [`test/fixtures/ofx/extrato-${String(i + 1).padStart(3, '0')}.ofx`, 30 + (i % 7), 0]),
+    ].sort(([a], [b]) => (a < b ? -1 : 1))),
   })],
   ['portal', 3112, '2026-10-09T10:06:00', 'task-report', 3116, ['worker', 'subagente'], report('blocked', {
     blocked_reason: 'Falta o certificado A1 de homologação para assinar o PDF.',
@@ -233,6 +276,10 @@ TASKS.push(
     branch: 'task/49-carrinho', sha: '0b7a6c5d4e3f',
     tests: 'npm test: 0 falhas', changes: 'O carrinho fica salvo na conta do cliente.', decisions: ['Carrinho guardado por 30 dias.'],
     text: 'Task 49 pronta: o carrinho fica salvo na conta (30 dias). npm test: 0 falhas.',
+    diff: diffSummary('feature/issue-48', '3e2d1c0b9a8f7e6d5c4b3a291807f6e5d4c3b2a1', [
+      ['src/cart/saved-cart.js', 57, 9],
+      ['src/cart/saved-cart.test.js', 40, 0],
+    ]),
   })],
   ['storefront', 48, '2026-10-08T16:50:00', 'task-report', 50, ['worker', 'Caio'], report('ok', {
     branch: 'task/50-juntar', sha: '5f4e3d2c1b0a', tests: 'npm test: 0 falhas', changes: 'Ao entrar, o carrinho do visitante se junta ao da conta.',

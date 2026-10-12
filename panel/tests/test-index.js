@@ -188,6 +188,34 @@ suite.test('mock-items.json: items in different stages, both trackers, several o
   assert.ok(js.includes('/api/pending-decisions'), 'the Pending decisions screen reads the new model');
 });
 
+suite.test('the last report on the task review (#57): in the mock, and the diff summary, tests and short SHA in the pending decision\'s detail', async () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const pd = m.pending_decisions.pending_decisions;
+  const reviews = pd.filter((p) => p.kind === 'task_review');
+  assert.ok(pd.filter((p) => p.kind !== 'task_review').every((p) => !('report' in p)), 'the other kinds have no report');
+  const withReport = reviews.filter((p) => p.report);
+  assert.ok(withReport.some((p) => p.status === 'open' && p.report.diff && p.report.tests && p.report.sha), 'an open review with a report and its summary');
+  for (const p of withReport) {
+    assert.deepStrictEqual(Object.keys(p.report).sort(), ['at', 'diff', 'sha', 'tests']);
+    // The last report of the task, as the item page lists it.
+    const last = m.details[p.item.key].reports.filter((r) => r.task_number === p.task.number).pop();
+    assert.deepStrictEqual(p.report, { at: last.at, sha: last.sha, tests: last.tests, diff: last.diff });
+  }
+  // The source: only the task review shows the block, with the item page's own DiffSummary; nothing without a report.
+  const screen = source['screens/PendingDecisions.jsx'];
+  assert.ok(/import \{[^}]*\bDiffSummary\b[^}]*\} from '\.\/ItemReview\.jsx';/.test(screen), 'the diff summary comes from the item page');
+  assert.ok(/export function DiffSummary\(/.test(source['screens/ItemReview.jsx']), 'and stays there');
+  assert.ok(/\{p\.kind === 'task_review' && <PendingReport report=\{p\.report\} tracker=\{\(obj\(it\.project\) \|\| \{\}\)\.tracker\} \/>\}/.test(screen),
+    'only on a task review, with the item\'s tracker');
+  const block = /function PendingReport\(\{[\s\S]*?\r?\n\}\r?\n/.exec(screen)[0];
+  assert.ok(/if \(!r\) return null;/.test(block), 'nothing without a report');
+  assert.ok(/<DiffSummary diff=\{r\.diff\} tracker=\{tracker\} \/>/.test(block) && /r\.tests &&/.test(block) && /String\(r\.sha\)\.slice\(0, 7\)/.test(block), 'summary, tests and short SHA');
+  // The build carries the block, and the texts come from the dictionary.
+  assert.ok(js.includes('pending-report') && html.includes('.pending-report'), 'the build has the block and its style');
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  assert.deepStrictEqual([t('pending.report.title'), t('pending.report.at', { age: 'há 2 h' })], ['Último relatório da task', 'recebido há 2 h']);
+});
+
 suite.test('the address picks the screen: a malformed address (bad percent-encoding) falls back to the Overview instead of breaking the page', async () => {
   const { parseHash } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'screens.js')).href);
   assert.deepStrictEqual(parseHash('#items/widgets/12'), { id: 'items', sub: 'widgets/12' });
@@ -463,6 +491,90 @@ suite.test('mock-items.json: reports by task (ok and blocked) and findings of ev
   assert.ok(details.some((d) => d.findings.some((f) => f.new_task && d.tasks.some((x) => x.number === f.new_task.number && x.state === 'out' && x.finding === f.number))),
     'a finding that became an "out" task of its item');
   assert.ok(/reviewEventText/.test(source['screens/Items.jsx']), 'the timeline names the report and finding events');
+});
+
+suite.test('diff summary (#54): reports with and without it in the mock, and the block inside each report of the item page', async () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const reports = Object.values(m.details).flatMap((d) => d.reports);
+  const withDiff = reports.filter((r) => r.diff);
+  assert.ok(withDiff.length >= 2 && withDiff.length < reports.length, 'reports with and without a summary');
+  for (const { diff: d } of withDiff) {
+    assert.deepStrictEqual(Object.keys(d).sort(), ['base', 'base_ref', 'files', 'total', 'truncated', 'uncommitted']);
+    // A cut summary (#55) has its totals over the whole diff, not over the files kept.
+    if (!d.truncated) {
+      assert.deepStrictEqual(d.total, {
+        files: d.files.length, added: d.files.reduce((n, f) => n + (f.added || 0), 0), removed: d.files.reduce((n, f) => n + (f.removed || 0), 0),
+      }, 'totals over the files');
+    }
+    for (const f of d.files) {
+      assert.deepStrictEqual(Object.keys(f).filter((k) => k !== 'from').sort(), ['added', 'also_in', 'binary', 'path', 'removed']);
+    }
+  }
+  assert.ok(reports.some((r) => r.diff && r.shared_files.length), 'the summary and the shared files side by side');
+  assert.ok(reports.filter((r) => !r.diff).every((r) => r.diff === null), 'a report without a summary comes with diff null');
+  // The source: the block lives inside the report's <details>, after the changes, and "Arquivos compartilhados" stays.
+  const screen = source['screens/ItemReview.jsx'];
+  const report = /function Report\(\{[\s\S]*?\r?\n\}\r?\n/.exec(screen)[0];
+  assert.ok(/<details class="report"[\s\S]*<DiffSummary diff=\{r\.diff\}[^>]*\/>[\s\S]*<\/details>/.test(report), 'the summary inside the folded report');
+  assert.ok(/review\.fields\.sharedFiles/.test(report), 'shared_files keeps its own field');
+  assert.ok(/function DiffSummary\([\s\S]*?if \(!d\) return null;/.test(screen), 'nothing when the report has no summary');
+  // The build carries the block, and the texts come from the dictionary.
+  assert.ok(js.includes('report-diff-files') && html.includes('.diff-added'), 'the build has the block and its style');
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  assert.deepStrictEqual(
+    [t('review.fields.diff'), t('review.diff.files', { count: 1 }), t('review.diff.files', { count: 5 }), t('review.diff.added', { count: 64 }), t('review.diff.removed', { count: 12 })],
+    ['Resumo do diff', '1 arquivo', '5 arquivos', '+64', '−12'],
+  );
+});
+
+suite.test('"também na task #N" (#56): a crossing between tasks in the mock, and the tag on the file in the item page', async () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const crossed = Object.values(m.details).flatMap((d) => d.reports.filter((r) => r.diff).map((r) => ({ d, r })))
+    .flatMap(({ d, r }) => r.diff.files.filter((f) => f.also_in.length).map((f) => ({ d, r, f })));
+  assert.ok(crossed.length >= 2, 'at least two tasks of an item cite each other');
+  for (const { d, r, f } of crossed) {
+    for (const n of f.also_in) {
+      assert.notStrictEqual(n, r.task_number, 'never the report\'s own task');
+      const other = d.reports.filter((x) => x.task_number === n && x.diff).pop();
+      assert.ok(other.diff.files.some((g) => g.path === f.path && g.also_in.includes(r.task_number)), `${f.path}: the tasks cite each other`);
+    }
+  }
+  assert.ok(Object.values(m.details).flatMap((d) => d.reports).some((r) => r.diff && r.diff.files.some((f) => !f.also_in.length)), 'files without a crossing too');
+  // The source: the tag on the file, with the task as the tracker shows it, inside the report of the item page.
+  const screen = source['screens/ItemReview.jsx'];
+  const summary = /function DiffSummary\([\s\S]*?\r?\n\}\r?\n/.exec(screen)[0];
+  assert.ok(/f\.also_in[\s\S]*t\('review\.diff\.alsoIn', \{ task: taskRef\(tracker, n\) \}\)/.test(summary), 'one tag per task, numbered by the tracker');
+  assert.ok(/<DiffSummary diff=\{r\.diff\} tracker=\{tracker\} \/>/.test(screen) && /tracker=\{item\.tracker\}/.test(screen), 'the item\'s tracker reaches the summary');
+  assert.ok(js.includes('review.diff.alsoIn') && html.includes('.diff-also'), 'the build has the tag and its style');
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  assert.deepStrictEqual([t('review.diff.alsoIn', { task: '#14' }), t('review.diff.alsoIn', { task: '3115' })], ['também na task #14', 'também na task 3115']);
+});
+
+suite.test('edge cases of the diff summary (#55): binary, renamed, cut at 200 files and uncommitted in the mock, and how the item page shows them', async () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const diffs = Object.values(m.details).flatMap((d) => d.reports).filter((r) => r.diff).map((r) => r.diff);
+  const files = diffs.flatMap((d) => d.files);
+  assert.ok(files.some((f) => f.binary && f.added === null && f.removed === null), 'a binary file, without line counts');
+  assert.ok(files.some((f) => typeof f.from === 'string' && f.from !== f.path && Number.isInteger(f.added)), 'a renamed file, with its lines');
+  const cut = diffs.find((d) => d.truncated);
+  assert.ok(cut && cut.files.length === 200 && cut.total.files > 200, 'a summary cut at 200 files, with the total of the whole diff');
+  assert.deepStrictEqual(cut.files.map((f) => f.path), cut.files.map((f) => f.path).slice().sort(), 'the files kept in git\'s order (by path)');
+  assert.ok(diffs.some((d) => d.uncommitted > 0) && diffs.some((d) => d.uncommitted === 0), 'with and without changes outside a commit');
+  // The source: each case in the summary block, with its text from the dictionary.
+  const summary = /function DiffSummary\([\s\S]*?\r?\n\}\r?\n/.exec(source['screens/ItemReview.jsx'])[0];
+  assert.ok(/f\.binary[\s\S]*t\('review\.diff\.binary'\)/.test(summary), 'a binary file is marked, without + and -');
+  assert.ok(/f\.from[\s\S]*t\('review\.diff\.renamed', \{ from: f\.from, path: f\.path \}\)/.test(summary), '"old → new"');
+  assert.ok(/d\.truncated[\s\S]*t\('review\.diff\.more', \{ count: /.test(summary), '"e mais N arquivos" when cut');
+  assert.ok(/d\.uncommitted > 0[\s\S]*t\('review\.diff\.uncommitted', \{ count: d\.uncommitted \}\)/.test(summary), 'the warning only above zero');
+  for (const k of ['review.diff.binary', 'review.diff.renamed', 'review.diff.more', 'review.diff.uncommitted']) assert.ok(js.includes(k), `${k} in the build`);
+  assert.ok(html.includes('.diff-binary') && html.includes('.report-diff-uncommitted'), 'the build has their style');
+  const { t } = await import(require('url').pathToFileURL(path.join(SOURCE, 'i18n', 'index.js')).href);
+  assert.deepStrictEqual(
+    [t('review.diff.binary'), t('review.diff.renamed', { from: 'a/velho.js', path: 'b/novo.js' }), t('review.diff.more', { count: 1 }), t('review.diff.more', { count: 42 }),
+      t('review.diff.uncommitted', { count: 1 }), t('review.diff.uncommitted', { count: 2 })],
+    ['binário', 'a/velho.js → b/novo.js', 'e mais 1 arquivo', 'e mais 42 arquivos',
+      '1 arquivo com mudança fora de commit no worktree no momento do relatório', '2 arquivos com mudanças fora de commit no worktree no momento do relatório'],
+  );
 });
 
 suite.test('mock-items.json: usage per item and per agent and the active agents (#13), from the real collector and API', () => {
@@ -749,6 +861,7 @@ suite.test('the real server on a fake root (the demo in a real maestro.db + a ho
   const hostile = (await get('/api/items/portal/4242')).item;
   assert.ok(hostile.title.includes('<script>'), 'the hostile title arrives raw');
   assert.ok(hostile.reports[0].text.includes('onerror'), 'the hostile report arrives raw');
+  assert.ok(hostile.reports[0].diff.files[0].path.includes('onerror'), 'the hostile diff summary arrives raw, as recorded');
   assert.strictEqual(hostile.pr.url, null, 'only tracker links are kept');
   assert.ok(pd.some((x) => x.title.includes('onerror')), 'the hostile pending decision is in the list');
   const log = await get('/api/log?per_page=50');

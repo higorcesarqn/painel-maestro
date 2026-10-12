@@ -48,6 +48,10 @@
 .link-button:hover { text-decoration: underline; }
 .pending-options-read { display: flex; flex-direction: column; gap: 8px; }
 .pending-options-read .pending-options { margin: 0; padding: 0; }
+/* the last report of the task under review (#57): the fields and the diff summary of the item page's report */
+.pending-report { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 10px; background: var(--card-2); }
+.pending-report-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.pending-report .report-body { padding: 0; }
 
 /* the answer (#32) and where to answer */
 .pending-panel { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }

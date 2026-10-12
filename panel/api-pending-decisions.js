@@ -13,8 +13,10 @@
 //     notification: 'sent' | 'failed' | 'outside' | null   (the owner's "maestri notify" when it opened, #44; null when
 //     derived or opened before #44)
 //     opened_at, opened_by, closed_at, closed_by, resolution, decision, reason,
-//     derived_from: null | { type: 'hml-recorded', passed, failed, blocked, card_url } }]  (derived: opened by a failing
+//     derived_from: null | { type: 'hml-recorded', passed, failed, blocked, card_url },  (derived: opened by a failing
 //     HML result itself, title null; see bin/flow-projection.js)
+//     report: { at, sha, tests, diff } | null   only on a task_review (#57): the last report of its task, whenever it
+//     arrived (even after the pending decision opened), taken from the item's reports; null without one }]
 //     open ones first (by severity, then the oldest), then the closed ones (the most recently closed first)
 //   counts: { status: {open, resolved, canceled}, severity: {critical, high, normal, low} }
 //     each facet counts with the other filters applied but not its own
@@ -95,10 +97,18 @@ function order(a, b) {
   return time(b.closed_at) - time(a.closed_at) || b.id - a.id;
 }
 
-/** A pending decision as the API shows it: with its item and task. */
+/** The last report of the task, from the reports the projection built (oldest first), in short; null without one. */
+function lastReport(state, number) {
+  const r = state.reports.filter((x) => x.task_number === number).pop();
+  return r ? { at: r.at, sha: r.sha, tests: r.tests, diff: r.diff } : null;
+}
+
+/** A pending decision as the API shows it: with its item and task; a task_review also with its task's last report (#57). */
 function pendingView(project, state, p) {
   const { task_number: taskNumber, ...rest } = p;
-  return { ...rest, item: itemInfo(project, state), task: taskInfo(state, taskNumber) };
+  const view = { ...rest, item: itemInfo(project, state), task: taskInfo(state, taskNumber) };
+  if (p.kind === 'task_review') view.report = lastReport(state, taskNumber);
+  return view;
 }
 
 /** Every pending decision of every item, with its item and task; those of a hidden organization only with withHidden (#51). */

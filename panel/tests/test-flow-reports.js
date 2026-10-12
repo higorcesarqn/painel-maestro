@@ -20,17 +20,58 @@ function git(cwd, ...args) {
   return r.stdout.trim();
 }
 
-function buildRoot(name) {
+function buildRoot(name, { branch = 'feature/issue-12', remote = 'https://github.com/acme/widgets.git' } = {}) {
   const root = tmpDir(`reports-${name}`);
   roots.push(root);
   const data = path.join(root, 'data');
   const repo = path.join(root, 'repo');
   fs.mkdirSync(repo, { recursive: true });
-  git(repo, 'init', '-q', '-b', 'feature/issue-12');
-  git(repo, 'remote', 'add', 'origin', 'https://github.com/acme/widgets.git');
+  git(repo, 'init', '-q', '-b', branch);
+  git(repo, 'config', 'core.autocrlf', 'false');
+  git(repo, 'remote', 'add', 'origin', remote);
   git(repo, 'commit', '-q', '--allow-empty', '-m', 'inicio');
   return { root, data, repo };
 }
+
+/** Writes the files ({ path: text | Buffer }) in the folder without committing them; null removes the file. */
+function write(dir, files) {
+  for (const [file, text] of Object.entries(files)) {
+    if (text === null) {
+      fs.rmSync(path.join(dir, file));
+      continue;
+    }
+    fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+    fs.writeFileSync(path.join(dir, file), text);
+  }
+}
+
+/** Writes the files ({ path: text | Buffer | null }, as write does) in the folder and commits them; returns the new HEAD. */
+function commit(dir, files, message = 'mudança') {
+  write(dir, files);
+  git(dir, 'add', '-A');
+  git(dir, 'commit', '-q', '-m', message);
+  return git(dir, 'rev-parse', 'HEAD');
+}
+
+/** A floor without a commit of its own: a worktree on a new branch, from the given start point. */
+function addWorktree(r, name, branch, start) {
+  const wt = path.join(r.root, name);
+  git(r.repo, 'worktree', 'add', '-q', '-b', branch, wt, ...(start ? [start] : []));
+  return wt;
+}
+
+/** The item with one task dispatched on its branch (the report finds the task by the floor's branch). */
+function startItem(r, number, task, branch) {
+  ok(flow(r, ['item', 'start', String(number), '--title', 'Resumo do diff', '--stage', 'implementation']));
+  ok(flow(r, ['task', 'graph', String(number), '--task', `${task}|Uma task`]));
+  ok(flow(r, ['task', 'dispatch', String(number), String(task), '--worker', 'Atlas', '--branch', branch]));
+}
+
+const REPORT = JSON.stringify({ status: 'ok', text: 'Pronto.' });
+const lines = (x) => x.stdout.trim().split(/\r?\n/);
+/** A file of the summary as the API returns it: also_in is computed on read (#56), the recorded one has none. */
+const fileRow = (p, added, removed, alsoIn = []) => ({ path: p, added, removed, binary: false, also_in: alsoIn });
+const recorded = (diff) => ({ ...diff, files: diff.files.map(({ also_in: _, ...f }) => f) });
 
 /** A floor: a worktree of the repository on the given branch, with one commit of its own. */
 function addFloor(r, name, branch) {
@@ -229,11 +270,326 @@ suite.test('invalid reports and findings end with a clear message and exit code 
   });
 });
 
+// ---------- the diff summary of the report (TaskDiff, #54) ----------
+
+suite.test('diff summary: only what the task committed since it left the integration branch (GitHub convention), even after another task was integrated', async () => {
+  const r = buildRoot('diff-github');
+  const start = commit(r.repo, { 'base.txt': 'um\ndois\ntrês\n', 'docs/leia.md': 'leia\n' }, 'base');
+  startItem(r, 12, 13, 'task/13-resumo');
+  const a = addWorktree(r, 'floor-13', 'task/13-resumo');
+  const b = addWorktree(r, 'floor-14', 'task/14-outra');
+  commit(a, { 'a.txt': 'novo\noutro\n' }, 'a');
+  commit(a, { 'base.txt': 'um\nDOIS\ntrês\n', 'src/ç.js': 'x\n' }, 'base mexida');
+  commit(b, { 'b.txt': 'b\n', 'docs/leia.md': 'leia\nmais\n' }, 'b');
+  // Task 14 is integrated after task 13 left the integration branch: 13's summary must not show it.
+  git(r.repo, 'merge', '-q', '--no-ff', '-m', 'integra a 14', 'task/14-outra');
+  const x = flow(r, ['report', '--agent', 'Atlas', '--json', '-'], { cwd: a, input: REPORT });
+  ok(x);
+  assert.strictEqual(lines(x).length, 1, `a single line when the summary is recorded:\n${x.stdout}`);
+  const expected = {
+    base: start, base_ref: 'feature/issue-12',
+    files: [fileRow('a.txt', 2, 0), fileRow('base.txt', 1, 1), fileRow('src/ç.js', 1, 0)],
+    total: { files: 3, added: 4, removed: 1 }, truncated: false, uncommitted: 0,
+  };
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/12')).item;
+    assert.strictEqual(item.reports.length, 1);
+    assert.deepStrictEqual(item.reports[0].diff, expected);
+    assert.strictEqual(item.reports[0].sha, git(a, 'rev-parse', 'HEAD'));
+    assert.deepStrictEqual(item.timeline.find((e) => e.type === 'task-report').payload.diff, recorded(expected), 'recorded in the task-report itself, without also_in');
+  });
+});
+
+suite.test('diff summary: the base comes from --base, then "base" in the JSON, then the item\'s pr.branch, before the convention', async () => {
+  const r = buildRoot('diff-base-order', { branch: 'integra/carrinho' });
+  const start = commit(r.repo, { 'base.txt': 'base\n' }, 'base');
+  startItem(r, 12, 13, 'task/13-ordem');
+  const wt = addWorktree(r, 'floor-13', 'task/13-ordem');
+  const first = commit(wt, { 'um.txt': '1\n' }, 'um');
+  git(r.repo, 'branch', 'marco', first);
+  const head = commit(wt, { 'dois.txt': '2\n2\n' }, 'dois');
+  // The convention's branch exists too, at the task's HEAD: if it won, the summary would be empty.
+  git(r.repo, 'branch', 'feature/issue-12', head);
+  ok(flow(r, ['pr', '12', 'draft', '--url', 'https://github.com/acme/widgets/pull/9', '--branch', 'integra/carrinho']));
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT }));
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: JSON.stringify({ status: 'ok', text: 'Pronto.', base: 'marco' }) }));
+  ok(flow(r, ['report', '--base', 'feature/issue-12', '--json', '-'], { cwd: wt, input: JSON.stringify({ status: 'ok', text: 'Pronto.', base: 'marco' }) }));
+  // An unknown --base falls back to the next name (pr.branch).
+  ok(flow(r, ['report', '--base', 'nao-existe', '--json', '-'], { cwd: wt, input: REPORT }));
+  await withServer(r, async (get) => {
+    const diffs = (await get('/api/items/widgets/12')).item.reports.map((x) => x.diff);
+    assert.deepStrictEqual(diffs.map((d) => [d.base_ref, d.base, d.files.map((f) => f.path), d.total]), [
+      ['integra/carrinho', start, ['dois.txt', 'um.txt'], { files: 2, added: 3, removed: 0 }],
+      ['marco', first, ['dois.txt'], { files: 1, added: 2, removed: 0 }],
+      ['feature/issue-12', head, [], { files: 0, added: 0, removed: 0 }],
+      ['integra/carrinho', start, ['dois.txt', 'um.txt'], { files: 2, added: 3, removed: 0 }],
+    ]);
+  });
+});
+
+suite.test('diff summary: Azure DevOps convention (feature/pbi-<n>) and origin/<name> when there is no local ref', async () => {
+  const r = buildRoot('diff-azure', { branch: 'main', remote: 'https://dev.azure.com/acme/Loja/_git/widgets' });
+  const integration = commit(r.repo, { 'base.txt': 'base\n' }, 'base');
+  // Only the remote-tracking ref of the integration branch exists in this clone.
+  git(r.repo, 'update-ref', 'refs/remotes/origin/feature/pbi-3100', integration);
+  commit(r.repo, { 'main.txt': 'só na main\n' }, 'main anda');
+  startItem(r, 3100, 3101, 'task/3101-azure');
+  const wt = addWorktree(r, 'floor-3101', 'task/3101-azure', 'origin/feature/pbi-3100');
+  commit(wt, { 'pbi.txt': 'a\nb\nc\n' }, 'pbi');
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT }));
+  // The local ref wins over origin/<name> when both exist.
+  git(r.repo, 'branch', 'feature/pbi-3100', git(wt, 'rev-parse', 'HEAD'));
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT }));
+  await withServer(r, async (get) => {
+    const diffs = (await get('/api/items/widgets/3100')).item.reports.map((x) => x.diff);
+    assert.deepStrictEqual(diffs[0], {
+      base: integration, base_ref: 'origin/feature/pbi-3100', files: [fileRow('pbi.txt', 3, 0)],
+      total: { files: 1, added: 3, removed: 0 }, truncated: false, uncommitted: 0,
+    });
+    assert.deepStrictEqual([diffs[1].base_ref, diffs[1].files], ['feature/pbi-3100', []]);
+  });
+});
+
+suite.test('diff summary: an explicit --sha summarizes that commit, not the HEAD', async () => {
+  const r = buildRoot('diff-sha');
+  const start = git(r.repo, 'rev-parse', 'HEAD');
+  startItem(r, 12, 13, 'task/13-sha');
+  const wt = addWorktree(r, 'floor-13', 'task/13-sha');
+  const first = commit(wt, { 'um.txt': '1\n' }, 'um');
+  commit(wt, { 'dois.txt': '2\n' }, 'dois');
+  ok(flow(r, ['report', '--sha', first, '--json', '-'], { cwd: wt, input: REPORT }));
+  // From another folder (the maestro's), with --item/--task: the explicit SHA still gives the summary.
+  ok(flow(r, ['report', '--item', '12', '--task', '13', '--sha', first.slice(0, 7), '--json', '-'], { input: REPORT }));
+  await withServer(r, async (get) => {
+    const reports = (await get('/api/items/widgets/12')).item.reports;
+    for (const x of reports) {
+      assert.deepStrictEqual([x.diff.base, x.diff.base_ref, x.diff.files], [start, 'feature/issue-12', [fileRow('um.txt', 1, 0)]]);
+    }
+    assert.deepStrictEqual(reports.map((x) => x.sha), [first, first.slice(0, 7)]);
+  });
+});
+
+suite.test('without a summary (no SHA, unknown commit, no base, no common ancestor, git failing) the report is recorded without "diff", exit 0, and a second line says why', async () => {
+  const r = buildRoot('diff-none', { branch: 'main' });
+  startItem(r, 12, 13, 'task/13-sem');
+  const wt = addWorktree(r, 'floor-13', 'task/13-sem');
+  commit(wt, { 'a.txt': 'a\n' }, 'a');
+  const orphan = git(r.repo, 'commit-tree', '4b825dc642cb6eb9a060e54bf8d69288fbee4904', '-m', 'sem ancestral');
+  const broken = commit(wt, { 'perdido.txt': 'objeto que some\n' }, 'objeto perdido');
+  const blob = git(wt, 'rev-parse', `${broken}:perdido.txt`);
+  fs.rmSync(path.join(r.repo, '.git', 'objects', blob.slice(0, 2), blob.slice(2)));
+  const cases = [
+    // No SHA: --item/--task from a folder that is not on the task's branch.
+    [{ args: ['--item', '12', '--task', '13'] }, /^Relatório gravado sem o resumo do diff: o relatório não tem SHA/],
+    // No base: neither --base, pr.branch nor feature/issue-12 exist (locally or in origin).
+    [{ cwd: wt, args: [] }, /^Relatório gravado sem o resumo do diff: nenhuma base encontrada \(feature\/issue-12, origin\/feature\/issue-12\)/],
+    [{ cwd: wt, args: ['--base', 'outra'] }, /nenhuma base encontrada \(outra, origin\/outra, feature\/issue-12, origin\/feature\/issue-12\)/],
+    // A SHA git does not know (it wins over the missing base).
+    [{ cwd: wt, args: ['--sha', 'abcdef1'] }, /^Relatório gravado sem o resumo do diff: o commit abcdef1 não está no repositório/],
+    // A commit with no common ancestor with the base.
+    [{ cwd: wt, args: ['--base', 'main', '--sha', orphan] }, new RegExp(`^Relatório gravado sem o resumo do diff: o commit ${orphan} não tem ancestral comum com main`)],
+    // git itself fails: an object the diff needs is gone.
+    [{ cwd: wt, args: ['--base', 'main', '--sha', broken] }, /^Relatório gravado sem o resumo do diff: o git falhou \(.+\)/],
+  ];
+  for (const [{ cwd, args }, why] of cases) {
+    const x = flow(r, ['report', ...args, '--json', '-'], { cwd, input: REPORT });
+    ok(x);
+    const out = lines(x);
+    assert.strictEqual(out.length, 2, x.stdout);
+    assert.ok(/^Relatório da task 13 do item widgets\/12 gravado/.test(out[0]), out[0]);
+    assert.ok(why.test(out[1]), out[1]);
+  }
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/12')).item;
+    assert.deepStrictEqual(item.reports.map((x) => x.diff), cases.map(() => null));
+    for (const e of item.timeline.filter((x) => x.type === 'task-report')) assert.ok(!('diff' in e.payload), 'nothing about the summary in the payload');
+  });
+});
+
+// ---------- edge cases of the summary: binary, renamed, cut at 200 files, uncommitted (#55) ----------
+
+/** Ten lines of text: a file git recognizes as renamed when only one of them changes. */
+const tenLines = (last = 'dez') => `${['um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', last].join('\n')}\n`;
+const BINARY = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00, 0x00, 0x0d, 0xff, 0x00, 0x01]);
+
+suite.test('edge cases: a binary file has no line counts and stays out of the line totals; a renamed one has "from" and its lines', async () => {
+  const r = buildRoot('diff-binary-renamed');
+  const start = commit(r.repo, { 'logo.png': BINARY, 'velho.txt': tenLines(), 'leia.md': 'leia\n' }, 'base');
+  startItem(r, 12, 13, 'task/13-borda');
+  const wt = addWorktree(r, 'floor-13', 'task/13-borda');
+  commit(wt, {
+    'logo.png': Buffer.concat([BINARY, Buffer.from([0x00, 0x02])]), 'icone.bin': BINARY,
+    'velho.txt': null, 'src/novo.txt': tenLines('DEZ'), 'leia.md': 'leia\nmais\n',
+  }, 'borda');
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT }));
+  await withServer(r, async (get) => {
+    assert.deepStrictEqual((await get('/api/items/widgets/12')).item.reports[0].diff, {
+      base: start, base_ref: 'feature/issue-12',
+      files: [
+        { path: 'icone.bin', added: null, removed: null, binary: true, also_in: [] },
+        fileRow('leia.md', 1, 0),
+        { path: 'logo.png', added: null, removed: null, binary: true, also_in: [] },
+        { path: 'src/novo.txt', from: 'velho.txt', added: 1, removed: 1, binary: false, also_in: [] },
+      ],
+      total: { files: 4, added: 2, removed: 1 }, truncated: false, uncommitted: 0,
+    });
+  });
+});
+
+suite.test('edge cases: more than 200 files keeps the first 200 in git\'s order (by path), truncated, with the totals of the whole diff', async () => {
+  const r = buildRoot('diff-cut');
+  const start = git(r.repo, 'rev-parse', 'HEAD');
+  startItem(r, 12, 13, 'task/13-corte');
+  const wt = addWorktree(r, 'floor-13', 'task/13-corte');
+  const name = (i) => `f/${String(i).padStart(3, '0')}.txt`;
+  const files = (from, to, text) => Object.fromEntries(Array.from({ length: to - from + 1 }, (_, k) => [name(from + k), text]));
+  // Exactly 200 files: nothing is cut.
+  const exact = commit(wt, files(1, 200, 'a\n'), '200');
+  // 205 files: the last five (by path) are cut, but their lines (two each, and a binary one) count in the totals.
+  commit(wt, { ...files(201, 204, 'b\nb\n'), 'z.bin': BINARY }, 'mais 5');
+  ok(flow(r, ['report', '--sha', exact, '--json', '-'], { cwd: wt, input: REPORT }));
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT }));
+  await withServer(r, async (get) => {
+    const [full, cut] = (await get('/api/items/widgets/12')).item.reports.map((x) => x.diff);
+    assert.deepStrictEqual([full.files.length, full.truncated, full.total], [200, false, { files: 200, added: 200, removed: 0 }]);
+    assert.strictEqual(cut.base, start);
+    assert.deepStrictEqual(cut.files.map((f) => f.path), Array.from({ length: 200 }, (_, k) => name(k + 1)));
+    assert.deepStrictEqual([cut.truncated, cut.total], [true, { files: 205, added: 208, removed: 0 }]);
+  });
+});
+
+suite.test('edge cases: uncommitted counts the files changed outside a commit in the worktree, only when the SHA is its HEAD', async () => {
+  const r = buildRoot('diff-uncommitted');
+  commit(r.repo, { 'a.txt': 'a\n', 'b.txt': tenLines() }, 'base');
+  startItem(r, 12, 13, 'task/13-sujo');
+  const wt = addWorktree(r, 'floor-13', 'task/13-sujo');
+  const first = commit(wt, { 'c.txt': 'c\n' }, 'c');
+  commit(wt, { 'd.txt': 'd\n' }, 'd');
+  // A clean worktree: 0.
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT }));
+  // Modified (a.txt), renamed in the index (b.txt → e.txt) and two untracked files in a new folder: 4 files.
+  write(wt, { 'a.txt': 'a\nsem commit\n', 'novos/um.txt': '1\n', 'novos/dois.txt': '2\n' });
+  git(wt, 'mv', 'b.txt', 'e.txt');
+  ok(flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT }));
+  // An explicit --sha that is the HEAD counts too; one that is not the HEAD does not.
+  ok(flow(r, ['report', '--sha', git(wt, 'rev-parse', 'HEAD'), '--json', '-'], { cwd: wt, input: REPORT }));
+  ok(flow(r, ['report', '--sha', first, '--json', '-'], { cwd: wt, input: REPORT }));
+  await withServer(r, async (get) => {
+    const diffs = (await get('/api/items/widgets/12')).item.reports.map((x) => x.diff);
+    assert.deepStrictEqual(diffs.map((d) => [d.uncommitted, d.files.map((f) => f.path)]), [
+      [0, ['c.txt', 'd.txt']],
+      [4, ['c.txt', 'd.txt']],
+      [4, ['c.txt', 'd.txt']],
+      [0, ['c.txt']],
+    ]);
+  });
+});
+
+suite.test('edge cases: uncommitted is not counted from another folder (the maestro\'s) that happens to be at the reported SHA', async () => {
+  const r = buildRoot('diff-uncommitted-elsewhere');
+  const start = commit(r.repo, { 'a.txt': 'a\n' }, 'base');
+  startItem(r, 12, 13, 'task/13-limpa');
+  const wt = addWorktree(r, 'floor-13', 'task/13-limpa');
+  const head = commit(wt, { 'c.txt': 'c\n' }, 'c');
+  // The maestro's checkout sits on the task's commit with its own edits: they are not the task's.
+  const maestro = addWorktree(r, 'maestro', 'integra/13', head);
+  write(maestro, { 'a.txt': 'a\ndo maestro\n', 'rascunho.txt': 'x\n' });
+  ok(flow(r, ['report', '--item', '12', '--task', '13', '--sha', head, '--base', start, '--json', '-'], { cwd: maestro, input: REPORT }));
+  await withServer(r, async (get) => {
+    const [d] = (await get('/api/items/widgets/12')).item.reports.map((x) => x.diff);
+    assert.deepStrictEqual([d.uncommitted, d.files.map((f) => f.path)], [0, ['c.txt']]);
+  });
+});
+
+suite.test('edge cases: when git status fails in the worktree the report is recorded without "diff", exit 0, and a second line says why', async () => {
+  const r = buildRoot('diff-status-fails');
+  commit(r.repo, { 'a.txt': 'a\n' }, 'base');
+  startItem(r, 12, 13, 'task/13-indice');
+  const wt = addWorktree(r, 'floor-13', 'task/13-indice');
+  commit(wt, { 'c.txt': 'c\n' }, 'c');
+  // A corrupt index: the commits still resolve and diff, only git status fails.
+  fs.writeFileSync(path.resolve(wt, git(wt, 'rev-parse', '--git-path', 'index')), 'lixo');
+  const x = flow(r, ['report', '--json', '-'], { cwd: wt, input: REPORT });
+  ok(x);
+  const out = lines(x);
+  assert.strictEqual(out.length, 2, x.stdout);
+  assert.ok(/^Relatório gravado sem o resumo do diff: o git falhou \(.+\)/.test(out[1]), out[1]);
+  await withServer(r, async (get) => {
+    assert.deepStrictEqual((await get('/api/items/widgets/12')).item.reports.map((y) => y.diff), [null]);
+  });
+});
+
+// ---------- "também na task #N": the other tasks of the item that changed the same file (#56) ----------
+
+suite.test('also_in: two tasks that change the same file cite each other, different files do not, and only the last report with a summary of each task counts', async () => {
+  const r = buildRoot('also-in');
+  commit(r.repo, { 'comum.txt': 'comum\n', 'a.txt': 'a\n' }, 'base');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Resumo do diff', '--stage', 'implementation']));
+  ok(flow(r, ['task', 'graph', '12', '--task', '13|Uma', '--task', '14|Outra', '--task', '15|Mais uma']));
+  for (const [task, branch] of [[13, 'task/13-um'], [14, 'task/14-outra'], [15, 'task/15-mais']]) {
+    ok(flow(r, ['task', 'dispatch', '12', String(task), '--worker', 'Atlas', '--branch', branch]));
+  }
+  const a = addWorktree(r, 'floor-13', 'task/13-um');
+  const b = addWorktree(r, 'floor-14', 'task/14-outra');
+  const c = addWorktree(r, 'floor-15', 'task/15-mais');
+  commit(a, { 'comum.txt': 'comum\nda 13\n', 'a.txt': 'a\nda 13\n' }, 'a');
+  const b1 = commit(b, { 'a.txt': 'a\nda 14\n' }, 'b1');
+  const b2 = commit(b, { 'comum.txt': 'comum\nda 14\n' }, 'b2');
+  commit(c, { 'c.txt': 'c\n' }, 'c');
+  // Task 14: a first report with both files, then a later one with only a.txt, then one without a summary (no SHA).
+  ok(flow(r, ['report', '--sha', b2, '--json', '-'], { cwd: b, input: REPORT }));
+  ok(flow(r, ['report', '--sha', b1, '--json', '-'], { cwd: b, input: REPORT }));
+  ok(flow(r, ['report', '--item', '12', '--task', '14', '--json', '-'], { input: REPORT }));
+  ok(flow(r, ['report', '--json', '-'], { cwd: a, input: REPORT }));
+  ok(flow(r, ['report', '--json', '-'], { cwd: c, input: REPORT }));
+  // Task 14 integrated: it still counts (a warning, not a guarantee of conflict).
+  ok(flow(r, ['task', 'integrate', '12', '14', '--sha', b1]));
+  const files = (x) => (x.diff ? x.diff.files.map((f) => [f.path, f.also_in]) : null);
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/12')).item;
+    assert.deepStrictEqual(item.reports.map((x) => [x.task_number, files(x)]), [
+      // 14's older report: 13's last summary also changed both files.
+      [14, [['a.txt', [13]], ['comum.txt', [13]]]],
+      [14, [['a.txt', [13]]]],
+      [14, null],
+      // 13: comum.txt only in 14's older report, which no longer counts.
+      [13, [['a.txt', [14]], ['comum.txt', []]]],
+      [15, [['c.txt', []]]],
+    ]);
+    for (const e of item.timeline.filter((x) => x.type === 'task-report' && x.payload.diff)) {
+      assert.ok(e.payload.diff.files.every((f) => !('also_in' in f)), 'also_in is not recorded (ADR 0002)');
+    }
+  });
+});
+
+suite.test('also_in: a file renamed in one task whose old path (from) is the path another task changed; the two cite each other', async () => {
+  const r = buildRoot('also-in-renamed');
+  commit(r.repo, { 'velho.txt': tenLines(), 'outro.txt': 'outro\n' }, 'base');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Resumo do diff', '--stage', 'implementation']));
+  ok(flow(r, ['task', 'graph', '12', '--task', '13|Renomeia', '--task', '14|Altera']));
+  for (const [task, branch] of [[13, 'task/13-renomeia'], [14, 'task/14-altera']]) {
+    ok(flow(r, ['task', 'dispatch', '12', String(task), '--worker', 'Atlas', '--branch', branch]));
+  }
+  const a = addWorktree(r, 'floor-13', 'task/13-renomeia');
+  const b = addWorktree(r, 'floor-14', 'task/14-altera');
+  commit(a, { 'velho.txt': null, 'novo.txt': tenLines('DEZ') }, 'renomeia');
+  commit(b, { 'velho.txt': tenLines('10'), 'outro.txt': 'outro\nda 14\n' }, 'altera');
+  ok(flow(r, ['report', '--json', '-'], { cwd: a, input: REPORT }));
+  ok(flow(r, ['report', '--json', '-'], { cwd: b, input: REPORT }));
+  await withServer(r, async (get) => {
+    const reports = (await get('/api/items/widgets/12')).item.reports;
+    assert.deepStrictEqual(reports.map((x) => [x.task_number, x.diff.files.map((f) => [f.from || null, f.path, f.also_in])]), [
+      [13, [['velho.txt', 'novo.txt', [14]]]],
+      [14, [[null, 'outro.txt', []], [null, 'velho.txt', [13]]]],
+    ]);
+  });
+});
+
 suite.test('help lists the report and finding subcommands', () => {
   const r = buildRoot('help');
   const x = flow(r, ['--help']);
   ok(x);
-  for (const s of ['report [--item <número>] [--task <task>]', 'finding add <número>', 'finding link <número> <achado>', 'defect|owner_decision|discarded']) {
+  for (const s of ['report [--item <número>] [--task <task>]', '[--base <branch>]', 'finding add <número>', 'finding link <número> <achado>', 'defect|owner_decision|discarded']) {
     assert.ok(x.stdout.includes(s), `${s} in:\n${x.stdout}`);
   }
 });

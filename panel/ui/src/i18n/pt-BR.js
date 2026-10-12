@@ -407,7 +407,31 @@ export default {
       decisions: 'Decisões',
       risks: 'Riscos e pendências',
       sharedFiles: 'Arquivos compartilhados',
+      diff: 'Resumo do diff',
       text: 'Relatório completo',
+    },
+    // The diff summary of a report (#54): what the task committed since it left the integration branch.
+    diff: {
+      files: { one: '{count} arquivo', other: '{count} arquivos' },
+      added: '+{count}',
+      removed: '−{count}',
+      addedTitle: 'linhas adicionadas',
+      removedTitle: 'linhas removidas',
+      base: 'desde {base}',
+      empty: 'Nenhum arquivo alterado desde a base.',
+      // Another task of the item also changed the file (#56): a warning of a possible conflict, never "compartilhado".
+      alsoIn: 'também na task {task}',
+      // The edge cases (#55): a binary file has no line counts, a renamed one shows both paths, a cut summary says how
+      // many files were left out, and the files left outside a commit in the worktree are only counted.
+      binary: 'binário',
+      binaryTitle: 'arquivo binário: sem contagem de linhas',
+      renamed: '{from} → {path}',
+      more: { one: 'e mais {count} arquivo', other: 'e mais {count} arquivos' },
+      uncommitted: {
+        one: '{count} arquivo com mudança fora de commit no worktree no momento do relatório',
+        other: '{count} arquivos com mudanças fora de commit no worktree no momento do relatório',
+      },
+      uncommittedTitle: 'Essas mudanças não estão no SHA do relatório: não entram na integração.',
     },
     findings: {
       title: 'Achados',
@@ -547,6 +571,8 @@ export default {
     derivedHml: 'Validação HML: {failed} com falha e {blocked} bloqueado(s) de {total} cenários',
     derivedHmlContext: 'Aberta sozinha pelo resultado da validação HML ({passed} aprovado(s), {failed} com falha, {blocked} bloqueado(s)); fecha quando uma validação seguinte passar em tudo ou o item for concluído.',
     derivedHmlCard: 'Card de validação',
+    // the last report of the task on its review (#57)
+    report: { title: 'Último relatório da task', at: 'recebido {age}' },
     // the Maestri's notification failed when it opened (#44)
     notificationFailed: 'O aviso do Maestri falhou quando esta pendência abriu (maestri notify): você pode não ter sido notificado.',
     cancelReason: 'Motivo do cancelamento',

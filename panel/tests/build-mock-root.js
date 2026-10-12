@@ -43,6 +43,10 @@ function hostileEvents() {
     e('09:30', 'task-report', {
       status: 'blocked', blocked_reason: HTML, branch: 'task/4243', sha: '<b>sha</b>', tests: '<svg onload=alert(1)>', changes: 'longa '.repeat(400),
       decisions: ['<iframe src=//x>'], risks: '<style>body{display:none}</style>', shared_files: ['<b>a</b>'], text: `${HTML}\nsegunda linha`,
+      diff: {
+        base: '<b>base</b>', base_ref: HTML, files: [{ path: HTML, added: 1, removed: 0, binary: false }, { path: 'x', added: '<b>9</b>', removed: null, binary: false }, null],
+        total: { files: '<i>2</i>', added: 1, removed: 0 }, truncated: false, uncommitted: 0,
+      },
     }, 4243, 'worker', '<u>Ária</u>'),
     e('09:40', 'finding-recorded', { finding: 1, title: HTML, description: '<script>alert(1)</script>', classification: 'defect', origin_task: 4243, new_task: null }, 4243),
     e('09:50', 'pending-decision-opened', {
