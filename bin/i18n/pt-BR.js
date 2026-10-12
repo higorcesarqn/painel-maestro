@@ -353,7 +353,8 @@ O que é instalado: ${p.manifest} ({"links": [{"source": "skills/x", "target": "
 Cada link é uma junction de diretório no Windows (não exige administrador). O que já existir no destino e
 não for um link deste repositório vai para <pasta do Claude>/backups/painel-maestro/<destino>; --undo devolve.
 Rodar de novo é seguro: o que já está ligado fica como está. Um conflito para tudo antes de mudar qualquer coisa.
-Os nomes da lista "retired" do mesmo arquivo (nomes antigos) perdem só o link deste repositório; o resto fica.
+Os nomes da lista "retired" do mesmo arquivo (nomes antigos) perdem só o link deste repositório (também o de outro
+clone ou worktree dele) e recebem de volta o backup que tinham; o resto fica.
 
 PASTA DO CLAUDE
   --claude-dir, senão CLAUDE_CONFIG_DIR, senão ~/.claude
@@ -381,6 +382,8 @@ CÓDIGOS DE SAÍDA
         failed: 'O status foi gravado no painel, mas o orca worktree set falhou.',
       },
       none: { outside: 'Fora do Maestri e do Orca (sem MAESTRI_TERMINAL_ID nem ORCA_TERMINAL_HANDLE): só gravado no painel.' },
+      // #60: only the worker's status goes to the Host.
+      recorded: 'Status do maestro: só gravado no painel (só o do trabalhador vai para o ambiente).',
     },
   },
   errors: {
@@ -500,16 +503,16 @@ CÓDIGOS DE SAÍDA
       gitFailed: 'o git falhou ({detail})',
     },
   },
-  // flow host (#62): the Host this runs in, as a person reads it (--json gives { kind, terminal, workspace, checks }).
+  // flow host (#62): the Host this runs in, as a person reads it (--json gives { kind, mode, terminal, workspace, checks }).
   host: {
     kind: {
-      orca: (p) => `Ambiente: Orca (terminal ${p.terminal}${p.workspace ? `, worktree ${p.workspace}` : ''}). O status move o card do worktree, a pendência marca o worktree como não lido e o despacho usa o modo orca.`,
-      maestri: (p) => `Ambiente: Maestri (terminal ${p.terminal}${p.workspace ? `, workspace ${p.workspace}` : ''}). O status vai para o floor, a pendência avisa com maestri notify e o despacho usa o modo maestri.`,
+      orca: (p) => `Ambiente: Orca (terminal ${p.terminal}${p.workspace ? `, worktree ${p.workspace}` : ''}). O status do trabalhador move o card do worktree, a pendência marca o worktree como não lido e o despacho usa o modo orca.`,
+      maestri: (p) => `Ambiente: Maestri (terminal ${p.terminal}${p.workspace ? `, workspace ${p.workspace}` : ''}). O status do trabalhador vai para o floor, a pendência avisa com maestri notify e o despacho usa o modo maestri.`,
       none: 'Ambiente: terminal comum (sem ORCA_TERMINAL_HANDLE nem MAESTRI_TERMINAL_ID). O status e a pendência só gravam no painel e o despacho usa o modo subagents.',
     },
     orcaStatusOk: 'orca status: o runtime do Orca responde.',
     orcaStatusFailed: 'orca status falhou: {detail}. O status e o aviso de pendência no Orca podem falhar.',
-    orcaUnreachable: 'o runtime do Orca não está acessível (estado "{state}")',
+    orcaNotReady: 'o runtime do Orca não está pronto (estado "{state}")',
     bothTerminals: 'Também há um terminal do Maestri (MAESTRI_TERMINAL_ID): o Orca vale mais.',
   },
   // flow --version (#36): the semver of the root package.json and the commit of the code (none outside a clone).
@@ -558,6 +561,7 @@ STATUS (trabalhador)
       roda "maestri floor status" com os mesmos argumentos; no Orca (com ORCA_TERMINAL_HANDLE) roda
       "orca worktree set --worktree current --workspace-status <coluna> --comment <texto>": working e blocked →
       in-progress (blocked também --unread), review e done → in-review. Num terminal comum (subagente) só grava.
+      Só o trabalhador posta no ambiente: com --role maestro (ou owner), o status só é gravado.
       --state padrão: working;
       "done" conta como pronta para revisão. Sem --item/--task, a task vem da branch atual: a task despachada
       com esta branch ou, senão, task/<task>-… (--item resolve quando a task existe em mais de um item).
@@ -569,9 +573,10 @@ PENDÊNCIAS (maestro)
       Abre uma pendência para o dono, ligada ao item e, opcional, a uma task; mostra o id (P-<n>).
       Tipos: ${Object.entries(PENDING_KINDS).map(([id, name]) => `${id} (${name})`).join(', ')}.
       Severidades: ${Object.entries(PENDING_SEVERITIES).map(([id, name]) => `${id} (${name})`).join(', ')}; padrão normal.
-      Onde o dono responde: --workspace/--terminal, senão o terminal onde o comando roda: no Orca, o worktree
-      (ORCA_WORKTREE_ID) e o terminal (ORCA_TERMINAL_HANDLE) do maestro; no Maestri, MAESTRI_WORKSPACE_NAME ou
-      MAESTRI_WORKSPACE_ID e MAESTRI_TERMINAL_NAME ou MAESTRI_TERMINAL_ID; fora deles, o workspace do projeto.
+      Onde o dono responde: --workspace/--terminal, senão o terminal onde o comando roda (o do flow host): no Orca,
+      o worktree (ORCA_WORKTREE_ID) e o terminal (ORCA_TERMINAL_HANDLE) do maestro; no Maestri, MAESTRI_WORKSPACE_ID
+      ou MAESTRI_WORKSPACE_NAME e MAESTRI_TERMINAL_NAME ou MAESTRI_TERMINAL_ID; fora do Orca, sem workspace, o do
+      projeto.
       A revisão de uma task (task_review, exige --task) se resolve sozinha quando a task é integrada.
       Avisa o dono no ambiente: no Maestri, com "maestri notify" (a pendência, a severidade, o item e o título); no
       Orca, marcando o worktree do maestro como não lido (orca worktree set --worktree current --unread). Se o aviso
@@ -613,7 +618,8 @@ AMBIENTE
   node bin/flow.js host [--json]
       Mostra o ambiente onde o comando roda: orca (ORCA_TERMINAL_HANDLE definida), maestri (MAESTRI_TERMINAL_ID
       definida) ou none (terminal comum). Com as duas, vale o Orca. No Orca, confere se "orca status --json"
-      responde. --json devolve {kind, terminal, workspace, checks}, com checks {orca_terminal, maestri_terminal,
+      responde com o runtime pronto (ready). --json devolve {kind, mode, terminal, workspace, checks}: mode é o
+      modo de despacho do ambiente (orca, maestri ou subagents), e checks {orca_terminal, maestri_terminal,
       orca_status: {ok, detail} | null}. Sai com 0 em todos os casos; não precisa rodar dentro de um repositório.
 
 ${ADMIN_HELP}

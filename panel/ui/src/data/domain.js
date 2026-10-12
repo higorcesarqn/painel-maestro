@@ -8,6 +8,11 @@ export const TRACKERS = ['github', 'azure_devops'];
 // The stages an active item can be in (the Overview's funnel: "done" never shows).
 export const ACTIVE_STAGES = STAGES.filter((s) => s !== 'done');
 
+// Where the maestro runs and the dispatch modes of a task (#62), as the server names them (bin/flow-projection.js
+// HOST_KINDS and DISPATCH_MODES).
+export const HOST_KINDS = ['orca', 'maestri', 'none'];
+export const DISPATCH_MODES = ['subagents', 'maestri', 'orca'];
+
 // Severities of a pending decision, the most urgent first (bin/flow-projection.js PENDING_DECISION_SEVERITIES), with
 // the tone of their badge and the color of their mark.
 export const SEVERITIES = ['critical', 'high', 'normal', 'low'];

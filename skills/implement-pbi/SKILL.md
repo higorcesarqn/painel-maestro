@@ -10,7 +10,7 @@ Talk to the owner (the user) in Portuguese, and write in Portuguese what you rec
 
 ## Mode
 
-1. **Choose.** A mode passed after the ID wins over the detection. Without it, run `node "$PAINEL_MAESTRO/bin/flow.js" host --json` (it does not need a repository) and map its `kind`: `orca` → `orca`, `maestri` → `maestri`, `none` → `subagents`. If the `flow` does not run (e.g. `PAINEL_MAESTRO` not defined), read the variables it reads: `ORCA_TERMINAL_HANDLE` not empty → `orca`; otherwise `MAESTRI_TERMINAL_ID` not empty → `maestri`; otherwise `subagents`. Any other word after the ID: ask the owner which mode they meant.
+1. **Choose.** A mode passed after the ID wins over the detection. Without it, run `node "$PAINEL_MAESTRO/bin/flow.js" host --json` (it does not need a repository) and take its `mode` (`subagents`, `maestri` or `orca`). If the `flow` does not run (e.g. `PAINEL_MAESTRO` not defined), read the variables it reads: `ORCA_TERMINAL_HANDLE` not empty → `orca`; otherwise `MAESTRI_TERMINAL_ID` not empty → `maestri`; otherwise `subagents`. Any other word after the ID: ask the owner which mode they meant.
 2. **Say it.** Tell the owner, in one line, the mode and whether it was passed or detected (e.g. "Modo: subagentes (detectado: terminal comum)").
 3. **Follow the mode's flow:**
    - `subagents`: `~/.claude/docs/orchestration-subagents/README.md` (one subagent in a worktree per Task; it also runs inside the Orca or the Maestri);

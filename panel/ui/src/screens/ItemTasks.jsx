@@ -5,6 +5,7 @@
 import { arr, obj, objs, txt, truncate, dateTime, age } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Badge } from '../components/base.jsx';
+import { DISPATCH_MODES } from '../data/domain.js';
 import '../styles/item-tasks.css';
 
 const STATE_TONE = { waiting: 'neutral', working: 'blue', review: 'warning', blocked: 'danger', integrated: 'ok', out: 'neutral' };
@@ -16,9 +17,8 @@ const GAP_Y = 18;
 const PAD = 8;
 
 const stateName = (state) => (STATE_TONE[state] ? t(`items.tasks.states.${state}`) : txt(state));
-const MODES = ['subagents', 'maestri', 'orca'];
 /** The dispatch mode of a task as the page names it, or null (dispatched before #62, or never). */
-const modeName = (mode) => (MODES.includes(mode) ? t(`items.tasks.modes.${mode}`) : null);
+const modeName = (mode) => (DISPATCH_MODES.includes(mode) ? t(`items.tasks.modes.${mode}`) : null);
 /** The task number as the tracker shows it: "#13" on GitHub, the card id on Azure DevOps. */
 const taskRef = (tracker, n) => (tracker === 'azure_devops' ? String(n) : `#${n}`);
 

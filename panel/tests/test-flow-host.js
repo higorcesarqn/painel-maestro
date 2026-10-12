@@ -102,7 +102,7 @@ const hostJson = (x) => {
 suite.test('flow host in a plain terminal: kind none, no check calls anything, exit 0; it needs no repository', () => {
   const r = buildRoot('none');
   const h = hostJson(flow(r, ['host', '--json'], { cwd: r.root }));
-  assert.deepStrictEqual(h, { kind: 'none', terminal: null, workspace: null, checks: { orca_terminal: false, maestri_terminal: false, orca_status: null } });
+  assert.deepStrictEqual(h, { kind: 'none', mode: 'subagents', terminal: null, workspace: null, checks: { orca_terminal: false, maestri_terminal: false, orca_status: null } });
   const text = ok(flow(r, ['host'], { cwd: r.root }));
   assert.ok(/Ambiente: terminal comum/.test(text.stdout), text.stdout);
   // A blank variable counts as absent.
@@ -113,8 +113,11 @@ suite.test('flow host in a plain terminal: kind none, no check calls anything, e
 
 suite.test('flow host in a Maestri terminal: kind maestri with its terminal and workspace; the orca is not asked', () => {
   const r = buildRoot('maestri');
+  // The terminal's name before its id, the workspace's id before its name (#60: one order, the one pending open uses).
   const h = hostJson(flow(r, ['host', '--json'], { extra: { ...MAESTRI, MAESTRI_WORKSPACE_ID: 'ws-9' } }));
-  assert.deepStrictEqual(h, { kind: 'maestri', terminal: 'term-1', workspace: 'ws-9', checks: { orca_terminal: false, maestri_terminal: true, orca_status: null } });
+  assert.deepStrictEqual(h, { kind: 'maestri', mode: 'maestri', terminal: 'Maestro 12', workspace: 'ws-9', checks: { orca_terminal: false, maestri_terminal: true, orca_status: null } });
+  const idOnly = hostJson(flow(r, ['host', '--json'], { extra: { MAESTRI_TERMINAL_ID: 'term-1' } }));
+  assert.deepStrictEqual([idOnly.kind, idOnly.terminal, idOnly.workspace], ['maestri', 'term-1', null]);
   const text = ok(flow(r, ['host'], { extra: MAESTRI }));
   assert.ok(/Ambiente: Maestri/.test(text.stdout), text.stdout);
   assert.deepStrictEqual(calls(r, 'orca'), []);
@@ -124,7 +127,7 @@ suite.test('flow host in an Orca terminal: kind orca with the terminal and the w
   const r = buildRoot('orca');
   const h = hostJson(flow(r, ['host', '--json'], { extra: ORCA }));
   assert.deepStrictEqual(h, {
-    kind: 'orca', terminal: 'term_maestro', workspace: 'repo-1::D:/orca/painel',
+    kind: 'orca', mode: 'orca', terminal: 'term_maestro', workspace: 'repo-1::D:/orca/painel',
     checks: { orca_terminal: true, maestri_terminal: false, orca_status: { ok: true, detail: null } },
   });
   assert.deepStrictEqual(calls(r, 'orca'), [['status', '--json']]);
@@ -145,7 +148,13 @@ suite.test('flow host in the Orca with "orca status" failing, unreachable or mis
   const r = buildRoot('orca-check');
   const failing = fakeCli(r.root, 'orca-fails', { err: 'Orca is not running\n', code: 1 });
   const down = fakeCli(r.root, 'orca-down', { out: JSON.stringify({ ok: true, result: { runtime: { state: 'stopped', reachable: false } } }) });
-  for (const [cli, detail] of [[failing, /Orca is not running/], [down, /stopped|acessível/], [path.join(r.root, 'nao-existe.exe'), /não achei o executável/]]) {
+  // Only a runtime "ready" passes (#60): reachable but still starting, or no runtime in the answer, fails.
+  const starting = fakeCli(r.root, 'orca-starting', { out: JSON.stringify({ ok: true, result: { runtime: { state: 'starting', reachable: true } } }) });
+  const noRuntime = fakeCli(r.root, 'orca-no-runtime', { out: JSON.stringify({ ok: true, result: {} }) });
+  for (const [cli, detail] of [
+    [failing, /Orca is not running/], [down, /stopped|acessível/], [path.join(r.root, 'nao-existe.exe'), /não achei o executável/],
+    [starting, /"starting"/], [noRuntime, /"-"/],
+  ]) {
     const h = hostJson(flow(r, ['host', '--json'], { extra: { ...ORCA, FLOW_ORCA_CLI: cli } }));
     assert.strictEqual(h.kind, 'orca');
     assert.strictEqual(h.checks.orca_status.ok, false);
@@ -185,7 +194,8 @@ suite.test('flow status in the Orca moves the worktree card: working and blocked
     const statuses = item.timeline.filter((e) => e.type === 'task-status');
     assert.deepStrictEqual(statuses.map((e) => e.payload.host), Array(4).fill({ kind: 'orca', result: 'posted' }));
     assert.ok(statuses.every((e) => !('maestri' in e.payload)), 'new events record host instead of maestri');
-    assert.deepStrictEqual([item.tasks[0].state, item.tasks[0].status_host], ['review', { kind: 'orca', result: 'posted' }]);
+    assert.strictEqual(item.tasks[0].state, 'review');
+    assert.ok(!('status_host' in item.tasks[0]), 'the API has no status_host (#60: nothing read it)');
   });
 });
 
@@ -238,6 +248,65 @@ const openedId = (x) => {
   return Number(m[1]);
 };
 const pendingList = async (get) => (await get('/api/pending-decisions')).pending_decisions;
+
+suite.test('flow status with --role maestro only records, in the Orca and in the Maestri: it calls no Host (#60)', async () => {
+  const r = buildRoot('status-maestro');
+  ok(flow(r, ['item', 'start', '60', '--title', 'Status do maestro', '--stage', 'implementation']));
+  ok(flow(r, ['task', 'graph', '60', '--task', '61|Uma']));
+  const orca = ok(flow(r, ['status', 'Pronta', '--item', '60', '--task', '61', '--state', 'done', '--role', 'maestro'], { extra: ORCA }));
+  assert.ok(/só gravado no painel/.test(orca.stdout), orca.stdout);
+  ok(flow(r, ['status', 'Parada', '--item', '60', '--task', '61', '--state', 'blocked', '--role', 'maestro'], { extra: MAESTRI }));
+  ok(flow(r, ['status', 'Do dono', '--item', '60', '--task', '61', '--role', 'owner'], { extra: { ...ORCA, ...MAESTRI } }));
+  assert.deepStrictEqual([calls(r, 'orca'), calls(r, 'maestri')], [[], []]);
+  // The worker still posts.
+  ok(flow(r, ['status', 'Trabalhando', '--item', '60', '--task', '61'], { extra: ORCA }));
+  assert.strictEqual(calls(r, 'orca').length, 1);
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/60')).item;
+    assert.deepStrictEqual(item.timeline.filter((e) => e.type === 'task-status').map((e) => [e.agent.role, e.payload.state, e.payload.host]), [
+      ['maestro', 'done', { kind: 'orca', result: 'recorded' }],
+      ['maestro', 'blocked', { kind: 'maestri', result: 'recorded' }],
+      ['owner', 'working', { kind: 'orca', result: 'recorded' }],
+      ['worker', 'working', { kind: 'orca', result: 'posted' }],
+    ]);
+  });
+});
+
+suite.test('pending open in the Maestri answers where flow host says: the workspace id before its name, the terminal name before its id', async () => {
+  const r = buildRoot('pending-maestri');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Item', '--stage', 'implementation']));
+  const env = { ...MAESTRI, MAESTRI_WORKSPACE_ID: 'ws-9' };
+  const h = hostJson(flow(r, ['host', '--json'], { extra: env }));
+  const id = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Qual formato?'], { extra: env }));
+  await withServer(r, async (get) => {
+    const p = (await pendingList(get)).find((x) => x.id === id);
+    assert.deepStrictEqual(p.host, { kind: 'maestri', workspace: h.workspace, terminal: h.terminal });
+    assert.deepStrictEqual(p.host, { kind: 'maestri', workspace: 'ws-9', terminal: 'Maestro 12' });
+  });
+});
+
+suite.test('the HML pending decision derived from flow hml answers in the environment of the item\'s last dispatch (#60)', async () => {
+  const r = buildRoot('hml-host');
+  ok(flow(r, ['item', 'start', '70', '--title', 'Sem despacho', '--stage', 'implementation']));
+  ok(flow(r, ['project', 'edit', 'widgets', '--workspace', 'Contoso']));
+  const items = { 71: 'maestri', 72: 'orca', 73: 'subagents' };
+  for (const [n, mode] of Object.entries(items)) {
+    ok(flow(r, ['item', 'start', n, '--title', `Modo ${mode}`, '--stage', 'implementation']));
+    ok(flow(r, ['task', 'dispatch', n, n, '--mode', mode === 'maestri' ? 'subagents' : 'maestri']));
+    ok(flow(r, ['task', 'dispatch', n, n, '--mode', mode])); // the last dispatch wins
+  }
+  for (const n of [70, 71, 72, 73]) ok(flow(r, ['hml', String(n), '--passed', '3', '--failed', '1']));
+  await withServer(r, async (get) => {
+    const byItem = new Map((await pendingList(get)).map((p) => [p.item.number, p]));
+    assert.deepStrictEqual([70, 71, 72, 73].map((n) => [n, byItem.get(n).kind, byItem.get(n).host]), [
+      [70, 'hml', { kind: 'none', workspace: null, terminal: null }],
+      [71, 'hml', { kind: 'maestri', workspace: 'Contoso', terminal: null }],
+      [72, 'hml', { kind: 'orca', workspace: null, terminal: null }],
+      [73, 'hml', { kind: 'none', workspace: null, terminal: null }],
+    ]);
+  });
+});
+
 
 suite.test('flow pending open in the Orca marks the maestro\'s worktree unread and records where to answer: the worktree and the terminal', async () => {
   const r = buildRoot('pending');
@@ -308,10 +377,7 @@ suite.test('events written before the Host (payload maestri) read as kind maestr
   }
   await withServer(r, async (get) => {
     const item = (await get('/api/items/widgets/30')).item;
-    assert.deepStrictEqual(item.tasks.map((x) => [x.number, x.state, x.mode, x.status_host]), [
-      [31, 'review', null, { kind: 'maestri', result: 'posted' }],
-      [32, 'blocked', null, { kind: 'maestri', result: 'failed' }],
-    ]);
+    assert.deepStrictEqual(item.tasks.map((x) => [x.number, x.state, x.mode]), [[31, 'review', null], [32, 'blocked', null]]);
     const byId = new Map((await pendingList(get)).map((p) => [p.id, p]));
     assert.deepStrictEqual([byId.get(pendingId).host, byId.get(pendingId).notification], [{ kind: 'maestri', workspace: 'Contoso', terminal: 'Maestro 30' }, 'failed']);
     assert.deepStrictEqual([byId.get(outsideId).host, byId.get(outsideId).notification], [{ kind: 'maestri', workspace: null, terminal: null }, null]);

@@ -22,68 +22,21 @@
 # the worktree's terminals, the worker's included even when it is retained by a user takeover, and deletes the branch.
 # The script never calls worker-release nor terminal close. If the Orca does not remove it, the integration still
 # stands: exit 0 and "integrar: aviso: o Orca não removeu o worktree ...", followed by the command to run.
+# The checks, the merge, the record in the panel and the closing lines are in
+# ../../orchestration-maestri/scripts/integrate-common.sh (shared with the Maestri's integrate.sh; both folders are
+# installed side by side, ~/.claude/docs/orchestration-*); this script keeps its arguments and the Orca's cleanup.
 # Its messages stay in Portuguese (ADR 0004): the skills quote them verbatim.
 set -euo pipefail
 
 O="${ORCA_CLI:-orca}"
 BRANCH="${1:?branch da task}"; INTEGRATION="${2:?integradora}"; ITEM="${3:-}"; TASK="${4:-}"
+PLACE="worktree do maestro"; TASK_PLACE="worktree"; ARGS_AT="3º e 4º"; AGENT_NAME="maestro"
+# shellcheck source=../../orchestration-maestri/scripts/integrate-common.sh
+. "$(dirname "${BASH_SOURCE[0]}")/../../orchestration-maestri/scripts/integrate-common.sh"
 
-fail() { echo "integrar: $*" >&2; exit 1; }
-warn() { echo "integrar: aviso: $*" >&2; }
-
-git rev-parse --show-toplevel >/dev/null 2>&1 || fail "rode da raiz do repo (worktree do maestro)"
-[ "$(git branch --show-current)" = "$INTEGRATION" ] || fail "o worktree do maestro está em '$(git branch --show-current)', não em '$INTEGRATION'"
-[ -z "$(git status --porcelain)" ] || fail "o worktree do maestro tem alterações pendentes"
-git rev-parse --verify --quiet "refs/heads/$BRANCH" >/dev/null || fail "a branch $BRANCH não existe"
-
-worktree_of() { git worktree list --porcelain | awk -v b="branch refs/heads/$1" '/^worktree /{w=substr($0,10)} $0==b{print w}'; }
-WT="$(worktree_of "$BRANCH")"
-if [ -n "$WT" ] && [ -n "$(git -C "$WT" status --porcelain)" ]; then
-    fail "o worktree ($WT) tem alterações não commitadas"
-fi
-
-git merge-base --is-ancestor "$INTEGRATION" "$BRANCH" \
-    || fail "$BRANCH não está sobre $INTEGRATION: peça ao trabalhador 'git rebase $INTEGRATION' e um novo gate"
-
-BEFORE="$(git rev-parse --short HEAD)"
-git merge --ff-only --quiet "$BRANCH"
-AFTER="$(git rev-parse --short HEAD)"
-[ "$BEFORE" != "$AFTER" ] || echo "integrar: aviso: a branch não tinha commit novo"
-
-git push -q origin "$INTEGRATION"
-git fetch -q origin "$INTEGRATION"
-[ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$INTEGRATION")" ] || fail "o push não chegou ao remoto"
-
-# Panel: the merge is already on the remote, so a failure here only warns.
-# Branch convention (the same as parseBranch in the panel's bin/flow-repo.js): feature/issue-<n> or
-# feature/pbi-<n> is the item's integration branch; task/<item>-ajuste-final is the final adjustment; task/<id>-… is the task.
-# Bash 3.2 only ([[ ]] regex through a variable, no sed with GNU extensions).
-RE_ITEM='^feature/(issue|pbi)-([0-9]+)$'
-RE_FINAL='^task/([0-9]+)-ajuste-final$'
-RE_TASK='^task/([0-9]+)(-.*)?$'
-if [ -z "$ITEM" ] && [[ $INTEGRATION =~ $RE_ITEM ]]; then ITEM="${BASH_REMATCH[2]}"; fi
-FINAL=""
-if [[ $BRANCH =~ $RE_FINAL ]]; then
-    FINAL=1
-    [ -n "$ITEM" ] || ITEM="${BASH_REMATCH[1]}"
-elif [ -z "$TASK" ] && [[ $BRANCH =~ $RE_TASK ]]; then
-    TASK="${BASH_REMATCH[1]}"
-fi
-PANEL_OK=""
-if [ -n "$FINAL" ]; then
-    # The final adjustment is not a task of the graph: the maestro records the result with flow final-adjustment.
-    PANEL_OK="integrar: painel: ajuste final integrado; registre o resultado com flow final-adjustment $ITEM result --outcome passed|failed"
-elif [ -z "$ITEM" ] || [ -z "$TASK" ]; then
-    PANEL_MSG="item ou task não saem das branches '$INTEGRATION' e '$BRANCH': passe <item> <task> como 3º e 4º argumentos"
-elif [ -z "${PAINEL_MAESTRO:-}" ]; then
-    PANEL_MSG="PAINEL_MAESTRO não está definida (veja o README do painel-maestro)"
-else
-    if OUTPUT="$(node "$PAINEL_MAESTRO/bin/flow.js" task integrate "$ITEM" "$TASK" --sha "$AFTER" --sha-before "$BEFORE" --role maestro --agent maestro 2>&1)"; then
-        PANEL_OK="integrar: painel: task $TASK integrada no item $ITEM"
-    else
-        PANEL_MSG="o CLI respondeu: $OUTPUT"
-    fi
-fi
+integrate_check
+integrate_merge
+integrate_record
 
 # The worktree is integrated: `orca worktree rm` closes its terminals and deletes it with the branch. The removal may
 # finish after the answer ("removing": true), so wait for git to stop listing it.
@@ -103,15 +56,9 @@ fi
 git worktree prune
 [ -n "$(worktree_of "$BRANCH")" ] || git branch -d "$BRANCH" >/dev/null 2>&1 || true
 
-echo "integrar: $INTEGRATION $BEFORE -> $AFTER (push ok)"
-git log --oneline "$BEFORE..$AFTER"
+integrate_summary
 if [ -n "$ORCA_MSG" ]; then
     warn "o Orca não removeu o worktree de $BRANCH ($ORCA_MSG). Remova com:"
     echo "  \"\${ORCA_CLI:-orca}\" worktree rm --worktree branch:$BRANCH --json" >&2
 fi
-if [ -n "$PANEL_OK" ]; then
-    echo "$PANEL_OK"
-else
-    warn "o painel não registrou a integração ($PANEL_MSG). Depois de corrigir, rode do worktree do maestro:"
-    echo "  node \"\$PAINEL_MAESTRO/bin/flow.js\" task integrate ${ITEM:-<item>} ${TASK:-<task>} --sha $AFTER --sha-before $BEFORE --role maestro --agent maestro" >&2
-fi
+integrate_panel_result

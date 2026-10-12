@@ -138,18 +138,40 @@ suite.test('an old name that is not our link stays untouched by install and by u
   for (const l of MANIFEST.links) assert.ok(!exists(path.join(r.claude, l.target)), `${l.target} still there`);
 });
 
-suite.test('undo restores the backup an old name had and removes an old link install never reached (#61)', () => {
-  const r = buildRoot('retired-undo');
+suite.test('install gives an old name back to the owner: our link goes and the backup it hid returns (#60)', () => {
+  const r = buildRoot('retired-restore');
   // Installed before #61 over the owner's own skill: our old link in place, the owner's folder in the backup.
   const backup = path.join(r.claude, 'backups', 'painel-maestro', 'skills', 'implementar-issue-maestri');
   fs.mkdirSync(backup, { recursive: true });
   fs.writeFileSync(path.join(backup, 'SKILL.md'), 'a versão antiga do dono');
   plantLink(r.claude, 'skills/implementar-issue-maestri', path.join(REPO, 'skills', 'implementar-issue-maestri'));
-  plantLink(r.claude, 'docs/orquestracao-maestri', path.join(REPO, 'skills', 'docs', 'orquestracao-maestri'));
+  // An installer before #60 already removed our link and left the backup hidden: it comes back too.
+  const hidden = path.join(r.claude, 'backups', 'painel-maestro', 'docs', 'orquestracao-maestri');
+  fs.mkdirSync(hidden, { recursive: true });
+  fs.writeFileSync(path.join(hidden, 'README.md'), 'doc do dono');
 
+  const res = install(r);
+  ok(res);
+  const own = path.join(r.claude, 'skills', 'implementar-issue-maestri');
+  assert.ok(!isLink(own));
+  assert.strictEqual(fs.readFileSync(path.join(own, 'SKILL.md'), 'utf8'), 'a versão antiga do dono');
+  assert.strictEqual(fs.readFileSync(path.join(r.claude, 'docs', 'orquestracao-maestri', 'README.md'), 'utf8'), 'doc do dono');
+  assert.ok(res.stdout.includes('skills/implementar-issue-maestri: nome antigo; link removido.'), res.stdout);
+  assert.ok(res.stdout.includes('skills/implementar-issue-maestri: backup restaurado.'), res.stdout);
+  assert.ok(!exists(path.join(r.claude, 'backups')), 'empty backup folders are removed');
+
+  // The owner's folder is not ours: undo leaves it.
+  ok(install(r, ['--undo']));
+  assert.strictEqual(fs.readFileSync(path.join(own, 'SKILL.md'), 'utf8'), 'a versão antiga do dono');
+});
+
+suite.test('undo restores the backup an old name had and removes an old link install never reached (#61)', () => {
+  const r = buildRoot('retired-undo');
   ok(install(r));
-  assert.ok(!exists(path.join(r.claude, 'skills', 'implementar-issue-maestri')));
-  assert.strictEqual(fs.readFileSync(path.join(backup, 'SKILL.md'), 'utf8'), 'a versão antiga do dono', 'install keeps the backup for undo');
+  const backup = path.join(r.claude, 'backups', 'painel-maestro', 'skills', 'implementar-issue-maestri');
+  fs.mkdirSync(backup, { recursive: true });
+  fs.writeFileSync(path.join(backup, 'SKILL.md'), 'a versão antiga do dono');
+  plantLink(r.claude, 'skills/implementar-issue-maestri', path.join(REPO, 'skills', 'implementar-issue-maestri'));
   plantLink(r.claude, 'docs/orquestracao-maestri', path.join(REPO, 'skills', 'docs', 'orquestracao-maestri'));
 
   ok(install(r, ['--undo']));
@@ -158,6 +180,37 @@ suite.test('undo restores the backup an old name had and removes an old link ins
   assert.strictEqual(fs.readFileSync(path.join(own, 'SKILL.md'), 'utf8'), 'a versão antiga do dono');
   assert.ok(!exists(path.join(r.claude, 'docs', 'orquestracao-maestri')), 'an old link of ours is removed by undo too');
   assert.ok(!exists(path.join(r.claude, 'backups')), 'empty backup folders are removed');
+});
+
+suite.test('an old link is ours by its real path: another spelling, an alias of the repository or another checkout of it (#60)', () => {
+  const r = buildRoot('retired-spelling');
+  // An alias of the repository (a junction or symlink to it), and another checkout: a folder with this package.json.
+  const alias = path.join(r.root, 'alias');
+  fs.symlinkSync(REPO, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  const clone = path.join(r.root, 'clone');
+  fs.mkdirSync(path.join(clone, 'skills'), { recursive: true });
+  fs.copyFileSync(path.join(REPO, 'package.json'), path.join(clone, 'package.json'));
+  fs.copyFileSync(path.join(REPO, 'skills', 'links.json'), path.join(clone, 'skills', 'links.json'));
+  // A really different repository with the same folder names is not ours.
+  const other = path.join(r.root, 'other');
+  fs.mkdirSync(path.join(other, 'skills', 'implementar-pbi'), { recursive: true });
+  fs.writeFileSync(path.join(other, 'package.json'), JSON.stringify({ name: 'outro-projeto' }));
+  fs.copyFileSync(path.join(REPO, 'skills', 'links.json'), path.join(other, 'skills', 'links.json'));
+
+  const ours = [
+    plantLink(r.claude, 'skills/especificar', path.join(alias, 'skills', 'especificar')),
+    plantLink(r.claude, 'skills/implementar-issue', path.join(clone, 'skills', 'implementar-issue')),
+    plantLink(r.claude, 'docs/orquestracao-subagentes', path.join(clone, 'skills', 'docs', 'orquestracao-subagentes')),
+  ];
+  if (process.platform === 'win32') {
+    ours.push(plantLink(r.claude, 'skills/trabalhador-floor', path.join(REPO.toUpperCase(), 'skills', 'trabalhador-floor')));
+    ours.push(plantLink(r.claude, 'docs/orquestracao-maestri', `${REPO.replace(/\\/g, '/')}/skills/docs/orquestracao-maestri`));
+  }
+  const foreign = plantLink(r.claude, 'skills/implementar-pbi', path.join(other, 'skills', 'implementar-pbi'));
+
+  ok(install(r));
+  for (const at of ours) assert.ok(!exists(at), `${at} is still there`);
+  assert.ok(isLink(foreign) && same(foreign, path.join(other, 'skills', 'implementar-pbi')), 'a link to another repository is not ours');
 });
 
 suite.test('after install, every ~/.claude path the installed skills and documents cite exists', () => {

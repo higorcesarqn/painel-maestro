@@ -17,8 +17,9 @@
 //
 // status is the worker's single command: it posts the status to the Host it runs in (bin/flow-host.js, #62: "maestri
 // floor status" in a Maestri terminal, "orca worktree set" in an Orca terminal) and records task-status; in a plain
-// terminal (a subagent) it only records. The task comes from --item/--task or, without them, from the current branch:
-// the task dispatched with this branch, else "task/<n>-…" → task n (looked up in the project's items; --item settles an
+// terminal (a subagent) it only records. Only the worker posts: with --role maestro (or owner) it only records (#60,
+// payload.host = { kind, result: 'recorded' }). The task comes from --item/--task or, without them, from the current
+// branch: the task dispatched with this branch, else "task/<n>-…" → task n (looked up in the project's items; --item settles an
 // ambiguity). The branch convention is parseBranch of flow-repo.js: "task/<item>-ajuste-final" is the final adjustment
 // floor, never a task. When the Host's call fails the event is still recorded (payload.host = { kind, result: 'failed' })
 // and the command ends with exit 1. Events before #62 recorded payload.maestri instead; the projection reads both.
@@ -34,7 +35,7 @@ const { t } = require('./i18n');
 const { openStore, flowDir, STAGES, SchemaTooNew } = require('./flow-store');
 const { originOf, branchOf, describeRemote, parseBranch, integrationBranch } = require('./flow-repo');
 const { taskDiff } = require('./flow-diff');
-const { projectItem, trackerRef, EVENT_TYPES, WORKER_STATES } = require('./flow-projection');
+const { projectItem, trackerRef, EVENT_TYPES, WORKER_STATES, DISPATCH_MODES } = require('./flow-projection');
 const { PENDING_DECISION_KINDS, PENDING_DECISION_SEVERITIES, MAX_PENDING_DECISION } = require('./flow-projection');
 const { createAdmin, isAdminCommand } = require('./flow-admin');
 const { readVersion } = require('./version');
@@ -46,7 +47,6 @@ const MAX_AGENT = 80;
 const MAX_FIELD = 200;
 const MAX_STATUS = 300;
 const MAX_TASKS = 200;
-const MAX_NOTIFICATION = 500; // the longest text of "maestri notify" (#44)
 const SOURCE = 'cli';
 
 const { InvalidData } = lib;
@@ -67,7 +67,8 @@ const OPTIONS = {
 };
 const REPEATABLE = { graph: ['task'] };
 
-function parseArgs(argv, allowed, maxPositional, repeatable = []) {
+/** --name value, --name=value or, for a flag, --name alone (true). Throws InvalidData on anything else. */
+function parseArgs(argv, allowed, maxPositional, repeatable = [], flags = []) {
   const opts = {};
   const pos = [];
   for (let i = 0; i < argv.length; i++) {
@@ -79,8 +80,11 @@ function parseArgs(argv, allowed, maxPositional, repeatable = []) {
     const eq = a.indexOf('=');
     const name = eq >= 0 ? a.slice(2, eq) : a.slice(2);
     let value = eq >= 0 ? a.slice(eq + 1) : undefined;
-    if (!allowed.includes(name)) throw new InvalidData('errors.unknownOption', { option: name });
-    if (value === undefined) {
+    if (!allowed.includes(name) && !flags.includes(name)) throw new InvalidData('errors.unknownOption', { option: name });
+    if (flags.includes(name)) {
+      if (value !== undefined) throw new InvalidData('errors.unexpectedArgument', { value: a });
+      value = true;
+    } else if (value === undefined) {
       value = argv[i + 1];
       if (value === undefined || (value.startsWith('--') && value.length > 2)) throw new InvalidData('errors.missingValue', { option: name });
       i++;
@@ -287,17 +291,10 @@ function locateTask(store, project, cmd, branch) {
 
 /** The dispatch mode: --mode (or "mode" in the JSON), else the mode of the Host this runs in (none → subagents). */
 function dispatchMode(value, env = process.env) {
-  if (value === undefined || value === null || String(value).trim() === '') return host.modeOf(host.detectHost(env));
+  if (value === undefined || value === null || String(value).trim() === '') return host.detectHost(env).mode;
   const mode = String(value).trim().toLowerCase();
-  if (!host.DISPATCH_MODES.includes(mode)) throw new InvalidData('errors.invalidMode', { value, allowed: host.DISPATCH_MODES });
+  if (!DISPATCH_MODES.includes(mode)) throw new InvalidData('errors.invalidMode', { value, allowed: DISPATCH_MODES });
   return mode;
-}
-
-/** The owner's notification of a new pending decision: its severity, kind, item, task and title, cut to MAX_NOTIFICATION. */
-function notificationText(cmd, key, ref) {
-  const text = t('pending.notify.message', { severity: cmd.severity, kind: cmd.pendingKind, key, ref, task: cmd.task, title: cmd.title });
-  if (text.length <= MAX_NOTIFICATION) return text;
-  return `${text.slice(0, MAX_NOTIFICATION - 1).replace(/[\uD800-\uDBFF]$/, '')}…`;
 }
 
 // ---------- project ----------
@@ -775,7 +772,11 @@ function withProject(store, origin, at, fn) {
   });
 }
 
-/** The worker's status: find the task, post it to the Host (Maestri or Orca; nothing in a plain terminal), then record task-status. */
+/**
+ * The status of a task: find the task, post it to the Host (Maestri or Orca; nothing in a plain terminal) when the worker
+ * sends it, then record task-status. The maestro's (or the owner's) is only recorded (#60): it never moves the card of
+ * the maestro's own worktree nor posts on its floor.
+ */
 function recordStatus(store, cmd, origin, at, branch) {
   const lines = [];
   let target = null;
@@ -786,8 +787,9 @@ function recordStatus(store, cmd, origin, at, branch) {
     return [];
   }));
   const where = host.detectHost();
-  const posted = host.postStatus(where, cmd);
-  const result = !posted ? 'outside' : posted.ok ? 'posted' : 'failed';
+  const worker = cmd.agentRole === 'worker';
+  const posted = worker ? host.postStatus(where, cmd) : null;
+  const result = !worker ? 'recorded' : !posted ? 'outside' : posted.ok ? 'posted' : 'failed';
   withProject(store, origin, at, (project) => {
     store.appendEvent({
       at, projectId: project.id, itemNumber: target.item.number, taskNumber: target.task, agentRole: cmd.agentRole, agentName: cmd.agentName,
@@ -796,7 +798,7 @@ function recordStatus(store, cmd, origin, at, branch) {
     return [];
   });
   lines.push(t('done.taskStatus', { key, task: target.task, state: cmd.state, text: cmd.text }));
-  lines.push(t(`done.hostStatus.${where.kind}.${result}`));
+  lines.push(t(worker ? `done.hostStatus.${where.kind}.${result}` : 'done.hostStatus.recorded'));
   for (const l of lines) lib.print(l);
   if (posted && !posted.ok) throw new Failed(t(`errors.${where.kind}Failed`, { detail: posted.detail }));
   return [];
@@ -810,10 +812,9 @@ function recordStatus(store, cmd, origin, at, branch) {
 //   flow pending cancel <id> [--reason "..."]                      → pending-decision-canceled
 //   flow pending wait <id>                                         → nothing: waits for it to close (#33, ADR 0005)
 // Where the owner answers (payload.host: { kind, workspace, terminal }, #62): --workspace/--terminal, else the terminal
-// of the Host this runs in: in the Orca, the maestro's worktree (ORCA_WORKTREE_ID) and terminal (ORCA_TERMINAL_HANDLE);
-// in the Maestri, MAESTRI_WORKSPACE_NAME or MAESTRI_WORKSPACE_ID and MAESTRI_TERMINAL_NAME or MAESTRI_TERMINAL_ID;
-// else (and in the Maestri without a workspace) the project's Maestri workspace. Events before #62 recorded
-// payload.maestri: { workspace, terminal }; the projection reads both.
+// and workspace of the Host this runs in (flow-host.js answerIn: the ones flow host shows), else (but in the Orca) the
+// project's Maestri workspace. Events before #62 recorded payload.maestri: { workspace, terminal }; the projection reads
+// both.
 // open tells the owner through the Host (bin/flow-host.js: "maestri notify" in the Maestri, the maestro's worktree marked
 // unread in the Orca) and records how it went in the event (notification: sent | failed | outside); a failure only
 // writes one line on stderr, never changes the exit code (#44). The HML pending decision derived from flow hml has no
@@ -902,25 +903,11 @@ function parsePending(rest) {
   return { kind: 'pending-cancel', id, reason: longText(pick(opts.reason, json.reason), 'reason', MAX_DECISION), ...agentFields(opts, json) };
 }
 
-/**
- * Where the owner answers: { kind, workspace, terminal }, kind being the Host this command runs in; the arguments win,
- * else the Host's terminal (the Orca's worktree and terminal, the Maestri's workspace and terminal), else the project's
- * Maestri workspace (not in the Orca: a Maestri workspace is no worktree of it).
- */
-function answerIn(cmd, project, where, env = process.env) {
+/** Where the owner answers (flow-host.js answerIn), each value checked like an argument: InvalidData names the Host. */
+function answerIn(cmd, project, where) {
   const field = where.kind === 'none' ? 'host' : where.kind; // the error names the Host whose variable is wrong
-  const first = (...values) => values.map((v) => lineText(v, field)).find(Boolean) || null;
-  if (where.kind === 'orca') {
-    return { kind: 'orca', workspace: first(cmd.workspace, env.ORCA_WORKTREE_ID), terminal: first(cmd.terminal, env.ORCA_TERMINAL_HANDLE) };
-  }
-  if (where.kind === 'maestri') {
-    return {
-      kind: 'maestri',
-      workspace: first(cmd.workspace, env.MAESTRI_WORKSPACE_NAME, env.MAESTRI_WORKSPACE_ID, project.maestri_workspace),
-      terminal: first(cmd.terminal, env.MAESTRI_TERMINAL_NAME, env.MAESTRI_TERMINAL_ID),
-    };
-  }
-  return { kind: 'none', workspace: first(cmd.workspace, project.maestri_workspace), terminal: first(cmd.terminal) };
+  const answer = host.answerIn(where, cmd, project.maestri_workspace);
+  return { ...answer, workspace: lineText(answer.workspace, field), terminal: lineText(answer.terminal, field) };
 }
 
 /** The pending decision with this id among the project's items: { item, pending } (InvalidData when absent). */
@@ -960,11 +947,12 @@ function openPending(store, cmd, origin, at) {
     checked = checkPendingOpen(store, cmd, project, where);
     return [];
   });
-  const told = host.notifyOwner(where, notificationText(cmd, checked.key, checked.ref));
+  const { key, ref } = checked;
+  const told = host.notifyOwner(where, { severity: cmd.severity, kind: cmd.pendingKind, key, ref, task: cmd.task, title: cmd.title });
   const notification = !told ? 'outside' : told.ok ? 'sent' : 'failed';
   let id = null;
   lines.push(...withProject(store, origin, at, (project) => {
-    const { key, ref, answer } = checked;
+    const { answer } = checked;
     id = store.appendEvent({
       at, projectId: project.id, itemNumber: cmd.number, taskNumber: cmd.task, agentRole: cmd.agentRole, agentName: cmd.agentName,
       source: SOURCE, type: EVENT_TYPES.pendingDecisionOpened,
@@ -1058,15 +1046,9 @@ async function waitPending(cmd, origin, env = process.env) {
 
 /** flow host [--json]: the Host this runs in; never fails on what it finds (exit 0), only on an unknown argument. */
 function printHost(args, env = process.env) {
-  const json = args.length === 1 && args[0] === '--json';
-  if (args.length && !json) {
-    const extra = args.find((a) => a !== '--json');
-    if (extra === undefined) throw new InvalidData('errors.repeatedOption', { option: 'json' });
-    if (extra.startsWith('--')) throw new InvalidData('errors.unknownOption', { option: extra.replace(/^--/, '') });
-    throw new InvalidData('errors.unexpectedArgument', { value: extra });
-  }
+  const { opts } = parseArgs(args, [], 0, [], ['json']);
   const report = host.hostReport(env);
-  if (json) {
+  if (opts.json) {
     lib.print(JSON.stringify(report));
     return;
   }

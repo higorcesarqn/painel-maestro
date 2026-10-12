@@ -18,7 +18,7 @@ import { objs, obj, arr, txt, age, dateTime, number } from '../data/format.js';
 import { t } from '../i18n/index.js';
 import { Card, Kpi, Badge, Segmented, Empty, InfoHint } from '../components/base.jsx';
 import { Icon, Inbox, Send, X } from '../components/Icon.jsx';
-import { pendingTitle, SEVERITIES, SEVERITY_TONE, MAX_DECISION, optionLetters, recommendedLetter, decisionText } from '../data/domain.js';
+import { pendingTitle, SEVERITIES, SEVERITY_TONE, MAX_DECISION, HOST_KINDS, optionLetters, recommendedLetter, decisionText } from '../data/domain.js';
 import { TrackerLink } from './ItemDelivery.jsx';
 import { ReportField, DiffSummary } from './ItemReview.jsx';
 import '../styles/pending-decisions.css';
@@ -29,11 +29,10 @@ const STATUSES = ['open', 'resolved', 'canceled'];
 const AUTO_RESOLUTIONS = ['task_integrated', 'hml_approved', 'item_done', 'replaced'];
 const STATUS_TONE = { open: 'blue', resolved: 'ok', canceled: 'neutral' };
 const ref = (p) => t('pending.ref', { id: p.id });
-const HOSTS = ['orca', 'maestri', 'none'];
 /** Where the maestro runs (#62): host.kind of the API; an unknown one reads as the Maestri, the only Host before it. */
 const hostOf = (p) => {
   const h = obj(p.host) || {};
-  return { kind: HOSTS.includes(h.kind) ? h.kind : 'maestri', workspace: txt(h.workspace), terminal: txt(h.terminal) };
+  return { kind: HOST_KINDS.includes(h.kind) ? h.kind : 'maestri', workspace: txt(h.workspace), terminal: txt(h.terminal) };
 };
 // A notice fails only in the Maestri or the Orca: a plain terminal never notifies.
 const noticeHost = (p) => (hostOf(p).kind === 'orca' ? 'orca' : 'maestri');

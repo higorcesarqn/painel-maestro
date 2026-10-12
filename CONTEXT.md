@@ -69,6 +69,7 @@ _Avoid_: fase, estágio
 O agente que conduz o fluxo de um item: lê o grafo de tasks, despacha, revisa e integra, sem implementar.
 Em código: `Maestro`.
 _Avoid_: Cérebro, orquestrador
+"Orquestrador do Orca" é outra coisa: o nome do recurso do Orca (`orca orchestration`) com que o maestro inicia e acompanha os trabalhadores no fluxo do Orca; não é o maestro.
 
 **Trabalhador**:
 O agente que implementa uma task, num floor do Maestri, num worktree do Orca ou como subagente; existe só enquanto a task dura.

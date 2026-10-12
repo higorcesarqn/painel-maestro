@@ -185,8 +185,10 @@ suite.test('mock-items.json: items in different stages, both trackers, several o
   assert.deepStrictEqual([...new Set(pd.map((p) => p.status))].sort(), ['canceled', 'open', 'resolved']);
   assert.ok(pd.some((p) => p.resolution === 'task_integrated') && pd.some((p) => p.resolution === 'decision' && p.decision), 'resolved by integration and by decision');
   assert.ok(pd.filter((p) => p.status === 'open').every((p) => p.host.workspace && p.host.terminal), 'open ones say where to answer');
-  // The Host (#62): the demo has a pending decision answered in the Orca and the older ones, read as the Maestri.
-  assert.deepStrictEqual([...new Set(pd.map((p) => p.host.kind))].sort(), ['maestri', 'orca']);
+  // The Host (#62): the demo has a pending decision answered in the Orca and the older ones, read as the Maestri; the
+  // HML one derived on an item never dispatched has no environment (#60).
+  assert.deepStrictEqual([...new Set(pd.map((p) => p.host.kind))].sort(), ['maestri', 'none', 'orca']);
+  assert.deepStrictEqual(pd.filter((p) => p.derived_from).map((p) => p.host), [{ kind: 'none', workspace: null, terminal: null }]);
   assert.ok(js.includes('/api/pending-decisions'), 'the Pending decisions screen reads the new model');
 });
 
@@ -271,6 +273,17 @@ suite.test('the Items filters offer the server\'s stages and trackers (the page 
   assert.deepStrictEqual(STAGES, store.STAGES);
   assert.deepStrictEqual(TRACKERS, store.TRACKERS);
   assert.ok(/stage/.test(source['screens/Items.jsx']) && /tracker/.test(source['screens/Items.jsx']), 'the Items screen filters by stage and tracker');
+});
+
+suite.test('the Hosts and dispatch modes of the screens are the server\'s, from data/domain.js (#60)', async () => {
+  const { HOST_KINDS, DISPATCH_MODES } = await import(require('url').pathToFileURL(path.join(SOURCE, 'data', 'domain.js')).href);
+  // Parity between the page's copy and the server's lists (contract constants): same exception as the stages above.
+  const projection = require('../../bin/flow-projection.js');
+  assert.deepStrictEqual(HOST_KINDS, projection.HOST_KINDS);
+  assert.deepStrictEqual(DISPATCH_MODES, projection.DISPATCH_MODES);
+  // The screens use them, with no copy of their own.
+  assert.ok(/DISPATCH_MODES/.test(source['screens/ItemTasks.jsx']) && !/const MODES\b/.test(source['screens/ItemTasks.jsx']), 'ItemTasks reads DISPATCH_MODES');
+  assert.ok(/HOST_KINDS/.test(source['screens/PendingDecisions.jsx']) && !/const HOSTS\b/.test(source['screens/PendingDecisions.jsx']), 'PendingDecisions reads HOST_KINDS');
 });
 
 suite.test('links of the item page only go to the trackers (github.com, dev.azure.com, *.visualstudio.com)', async () => {

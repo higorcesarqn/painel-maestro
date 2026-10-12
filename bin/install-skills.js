@@ -9,9 +9,11 @@
 // skills/links.json declares what is installed: {"links": [{"source": "skills/x", "target": "skills/x"}]}, the
 // source relative to the repository and the target relative to the Claude folder. Only those entries are touched.
 // Its optional "retired" list (same shape) holds names this repository no longer installs (the Portuguese names
-// of #61, the -maestri variants of #64): install removes such a target only when it is our link (it still names that source), and leaves
-// anything else there as it is; --undo also removes it and restores its backup.
-// Each link is a directory junction on
+// of #61, the -maestri variants of #64): install removes such a target only when it is our link (it still leads to that
+// source, here or in another checkout of this repository: another clone or worktree) and then gives the name back to
+// its owner, restoring the backup it had (#60); anything else there stays as it is. --undo also removes it and
+// restores its backup. A link is ours by its real path (the repository's real path; on Windows, without regard to
+// case or separator), so another spelling of the same folder counts. Each link is a directory junction on
 // Windows (no admin needed) and a directory symlink elsewhere. Whatever already exists at a target and is not
 // our link is moved to <claude>/backups/painel-maestro/<target> first; --undo puts it back.
 // The Claude folder is --claude-dir, then CLAUDE_CONFIG_DIR, then ~/.claude. Every change is planned before
@@ -76,7 +78,7 @@ function readManifest(file = MANIFEST) {
     if (seen.has(key)) throw new InvalidData('installSkills.errors.manifestRepeated', { target: lib.slashes(target) });
     seen.add(key);
     const abs = path.join(REPO, source);
-    if (retired) return { source: abs, target, label: lib.slashes(target), retired: true };
+    if (retired) return { source: abs, relative: source, target, label: lib.slashes(target), retired: true };
     let st = null;
     try { st = fs.statSync(abs); } catch { /* checked below */ }
     if (!st || !st.isDirectory()) throw new InvalidData('installSkills.errors.sourceMissing', { source: lib.slashes(source) });
@@ -88,34 +90,59 @@ function readManifest(file = MANIFEST) {
 // ---------- file system ----------
 
 const exists = (p) => { try { fs.lstatSync(p); return true; } catch { return false; } };
-const samePath = (a, b) => (WIN ? a.toLowerCase() === b.toLowerCase() : a === b);
+/** A path as the file system compares it: on Windows without regard to case (path.resolve already unified the separator). */
+const comparable = (p) => (WIN ? p.toLowerCase() : p);
+const samePath = (a, b) => comparable(a) === comparable(b);
 
-/** 'missing', 'ours' (a link to the source) or 'foreign' (anything else, including a link elsewhere or broken). */
-function stateOf(target, source) {
-  let st;
-  try { st = fs.lstatSync(target); } catch { return 'missing'; }
-  if (!st.isSymbolicLink()) return 'foreign';
-  try {
-    return samePath(fs.realpathSync(target), fs.realpathSync(source)) ? 'ours' : 'foreign';
-  } catch {
-    return 'foreign';
+/**
+ * The real path of p (without the \\?\ or \??\ prefix of a junction); for a path that does not exist (a retired
+ * source), the real path of its nearest existing folder followed by the rest.
+ */
+function realPath(p) {
+  const full = path.resolve(p.replace(/^\\\\\?\\|^\\\?\?\\/, ''));
+  const rest = [];
+  for (let dir = full; ;) {
+    try {
+      return path.join(fs.realpathSync(dir), ...rest);
+    } catch { /* go up */ }
+    const up = path.dirname(dir);
+    if (up === dir) return full;
+    rest.unshift(path.basename(dir));
+    dir = up;
   }
 }
 
-/** The same states for a retired entry, whose source is gone: a link is ours when it still names that source. */
-function retiredStateOf(target, source) {
-  let st;
-  try { st = fs.lstatSync(target); } catch { return 'missing'; }
-  if (!st.isSymbolicLink()) return 'foreign';
-  const clean = (p) => path.resolve(p.replace(/^\\\\\?\\|^\\\?\?\\/, '')).replace(/[\\/]+$/, '');
+function packageName(dir) {
   try {
-    return samePath(clean(path.resolve(path.dirname(target), fs.readlinkSync(target))), clean(source)) ? 'ours' : 'foreign';
+    return JSON.parse(lib.decodeText(fs.readFileSync(path.join(dir, 'package.json')))).name || null;
   } catch {
-    return 'foreign';
+    return null;
   }
 }
 
-const entryState = (e, target) => (e.retired ? retiredStateOf : stateOf)(target, e.source);
+/** Whether dir is another checkout of this repository (a clone or a worktree): the same package, with skills/links.json. */
+function isCheckout(dir) {
+  const ours = packageName(REPO);
+  return !!ours && packageName(dir) === ours && exists(path.join(dir, 'skills', 'links.json'));
+}
+
+/**
+ * 'missing', 'ours' or 'foreign' (anything else, including a link elsewhere or broken) for the entry e. A link is ours
+ * when its real destination is the entry's source; a retired entry's link also when it leads to the same folder of
+ * another checkout of this repository (the source is gone here, but the link is the one we made).
+ */
+function stateOf(target, e) {
+  let st;
+  try { st = fs.lstatSync(target); } catch { return 'missing'; }
+  if (!st.isSymbolicLink()) return 'foreign';
+  let to;
+  try { to = realPath(path.resolve(path.dirname(target), fs.readlinkSync(target))); } catch { return 'foreign'; }
+  if (samePath(to, realPath(e.source))) return 'ours';
+  if (!e.retired) return 'foreign';
+  const tail = path.sep + path.normalize(e.relative);
+  if (!comparable(to).endsWith(comparable(tail))) return 'foreign';
+  return isCheckout(to.slice(0, -tail.length)) ? 'ours' : 'foreign';
+}
 
 function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -171,7 +198,7 @@ function planInstall(entries, claude) {
   const steps = entries.filter((e) => !e.retired).map((e) => {
     const target = path.join(claude, e.target);
     const backup = path.join(claude, BACKUP_DIR, e.target);
-    const state = stateOf(target, e.source);
+    const state = stateOf(target, e);
     if (state === 'foreign' && exists(backup)) conflicts.push(t('installSkills.errors.backupTaken', { target: e.label, backup: lib.slashes(backup) }));
     return { ...e, abs: target, backup, state };
   });
@@ -193,15 +220,24 @@ function install(entries, claude) {
     link(s.source, s.abs);
     lines.push(t('installSkills.done.linked', { target: s.label, source: lib.slashes(s.source) }));
   }
-  // A retired name loses only our link; anything else there is not ours and stays (a backup of it stays for --undo).
+  // A retired name loses only our link, and goes back to its owner: the backup taken from it returns (#60). Anything
+  // else there is not ours and stays (and so does its backup, for --undo).
   for (const e of entries.filter((x) => x.retired)) {
     const target = path.join(claude, e.target);
-    const state = entryState(e, target);
+    const backup = path.join(claude, BACKUP_DIR, e.target);
+    const state = stateOf(target, e);
+    if (state === 'foreign') {
+      lines.push(t('installSkills.done.retiredNotOurs', { target: e.label }));
+      continue;
+    }
     if (state === 'ours') {
       unlink(target);
       lines.push(t('installSkills.done.retiredUnlinked', { target: e.label }));
-    } else if (state === 'foreign') {
-      lines.push(t('installSkills.done.retiredNotOurs', { target: e.label }));
+    }
+    if (exists(backup)) {
+      move(backup, target);
+      pruneEmpty(path.dirname(backup), claude);
+      lines.push(t('installSkills.done.restored', { target: e.label }));
     }
   }
   return lines;
@@ -212,7 +248,7 @@ function planUndo(entries, claude) {
   const steps = entries.map((e) => {
     const target = path.join(claude, e.target);
     const backup = path.join(claude, BACKUP_DIR, e.target);
-    const state = entryState(e, target);
+    const state = stateOf(target, e);
     const hasBackup = exists(backup);
     if (state === 'foreign' && hasBackup) conflicts.push(t('installSkills.errors.targetReplaced', { target: e.label, backup: lib.slashes(backup) }));
     return { ...e, abs: target, backup, state, hasBackup };
