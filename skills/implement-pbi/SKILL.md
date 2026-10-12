@@ -15,7 +15,7 @@ Talk to the owner (the user) in Portuguese, and write in Portuguese what you rec
 3. **Follow the mode's flow:**
    - `subagents`: `~/.claude/docs/orchestration-subagents/README.md` (one subagent in a worktree per Task; it also runs inside the Orca or the Maestri);
    - `maestri`: `~/.claude/docs/orchestration-maestri/README.md` (one Maestri floor and one Claude Code terminal per Task);
-   - `orca`: `orchestration-orca/README.md`, in `~/.claude/docs/` (one Orca worktree per Task). If that file does not exist, the Orca flow is not available yet (#65): stop, tell the owner so and offer the subagent mode (`/implement-pbi <id> subagents`).
+   - `orca`: `~/.claude/docs/orchestration-orca/README.md` (one Orca worktree and one Claude Code Worker supervised by the Orca's orchestrator per Task).
 4. **Prerequisites.** Each flow lists its prerequisites: check them before its step 1. If one fails, stop, tell the owner which one failed and offer the subagent mode. **Never switch modes on your own**: the owner decides, so they always know which mode the Item ran in.
 5. **Every `flow task dispatch` passes `--mode <mode>`**, the mode chosen here, so the Item's page shows how each Task was dispatched.
 

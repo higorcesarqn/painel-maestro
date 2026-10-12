@@ -50,6 +50,8 @@ suite.test('the manifest declares the subagent skills and the folder of the docu
     assert.ok(text.includes('~/.claude/docs/orchestration-subagents/README.md'), `${skill} points to the installed document`);
     // One skill per tracker, whatever the Host (#64): it also points to the Maestri flow.
     assert.ok(text.includes('~/.claude/docs/orchestration-maestri/README.md'), `${skill} points to the Maestri flow`);
+    // ... and to the Orca flow (#65).
+    assert.ok(text.includes('~/.claude/docs/orchestration-orca/README.md'), `${skill} points to the Orca flow`);
   }
   assert.ok(fs.existsSync(path.join(REPO, 'skills', 'docs', 'orchestration-subagents', 'README.md')));
 });
@@ -70,6 +72,7 @@ suite.test('the worker skill and the Maestri orchestration folder are declared, 
   const pairs = MANIFEST.links.map((l) => `${l.source} → ${l.target}`);
   assert.ok(pairs.includes('skills/maestro-worker → skills/maestro-worker'), pairs.join(', '));
   assert.ok(pairs.includes('skills/docs/orchestration-maestri → docs/orchestration-maestri'), pairs.join(', '));
+  assert.ok(pairs.includes('skills/docs/orchestration-orca → docs/orchestration-orca'), pairs.join(', '));
 });
 
 // The names this repository no longer installs: target in the Claude folder → the folder of this repository it
@@ -175,6 +178,8 @@ suite.test('after install, every ~/.claude path the installed skills and documen
   for (const l of MANIFEST.links) scan(path.join(REPO, l.source));
   assert.ok(cited.has('docs/orchestration-maestri/README.md'), [...cited].join(', '));
   assert.ok(cited.has('docs/orchestration-maestri/scripts/integrate.sh'), [...cited].join(', '));
+  assert.ok(cited.has('docs/orchestration-orca/README.md'), [...cited].join(', '));
+  assert.ok(cited.has('docs/orchestration-orca/scripts/integrate.sh'), [...cited].join(', '));
   for (const rel of cited) assert.ok(exists(path.join(r.claude, rel)), `~/.claude/${rel} is cited but not installed`);
   assert.ok(!exists(path.join(r.claude, 'docs', 'orchestration-maestri', 'scripts', 'fluxo.py')), 'fluxo.py is gone');
 });
