@@ -4,8 +4,6 @@
     { "source": "skills/implement-issue", "target": "skills/implement-issue" },
     { "source": "skills/implement-pbi", "target": "skills/implement-pbi" },
     { "source": "skills/docs/orchestration-subagents", "target": "docs/orchestration-subagents" },
-    { "source": "skills/implement-issue-maestri", "target": "skills/implement-issue-maestri" },
-    { "source": "skills/implement-pbi-maestri", "target": "skills/implement-pbi-maestri" },
     { "source": "skills/maestro-worker", "target": "skills/maestro-worker" },
     { "source": "skills/docs/orchestration-maestri", "target": "docs/orchestration-maestri" }
   ],
@@ -17,6 +15,8 @@
     { "source": "skills/implementar-issue-maestri", "target": "skills/implementar-issue-maestri" },
     { "source": "skills/implementar-pbi-maestri", "target": "skills/implementar-pbi-maestri" },
     { "source": "skills/trabalhador-floor", "target": "skills/trabalhador-floor" },
-    { "source": "skills/docs/orquestracao-maestri", "target": "docs/orquestracao-maestri" }
+    { "source": "skills/docs/orquestracao-maestri", "target": "docs/orquestracao-maestri" },
+    { "source": "skills/implement-issue-maestri", "target": "skills/implement-issue-maestri" },
+    { "source": "skills/implement-pbi-maestri", "target": "skills/implement-pbi-maestri" }
   ]
 }

@@ -81,4 +81,4 @@ Give the user, in Portuguese:
 - the Item (link in the tracker) and the published tickets, with the blocking edges;
 - the Item's page in the panel: `http://127.0.0.1:4777/#items/<key>` (the key from step 3, e.g. `#items/cidax/3100`);
 - what was not recorded in the panel and why, if something failed;
-- the next step: implement the Item with the tracker's implementation skill (`/implement-issue`, `/implement-pbi` or the `-maestri` variants).
+- the next step: implement the Item with the tracker's implementation skill (`/implement-issue <n>` or `/implement-pbi <id>`; it picks the mode from the Host, and a mode passed after the number, such as `subagents`, wins).

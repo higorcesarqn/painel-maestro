@@ -1,8 +1,8 @@
 # Orchestration with Maestri floors
 
-Flow shared by `/implement-pbi-maestri` (Azure DevOps) and `/implement-issue-maestri` (GitHub). The skill that pointed here provides the **tracker adapter**: how to read the parent Item and the Tasks, find the blocking edges, mark a Task done and open and finish the PR. Everything below is tracker-agnostic.
+The `maestri` mode of `/implement-pbi` (Azure DevOps) and `/implement-issue` (GitHub): the one they pick in a Maestri terminal (`flow host` says `maestri`), or when the owner passes `maestri` after the number. The skill that pointed here provides the **tracker adapter**: how to read the parent Item and the Tasks, find the blocking edges, mark a Task done and open and finish the PR. Everything below is tracker-agnostic.
 
-It is the Maestri version of the subagent flow of `/implement-issue` and `/implement-pbi`, described in `~/.claude/docs/orchestration-subagents/README.md`. The result is the same, **a single PR** on an **integration branch**, but each Task runs on a **floor** (a git worktree) with a **Claude Code terminal** visible on the canvas, instead of an invisible subagent. The user sees each Worker, can talk to it and approves each integration.
+It is the Maestri version of the subagent flow, described in `~/.claude/docs/orchestration-subagents/README.md`. The result is the same, **a single PR** on an **integration branch**, but each Task runs on a **floor** (a git worktree) with a **Claude Code terminal** visible on the canvas, instead of an invisible subagent. The user sees each Worker, can talk to it and approves each integration.
 
 Each step records the flow in **painel-maestro** with the `flow` CLI (section [Panel](#panel)); the canvas portal opens the Item's page in the panel.
 
@@ -20,6 +20,9 @@ Domain terms use the code names of painel-maestro's glossary: **Item** (the pare
 
 ## Prerequisites (check before step 1)
 
+If one of them fails, stop: tell the owner which one failed and offer the subagent mode (`/implement-issue <n> subagents` or `/implement-pbi <id> subagents`). Never switch modes on your own.
+
+- This session runs in a Maestri terminal (`MAESTRI_TERMINAL_ID` defined; `flow host` says `maestri`) with Maestro Mode on, on the workspace's Ground. A mode forced with `maestri` outside the Maestri fails here.
 - The Maestri workspace has **the git repository itself as its root**. With the root in a parent directory, the floor becomes a plain folder, with no worktree and no isolation: stop and ask the user for a workspace at the repo's root (`maestri workspace create "<name>" --dir <repo>`).
 - `/.maestri/` in the repo's `.git/info/exclude`.
 - `$MAESTRI_CLI` defined (the scripts use it, or `maestri` on the PATH).
@@ -82,7 +85,7 @@ Domain terms use the code names of painel-maestro's glossary: **Item** (the pare
 
    For each Task: write the briefing (template below) to a scratchpad file, record the dispatch and open the floor, from the Ground:
    ```bash
-   node "$PAINEL_MAESTRO/bin/flow.js" task dispatch <n> <task> --floor "<floor>" --worker "<worker>" --branch task/<id>-<slug> --role maestro --agent "<your name>"
+   node "$PAINEL_MAESTRO/bin/flow.js" task dispatch <n> <task> --floor "<floor>" --worker "<worker>" --branch task/<id>-<slug> --mode maestri --role maestro --agent "<your name>"
    bash ~/.claude/docs/orchestration-maestri/scripts/open-floor.sh "<floor>" task/<id>-<slug> "<worker>" <scratchpad>/brief-<id>.txt <integration branch>
    ```
    The script creates the floor (waiting out the timeout), recruits the Worker without a role and sends the briefing in the background. Give the Workers short, distinct code names (no accents).
@@ -128,7 +131,7 @@ The **first line is the slash command**: it is what makes the Worker run `/imple
 
 ```text
 /mattpocock-skills:implement <tracker> <id> — <task title>
-You are the worker of the Maestri floor "<floor>", on branch task/<id>-<slug>, created from the integration branch <integration branch> at <sha>. The maestro is the terminal "<maestro name>". Follow the protocol of the maestro-worker skill.
+You are the worker of the Maestri floor "<floor>", on branch task/<id>-<slug>, created from the integration branch <integration branch> at <sha>. The maestro is the terminal "<maestro name>". Follow the maestro-worker skill: its common rules and its Maestri section.
 
 PANEL
 - Item <n>, task <id>, code name "<worker>" (status and report through the flow, as the skill says)

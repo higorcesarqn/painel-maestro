@@ -48,6 +48,8 @@ suite.test('the manifest declares the subagent skills and the folder of the docu
     const text = fs.readFileSync(path.join(REPO, 'skills', skill, 'SKILL.md'), 'utf8');
     assert.ok(text.includes(`name: ${skill}`), skill);
     assert.ok(text.includes('~/.claude/docs/orchestration-subagents/README.md'), `${skill} points to the installed document`);
+    // One skill per tracker, whatever the Host (#64): it also points to the Maestri flow.
+    assert.ok(text.includes('~/.claude/docs/orchestration-maestri/README.md'), `${skill} points to the Maestri flow`);
   }
   assert.ok(fs.existsSync(path.join(REPO, 'skills', 'docs', 'orchestration-subagents', 'README.md')));
 });
@@ -64,16 +66,15 @@ suite.test('install links every declared skill into an empty Claude folder', () 
   assert.ok(fs.existsSync(path.join(r.claude, 'docs', 'orchestration-subagents', 'README.md')), 'the document is reachable where the skills point');
 });
 
-suite.test('the Maestri skills and their orchestration folder are declared, the folder where the skills look for it', () => {
+suite.test('the worker skill and the Maestri orchestration folder are declared, the folder where the skills look for it', () => {
   const pairs = MANIFEST.links.map((l) => `${l.source} → ${l.target}`);
-  for (const name of ['implement-issue-maestri', 'implement-pbi-maestri', 'maestro-worker']) {
-    assert.ok(pairs.includes(`skills/${name} → skills/${name}`), pairs.join(', '));
-  }
+  assert.ok(pairs.includes('skills/maestro-worker → skills/maestro-worker'), pairs.join(', '));
   assert.ok(pairs.includes('skills/docs/orchestration-maestri → docs/orchestration-maestri'), pairs.join(', '));
 });
 
-// The Portuguese names the skills had before #61: target in the Claude folder → the folder of this repository it
-// pointed to, which no longer exists (a link to it is left dangling once the repository is updated).
+// The names this repository no longer installs: target in the Claude folder → the folder of this repository it
+// pointed to, which no longer exists (a link to it is left dangling once the repository is updated). The Portuguese
+// names the skills had before #61, and the -maestri variants that #64 folded into the skill of each tracker.
 const OLD = {
   'skills/especificar': 'skills/especificar',
   'skills/implementar-issue': 'skills/implementar-issue',
@@ -83,6 +84,8 @@ const OLD = {
   'skills/trabalhador-floor': 'skills/trabalhador-floor',
   'docs/orquestracao-subagentes': 'skills/docs/orquestracao-subagentes',
   'docs/orquestracao-maestri': 'skills/docs/orquestracao-maestri',
+  'skills/implement-issue-maestri': 'skills/implement-issue-maestri',
+  'skills/implement-pbi-maestri': 'skills/implement-pbi-maestri',
 };
 
 /** A link at <claude>/<target> to `to`, the way install-skills makes it (the destination may not exist). */
@@ -93,13 +96,13 @@ function plantLink(claude, target, to) {
   return at;
 }
 
-suite.test('the old Portuguese folders are gone from the repository and the manifest retires their names (#61)', () => {
+suite.test('the old folders are gone from the repository and the manifest retires their names (#61, #64)', () => {
   for (const source of Object.values(OLD)) assert.ok(!exists(path.join(REPO, source)), `${source} still in the repository`);
   const retired = Object.fromEntries((MANIFEST.retired || []).map((l) => [l.target, l.source]));
   assert.deepStrictEqual(retired, OLD);
 });
 
-suite.test('install removes the links of the old names that point to this repository, and links the new ones (#61)', () => {
+suite.test('install removes the links of the old names that point to this repository, and links the new ones (#61, #64)', () => {
   const r = buildRoot('retired');
   for (const [target, source] of Object.entries(OLD)) plantLink(r.claude, target, path.join(REPO, source));
   ok(install(r));
