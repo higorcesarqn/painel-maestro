@@ -6,7 +6,9 @@
 //  1. Plan (whole account): % of the 5 h window and of the weekly one, reset time and data age.
 //     Source: <MAESTRI_DATA_DIR>/usage/providers/.status.json, the same file as the Maestri rings.
 //     Without the file, without the Claude provider or without the windows, the plan is
-//     "unavailable" with a reason code; no number is made up.
+//     "unavailable" with a reason code; no number is made up. Without the file the plan has no source at all
+//     (plan_no_source, #63): outside Maestri (Orca, a plain terminal) nothing keeps the plan's % (Orca keeps only
+//     tokens per session), so the page does not send the owner to the Maestri settings.
 //  2. Share of each item and each agent: tokens from the Claude Code transcripts. Each transcript is attributed by
 //     the session the hook (bin/hook-log.js) linked to it in bruto.db (sessions table: project, item, task, cwd and
 //     transcript_path), together with the subagents of the folder <session_id>/subagents next to it (any depth,
@@ -256,7 +258,7 @@ async function readPlan(file, now) {
   };
   const r = await readJson(file);
   if (!r.exists) {
-    plan.reason = { code: 'plan_file_missing', file: plan.file };
+    plan.reason = { code: 'plan_no_source', file: plan.file };
     return plan;
   }
   if (r.error) {

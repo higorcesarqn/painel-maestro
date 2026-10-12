@@ -1,4 +1,4 @@
-// Claude usage (#13): the account plan (5 h and weekly, from Maestri), the consumption of each item in each period and
+// Claude usage (#13): the account plan (5 h and weekly, from Maestri; without its file, no source, #63), the consumption of each item in each period and
 // the tokens of each agent (the item's maestro, a task's worker). Everything comes from GET /api/usage; the organization
 // chosen at the top of the panel (organizationFilter) reaches it as ?organization= and only chooses the lines: the shares are
 // always of the whole account. The explanations (formula, where each number comes from) sit in the (i) icons.
@@ -8,7 +8,7 @@ import { usePanel } from '../data/context.js';
 import { readUsage } from '../data/api.js';
 import { usePolling } from '../data/polling.js';
 import { obj, objs, arr, txt, number, compact, pct, time, hm, age, dateTime, elapsedText, spDay, dayMonth, toDate, now, weekdayShort } from '../data/format.js';
-import { USAGE_PERIODS, usagePeriodName, usagePeriodShort } from '../data/domain.js';
+import { USAGE_PERIODS, usagePeriodName, usagePeriodShort, planUnavailableText, planSourceText } from '../data/domain.js';
 import { t } from '../i18n/index.js';
 import { Card, Ring, Segmented, Empty, Badge } from '../components/base.jsx';
 import { BarList, StackedBar, Legend } from '../components/charts.jsx';
@@ -73,7 +73,7 @@ export function Usage() {
           info={t('usage.sourceInfo')}
           actions={<button type="button" class="button small" disabled={recalculating} onClick={recalc}><Icon of={RefreshCw} size={13} />{recalculating ? t('common.recalculating') : t('common.recalculate')}</button>}>
           <dl class="usage-dl">
-            <dt>{t('usage.planSource')}</dt><dd>{txt(ku.source) || t('codes.maestri_claude_provider')}</dd>
+            <dt>{t('usage.planSource')}</dt><dd>{planSourceText(ku)}</dd>
             <dt>{t('usage.planData')}</dt><dd>{ku.age_min !== null && ku.age_min !== undefined ? elapsedText(ku.age_min) : t('usage.noAge')}{ku.updated_at ? ` (${dateTime(ku.updated_at)})` : ''}</dd>
             <dt>{t('usage.perItem')}</dt><dd>{collected ? t('usage.collectedAt', { time: time(usage.collected_at), age: age(usage.collected_at) }) : txt(usage && usage.reason) || t('usage.collectorNotRun')}</dd>
             <dt>{t('usage.collector')}</dt><dd>{collector}</dd>
@@ -89,7 +89,7 @@ export function Usage() {
         </Card>
       </div>
       {usage && collected && !ku.available && (
-        <div class="note-banner"><Icon of={Info} size={15} />{t('usage.planUnavailable', { reason: (txt(ku.reason) || t('overview.noMaestriData')).trim().replace(/[.\s]+$/, '') })}</div>
+        <div class="note-banner"><Icon of={Info} size={15} />{planUnavailableText(ku.reason)}</div>
       )}
       <div class="usage-periods">
         {USAGE_PERIODS.map((p) => (

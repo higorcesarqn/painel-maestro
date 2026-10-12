@@ -150,7 +150,7 @@ Variáveis: MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DIR (padrão ~
     },
     // c: the code's parameters, plus time(iso) (short time next to the collection) and describe(code) (a nested code)
     codes: {
-      plan_file_missing: 'O Maestri ainda não gravou o uso do plano ({file} não existe). Ligue o uso dos agentes no Maestri (Configurações → Agentes → Uso) e deixe os anéis visíveis.',
+      plan_no_source: 'Sem fonte para o plano neste ambiente: o % da conta só vem do arquivo de uso do Maestri ({file} não existe).',
       plan_file_unreadable: (c) => `Não consegui ler ${c.file}: ${c.describe(c.error)}.`,
       read_failed: 'não consegui ler ({detail})',
       empty_file: 'arquivo vazio',
