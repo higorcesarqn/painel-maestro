@@ -33,6 +33,11 @@ Uma Issue pai do GitHub ou um PBI do Azure DevOps; é o que tem um fluxo.
 Em código: `Item`.
 _Avoid_: tarefa, card, ticket
 
+**Item interrompido**:
+Um item que parou no meio do fluxo e não vai continuar; o dono o encerra com um motivo, e ele fica na etapa em que parou, fora da lista de ativos.
+Em código: `interrupted`.
+_Avoid_: cancelado, abandonado, encerrado
+
 **Task**:
 Uma filha de um item (sub-issue ou card filho), executada por um trabalhador numa branch própria; uma issue sem filhas é um item com uma task, ela mesma.
 Em código: `Task`.
