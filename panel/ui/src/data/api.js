@@ -55,6 +55,9 @@ export const markItemMerged = (project, number) => api(`/api/items/${encodeURICo
 // "Concluir" (#68): the owner concludes an active item on any stage, as flow item done does. Returns { item }; 409 when it
 // already left the active list.
 export const concludeItem = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}/done`, { method: 'POST' });
+// "Interromper" (#70): the owner interrupts an active item, which stays on its stage, as flow item interrupt does. reason:
+// required, up to MAX_DECISION characters. Returns { item }; 400 without a reason, 409 when it already left the active list.
+export const interruptItem = (project, number, reason) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}/interrupt`, { method: 'POST', body: { reason } });
 // Usage and agents per item (#13). filters: the organization selector's organizationFilter ({ organization }) and/or { project }.
 export const readUsage = (filters) => api(withQuery('/api/usage', filters));
 export const readAgents = (filters) => api(withQuery('/api/agents', filters));

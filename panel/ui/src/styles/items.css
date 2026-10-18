@@ -25,6 +25,14 @@ table.items td.col-ref { color: var(--text); }
 .item-conclude { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .item-conclude-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 10px; }
 .item-conclude-actions { display: flex; gap: 8px; }
+.item-interrupt-confirm { flex-direction: column; align-items: stretch; max-width: 640px; }
+.item-interrupt-confirm .item-conclude-actions { justify-content: flex-end; }
+.item-interrupt-reason {
+  min-height: 64px; resize: vertical; border: 1px solid var(--border); border-radius: 9px; background: #0b0b0b; color: var(--text);
+  padding: 8px 10px; font: inherit; font-size: 13.5px; line-height: 1.45; width: 100%;
+}
+.item-interrupt-reason:focus-visible { outline: 1px solid var(--blue-text); outline-offset: 1px; border-color: var(--blue); }
+.item-interrupt-reason[aria-invalid="true"] { border-color: var(--danger); }
 .item-conclude-error { display: flex; align-items: flex-start; gap: 6px; color: var(--danger); }
 .item-conclude-error .icon { flex: none; margin-top: 2px; }
 .item-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--gap); min-height: 0; }

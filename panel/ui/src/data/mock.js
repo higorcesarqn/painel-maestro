@@ -3,7 +3,7 @@
 // and POST /api/recalculate, the organizations and projects routes (#6, POST /api/organizations, POST /api/organizations/<id>/rename,
 // POST /api/organizations/<id>/remove, POST /api/organizations/<id>/hide|unhide and POST /api/projects/<id>/organization in memory,
 // the hidden organizations only with ?hidden=include, #50),
-// /api/items, /api/items/<project>/<number> (and POST .../merged and .../done in memory), /api/pending-decisions (and POST
+// /api/items, /api/items/<project>/<number> (and POST .../merged, .../done and .../interrupt in memory), /api/pending-decisions (and POST
 // /api/pending-decisions/<id>/answer in memory, #32), /api/log,
 // /api/log/<id> (the raw commands are made up on the spot), /api/overview, /api/usage and /api/agents, answering in the
 // API shape (English fields and codes), as the real server does. Items, pending decisions, the Log, the Overview, usage
@@ -264,7 +264,7 @@ async function mockAnswerPending(idText, body) {
 
 /**
  * /api/items[?organization=&project=&stage=&tracker=], /api/items/<project>/<number>, POST /api/items/<project>/<number>/merged,
- * POST /api/items/<project>/<number>/done,
+ * POST /api/items/<project>/<number>/done, POST /api/items/<project>/<number>/interrupt,
  * /api/pending-decisions[?organization=&...] and POST /api/pending-decisions/<id>/answer from tests/mock-items.json; null for any
  * other path.
  */
@@ -275,6 +275,8 @@ async function mockItems(u, method, body) {
   if (merged && method === 'POST') return mockMarkMerged(decodeURIComponent(merged[1]), Number(merged[2]));
   const done = /^\/api\/items\/([^/]+)\/([^/]+)\/done$/.exec(p);
   if (done && method === 'POST') return mockConclude(decodeURIComponent(done[1]), Number(done[2]));
+  const interrupt = /^\/api\/items\/([^/]+)\/([^/]+)\/interrupt$/.exec(p);
+  if (interrupt && method === 'POST') return mockInterrupt(decodeURIComponent(interrupt[1]), Number(interrupt[2]), body);
   const answer = /^\/api\/pending-decisions\/([^/]+)\/answer$/.exec(p);
   if (answer) {
     if (method !== 'POST') throw error('method_not_allowed', 405, { method, allowed: ['POST'] });
@@ -443,6 +445,33 @@ async function mockConclude(project, number) {
   item.updated_at = at;
   const listed = arr(m.items).find((it) => it.key === key);
   if (listed) Object.assign(listed, { stage: item.stage, stage_since: item.stage_since, updated_at: at, active: false });
+  return { item };
+}
+
+/**
+ * "Interromper" (#70) in the mock: interrupts an active item in memory only, like the server: the reason is required (up
+ * to MAX_DECISION characters) and the item stays on its stage, out of the active list.
+ */
+async function mockInterrupt(project, number, body) {
+  if (!obj(body)) throw error('json_object_required', 400);
+  const { reason } = body;
+  if (reason !== undefined && reason !== null && typeof reason !== 'string') throw error('invalid_field', 400, { field: 'reason', value: String(reason).slice(0, 20) });
+  const text = typeof reason === 'string' ? reason.replace(/\r\n?/g, '\n').trim() : '';
+  if (!text) throw error('reason_empty', 400);
+  if (text.length > MAX_DECISION) throw error('reason_too_long', 400, { length: text.length, max: MAX_DECISION });
+  const m = await loadMockItems();
+  const key = `${project}/${number}`;
+  const item = obj(m.details) && m.details[key];
+  if (!item) throw error('item_not_found', 404, { project, number });
+  if (item.active === false) throw error('item_not_active', 409, { project, number });
+  const at = new Date().toISOString();
+  item.active = false;
+  item.interrupted = { reason: text, at, by: { role: 'owner', name: null } };
+  item.merge_check = null;
+  item.timeline = [...arr(item.timeline), { id: Date.now(), at, type: 'item-interrupted', task_number: null, agent: { role: 'owner', name: null }, source: 'panel', payload: { reason: text } }];
+  item.updated_at = at;
+  const listed = arr(m.items).find((it) => it.key === key);
+  if (listed) Object.assign(listed, { updated_at: at, active: false, interrupted: item.interrupted });
   return { item };
 }
 

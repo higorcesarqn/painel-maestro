@@ -188,6 +188,19 @@ export default {
       concluding: 'Concluindo…',
       failed: 'Não consegui concluir o item: {message}',
     },
+    // "Interromper" (#70): asks for the reason and the confirmation on the page itself.
+    interrupt: {
+      button: 'Interromper',
+      buttonTitle: 'Interrompe o item, que fica na etapa em que parou, como o flow item interrupt: ele sai da lista de ativos.',
+      question: 'Interromper {ref}?',
+      detail: 'O item fica na etapa em que parou, marcado como interrompido, e sai da lista de ativos; as pendências abertas dele são canceladas. O tracker não muda.',
+      reason: 'Motivo da interrupção',
+      reasonHint: 'Por que o item parou e não vai continuar (obrigatório).',
+      tooLong: 'Motivo longo demais: {count} caracteres; o limite é {max}.',
+      confirm: 'Interromper o item',
+      interrupting: 'Interrompendo…',
+      failed: 'Não consegui interromper o item: {message}',
+    },
     // Item interrompido (#69): it stopped on a stage and will not go on; it stays there, out of the active list.
     interrupted: {
       badge: 'Interrompido em {stage}',
@@ -945,6 +958,9 @@ export default {
     invalid_option: 'Opção inválida: "{value}". Use a letra de uma das opções.',
     answer_empty: 'Escolha uma opção ou escreva um comentário.',
     answer_too_long: 'Resposta longa demais: {length} caracteres, contando a opção; o limite é {max}.',
+    // the reason of "Interromper" (#70)
+    reason_empty: 'Escreva o motivo da interrupção.',
+    reason_too_long: 'Motivo longo demais: {length} caracteres; o limite é {max}.',
     option_not_found: (c) => (Array.isArray(c.options) && c.options.length
       ? `A pendência P-${c.id} não tem a opção ${c.option} (as opções são ${c.options.join(', ')}).`
       : `A pendência P-${c.id} não tem opções: responda só com o comentário.`),

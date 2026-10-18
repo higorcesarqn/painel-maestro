@@ -21,6 +21,7 @@
 //   GET  /api/items[?active=&organization=&project=], GET /api/items/<project>/<number>   items (api-items.js)
 //   POST /api/items/<project>/<number>/merged "mark as merged" (merge-check.js)
 //   POST /api/items/<project>/<number>/done   "Concluir": the owner concludes the item (api-items.js, #68)
+//   POST /api/items/<project>/<number>/interrupt   "Interromper": the owner interrupts the item, { reason } (api-items.js, #70)
 //   GET  /api/pending-decisions               pending decisions (api-pending-decisions.js)
 //   POST /api/pending-decisions/<id>/answer   the owner's answer to an open pending decision (#32)
 //   GET  /api/log, GET /api/log/<id>, GET /api/raw   the Log and the raw log (api-log.js)
@@ -77,7 +78,7 @@ const DEFAULT_STALE_HOURS = 48;               // Overview (#14): PANEL_STALE_HOU
 const RAW_PURGE_INTERVAL_MS = DAY_MS;          // bruto.db: entries older than 90 days leave once a day
 // index.html is a single file (embedded CSS and JS); nothing external is loaded.
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (POST /api/organizations, .../<id>/rename, POST /api/projects/<id>/organization, POST /api/pending-decisions/<id>/answer)
+const BODY_LIMIT = 16 * 1024; // body accepted by the POSTs that read JSON (POST /api/organizations, .../<id>/rename, POST /api/projects/<id>/organization, POST /api/pending-decisions/<id>/answer, POST /api/items/<project>/<number>/interrupt)
 const JSON_TYPE = 'application/json; charset=utf-8';
 const HTML_TYPE = 'text/html; charset=utf-8';
 const USAGE_FILE = 'state/usage.json';         // written by the usage collector, relative to MAESTRO_DIR
@@ -436,7 +437,7 @@ function findRoute(urlPath) {
     const it = itemsApi.parseItemPath(mi[1], mi[2]);
     return it ? { name: 'item', methods: ['GET', 'HEAD'], project: it.project, number: it.number } : null;
   }
-  const mm = /^\/api\/items\/([^/]+)\/([^/]+)\/(merged|done)$/.exec(urlPath);
+  const mm = /^\/api\/items\/([^/]+)\/([^/]+)\/(merged|done|interrupt)$/.exec(urlPath);
   if (mm) {
     const it = itemsApi.parseItemPath(mm[1], mm[2]);
     return it ? { name: `item-${mm[3]}`, methods: ['POST'], project: it.project, number: it.number } : null;
@@ -455,8 +456,8 @@ function findRoute(urlPath) {
 }
 
 async function route(ctx, req, res) {
-  // Only POST /api/organizations, POST /api/organizations/<id>/rename, POST /api/projects/<id>/organization and
-  // POST /api/pending-decisions/<id>/answer read the body (a POST that reads JSON gets up to 16 KB); the rest is discarded, capped at 1 MB.
+  // Only POST /api/organizations, POST /api/organizations/<id>/rename, POST /api/projects/<id>/organization,
+  // POST /api/pending-decisions/<id>/answer and POST /api/items/<project>/<number>/interrupt read the body (a POST that reads JSON gets up to 16 KB); the rest is discarded, capped at 1 MB.
   let received = 0;
   const parts = [];
   const body = new Promise((resolve) => {
@@ -561,6 +562,14 @@ async function route(ctx, req, res) {
       const done = itemsApi.markItemDone(ctx.items, r.project, r.number, isoSP(ctx.now()));
       if (done.error) return respondError(req, res, done.status, done.error);
       ctx.log(t('server.log.itemConcluded', { key: `${r.project}/${r.number}`, canceled: done.canceled.length }));
+      return respondJson(req, res, 200, withMergeCheck(ctx, itemsApi.itemDetail(ctx.items, r.project, r.number)));
+    }
+    case 'item-interrupt': {
+      const buf = await body;
+      if (buf === null) return respondError(req, res, 413, { code: 'body_too_large', limit_kb: BODY_LIMIT / 1024 });
+      const interrupted = itemsApi.markItemInterrupted(ctx.items, r.project, r.number, buf, isoSP(ctx.now()));
+      if (interrupted.error) return respondError(req, res, interrupted.status, interrupted.error);
+      ctx.log(t('server.log.itemInterrupted', { key: `${r.project}/${r.number}`, canceled: interrupted.canceled.length }));
       return respondJson(req, res, 200, withMergeCheck(ctx, itemsApi.itemDetail(ctx.items, r.project, r.number)));
     }
     case 'pending-decisions':

@@ -254,6 +254,7 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       mergeCheckFailed: 'Falha na verificação de merge: {detail}',
       markedMerged: 'PR de {key} marcado como mergeado pelo painel',
       itemConcluded: (p) => `Item ${p.key} concluído pelo painel${p.canceled ? ` (${p.canceled} pendência(s) cancelada(s))` : ''}`,
+      itemInterrupted: (p) => `Item ${p.key} interrompido pelo painel${p.canceled ? ` (${p.canceled} pendência(s) cancelada(s))` : ''}`,
       pendingAnswered: 'Pendência P-{id} de {key} respondida pelo painel',
     },
   },
