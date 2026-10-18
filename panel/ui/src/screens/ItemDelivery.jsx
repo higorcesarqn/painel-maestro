@@ -25,7 +25,7 @@ export function ItemDelivery({ item, onChange }) {
         </PrBlock>
         <AdjustmentBlock adjustment={obj(item.final_adjustment)} />
         <HmlBlock hml={obj(item.hml)} uses={usesHml} />
-        <CompletionBlock at={item.completed_at} />
+        <CompletionBlock at={item.completed_at || item.concluded_at} closed={item.active === false} interrupted={obj(item.interrupted)} stage={item.stage} />
       </div>
     </Card>
   );
@@ -77,7 +77,7 @@ function MergeCheck({ item, onChange }) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState(null);
   const pr = obj(item.pr);
-  if (!pr || pr.state !== 'ready') return null;
+  if (!pr || pr.state !== 'ready' || item.active === false) return null;
   const check = obj(item.merge_check);
   let status;
   if (check && check.error) {
@@ -146,13 +146,19 @@ function HmlBlock({ hml: h, uses }) {
   );
 }
 
-function CompletionBlock({ at }) {
+/** Interrupted, concluded (in a project without the Done stage the date is concluded_at, #67) or still active. */
+function CompletionBlock({ at, closed, interrupted, stage }) {
   return (
     <Block title={t('delivery.completion.title')}>
-      {at ? (
+      {interrupted ? (
+        <div class="delivery-stack">
+          <div class="delivery-line"><Badge tone="warning">{t('delivery.completion.interrupted', { stage: t(`items.stages.${stage}`) })}</Badge></div>
+          <p class="muted small">{t('delivery.completion.at', { when: dateTime(interrupted.at), age: age(interrupted.at) })}</p>
+        </div>
+      ) : at || closed ? (
         <div class="delivery-stack">
           <div class="delivery-line"><Badge tone="ok">{t('delivery.completion.done')}</Badge></div>
-          <p class="muted small">{t('delivery.completion.at', { when: dateTime(at), age: age(at) })}</p>
+          {at ? <p class="muted small">{t('delivery.completion.at', { when: dateTime(at), age: age(at) })}</p> : null}
         </div>
       ) : <p class="muted small">{t('delivery.completion.pending')}</p>}
     </Block>
@@ -168,6 +174,7 @@ export function deliveryEventText(e) {
   if (e.type === 'final-adjustment-finished') return t(`delivery.events.adjustment.${p.outcome}`);
   if (e.type === 'hml-recorded') return t('delivery.events.hml', { passed: number(p.passed), failed: number(p.failed), blocked: number(p.blocked) });
   if (e.type === 'item-done') return t('delivery.events.itemDone');
+  if (e.type === 'item-interrupted') return t('delivery.events.itemInterrupted', { reason: txt(p.reason) || t('items.interrupted.noReason') });
   return null;
 }
 

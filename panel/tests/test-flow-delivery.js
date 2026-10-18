@@ -6,7 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const { assert, REPO, createSuite, tmpDir, remove, freePort, request } = require('./util');
 
 const FLOW = path.join(REPO, 'bin', 'flow.js');
@@ -215,6 +215,214 @@ suite.test('links only for the trackers\' domains; invalid data ends with exit c
   });
 });
 
+/** flow pending wait as a real process (polling every 50 ms); started() resolves once it says it is waiting. */
+function startWait(r, id) {
+  const env = Object.assign({}, process.env, { MAESTRO_DIR: r.data, MAESTRO_NOW: '', NODE_OPTIONS: '', FLOW_WAIT_INTERVAL_MS: '50' });
+  const child = spawn(process.execPath, [FLOW, 'pending', 'wait', String(id)], { cwd: r.repo, env, windowsHide: true });
+  let stdout = '';
+  let stderr = '';
+  let onOut = () => {};
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (s) => { stdout += s; onOut(); });
+  child.stderr.on('data', (s) => { stderr += s; });
+  child.stdin.end('');
+  const timer = setTimeout(() => child.kill(), 30000);
+  const done = new Promise((resolve) => child.on('close', (status) => {
+    clearTimeout(timer);
+    resolve({ status, stdout, stderr });
+  }));
+  const started = () => new Promise((resolve, reject) => {
+    const check = () => { if (/^Esperando a pendência P-\d+/m.test(stdout)) resolve(); };
+    onOut = check;
+    check();
+    done.then((x) => reject(new Error(`the wait ended before waiting: exit ${x.status}\n${x.stdout}\n${x.stderr}`)));
+  });
+  return { started, done };
+}
+
+function openedId(x) {
+  ok(x);
+  const m = /\bP-(\d+)\b/.exec(x.stdout);
+  assert.ok(m, x.stdout);
+  return Number(m[1]);
+}
+
+suite.test('item done cancels the item\'s open pending decisions ("item concluído pelo dono") and a waiting maestro wakes up', async () => {
+  const r = buildRoot('done-pending');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Com pendências', '--stage', 'merge']));
+  ok(flow(r, ['item', 'start', '13', '--title', 'Outro item', '--stage', 'merge']));
+  const waited = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Seguir?']));
+  const other = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Outra']));
+  const resolved = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Já resolvida']));
+  const elsewhere = openedId(flow(r, ['pending', 'open', '13', '--kind', 'decision', '--title', 'De outro item']));
+  ok(flow(r, ['pending', 'resolve', String(resolved), '--decision', 'A']));
+  const wait = startWait(r, waited);
+  await wait.started();
+  const x = flow(r, ['item', 'done', '12', '--agent', 'Maestro']);
+  ok(x);
+  assert.match(x.stdout, /2 pendência\(s\) aberta\(s\) cancelada\(s\)/);
+  const w = await wait.done;
+  assert.strictEqual(w.status, 0, w.stderr);
+  assert.match(w.stdout, /fechou: cancelada\./);
+  assert.match(w.stdout, /Motivo: item concluído pelo dono/);
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/12')).item;
+    const byId = new Map((await get('/api/pending-decisions')).pending_decisions.map((p) => [p.id, p]));
+    for (const id of [waited, other]) {
+      assert.deepStrictEqual([byId.get(id).status, byId.get(id).reason, byId.get(id).closed_by.role], ['canceled', 'item concluído pelo dono', 'maestro']);
+    }
+    assert.deepStrictEqual([byId.get(resolved).status, byId.get(resolved).reason], ['resolved', null], 'a closed one is left alone');
+    assert.deepStrictEqual(item.timeline.slice(-3).map((e) => e.type), ['item-done', 'pending-decision-canceled', 'pending-decision-canceled']);
+    assert.strictEqual(byId.get(elsewhere).status, 'open', 'another item\'s pending decisions stay open');
+  });
+});
+
+suite.test('item done in a project without the Done stage takes the item out of the active list; a later stage brings it back', async () => {
+  const r = buildRoot('no-done');
+  ok(flow(r, ['org', 'add', 'personal', '--name', 'Pessoal']));
+  ok(flow(r, ['project', 'add', 'widgets', '--name', 'Widgets', '--org', 'personal', '--stages', 'specification,implementation,pr_ready,merge']));
+  ok(flow(r, ['item', 'start', '7', '--title', 'Sem Concluído', '--stage', 'merge']));
+  ok(flow(r, ['item', 'start', '8', '--title', 'Ativo', '--stage', 'implementation']));
+  ok(flow(r, ['item', 'done', '7']));
+  invalid(flow(r, ['item', 'done', '7']), /já está concluído/);
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/7')).item;
+    assert.deepStrictEqual([item.stage, item.active, item.completed_at], ['merge', false, null], 'it stays on its stage, out of the active list');
+    const done = item.timeline.find((e) => e.type === 'item-done');
+    assert.strictEqual(item.concluded_at, done.at, 'concluded_at is when item-done was recorded (#67)');
+    assert.deepStrictEqual((await get('/api/items?active=1')).items.map((i) => i.key), ['widgets/8']);
+    assert.deepStrictEqual((await get('/api/items?active=0')).items.map((i) => [i.key, i.concluded_at]), [['widgets/7', done.at]], 'the list carries it too');
+    assert.strictEqual((await get('/api/items/widgets/8')).item.concluded_at, null);
+  });
+  ok(flow(r, ['stage', '7', 'merge']));
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/7')).item;
+    assert.deepStrictEqual([item.stage, item.active, item.concluded_at], ['merge', true, null], 'a later flow event brings it back, no longer concluded');
+  });
+});
+
+suite.test('a flow event after item done brings the item back to the active list, on that event\'s stage', async () => {
+  const r = buildRoot('back');
+  ok(flow(r, ['item', 'start', '9', '--title', 'Volta', '--stage', 'implementation']));
+  ok(flow(r, ['item', 'done', '9']));
+  ok(flow(r, ['pr', '9', 'ready', '--url', 'https://github.com/acme/widgets/pull/90']));
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/9')).item;
+    assert.deepStrictEqual([item.stage, item.active, item.completed_at], ['pr_ready', true, null]);
+    assert.deepStrictEqual((await get('/api/items?active=1')).items.map((i) => i.key), ['widgets/9']);
+  });
+});
+
+suite.test('item interrupt keeps the item on its stage, marked interrupted, out of the active list (#69)', async () => {
+  const r = buildRoot('interrupt');
+  ok(flow(r, ['item', 'start', '20', '--title', 'Parou no meio', '--stage', 'merge']));
+  ok(flow(r, ['item', 'start', '21', '--title', 'Ativo', '--stage', 'implementation']));
+  const x = flow(r, ['item', 'interrupt', '20', '--reason', 'O cliente desistiu da mudança', '--agent', 'Maestro']);
+  ok(x);
+  assert.match(x.stdout, /^Item widgets\/20 \(#20\) interrompido em Merge\. Ele sai da lista de ativos e continua consultável no painel\./);
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/20')).item;
+    assert.deepStrictEqual([item.stage, item.active, item.completed_at, item.concluded_at], ['merge', false, null, null], 'it stays on the stage where it stopped');
+    assert.deepStrictEqual(item.stages.find((s) => s.status === 'current').id, 'merge');
+    const last = item.timeline[item.timeline.length - 1];
+    assert.deepStrictEqual(item.interrupted, { reason: 'O cliente desistiu da mudança', at: last.at, by: { role: 'maestro', name: 'Maestro' } });
+    assert.deepStrictEqual([last.type, last.payload], ['item-interrupted', { reason: 'O cliente desistiu da mudança' }]);
+    assert.strictEqual((await get('/api/items/widgets/21')).item.interrupted, null);
+    assert.deepStrictEqual((await get('/api/items?active=1')).items.map((i) => i.key), ['widgets/21']);
+    const inactive = (await get('/api/items?active=0')).items;
+    assert.deepStrictEqual(inactive.map((i) => [i.key, i.stage, i.interrupted && i.interrupted.reason]), [['widgets/20', 'merge', 'O cliente desistiu da mudança']]);
+  });
+});
+
+suite.test('item interrupt takes the reason as an option or by JSON; without one, or on an item already closed, it ends with exit code 2', async () => {
+  const r = buildRoot('interrupt-invalid');
+  ok(flow(r, ['item', 'start', '22', '--title', 'Válido', '--stage', 'implementation']));
+  ok(flow(r, ['item', 'start', '23', '--title', 'Concluído', '--stage', 'implementation']));
+  ok(flow(r, ['item', 'done', '23']));
+  const cases = [
+    [['item', 'interrupt', '22'], /falta o motivo da interrupção \(--reason/],
+    [['item', 'interrupt', '22', '--reason', '   '], /falta o motivo da interrupção/],
+    [['item', 'interrupt', '22', '--reason', 'x'.repeat(2001)], /o motivo tem 2001 caracteres; o máximo é 2000/],
+    [['item', 'interrupt', '--reason', 'Sem número'], /falta o número do item/],
+    [['item', 'interrupt', '24', '--reason', 'Nunca começou'], /ainda não foi iniciado/],
+    [['item', 'interrupt', '23', '--reason', 'Tarde demais'], /o item widgets\/23 \(#23\) já está fora da lista de ativos \(concluído\)/],
+    [['item', 'interrupt', '--json', '-'], /campo "reason" do JSON precisa ser texto/, JSON.stringify({ number: 22, reason: 5 })],
+  ];
+  for (const [args, message, input] of cases) invalid(flow(r, args, { input }), message);
+  ok(flow(r, ['item', 'interrupt', '--json', '-'], { input: JSON.stringify({ number: 22, reason: 'Pelo JSON\ncom duas linhas', agent: 'Maestro' }) }));
+  invalid(flow(r, ['item', 'interrupt', '22', '--reason', 'De novo']), /já está fora da lista de ativos \(interrompido\)/);
+  invalid(flow(r, ['item', 'done', '22']), /já está fora da lista de ativos \(interrompido\)/);
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/22')).item;
+    assert.deepStrictEqual(item.timeline.map((e) => e.type), ['item-started', 'item-interrupted']);
+    assert.strictEqual(item.interrupted.reason, 'Pelo JSON\ncom duas linhas');
+    assert.deepStrictEqual((await get('/api/items/widgets/23')).item.timeline.map((e) => e.type), ['item-started', 'item-done']);
+  });
+});
+
+suite.test('item interrupt cancels the item\'s open pending decisions ("item interrompido pelo dono") and a waiting maestro wakes up', async () => {
+  const r = buildRoot('interrupt-pending');
+  ok(flow(r, ['item', 'start', '25', '--title', 'Com pendências', '--stage', 'hml_validation']));
+  ok(flow(r, ['item', 'start', '26', '--title', 'Outro item', '--stage', 'merge']));
+  const waited = openedId(flow(r, ['pending', 'open', '25', '--kind', 'decision', '--title', 'Seguir?']));
+  const resolved = openedId(flow(r, ['pending', 'open', '25', '--kind', 'decision', '--title', 'Já resolvida']));
+  const elsewhere = openedId(flow(r, ['pending', 'open', '26', '--kind', 'decision', '--title', 'De outro item']));
+  ok(flow(r, ['pending', 'resolve', String(resolved), '--decision', 'A']));
+  ok(flow(r, ['hml', '25', '--passed', '1', '--failed', '1'])); // the derived HML pending decision, open
+  const wait = startWait(r, waited);
+  await wait.started();
+  const x = flow(r, ['item', 'interrupt', '25', '--reason', 'Sem verba', '--role', 'owner']);
+  ok(x);
+  assert.match(x.stdout, /2 pendência\(s\) aberta\(s\) cancelada\(s\)/);
+  const w = await wait.done;
+  assert.strictEqual(w.status, 0, w.stderr);
+  assert.match(w.stdout, /fechou: cancelada\./);
+  assert.match(w.stdout, /Motivo: item interrompido pelo dono/);
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/25')).item;
+    const all = (await get('/api/pending-decisions')).pending_decisions;
+    const byId = new Map(all.map((p) => [p.id, p]));
+    const derived = all.find((p) => p.kind === 'hml');
+    for (const p of [byId.get(waited), derived]) {
+      assert.deepStrictEqual([p.status, p.reason, p.closed_by.role], ['canceled', 'item interrompido pelo dono', 'owner']);
+    }
+    assert.deepStrictEqual([byId.get(resolved).status, byId.get(resolved).reason], ['resolved', null], 'a closed one is left alone');
+    assert.strictEqual(byId.get(elsewhere).status, 'open', 'another item\'s pending decisions stay open');
+    assert.deepStrictEqual(item.timeline.slice(-3).map((e) => e.type), ['item-interrupted', 'pending-decision-canceled', 'pending-decision-canceled']);
+    assert.deepStrictEqual([item.stage, item.interrupted.by], ['hml_validation', { role: 'owner', name: null }]);
+  });
+});
+
+suite.test('a flow event after item interrupt brings the item back to the active list and clears interrupted', async () => {
+  const r = buildRoot('interrupt-back');
+  ok(flow(r, ['item', 'start', '27', '--title', 'Volta pela etapa', '--stage', 'merge']));
+  ok(flow(r, ['item', 'start', '28', '--title', 'Volta pelo PR', '--stage', 'implementation']));
+  ok(flow(r, ['item', 'start', '29', '--title', 'Segue parado', '--stage', 'implementation']));
+  for (const n of ['27', '28', '29']) ok(flow(r, ['item', 'interrupt', n, '--reason', 'Parado']));
+  ok(flow(r, ['stage', '27', 'merge'])); // even to the stage where it stopped
+  ok(flow(r, ['pr', '28', 'ready', '--url', 'https://github.com/acme/widgets/pull/91']));
+  ok(flow(r, ['task', 'graph', '29', '--task', '30|Uma task'])); // not a flow event that sets a stage
+  await withServer(r, async (get) => {
+    const back = (await get('/api/items/widgets/27')).item;
+    assert.deepStrictEqual([back.stage, back.active, back.interrupted], ['merge', true, null]);
+    const pr = (await get('/api/items/widgets/28')).item;
+    assert.deepStrictEqual([pr.stage, pr.active, pr.interrupted], ['pr_ready', true, null]);
+    const still = (await get('/api/items/widgets/29')).item;
+    assert.deepStrictEqual([still.active, still.interrupted.reason], [false, 'Parado']);
+    assert.deepStrictEqual((await get('/api/items?active=1')).items.map((i) => i.key).sort(), ['widgets/27', 'widgets/28']);
+  });
+  ok(flow(r, ['item', 'interrupt', '27', '--reason', 'Parou de novo']));
+  ok(flow(r, ['item', 'interrupt', '28', '--reason', 'Parou em PR pronto']));
+  ok(flow(r, ['stage', '28', 'done'])); // a flow event to Done: done, out of the active list, no longer interrupted
+  await withServer(r, async (get) => {
+    const again = (await get('/api/items/widgets/27')).item;
+    assert.deepStrictEqual([again.active, again.interrupted.reason], [false, 'Parou de novo']);
+    const done = (await get('/api/items/widgets/28')).item;
+    assert.deepStrictEqual([done.stage, done.active, done.interrupted], ['done', false, null]);
+  });
+});
+
 suite.test('the active filter of the list only takes 1 or 0', async () => {
   const r = buildRoot('filter');
   ok(flow(r, ['item', 'start', '1', '--title', 'Ativo']));
@@ -234,7 +442,7 @@ suite.test('help lists the new subcommands', () => {
   const r = buildRoot('help');
   const x = flow(r, ['--help']);
   ok(x);
-  for (const re of [/pr <número> draft\|ready\|merged/, /final-adjustment <número> open/, /final-adjustment <número> result --outcome/, /hml <número> --passed/, /item done <número>/]) {
+  for (const re of [/pr <número> draft\|ready\|merged/, /final-adjustment <número> open/, /final-adjustment <número> result --outcome/, /hml <número> --passed/, /item done <número>/, /item interrupt <número> --reason "\.\.\."/]) {
     assert.ok(re.test(x.stdout), `${re}\n${x.stdout}`);
   }
 });

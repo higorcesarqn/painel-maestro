@@ -88,6 +88,10 @@ export default {
   },
 
   mock: {
+    // The reason the demo records on the pending decisions it cancels when the owner concludes or interrupts an item: the
+    // server's own (delivery.concludedReason / interruptedReason in bin/i18n/pt-BR.js).
+    concludedReason: 'item concluído pelo dono',
+    interruptedReason: 'item interrompido pelo dono',
     loadFailed: 'Modo de teste: não consegui ler tests/mock-items.json ({detail}). Sirva a pasta com "npm run demo" e abra a página com ?mock=1.',
   },
 
@@ -178,6 +182,44 @@ export default {
     timelineTitle: 'Linha do tempo',
     eventCount: { one: '{count} evento', other: '{count} eventos' },
     dates: 'Iniciado em {started} · última mudança em {updated} · {events} evento(s)',
+    conclude: {
+      button: 'Concluir',
+      buttonTitle: 'Conclui o item, em qualquer etapa, como o flow item done: ele sai da lista de ativos.',
+      question: 'Concluir {ref}?',
+      detail: 'O item sai da lista de ativos (e vai para Concluído, se o projeto usa essa etapa); as pendências abertas dele são encerradas. O tracker não muda.',
+      cancel: 'Cancelar',
+      confirm: 'Concluir o item',
+      concluding: 'Concluindo…',
+      failed: 'Não consegui concluir o item: {message}',
+    },
+    // "Interromper" (#70): asks for the reason and the confirmation on the page itself.
+    interrupt: {
+      button: 'Interromper',
+      buttonTitle: 'Interrompe o item, que fica na etapa em que parou, como o flow item interrupt: ele sai da lista de ativos.',
+      question: 'Interromper {ref}?',
+      detail: 'O item fica na etapa em que parou, marcado como interrompido, e sai da lista de ativos; as pendências abertas dele são encerradas. O tracker não muda.',
+      reason: 'Motivo da interrupção',
+      reasonHint: 'Por que o item parou e não vai continuar (obrigatório).',
+      tooLong: 'Motivo longo demais: {count} caracteres; o limite é {max}.',
+      confirm: 'Interromper o item',
+      interrupting: 'Interrompendo…',
+      failed: 'Não consegui interromper o item: {message}',
+    },
+    // Item interrompido (#69): it stopped on a stage and will not go on; it stays there, out of the active list.
+    interrupted: {
+      badge: 'Interrompido em {stage}',
+      badgeTitle: 'Interrompido em {when}: {reason}',
+      reason: 'Motivo da interrupção',
+      noReason: '(sem motivo registrado)',
+      when: 'Em {when} ({age})',
+      by: 'por {who}',
+      detail: 'O item saiu da lista de ativos e ficou na etapa em que parou. Um evento de fluxo depois (ex.: flow stage) o traz de volta.',
+    },
+    // Concluded in a project without the Done stage (#67): it stays on its stage, out of the active list.
+    concluded: {
+      badge: 'Concluído em {stage}',
+      badgeTitle: 'Concluído em {when}',
+    },
     stages: {
       specification: 'Especificação',
       implementation: 'Implementação',
@@ -187,7 +229,7 @@ export default {
       hml_validation: 'Validação HML',
       done: 'Concluído',
     },
-    stageStatus: { done: 'concluída', current: 'atual', pending: 'a seguir' },
+    stageStatus: { done: 'concluída', current: 'atual', pending: 'a seguir', interrupted: 'interrompida' },
     trackers: { github: 'GitHub', azure_devops: 'Azure DevOps' },
     roles: { maestro: 'Maestro', worker: 'Trabalhador', owner: 'Dono' },
     events: {
@@ -266,6 +308,7 @@ export default {
       done: 'Concluído',
       at: 'em {when} ({age})',
       pending: 'Item ainda ativo.',
+      interrupted: 'Interrompido em {stage}',
     },
     events: {
       pr: { draft: 'PR criado em rascunho', ready: 'PR pronto (saiu do rascunho)', merged: 'PR mergeado' },
@@ -273,6 +316,7 @@ export default {
       adjustment: { passed: 'Ajuste final aprovado', failed: 'Ajuste final reprovado' },
       hml: 'Validação HML: {passed} aprovado(s), {failed} reprovado(s), {blocked} bloqueado(s)',
       itemDone: 'Item concluído',
+      itemInterrupted: 'Item interrompido: {reason}',
       prMergedByPanel: { check: 'PR mergeado (confirmado no tracker pelo painel)', owner: 'PR marcado como mergeado no painel' },
     },
     mergeCheck: {
@@ -289,11 +333,11 @@ export default {
     listFilter: {
       label: 'Mostrar itens',
       active: 'Ativos',
-      done: 'Concluídos',
+      done: 'Não ativos',
       all: 'Todos',
       none: {
-        active: 'Nenhum item ativo. Os concluídos continuam em "Concluídos".',
-        done: 'Nenhum item concluído ainda.',
+        active: 'Nenhum item ativo. Os concluídos e os interrompidos continuam em "Não ativos".',
+        done: 'Nenhum item concluído ou interrompido ainda.',
         all: 'Nenhum item.',
       },
     },
@@ -650,6 +694,7 @@ export default {
       'final-adjustment-finished': 'Ajuste final terminado',
       'hml-recorded': 'Validação HML registrada',
       'item-done': 'Item concluído',
+      'item-interrupted': 'Item interrompido',
       'pending-decision-opened': 'Pendência aberta',
       'pending-decision-resolved': 'Pendência resolvida',
       'pending-decision-canceled': 'Pendência cancelada',
@@ -881,6 +926,7 @@ export default {
     method_not_allowed: (c) => `Método ${c.method} não aceito aqui (use ${(c.allowed || []).join(' ou ')}).`,
     event_not_found: 'Evento não encontrado: {id}',
     item_not_found: 'Item não encontrado: {project}/{number}. Ele é criado pelo comando flow item start.',
+    item_not_active: 'O item já não está mais ativo.',
     body_too_large: 'Corpo grande demais ou incompleto (até {limit_kb} KB).',
     internal_error: 'Erro interno do painel (detalhes no terminal do servidor).',
     invalid_param: (c) => `Parâmetro "${PARAM_NAMES[c.param] || c.param}" inválido: "${c.value}" (${PARAM_HINTS[c.expected] || PARAM_HINTS.positive_integer}).`,
@@ -921,6 +967,9 @@ export default {
     invalid_option: 'Opção inválida: "{value}". Use a letra de uma das opções.',
     answer_empty: 'Escolha uma opção ou escreva um comentário.',
     answer_too_long: 'Resposta longa demais: {length} caracteres, contando a opção; o limite é {max}.',
+    // the reason of "Interromper" (#70)
+    reason_empty: 'Escreva o motivo da interrupção.',
+    reason_too_long: 'Motivo longo demais: {length} caracteres; o limite é {max}.',
     option_not_found: (c) => (Array.isArray(c.options) && c.options.length
       ? `A pendência P-${c.id} não tem a opção ${c.option} (as opções são ${c.options.join(', ')}).`
       : `A pendência P-${c.id} não tem opções: responda só com o comentário.`),

@@ -1,5 +1,6 @@
 'use strict';
-// api-items.js · items of the new model (#5): GET /api/items and GET /api/items/<project>/<number>.
+// api-items.js · items of the new model (#5): GET /api/items and GET /api/items/<project>/<number>, and the "Concluir"
+// and "Interromper" buttons (#68, #70): POST /api/items/<project>/<number>/done and .../interrupt.
 // Reads the events of maestro.db (bin/flow-store.js, MAESTRO_DIR or ~/.painel-maestro) and computes each item's
 // state with the pure projection (bin/flow-projection.js); nothing derived is stored (ADR 0002).
 // The number goes out as in the tracker (tracker_ref: "#12" on GitHub, "PBI 3100" on Azure DevOps) and the key
@@ -8,6 +9,7 @@ const path = require('path');
 
 const { openStore, flowDir, RE_ID } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 const { projectItem, trackerRef } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
+const { concludeItem, interruptItem, interruptionReason } = require(path.join(__dirname, '..', 'bin', 'flow-close.js'));
 
 const RE_NUMBER = /^[1-9]\d{0,8}$/;
 
@@ -74,6 +76,10 @@ function summary(project, state) {
     started_at: state.started_at,
     updated_at: state.updated_at,
     active: state.active,
+    // { reason, at, by: { role, name } } while the item is interrupted (#69): it stays on its stage, out of the active list.
+    interrupted: state.interrupted,
+    // When the last item-done was recorded (#67), also in a project without Done; null once a flow event brought it back.
+    concluded_at: state.concluded_at,
   };
 }
 
@@ -109,8 +115,8 @@ function itemDetail(source, projectId, number) {
 }
 
 // ---------- delivery (#9): PR, final adjustment, HML and conclusion ----------
-// The list carries `active` (false once the item is Done) and accepts ?active=1 (active only) or ?active=0
-// (done only); without it, every item. The item page also carries the PR, the final adjustment, the HML result and
+// The list carries `active` (false once the item is Done or interrupted, #69) and `interrupted`, and accepts ?active=1
+// (active only) or ?active=0 (done or interrupted only); without it, every item. The item page also carries the PR, the final adjustment, the HML result and
 // the conclusion moment. Links come already filtered by the projection to the trackers' domains.
 
 /** Filter of GET /api/items: null (every item), true or false; undefined when the value is invalid. */
@@ -124,6 +130,59 @@ function activeFilter(query) {
 
 function deliveryDetail(state) {
   return { completed_at: state.completed_at, pr: state.pr, final_adjustment: state.final_adjustment, hml: state.hml };
+}
+
+/**
+ * The "Concluir" button (#68): records the same item-done as `flow item done`, as the owner (role owner, no agent name,
+ * source panel), and cancels the item's open pending decisions (bin/flow-close.js), in one transaction. The item may be on
+ * any stage. { status: 200 } or { status, error }: 404 item_not_found (also without maestro.db, which is not created),
+ * 409 item_not_active when it already left the active list.
+ */
+function markItemDone(source, projectId, number, at) {
+  const notFound = { status: 404, error: { code: 'item_not_found', project: projectId, number } };
+  const store = source.store();
+  const project = store && store.project(projectId);
+  if (!project) return notFound;
+  const x = store.transaction(() => concludeItem(store, project, number, { at, agentRole: 'owner', source: 'panel' }));
+  if (!x.state) return notFound;
+  if (!x.recorded) return { status: 409, error: { code: 'item_not_active', project: projectId, number } };
+  return { status: 200, canceled: x.canceled };
+}
+
+/**
+ * The reason of the "Interromper" button (#70) from the raw JSON body { reason }, under the rule shared with `flow item
+ * interrupt` (interruptionReason in bin/flow-close.js): { reason } or { error } (400).
+ */
+function interruptionInput(body) {
+  let input;
+  try {
+    input = JSON.parse(String(body || ''));
+  } catch (_) {
+    input = null;
+  }
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return { error: { code: 'json_object_required' } };
+  const { reason } = input;
+  if (reason !== undefined && reason !== null && typeof reason !== 'string') return { error: { code: 'invalid_field', field: 'reason', value: String(reason).slice(0, 20) } };
+  return interruptionReason(reason);
+}
+
+/**
+ * The "Interromper" button (#70): records the same item-interrupted { reason } as `flow item interrupt`, as the owner
+ * (role owner, no agent name, source panel), and cancels the item's open pending decisions (bin/flow-close.js), in one
+ * transaction. The item stays on its stage. { status: 200 } or { status, error }: 400 when the body has no valid reason
+ * (checked first), 404 item_not_found (also without maestro.db, which is not created), 409 item_not_active.
+ */
+function markItemInterrupted(source, projectId, number, body, at) {
+  const input = interruptionInput(body);
+  if (input.error) return { status: 400, error: input.error };
+  const notFound = { status: 404, error: { code: 'item_not_found', project: projectId, number } };
+  const store = source.store();
+  const project = store && store.project(projectId);
+  if (!project) return notFound;
+  const x = store.transaction(() => interruptItem(store, project, number, input.reason, { at, agentRole: 'owner', source: 'panel' }));
+  if (!x.state) return notFound;
+  if (!x.recorded) return { status: 409, error: { code: 'item_not_active', project: projectId, number } };
+  return { status: 200, canceled: x.canceled };
 }
 
 // ---------- reports and findings (#8) ----------
@@ -146,4 +205,4 @@ function parseItemPath(projectText, numberText) {
   return { project, number: Number(numberText) };
 }
 
-module.exports = { createItemsSource, listItems, itemDetail, parseItemPath, activeFilter, projectInfo, hiddenOrganizations, visibleItems };
+module.exports = { createItemsSource, listItems, itemDetail, markItemDone, markItemInterrupted, parseItemPath, activeFilter, projectInfo, hiddenOrganizations, visibleItems };

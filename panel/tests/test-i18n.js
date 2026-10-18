@@ -167,6 +167,10 @@ suite.test('server codes keep the texts the page showed before', () => {
   assert.strictEqual(c({ code: 'invalid_filter', param: 'project', value: 'X Y', allowed: null }), 'Filtro "projeto" inválido: "X Y".');
   assert.strictEqual(c({ code: 'invalid_filter', param: 'organization', value: 'X Y' }), 'Filtro "organizacao" inválido: "X Y".');
   assert.ok(/^Host não permitido\. Abra o painel em http:\/\/127\.0\.0\.1:4777\.$/.test(c({ code: 'host_not_allowed', port: 4777 })));
+  // "Concluir" and "Interromper" (#68, #70)
+  assert.strictEqual(c({ code: 'item_not_active', project: 'widgets', number: 14 }), 'O item já não está mais ativo.');
+  assert.strictEqual(c({ code: 'reason_empty' }), 'Escreva o motivo da interrupção.');
+  assert.strictEqual(c({ code: 'reason_too_long', length: 2001, max: 2000 }), 'Motivo longo demais: 2001 caracteres; o limite é 2000.');
 });
 
 suite.test('every key the source uses exists, and every key of the dictionary is used', () => {

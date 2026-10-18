@@ -83,7 +83,7 @@ async function withServer(r, fn, env = {}) {
   }
 }
 
-suite.test('the active items are counted by organization, project and stage; done items stay out', async () => {
+suite.test('the active items are counted by organization, project and stage; done and interrupted items stay out', async () => {
   const r = buildRoot('active');
   registerContoso(r);
   flow(r, r.widgets, sp('09:00:00', '2026-10-08'), 'item', 'start', '12', '--title', 'Exportar PDF');
@@ -91,6 +91,8 @@ suite.test('the active items are counted by organization, project and stage; don
   flow(r, r.widgets, sp('11:00:00', '2026-10-08'), 'item', 'start', '13', '--title', 'Outro', '--stage', 'implementation');
   flow(r, r.widgets, sp('11:30:00', '2026-10-08'), 'item', 'start', '14', '--title', 'Entregue', '--stage', 'implementation');
   flow(r, r.widgets, sp('11:40:00', '2026-10-08'), 'item', 'done', '14');
+  flow(r, r.widgets, sp('11:45:00', '2026-10-08'), 'item', 'start', '15', '--title', 'Parou no meio', '--stage', 'implementation');
+  flow(r, r.widgets, sp('11:50:00', '2026-10-08'), 'item', 'interrupt', '15', '--reason', 'O cliente desistiu');
   flow(r, r.cidax, sp('09:00:00'), 'item', 'start', '3100', '--title', 'Conciliação');
   flow(r, r.scratch, sp('09:30:00'), 'item', 'start', '3', '--title', 'Rascunho');
   await withServer(r, async (get) => {
