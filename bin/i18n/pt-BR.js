@@ -414,6 +414,8 @@ CÓDIGOS DE SAÍDA
     notARepository: 'não achei o "git remote origin" em {cwd}. Rode o comando dentro do repositório do projeto (ou do worktree de um floor).',
     itemAlreadyStarted: (p) => `o item ${p.key} (${p.ref}) já foi iniciado em ${p.at}. Para mudar a etapa, use: flow stage ${p.number} <etapa>.`,
     itemNotStarted: (p) => `o item ${p.key} (${p.ref}) ainda não foi iniciado. Comece com: flow item start ${p.number} --title "...".`,
+    // flow pending open on an item out of the active list (#67): nothing is recorded and the owner is not told.
+    itemClosed: (p) => `o item ${p.key} (${p.ref}) está fora da lista de ativos (${p.interrupted ? 'interrompido' : 'concluído'}): nenhuma pendência é aberta num item encerrado. Se o trabalho continua, um evento de fluxo (ex.: flow stage) o traz de volta antes.`,
     missingTask: 'falta o número da task (ex.: flow task dispatch 12 13 --floor "..." --worker "...").',
     invalidTaskNumber: 'número de task inválido: "{value}" (use um inteiro positivo, como no tracker).',
     missingTasks: 'falta o grafo de tasks: use --task "<número>|<título>[|<bloqueios>]" (uma vez por task) ou "tasks" no JSON.',

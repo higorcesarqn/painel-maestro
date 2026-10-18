@@ -218,6 +218,8 @@ function projectItem(events, project) {
 //   active            false while the item is in Done, after item-done in a project without Done, or while it is
 //                     interrupted (it leaves the active list but can still be read)
 //   completed_at      when the item entered Done, or null
+//   concluded_at      when the last item-done was recorded (#67, also in a project without Done), or null: never
+//                     concluded, interrupted after it, or brought back by a flow event since
 //   interrupted       { reason, at, by: { role, name } } of the last item-interrupted, or null (also once a flow event
 //                     brought the item back)
 //   pr                { state, url, number, branch, opened_at, ready_at, merged_at } | null
@@ -268,6 +270,7 @@ function deliveryState() {
   let hml = null;
   let closed = false; // item-done or item-interrupted recorded and no flow event moved the item since
   let interrupted = null;
+  let concludedAt = null;
   /** Records the event; returns the stage it moves the item to (null: it does not move). */
   function apply(e, p, stage, flow) {
     const uses = (s) => (flow.includes(s) ? s : null);
@@ -305,24 +308,32 @@ function deliveryState() {
     }
     if (e.type === EVENT_TYPES.itemDone) {
       closed = true;
+      concludedAt = e.at;
       return uses('done');
     }
     if (e.type === EVENT_TYPES.itemInterrupted) {
       closed = true;
+      concludedAt = null;
       interrupted = { reason: text(p.reason), at: e.at, by: agentOf(e) };
       return null;
     }
     return null;
   }
-  /** A flow event moved the item to target: it is no longer interrupted, and it is active again unless that is Done. */
+  /**
+   * A flow event moved the item to target: it is no longer interrupted, and it is active again (no longer concluded)
+   * unless that is Done.
+   */
   function reopen(target) {
     interrupted = null;
-    if (target !== 'done') closed = false;
+    if (target === 'done') return;
+    closed = false;
+    concludedAt = null;
   }
   function result(stage, stageSince) {
     return {
       active: stage !== 'done' && !closed,
       completed_at: stage === 'done' ? stageSince : null,
+      concluded_at: concludedAt,
       interrupted: interrupted && { ...interrupted, by: { ...interrupted.by } },
       pr: pr && { ...pr },
       final_adjustment: adjustment && { ...adjustment },

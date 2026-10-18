@@ -289,13 +289,16 @@ suite.test('item done in a project without the Done stage takes the item out of 
   await withServer(r, async (get) => {
     const item = (await get('/api/items/widgets/7')).item;
     assert.deepStrictEqual([item.stage, item.active, item.completed_at], ['merge', false, null], 'it stays on its stage, out of the active list');
+    const done = item.timeline.find((e) => e.type === 'item-done');
+    assert.strictEqual(item.concluded_at, done.at, 'concluded_at is when item-done was recorded (#67)');
     assert.deepStrictEqual((await get('/api/items?active=1')).items.map((i) => i.key), ['widgets/8']);
-    assert.deepStrictEqual((await get('/api/items?active=0')).items.map((i) => i.key), ['widgets/7']);
+    assert.deepStrictEqual((await get('/api/items?active=0')).items.map((i) => [i.key, i.concluded_at]), [['widgets/7', done.at]], 'the list carries it too');
+    assert.strictEqual((await get('/api/items/widgets/8')).item.concluded_at, null);
   });
   ok(flow(r, ['stage', '7', 'merge']));
   await withServer(r, async (get) => {
     const item = (await get('/api/items/widgets/7')).item;
-    assert.deepStrictEqual([item.stage, item.active], ['merge', true], 'a later flow event brings it back');
+    assert.deepStrictEqual([item.stage, item.active, item.concluded_at], ['merge', true, null], 'a later flow event brings it back, no longer concluded');
   });
 });
 
@@ -320,7 +323,7 @@ suite.test('item interrupt keeps the item on its stage, marked interrupted, out 
   assert.match(x.stdout, /^Item widgets\/20 \(#20\) interrompido em Merge\. Ele sai da lista de ativos e continua consultável no painel\./);
   await withServer(r, async (get) => {
     const item = (await get('/api/items/widgets/20')).item;
-    assert.deepStrictEqual([item.stage, item.active, item.completed_at], ['merge', false, null], 'it stays on the stage where it stopped');
+    assert.deepStrictEqual([item.stage, item.active, item.completed_at, item.concluded_at], ['merge', false, null, null], 'it stays on the stage where it stopped');
     assert.deepStrictEqual(item.stages.find((s) => s.status === 'current').id, 'merge');
     const last = item.timeline[item.timeline.length - 1];
     assert.deepStrictEqual(item.interrupted, { reason: 'O cliente desistiu da mudança', at: last.at, by: { role: 'maestro', name: 'Maestro' } });

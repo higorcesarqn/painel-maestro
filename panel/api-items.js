@@ -78,6 +78,8 @@ function summary(project, state) {
     active: state.active,
     // { reason, at, by: { role, name } } while the item is interrupted (#69): it stays on its stage, out of the active list.
     interrupted: state.interrupted,
+    // When the last item-done was recorded (#67), also in a project without Done; null once a flow event brought it back.
+    concluded_at: state.concluded_at,
   };
 }
 

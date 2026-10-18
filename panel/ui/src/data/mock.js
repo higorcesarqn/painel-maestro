@@ -473,12 +473,13 @@ async function mockConclude(project, number) {
     item.stages = item.stages.map((s, i) => ({ ...s, status: i < current ? 'done' : i === current ? 'current' : 'pending', entered_at: i === current ? at : i < current ? s.entered_at || null : null }));
   }
   item.active = false;
+  item.concluded_at = at;
   item.merge_check = null;
   item.timeline = [...arr(item.timeline), { id: Date.now(), at, type: 'item-done', task_number: null, agent: { role: 'owner', name: null }, source: 'panel', payload: {} }];
   closeItemPending(m, item, at, true);
   item.updated_at = at;
   const listed = arr(m.items).find((it) => it.key === key);
-  if (listed) Object.assign(listed, { stage: item.stage, stage_since: item.stage_since, updated_at: at, active: false });
+  if (listed) Object.assign(listed, { stage: item.stage, stage_since: item.stage_since, updated_at: at, active: false, concluded_at: at });
   return { item };
 }
 

@@ -210,6 +210,23 @@ suite.test('a failure becomes a code on the item page and in the health badge, w
   });
 });
 
+suite.test('a failed check leaves the health at once when the item is concluded or interrupted, without waiting for the next round (#67)', async () => {
+  const r = buildRoot('fail-closed');
+  for (const n of [7, 8, 9]) {
+    flow(r, ['item', 'start', String(n), '--title', `falha ${n}`, '--stage', 'implementation']);
+    flow(r, ['pr', String(n), 'ready', '--url', GH(100 + n)]);
+  }
+  const fail = { exit: 1, stderr: 'HTTP 401: Bad credentials' };
+  ghAnswers(r, { [GH(107)]: fail, [GH(108)]: fail, [GH(109)]: fail });
+  // One round only (the one at startup): whatever leaves the health afterwards is not a later round's pruning.
+  await withServer(r, { PANEL_MERGE_CHECK_SECONDS: '3600' }, async (api) => {
+    await until(async () => (await healthReasons(api)).length === 3);
+    flow(r, ['item', 'done', '7']);
+    flow(r, ['item', 'interrupt', '8', '--reason', 'Parou']);
+    assert.deepStrictEqual((await healthReasons(api)).map((x) => x.item), ['widgets/9'], 'only the item still waiting for the merge');
+  });
+});
+
 suite.test('failures of Azure DevOps and of the executables: az fails, REST answers 401, gh does not exist', async () => {
   const r = buildRoot('azure-fail', AZ_REMOTE);
   flow(r, ['item', 'start', '3200', '--title', 'Token', '--stage', 'implementation']);

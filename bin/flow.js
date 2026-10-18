@@ -945,14 +945,16 @@ function findPending(store, project, id) {
 }
 
 /**
- * Everything of a pending open that can be refused, checked before the owner is told: the item was started and has the
- * task, and where to answer is valid. { key, ref } of the item and answer: { kind, workspace, terminal }.
+ * Everything of a pending open that can be refused, checked before the owner is told: the item was started, is still in
+ * the active list and has the task, and where to answer is valid. { key, ref } of the item and answer: { kind, workspace, terminal }.
  */
 function checkPendingOpen(store, cmd, project, where) {
   const key = `${project.id}/${cmd.number}`;
   const ref = trackerRef(project.tracker, cmd.number);
   const item = projectItem(store.itemEvents(project.id, cmd.number), project);
   if (!item) throw new InvalidData('errors.itemNotStarted', { key, ref, number: cmd.number });
+  // A concluded or interrupted item (#67) has no button left to close it: the pending decision would stay open.
+  if (!item.active) throw new InvalidData('errors.itemClosed', { key, ref, interrupted: !!item.interrupted });
   if (cmd.task !== null && !item.tasks.some((x) => x.number === cmd.task)) {
     throw new InvalidData('errors.taskNotInItem', { key, task: cmd.task, tasks: item.tasks.map((x) => x.number).join(', ') });
   }

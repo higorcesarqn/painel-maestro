@@ -532,7 +532,8 @@
       "started_at": "2026-10-09T07:30:00-03:00",
       "updated_at": "2026-10-09T10:10:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "portal/3112",
@@ -555,7 +556,8 @@
       "started_at": "2026-10-07T14:00:00-03:00",
       "updated_at": "2026-10-09T10:06:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "scratch/3",
@@ -578,7 +580,8 @@
       "started_at": "2026-10-09T10:05:00-03:00",
       "updated_at": "2026-10-09T10:05:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "storefront/48",
@@ -601,7 +604,8 @@
       "started_at": "2026-10-02T10:00:00-03:00",
       "updated_at": "2026-10-09T10:05:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "billing-api/2901",
@@ -624,7 +628,8 @@
       "started_at": "2026-10-09T08:50:00-03:00",
       "updated_at": "2026-10-09T09:30:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "intranet/12",
@@ -647,7 +652,8 @@
       "started_at": "2026-10-07T10:00:00-03:00",
       "updated_at": "2026-10-09T09:10:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "storefront/52",
@@ -670,7 +676,8 @@
       "started_at": "2026-10-04T11:00:00-03:00",
       "updated_at": "2026-10-08T20:05:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "billing-api/2875",
@@ -693,7 +700,8 @@
       "started_at": "2026-10-03T08:30:00-03:00",
       "updated_at": "2026-10-08T18:10:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "portal/3100",
@@ -716,7 +724,8 @@
       "started_at": "2026-10-01T09:10:00-03:00",
       "updated_at": "2026-10-08T16:30:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "relatorios-bi/77",
@@ -739,7 +748,8 @@
       "started_at": "2026-10-08T15:20:00-03:00",
       "updated_at": "2026-10-08T15:20:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "design-system/31",
@@ -762,7 +772,8 @@
       "started_at": "2026-10-06T14:00:00-03:00",
       "updated_at": "2026-10-08T11:30:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "painel-maestro/2",
@@ -785,7 +796,8 @@
       "started_at": "2026-10-06T09:00:00-03:00",
       "updated_at": "2026-10-07T08:12:00-03:00",
       "active": false,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": "2026-10-07T08:12:00-03:00"
     },
     {
       "key": "erp/1190",
@@ -815,7 +827,8 @@
           "role": "maestro",
           "name": "Ária"
         }
-      }
+      },
+      "concluded_at": null
     },
     {
       "key": "erp/1204",
@@ -838,7 +851,8 @@
       "started_at": "2026-10-05T09:00:00-03:00",
       "updated_at": "2026-10-06T10:00:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     },
     {
       "key": "intranet/9",
@@ -861,7 +875,8 @@
       "started_at": "2026-10-02T09:00:00-03:00",
       "updated_at": "2026-10-05T10:05:00-03:00",
       "active": false,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": "2026-10-05T10:05:00-03:00"
     },
     {
       "key": "portal/3088",
@@ -884,7 +899,8 @@
       "started_at": "2026-09-28T09:00:00-03:00",
       "updated_at": "2026-10-03T16:00:00-03:00",
       "active": false,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": "2026-10-03T16:00:00-03:00"
     },
     {
       "key": "storefront/55",
@@ -907,7 +923,8 @@
       "started_at": "2026-10-02T14:00:00-03:00",
       "updated_at": "2026-10-02T14:00:00-03:00",
       "active": true,
-      "interrupted": null
+      "interrupted": null,
+      "concluded_at": null
     }
   ],
   "details": {
@@ -933,6 +950,7 @@
       "updated_at": "2026-10-09T10:10:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -1116,6 +1134,7 @@
       "updated_at": "2026-10-09T10:06:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -2199,6 +2218,7 @@
       "updated_at": "2026-10-09T10:05:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -2303,6 +2323,7 @@
       "updated_at": "2026-10-09T10:05:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -2818,6 +2839,7 @@
       "updated_at": "2026-10-09T09:30:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -2961,6 +2983,7 @@
       "updated_at": "2026-10-09T09:10:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -3100,6 +3123,7 @@
       "updated_at": "2026-10-08T20:05:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -3237,6 +3261,7 @@
       "updated_at": "2026-10-08T18:10:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -3537,6 +3562,7 @@
       "updated_at": "2026-10-08T16:30:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -6572,6 +6598,7 @@
       "updated_at": "2026-10-08T15:20:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -6676,6 +6703,7 @@
       "updated_at": "2026-10-08T11:30:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -6789,6 +6817,7 @@
       "updated_at": "2026-10-07T08:12:00-03:00",
       "active": false,
       "interrupted": null,
+      "concluded_at": "2026-10-07T08:12:00-03:00",
       "stages": [
         {
           "id": "specification",
@@ -6945,6 +6974,7 @@
           "name": "Ária"
         }
       },
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -7101,6 +7131,7 @@
       "updated_at": "2026-10-06T10:00:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",
@@ -7219,6 +7250,7 @@
       "updated_at": "2026-10-05T10:05:00-03:00",
       "active": false,
       "interrupted": null,
+      "concluded_at": "2026-10-05T10:05:00-03:00",
       "stages": [
         {
           "id": "specification",
@@ -7368,6 +7400,7 @@
       "updated_at": "2026-10-03T16:00:00-03:00",
       "active": false,
       "interrupted": null,
+      "concluded_at": "2026-10-03T16:00:00-03:00",
       "stages": [
         {
           "id": "specification",
@@ -7592,6 +7625,7 @@
       "updated_at": "2026-10-02T14:00:00-03:00",
       "active": true,
       "interrupted": null,
+      "concluded_at": null,
       "stages": [
         {
           "id": "specification",

@@ -186,7 +186,7 @@ export default {
       button: 'Concluir',
       buttonTitle: 'Conclui o item, em qualquer etapa, como o flow item done: ele sai da lista de ativos.',
       question: 'Concluir {ref}?',
-      detail: 'O item sai da lista de ativos (e vai para Concluído, se o projeto usa essa etapa); as pendências abertas dele são canceladas. O tracker não muda.',
+      detail: 'O item sai da lista de ativos (e vai para Concluído, se o projeto usa essa etapa); as pendências abertas dele são encerradas. O tracker não muda.',
       cancel: 'Cancelar',
       confirm: 'Concluir o item',
       concluding: 'Concluindo…',
@@ -197,7 +197,7 @@ export default {
       button: 'Interromper',
       buttonTitle: 'Interrompe o item, que fica na etapa em que parou, como o flow item interrupt: ele sai da lista de ativos.',
       question: 'Interromper {ref}?',
-      detail: 'O item fica na etapa em que parou, marcado como interrompido, e sai da lista de ativos; as pendências abertas dele são canceladas. O tracker não muda.',
+      detail: 'O item fica na etapa em que parou, marcado como interrompido, e sai da lista de ativos; as pendências abertas dele são encerradas. O tracker não muda.',
       reason: 'Motivo da interrupção',
       reasonHint: 'Por que o item parou e não vai continuar (obrigatório).',
       tooLong: 'Motivo longo demais: {count} caracteres; o limite é {max}.',
@@ -214,6 +214,11 @@ export default {
       when: 'Em {when} ({age})',
       by: 'por {who}',
       detail: 'O item saiu da lista de ativos e ficou na etapa em que parou. Um evento de fluxo depois (ex.: flow stage) o traz de volta.',
+    },
+    // Concluded in a project without the Done stage (#67): it stays on its stage, out of the active list.
+    concluded: {
+      badge: 'Concluído em {stage}',
+      badgeTitle: 'Concluído em {when}',
     },
     stages: {
       specification: 'Especificação',

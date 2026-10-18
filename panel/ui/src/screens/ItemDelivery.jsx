@@ -25,7 +25,7 @@ export function ItemDelivery({ item, onChange }) {
         </PrBlock>
         <AdjustmentBlock adjustment={obj(item.final_adjustment)} />
         <HmlBlock hml={obj(item.hml)} uses={usesHml} />
-        <CompletionBlock at={item.completed_at} closed={item.active === false} interrupted={obj(item.interrupted)} stage={item.stage} />
+        <CompletionBlock at={item.completed_at || item.concluded_at} closed={item.active === false} interrupted={obj(item.interrupted)} stage={item.stage} />
       </div>
     </Card>
   );
@@ -146,7 +146,7 @@ function HmlBlock({ hml: h, uses }) {
   );
 }
 
-/** Interrupted, concluded (a project without the Done stage has no completed_at: the badge without a date, #67) or still active. */
+/** Interrupted, concluded (in a project without the Done stage the date is concluded_at, #67) or still active. */
 function CompletionBlock({ at, closed, interrupted, stage }) {
   return (
     <Block title={t('delivery.completion.title')}>

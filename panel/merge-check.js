@@ -283,7 +283,8 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
       return { enabled: true, reason: null, checked_at: s ? s.checked_at : null, error: s ? s.error : null };
     },
     /**
-     * Health reasons: one merge_check_failed per item whose last check failed, but those of a hidden organization (#52):
+     * Health reasons: one merge_check_failed per item whose last check failed and that still waits for a merge (#67), but
+     * those of a hidden organization (#52):
      * the health popover never names its items. Their PRs are still checked, and their page still shows the failure.
      */
     healthReasons() {
@@ -302,6 +303,9 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
         const [projectId, number] = key.split('/');
         const project = store && store.project(projectId);
         if (project && hidden.has(project.organization_id)) continue;
+        // An item that no longer waits for a merge (concluded, interrupted or merged since, by the panel or the CLI,
+        // #67) leaves the health at once, without waiting for the next round to prune its status.
+        if (project && !waitsForMerge(projectItem(store.itemEvents(projectId, Number(number)), project))) continue;
         reasons.push({ code: 'merge_check_failed', item: key, tracker_ref: trackerRef(project ? project.tracker : 'github', Number(number)), error: s.error });
       }
       return reasons;

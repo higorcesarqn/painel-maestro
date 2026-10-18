@@ -220,6 +220,8 @@ flow pending cancel P-7 --reason "Entrou na especificação"
 flow pending wait P-7                                         # espera ela fechar (o maestro o deixa em segundo plano)
 ```
 
+O `pending open` num item fora da lista de ativos (concluído ou interrompido) sai com código 2 e não grava nada (#67): um evento de fluxo que traga o item de volta vem antes.
+
 Uma pendência que o dono já respondeu pelo painel não aceita outra resolução: o `pending resolve` sai com o "não está aberta" de sempre (código 2).
 
 No Orca (#62), o `pending open` marca o worktree do maestro como não lido (`orca worktree set --worktree current --unread --json`) e grava onde responder: o worktree (`ORCA_WORKTREE_ID`) e o terminal (`ORCA_TERMINAL_HANDLE`) do maestro, salvo `--workspace`/`--terminal`. Uma falha do aviso no Orca segue a mesma regra do Maestri, abaixo.

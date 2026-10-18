@@ -334,6 +334,13 @@ suite.test('item interrompido (#69): the mock has an item interrupted on Merge, 
   // Concluded in a project without the Done stage (no completed_at): the Conclusão block says Concluído, not "ainda ativo".
   const delivery = source['screens/ItemDelivery.jsx'];
   assert.ok(/closed=\{item\.active === false\}/.test(delivery) && /\) : at \|\| closed \? \(/.test(delivery), 'a closed item without completed_at shows as concluded');
+  assert.ok(/<CompletionBlock at=\{item\.completed_at \|\| item\.concluded_at\}/.test(delivery), 'with the date of concluded_at when there is one');
+  // And its stage badge, in the list and on the page: "Concluído em <etapa>", with the date on hover.
+  assert.ok(/concludedAt=\{it\.concluded_at\}/.test(items) && /concludedAt=\{item\.concluded_at\}/.test(items), 'the list and the page pass concluded_at to the badge');
+  assert.ok(/if \(concludedAt && stage !== 'done'\) \{\s+return <Badge tone="ok" title=\{t\('items\.concluded\.badgeTitle'/.test(items), 'the badge of an item concluded off Done');
+  assert.ok(js.includes('Concluído em {stage}') && js.includes('Concluído em {when}'), 'the texts are in the build');
+  // The confirmations say the open pending decisions are closed ("encerradas"): the derived HML one is resolved, not canceled.
+  assert.ok(!js.includes('são canceladas') && (js.match(/as pendências abertas dele são encerradas/g) || []).length === 2, 'Concluir and Interromper say encerradas');
   // The buttons' local "closed" mark gives way to the item read again, so they come back when a flow event reopens it.
   const conclude = source['screens/ItemConclude.jsx'];
   assert.ok(/useEffect\(\(\) => \{ if \(item\.active === false\) setClosed\(false\); \}, \[item\.active\]\)/.test(conclude), 'the mark is dropped once the item reads as closed');
@@ -371,6 +378,7 @@ suite.test('concluding or interrupting in the demo (#68, #70) closes the item\'s
     assert.deepStrictEqual(canceledOn(a).map((e) => [e.payload.pending_decision, e.payload.reason, e.agent.role]),
       ids.interrupted.map((id) => [id, 'item interrompido pelo dono', 'owner']));
     const b = (await mockApi(route(concluded, 'done'), 'POST')).item;
+    assert.ok(b.concluded_at && (await mockApi('/api/items?active=0', 'GET')).items.find((i) => i.key === concluded).concluded_at === b.concluded_at, 'concluded_at on the page and the list');
     assert.deepStrictEqual(canceledOn(b).map((e) => [e.payload.pending_decision, e.payload.reason]), ids.concluded.map((id) => [id, 'item concluído pelo dono']));
     const list = (await mockApi('/api/pending-decisions', 'GET')).pending_decisions;
     const byId = (id) => list.find((p) => p.id === id);

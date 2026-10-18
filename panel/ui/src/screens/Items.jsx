@@ -112,7 +112,7 @@ function ItemList() {
                     onKeyDown={(e) => { if (e.key === 'Enter') open(it); }}>
                     <td class="col-ref mono">{txt(it.tracker_ref)}</td>
                     <td title={txt(it.title)}>{txt(it.title)}</td>
-                    <td class="col-stage"><StageBadge stage={it.stage} doneState={it.done_state} interrupted={it.interrupted} /></td>
+                    <td class="col-stage"><StageBadge stage={it.stage} doneState={it.done_state} interrupted={it.interrupted} concludedAt={it.concluded_at} /></td>
                     <td class="col-project" title={organizationName(it)}>{projectName(it)}<span class="muted"> · {organizationName(it)}</span></td>
                     <td class="col-updated" title={dateTime(it.updated_at)}>{age(it.updated_at)}</td>
                   </tr>
@@ -128,13 +128,17 @@ function ItemList() {
 
 /**
  * The stage; a done item also says the state its tracker uses for done, as the project declared it (never "Done"). An
- * interrupted item (#69) says "Interrompido em <etapa>", with the reason on hover.
+ * interrupted item (#69) says "Interrompido em <etapa>", with the reason on hover, and one concluded on a stage other
+ * than Done (a project without it, #67) is marked concluded on that stage (items.concluded.badge), with the date on hover.
  */
-function StageBadge({ stage, doneState, interrupted }) {
+function StageBadge({ stage, doneState, interrupted, concludedAt }) {
   const stop = obj(interrupted);
   if (stop) {
     const title = t('items.interrupted.badgeTitle', { when: dateTime(stop.at), reason: txt(stop.reason) || t('items.interrupted.noReason') });
     return <Badge tone="warning" title={title}>{t('items.interrupted.badge', { stage: stageName(stage) })}</Badge>;
+  }
+  if (concludedAt && stage !== 'done') {
+    return <Badge tone="ok" title={t('items.concluded.badgeTitle', { when: dateTime(concludedAt) })}>{t('items.concluded.badge', { stage: stageName(stage) })}</Badge>;
   }
   const declared = stage === 'done' && txt(doneState);
   return <Badge tone={stage === 'done' ? 'ok' : 'blue'}>{declared ? t('items.doneInTracker', { stage: stageName(stage), state: declared }) : stageName(stage)}</Badge>;
@@ -187,7 +191,7 @@ function ItemPage({ project, number: itemNumber }) {
           <h2 class="item-title">{txt(item.title)}</h2>
           <div class="item-current">
             <span class="label">{t('items.currentStage')}</span>
-            <StageBadge stage={item.stage} doneState={item.done_state} interrupted={item.interrupted} />
+            <StageBadge stage={item.stage} doneState={item.done_state} interrupted={item.interrupted} concludedAt={item.concluded_at} />
             <span class="muted small">{t('items.since', { when: dateTime(item.stage_since), age: age(item.stage_since) })}</span>
           </div>
           <InterruptedNote interrupted={item.interrupted} />

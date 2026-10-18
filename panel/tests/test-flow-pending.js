@@ -452,6 +452,24 @@ suite.test('invalid data fails with exit 2 and a clear message, and records noth
   });
 });
 
+suite.test('pending open on an item out of the active list (concluded or interrupted) fails with exit 2 and records nothing; a flow event that brings it back allows it again (#67)', async () => {
+  const r = buildRoot('closed-item');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Concluído', '--stage', 'implementation']));
+  ok(flow(r, ['item', 'start', '13', '--title', 'Interrompido', '--stage', 'implementation']));
+  ok(flow(r, ['item', 'done', '12']));
+  ok(flow(r, ['item', 'interrupt', '13', '--reason', 'Parou']));
+  invalid(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Depois do fim']), /widgets\/12 \(#12\) está fora da lista de ativos \(concluído\): nenhuma pendência é aberta/);
+  invalid(flow(r, ['pending', 'open', '13', '--kind', 'decision', '--title', 'Depois do fim']), /widgets\/13 \(#13\) está fora da lista de ativos \(interrompido\)/);
+  await withServer(r, async (get) => {
+    assert.deepStrictEqual(await list(get), []);
+  });
+  ok(flow(r, ['stage', '13', 'implementation']));
+  const id = openedId(flow(r, ['pending', 'open', '13', '--kind', 'decision', '--title', 'Retomado']));
+  await withServer(r, async (get) => {
+    assert.deepStrictEqual((await list(get)).map((p) => p.id), [id]);
+  });
+});
+
 // ---------- the owner's answer from the panel (#32): POST /api/pending-decisions/<id>/answer ----------
 
 /** POST of an answer as the page sends it (X-Panel: 1, JSON). body: a value (sent as JSON) or a raw string. */
