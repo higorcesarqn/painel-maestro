@@ -83,6 +83,22 @@ suite.test('POST .../done concludes an item on any stage as the owner (source pa
   });
 });
 
+suite.test('an item interrupted by flow item interrupt (#69) is left alone by the merge check and refuses POST .../done', async () => {
+  const r = buildRoot('interrupted');
+  flow(r, ['item', 'start', '14', '--title', 'Parou em PR pronto', '--stage', 'implementation']);
+  flow(r, ['pr', '14', 'ready', '--url', 'https://github.com/acme/widgets/pull/114']);
+  flow(r, ['item', 'interrupt', '14', '--reason', 'Ficou para depois']);
+  await withServer(r, async (api) => {
+    const item = (await api.get('/api/items/widgets/14')).item;
+    assert.deepStrictEqual([item.stage, item.active, item.merge_check, item.interrupted.reason], ['pr_ready', false, null, 'Ficou para depois']);
+    const merged = await api.post('/api/items/widgets/14/merged');
+    assert.deepStrictEqual([merged.status, merged.json.error.code], [409, 'item_not_active']);
+    const done = await api.post('/api/items/widgets/14/done');
+    assert.deepStrictEqual([done.status, done.json.error.code], [409, 'item_not_active']);
+    assert.deepStrictEqual((await api.get('/api/items/widgets/14')).item.timeline.map((e) => e.type), ['item-started', 'pr-changed', 'item-interrupted']);
+  });
+});
+
 suite.test('POST .../done cancels the item\'s open pending decisions with "item concluído pelo dono"', async () => {
   const r = buildRoot('pending');
   flow(r, ['item', 'start', '12', '--title', 'Com pendência', '--stage', 'merge']);

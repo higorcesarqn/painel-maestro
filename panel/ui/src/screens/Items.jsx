@@ -10,7 +10,7 @@ import { t } from '../i18n/index.js';
 import { Card, Badge, Empty, Skeleton } from '../components/base.jsx';
 import { Select } from '../components/fields.jsx';
 import { STAGES, TRACKERS } from '../data/domain.js';
-import { Icon, Workflow, ArrowLeft, Check, CircleDashed } from '../components/Icon.jsx';
+import { Icon, Workflow, ArrowLeft, Check, CircleDashed, Pause } from '../components/Icon.jsx';
 import { ItemTasks } from './ItemTasks.jsx';
 import { ItemDelivery, deliveryEventText, useDoneFilter } from './ItemDelivery.jsx';
 import { ItemConclude } from './ItemConclude.jsx';
@@ -112,7 +112,7 @@ function ItemList() {
                     onKeyDown={(e) => { if (e.key === 'Enter') open(it); }}>
                     <td class="col-ref mono">{txt(it.tracker_ref)}</td>
                     <td title={txt(it.title)}>{txt(it.title)}</td>
-                    <td class="col-stage"><StageBadge stage={it.stage} doneState={it.done_state} /></td>
+                    <td class="col-stage"><StageBadge stage={it.stage} doneState={it.done_state} interrupted={it.interrupted} /></td>
                     <td class="col-project" title={organizationName(it)}>{projectName(it)}<span class="muted"> · {organizationName(it)}</span></td>
                     <td class="col-updated" title={dateTime(it.updated_at)}>{age(it.updated_at)}</td>
                   </tr>
@@ -126,10 +126,33 @@ function ItemList() {
   );
 }
 
-/** The stage; a done item also says the state its tracker uses for done, as the project declared it (never "Done"). */
-function StageBadge({ stage, doneState }) {
+/**
+ * The stage; a done item also says the state its tracker uses for done, as the project declared it (never "Done"). An
+ * interrupted item (#69) says "Interrompido em <etapa>", with the reason on hover.
+ */
+function StageBadge({ stage, doneState, interrupted }) {
+  const stop = obj(interrupted);
+  if (stop) {
+    const title = t('items.interrupted.badgeTitle', { when: dateTime(stop.at), reason: txt(stop.reason) || t('items.interrupted.noReason') });
+    return <Badge tone="warning" title={title}>{t('items.interrupted.badge', { stage: stageName(stage) })}</Badge>;
+  }
   const declared = stage === 'done' && txt(doneState);
   return <Badge tone={stage === 'done' ? 'ok' : 'blue'}>{declared ? t('items.doneInTracker', { stage: stageName(stage), state: declared }) : stageName(stage)}</Badge>;
+}
+
+/** Why the item was interrupted, when and by whom (#69), under the current stage of the item page. */
+function InterruptedNote({ interrupted }) {
+  const stop = obj(interrupted);
+  if (!stop) return null;
+  const who = agentText(stop.by);
+  return (
+    <div class="item-interrupted" role="note">
+      <span class="label">{t('items.interrupted.reason')}</span>
+      <p class="item-interrupted-reason">{txt(stop.reason) || t('items.interrupted.noReason')}</p>
+      <p class="muted small">{t('items.interrupted.when', { when: dateTime(stop.at), age: age(stop.at) })}{who ? ` · ${t('items.interrupted.by', { who })}` : ''}</p>
+      <p class="muted small">{t('items.interrupted.detail')}</p>
+    </div>
+  );
 }
 
 function ItemPage({ project, number: itemNumber }) {
@@ -150,6 +173,8 @@ function ItemPage({ project, number: itemNumber }) {
   }
   const stages = objs(item.stages);
   const timeline = objs(item.timeline);
+  // An interrupted item (#69) keeps the stage where it stopped as the current one, marked interrupted.
+  const stopped = (s) => s.status === 'current' && !!obj(item.interrupted);
   return (
     <div class="screen screen-item">
       <Card label={t('items.itemLabel', { key: item.key })} actions={back}>
@@ -162,9 +187,10 @@ function ItemPage({ project, number: itemNumber }) {
           <h2 class="item-title">{txt(item.title)}</h2>
           <div class="item-current">
             <span class="label">{t('items.currentStage')}</span>
-            <StageBadge stage={item.stage} doneState={item.done_state} />
+            <StageBadge stage={item.stage} doneState={item.done_state} interrupted={item.interrupted} />
             <span class="muted small">{t('items.since', { when: dateTime(item.stage_since), age: age(item.stage_since) })}</span>
           </div>
+          <InterruptedNote interrupted={item.interrupted} />
           <ItemConclude key={item.key} item={item} onChange={reload} />
         </div>
       </Card>
@@ -178,12 +204,13 @@ function ItemPage({ project, number: itemNumber }) {
         <Card label={t('items.flowTitle')} info={t('items.flowInfo')}>
           <ol class="stage-list">
             {stages.map((s) => (
-              <li key={s.id} class={`stage ${s.status}`} aria-current={s.status === 'current' ? 'step' : undefined}>
+              <li key={s.id} class={`stage ${s.status}${stopped(s) ? ' interrupted' : ''}`} aria-current={s.status === 'current' ? 'step' : undefined}>
                 <span class="stage-mark" aria-hidden="true">
-                  {s.status === 'done' ? <Icon of={Check} size={14} /> : s.status === 'current' ? <span class="stage-dot" /> : <Icon of={CircleDashed} size={14} />}
+                  {s.status === 'done' ? <Icon of={Check} size={14} /> : stopped(s) ? <Icon of={Pause} size={13} />
+                    : s.status === 'current' ? <span class="stage-dot" /> : <Icon of={CircleDashed} size={14} />}
                 </span>
                 <span class="stage-name">{stageName(s.id)}</span>
-                <span class="stage-status muted small">{t(`items.stageStatus.${s.status}`)}</span>
+                <span class="stage-status muted small">{t(`items.stageStatus.${stopped(s) ? 'interrupted' : s.status}`)}</span>
                 <span class="stage-when muted small">{s.entered_at ? dateTime(s.entered_at) : ''}</span>
               </li>
             ))}

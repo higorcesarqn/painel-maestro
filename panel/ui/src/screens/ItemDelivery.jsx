@@ -25,7 +25,7 @@ export function ItemDelivery({ item, onChange }) {
         </PrBlock>
         <AdjustmentBlock adjustment={obj(item.final_adjustment)} />
         <HmlBlock hml={obj(item.hml)} uses={usesHml} />
-        <CompletionBlock at={item.completed_at} />
+        <CompletionBlock at={item.completed_at} interrupted={obj(item.interrupted)} stage={item.stage} />
       </div>
     </Card>
   );
@@ -146,10 +146,15 @@ function HmlBlock({ hml: h, uses }) {
   );
 }
 
-function CompletionBlock({ at }) {
+function CompletionBlock({ at, interrupted, stage }) {
   return (
     <Block title={t('delivery.completion.title')}>
-      {at ? (
+      {interrupted ? (
+        <div class="delivery-stack">
+          <div class="delivery-line"><Badge tone="warning">{t('delivery.completion.interrupted', { stage: t(`items.stages.${stage}`) })}</Badge></div>
+          <p class="muted small">{t('delivery.completion.at', { when: dateTime(interrupted.at), age: age(interrupted.at) })}</p>
+        </div>
+      ) : at ? (
         <div class="delivery-stack">
           <div class="delivery-line"><Badge tone="ok">{t('delivery.completion.done')}</Badge></div>
           <p class="muted small">{t('delivery.completion.at', { when: dateTime(at), age: age(at) })}</p>
@@ -168,6 +173,7 @@ export function deliveryEventText(e) {
   if (e.type === 'final-adjustment-finished') return t(`delivery.events.adjustment.${p.outcome}`);
   if (e.type === 'hml-recorded') return t('delivery.events.hml', { passed: number(p.passed), failed: number(p.failed), blocked: number(p.blocked) });
   if (e.type === 'item-done') return t('delivery.events.itemDone');
+  if (e.type === 'item-interrupted') return t('delivery.events.itemInterrupted', { reason: txt(p.reason) || t('items.interrupted.noReason') });
   return null;
 }
 

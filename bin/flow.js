@@ -318,24 +318,27 @@ function resolveProject(store, origin, at) {
 //   flow hml <number> --passed N --failed N --blocked N [--card URL] [--summary "..."] → hml-recorded
 //   flow item done <number>                                                           → item-done, and
 //                                                       pending-decision-canceled for each open pending decision (#68)
+//   flow item interrupt <number> --reason "..."                                       → item-interrupted { reason }, and
+//                                                       pending-decision-canceled for each open pending decision (#69)
 // The stage each event moves the item to is computed by the projection (bin/flow-projection.js); here the command
 // only refuses what the project does not use and links outside the trackers' domains.
 
 const projection = require('./flow-projection');
-const { concludeItem } = require('./flow-close');
+const { concludeItem, interruptItem } = require('./flow-close');
 
 const MAX_SUMMARY = 4000;
 const MAX_BRANCH = 200;
 const PR_STAGE = { ready: 'pr_ready', merged: 'merge' };
 const DELIVERY_COMMANDS = ['pr', 'final-adjustment', 'hml'];
 // The kinds parseDelivery returns: recorded by recordDelivery (the task commands of #7 have their own kinds).
-const DELIVERY_KINDS = ['pr', 'adjustment-open', 'adjustment-result', 'hml', 'item-done'];
+const DELIVERY_KINDS = ['pr', 'adjustment-open', 'adjustment-result', 'hml', 'item-done', 'item-interrupt'];
 
 Object.assign(OPTIONS, {
   pr: ['url', 'pr', 'branch', 'role', 'agent', 'json'],
   'final-adjustment': ['outcome', 'summary', 'role', 'agent', 'json'],
   hml: ['passed', 'failed', 'blocked', 'card', 'summary', 'role', 'agent', 'json'],
   'item-done': ['role', 'agent', 'json'],
+  'item-interrupt': ['reason', 'role', 'agent', 'json'],
 });
 
 /** A text field of the JSON (undefined when absent). */
@@ -374,7 +377,15 @@ function scenarioCount(value, option) {
   return Number(s);
 }
 
-/** Validated fields of a delivery command (pr, final-adjustment, hml, item done). */
+/** The reason of flow item interrupt (#69): required, multi-line, up to MAX_PENDING_DECISION characters. */
+function interruptionReason(value) {
+  const s = value === undefined ? '' : String(value).replace(/\r\n?/g, '\n').trim();
+  if (!s) throw new InvalidData('delivery.errors.missingReason');
+  if (s.length > MAX_PENDING_DECISION) throw new InvalidData('delivery.errors.reasonTooLong', { length: s.length, max: MAX_PENDING_DECISION });
+  return s;
+}
+
+/** Validated fields of a delivery command (pr, final-adjustment, hml, item done, item interrupt). */
 function parseDelivery(command, args) {
   if (command === 'pr') {
     const { opts, pos, json } = prepare(args, 'pr', 2);
@@ -417,6 +428,11 @@ function parseDelivery(command, args) {
     const card = trackerLink(pick(opts.card, jsonText(json, 'card')), '--card');
     return { kind: 'hml', number, passed, failed, blocked, card, summary: summaryText(pick(opts.summary, jsonText(json, 'summary'))), ...agentFields(opts, json) };
   }
+  if (command === 'item-interrupt') {
+    const { opts, pos, json } = prepare(args, 'item-interrupt', 1);
+    const number = itemNumber(pick(pos[0], jsonNumber(json, 'number')));
+    return { kind: 'item-interrupt', number, reason: interruptionReason(pick(opts.reason, jsonText(json, 'reason'))), ...agentFields(opts, json) };
+  }
   // item done
   const { opts, pos, json } = prepare(args, 'item-done', 1);
   return { kind: 'item-done', number: itemNumber(pick(pos[0], jsonNumber(json, 'number'))), ...agentFields(opts, json) };
@@ -451,10 +467,15 @@ function recordDelivery(store, cmd, { project, events, base, key, ref }) {
     if (cmd.card) payload.card_url = cmd.card;
     if (cmd.summary) payload.summary = cmd.summary;
     append(T.hmlRecorded, payload);
+  } else if (cmd.kind === 'item-interrupt') {
+    // The item stays on the stage where it stopped, out of the active list (#69).
+    const closed = interruptItem(store, project, cmd.number, cmd.reason, base);
+    if (!closed.recorded) throw new InvalidData('delivery.errors.alreadyClosed', { key, ref, interrupted: !!before.interrupted });
+    return t('delivery.done.item-interrupt', { key, ref, stage: before.stage, canceled: closed.canceled.length });
   } else {
     // In a project without Done the item stays on its stage, out of the active list (#68).
     const closed = concludeItem(store, project, cmd.number, base);
-    if (!closed.recorded) throw new InvalidData('delivery.errors.alreadyDone', { key, ref });
+    if (!closed.recorded) throw new InvalidData(before.interrupted ? 'delivery.errors.alreadyClosed' : 'delivery.errors.alreadyDone', { key, ref, interrupted: !!before.interrupted });
     return t('delivery.done.item-done', { key, ref, canceled: closed.canceled.length });
   }
   const after = projection.projectItem(store.itemEvents(project.id, cmd.number), project);
@@ -708,6 +729,7 @@ function parseCommand(argv) {
   if (command === 'item') {
     const [sub, ...args] = rest;
     if (sub === 'done') return parseDelivery('item-done', args);
+    if (sub === 'interrupt') return parseDelivery('item-interrupt', args);
     if (sub !== 'start') throw new InvalidData(sub === undefined ? 'errors.missingCommand' : 'errors.unknownCommand', { command: `item ${sub || ''}`.trim() });
     const { opts, pos, json } = prepare(args, 'item', 1);
     const number = itemNumber(pick(pos[0], json.number));
@@ -731,7 +753,7 @@ function parseCommand(argv) {
   throw new InvalidData('errors.unknownCommand', { command });
 }
 
-/** Item-level commands: item start, stage, delivery (pr, final-adjustment, hml, item done) and task graph/dispatch/integrate. Returns the lines to print. */
+/** Item-level commands: item start, stage, delivery (pr, final-adjustment, hml, item done, item interrupt) and task graph/dispatch/integrate. Returns the lines to print. */
 function recordItemCommand(store, cmd, { project, at }) {
   const key = `${project.id}/${cmd.number}`;
   const ref = trackerRef(project.tracker, cmd.number);

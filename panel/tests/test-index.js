@@ -313,7 +313,24 @@ suite.test('mock-items.json: items in Final adjustment, PR ready, Merge, HML val
   assert.deepStrictEqual([...new Set(details.map((d) => d.hml && d.hml.outcome).filter(Boolean))].sort(), ['approved', 'failed']);
   assert.ok(details.some((d) => d.stage === 'done' && !d.stages.some((s) => s.id === 'hml_validation')), 'a done item of a project without HML');
   assert.ok(m.items.some((i) => i.active === false) && m.items.some((i) => i.active === true), 'active and done items');
-  for (const d of details) assert.strictEqual(d.active, d.stage !== 'done');
+  for (const d of details) assert.strictEqual(d.active, d.stage !== 'done' && !d.interrupted, d.key);
+});
+
+suite.test('item interrompido (#69): the mock has an item interrupted on Merge, and the page, the list and the stage line mark it', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const stopped = Object.values(m.details).filter((d) => d.interrupted);
+  assert.strictEqual(stopped.length, 1);
+  const d = stopped[0];
+  assert.deepStrictEqual([d.stage, d.active, d.completed_at], ['merge', false, null], 'it stays on the stage where it stopped');
+  assert.ok(d.interrupted.reason && d.interrupted.at && d.interrupted.by.role, 'reason, date and who');
+  assert.strictEqual(d.stages.find((s) => s.status === 'current').id, 'merge');
+  assert.strictEqual(d.timeline[d.timeline.length - 1].type, 'item-interrupted');
+  assert.deepStrictEqual(m.items.find((i) => i.key === d.key).interrupted, d.interrupted, 'the list carries the mark');
+  const items = source['screens/Items.jsx'];
+  assert.ok(/interrupted=\{it\.interrupted\}/.test(items) && /interrupted=\{item\.interrupted\}/.test(items), 'the list and the page pass the mark to the stage badge');
+  assert.ok(/items\.stageStatus\.\$\{stopped\(s\) \? 'interrupted'/.test(items), 'the stage line marks the current stage interrupted');
+  assert.ok(/'item-interrupted'/.test(source['screens/ItemDelivery.jsx']), 'the timeline names the event');
+  assert.ok(js.includes('Interrompido em {stage}') && js.includes('Item interrompido: {reason}'), 'the texts are in the build');
 });
 
 suite.test('organizations (#6): the demo has two organizations and "Pessoal" with GitHub and Azure DevOps projects; the selector is remembered', () => {

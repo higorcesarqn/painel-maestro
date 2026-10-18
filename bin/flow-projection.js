@@ -208,13 +208,18 @@ function projectItem(events, project) {
 //   hml-recorded                payload { passed, failed, blocked, card_url?, summary? } → HML validation
 //   item-done                   payload {}                                        → Done
 //                                 (in a project without Done the stage stays, but the item leaves the active list too)
-// After item-done, any flow event that sets a stage (stage-changed, even to the stage the item is on, or a delivery event
-// with a stage of its own) brings it back to the active list, on that event's stage.
+//   item-interrupted            payload { reason }                                (the stage stays, #69: the item stopped
+//                                 there and will not go on; it leaves the active list)
+// After item-done or item-interrupted, any flow event that sets a stage (stage-changed, even to the stage the item is on,
+// or a delivery event with a stage of its own) brings it back to the active list, on that event's stage, and clears
+// interrupted.
 //
 // Fields added to ItemState:
-//   active            false while the item is in Done, or after item-done in a project without Done (it leaves the
-//                     active list but can still be read)
+//   active            false while the item is in Done, after item-done in a project without Done, or while it is
+//                     interrupted (it leaves the active list but can still be read)
 //   completed_at      when the item entered Done, or null
+//   interrupted       { reason, at, by: { role, name } } of the last item-interrupted, or null (also once a flow event
+//                     brought the item back)
 //   pr                { state, url, number, branch, opened_at, ready_at, merged_at } | null
 //   final_adjustment  { status: 'open' | 'passed' | 'failed', opened_at, finished_at, summary } | null
 //   hml               { outcome: 'approved' | 'failed' | 'blocked', passed, failed, blocked, card_url, summary,
@@ -227,8 +232,9 @@ Object.assign(EVENT_TYPES, {
   finalAdjustmentFinished: 'final-adjustment-finished',
   hmlRecorded: 'hml-recorded',
   itemDone: 'item-done',
+  itemInterrupted: 'item-interrupted',
 });
-const DELIVERY_TYPES = new Set(['pr-changed', 'final-adjustment-opened', 'final-adjustment-finished', 'hml-recorded', 'item-done']);
+const DELIVERY_TYPES = new Set(['pr-changed', 'final-adjustment-opened', 'final-adjustment-finished', 'hml-recorded', 'item-done', 'item-interrupted']);
 const PR_STATES = ['draft', 'ready', 'merged'];
 const FINAL_ADJUSTMENT_OUTCOMES = ['passed', 'failed'];
 const PR_TARGET = { ready: 'pr_ready', merged: 'merge' };
@@ -260,7 +266,8 @@ function deliveryState() {
   let pr = null;
   let adjustment = null;
   let hml = null;
-  let closed = false; // item-done recorded and no flow event moved the item since
+  let closed = false; // item-done or item-interrupted recorded and no flow event moved the item since
+  let interrupted = null;
   /** Records the event; returns the stage it moves the item to (null: it does not move). */
   function apply(e, p, stage, flow) {
     const uses = (s) => (flow.includes(s) ? s : null);
@@ -300,16 +307,23 @@ function deliveryState() {
       closed = true;
       return uses('done');
     }
+    if (e.type === EVENT_TYPES.itemInterrupted) {
+      closed = true;
+      interrupted = { reason: text(p.reason), at: e.at, by: { role: (e.agent && e.agent.role) || null, name: (e.agent && e.agent.name) || null } };
+      return null;
+    }
     return null;
   }
-  /** A flow event moved the item to target: it is active again, unless that is Done. */
+  /** A flow event moved the item to target: it is no longer interrupted, and it is active again unless that is Done. */
   function reopen(target) {
+    interrupted = null;
     if (target !== 'done') closed = false;
   }
   function result(stage, stageSince) {
     return {
       active: stage !== 'done' && !closed,
       completed_at: stage === 'done' ? stageSince : null,
+      interrupted: interrupted && { ...interrupted, by: { ...interrupted.by } },
       pr: pr && { ...pr },
       final_adjustment: adjustment && { ...adjustment },
       hml: hml && { ...hml },
@@ -367,7 +381,8 @@ const PENDING_DECISION_KINDS = ['task_review', 'worker_blocked', 'decision', 'fi
 const PENDING_DECISION_SEVERITIES = ['critical', 'high', 'normal', 'low'];
 const PENDING_DECISION_STATUSES = ['open', 'resolved', 'canceled'];
 const PENDING_DECISION_NOTIFICATIONS = ['sent', 'failed', 'outside'];
-// The longest decision (and cancel reason), in characters: flow pending resolve and the panel's answer (#32).
+// The longest decision (and cancel reason, and interruption reason, #69), in characters: flow pending resolve, the
+// panel's answer (#32) and flow item interrupt.
 const MAX_PENDING_DECISION = 2000;
 
 /** Where the owner answers the derived HML pending decision: the environment of the item's last dispatch mode (#60). */

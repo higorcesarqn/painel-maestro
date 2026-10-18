@@ -76,6 +76,8 @@ function summary(project, state) {
     started_at: state.started_at,
     updated_at: state.updated_at,
     active: state.active,
+    // { reason, at, by: { role, name } } while the item is interrupted (#69): it stays on its stage, out of the active list.
+    interrupted: state.interrupted,
   };
 }
 
@@ -111,8 +113,8 @@ function itemDetail(source, projectId, number) {
 }
 
 // ---------- delivery (#9): PR, final adjustment, HML and conclusion ----------
-// The list carries `active` (false once the item is Done) and accepts ?active=1 (active only) or ?active=0
-// (done only); without it, every item. The item page also carries the PR, the final adjustment, the HML result and
+// The list carries `active` (false once the item is Done or interrupted, #69) and `interrupted`, and accepts ?active=1
+// (active only) or ?active=0 (done or interrupted only); without it, every item. The item page also carries the PR, the final adjustment, the HML result and
 // the conclusion moment. Links come already filtered by the projection to the trackers' domains.
 
 /** Filter of GET /api/items: null (every item), true or false; undefined when the value is invalid. */

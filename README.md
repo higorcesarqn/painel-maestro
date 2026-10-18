@@ -256,6 +256,7 @@ flow pr 12 ready                                                                
 flow pr 12 merged                                                                   # quando o maestro faz o merge → Merge
 flow hml 3100 --passed 7 --failed 1 --blocked 0 --card https://dev.azure.com/org/proj/_workitems/edit/3100 --role owner   # → Validação HML
 flow item done 12                                                                   # → Concluído (cancela as pendências abertas do item)
+flow item interrupt 12 --reason "O cliente desistiu"                                # fica na etapa, interrompido, fora dos ativos (#69)
 ```
 
 **Organizações e projetos (dono, em qualquer pasta):**

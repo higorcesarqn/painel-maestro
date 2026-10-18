@@ -188,6 +188,16 @@ export default {
       concluding: 'Concluindo…',
       failed: 'Não consegui concluir o item: {message}',
     },
+    // Item interrompido (#69): it stopped on a stage and will not go on; it stays there, out of the active list.
+    interrupted: {
+      badge: 'Interrompido em {stage}',
+      badgeTitle: 'Interrompido em {when}: {reason}',
+      reason: 'Motivo da interrupção',
+      noReason: '(sem motivo registrado)',
+      when: 'Em {when} ({age})',
+      by: 'por {who}',
+      detail: 'O item saiu da lista de ativos e ficou na etapa em que parou. Um evento de fluxo depois (ex.: flow stage) o traz de volta.',
+    },
     stages: {
       specification: 'Especificação',
       implementation: 'Implementação',
@@ -197,7 +207,7 @@ export default {
       hml_validation: 'Validação HML',
       done: 'Concluído',
     },
-    stageStatus: { done: 'concluída', current: 'atual', pending: 'a seguir' },
+    stageStatus: { done: 'concluída', current: 'atual', pending: 'a seguir', interrupted: 'interrompida' },
     trackers: { github: 'GitHub', azure_devops: 'Azure DevOps' },
     roles: { maestro: 'Maestro', worker: 'Trabalhador', owner: 'Dono' },
     events: {
@@ -276,6 +286,7 @@ export default {
       done: 'Concluído',
       at: 'em {when} ({age})',
       pending: 'Item ainda ativo.',
+      interrupted: 'Interrompido em {stage}',
     },
     events: {
       pr: { draft: 'PR criado em rascunho', ready: 'PR pronto (saiu do rascunho)', merged: 'PR mergeado' },
@@ -283,6 +294,7 @@ export default {
       adjustment: { passed: 'Ajuste final aprovado', failed: 'Ajuste final reprovado' },
       hml: 'Validação HML: {passed} aprovado(s), {failed} reprovado(s), {blocked} bloqueado(s)',
       itemDone: 'Item concluído',
+      itemInterrupted: 'Item interrompido: {reason}',
       prMergedByPanel: { check: 'PR mergeado (confirmado no tracker pelo painel)', owner: 'PR marcado como mergeado no painel' },
     },
     mergeCheck: {
@@ -299,11 +311,11 @@ export default {
     listFilter: {
       label: 'Mostrar itens',
       active: 'Ativos',
-      done: 'Concluídos',
+      done: 'Não ativos',
       all: 'Todos',
       none: {
-        active: 'Nenhum item ativo. Os concluídos continuam em "Concluídos".',
-        done: 'Nenhum item concluído ainda.',
+        active: 'Nenhum item ativo. Os concluídos e os interrompidos continuam em "Não ativos".',
+        done: 'Nenhum item concluído ou interrompido ainda.',
         all: 'Nenhum item.',
       },
     },
@@ -660,6 +672,7 @@ export default {
       'final-adjustment-finished': 'Ajuste final terminado',
       'hml-recorded': 'Validação HML registrada',
       'item-done': 'Item concluído',
+      'item-interrupted': 'Item interrompido',
       'pending-decision-opened': 'Pendência aberta',
       'pending-decision-resolved': 'Pendência resolvida',
       'pending-decision-canceled': 'Pendência cancelada',

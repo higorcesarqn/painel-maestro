@@ -447,12 +447,16 @@ CÓDIGOS DE SAÍDA
   delivery: {
     // The reason recorded on the pending decisions canceled when the item is concluded (#68), by the CLI or the panel.
     concludedReason: 'item concluído pelo dono',
+    // The same, when the item is interrupted (#69).
+    interruptedReason: 'item interrompido pelo dono',
     done: {
       pr: (p) => `Item ${p.key} (${p.ref}): PR ${PR_STATES[p.state] || p.state} registrado. Etapa: ${STAGES[p.stage] || p.stage}.`,
       'adjustment-open': (p) => `Item ${p.key} (${p.ref}): ajuste final aberto. Etapa: ${STAGES[p.stage] || p.stage}.`,
       'adjustment-result': (p) => `Item ${p.key} (${p.ref}): ajuste final ${p.outcome === 'passed' ? 'aprovado' : 'reprovado'}. Etapa: ${STAGES[p.stage] || p.stage}.`,
       hml: (p) => `Item ${p.key} (${p.ref}): Validação HML registrada (${p.passed} aprovado(s), ${p.failed} reprovado(s), ${p.blocked} bloqueado(s)). Etapa: ${STAGES[p.stage] || p.stage}.`,
       'item-done': (p) => `Item ${p.key} (${p.ref}) concluído. Ele sai da lista de ativos e continua consultável no painel.`
+        + `${p.canceled ? ` ${p.canceled} pendência(s) aberta(s) cancelada(s).` : ''}`,
+      'item-interrupt': (p) => `Item ${p.key} (${p.ref}) interrompido em ${STAGES[p.stage] || p.stage}. Ele sai da lista de ativos e continua consultável no painel.`
         + `${p.canceled ? ` ${p.canceled} pendência(s) aberta(s) cancelada(s).` : ''}`,
     },
     errors: {
@@ -470,6 +474,9 @@ CÓDIGOS DE SAÍDA
       invalidCount: 'quantidade inválida em {option}: "{value}" (use um inteiro a partir de 0).',
       noScenarios: 'informe quantos cenários foram aprovados, reprovados e bloqueados (--passed, --failed, --blocked); pelo menos um maior que 0.',
       alreadyDone: 'o item {key} ({ref}) já está concluído.',
+      alreadyClosed: (p) => `o item ${p.key} (${p.ref}) já está fora da lista de ativos (${p.interrupted ? 'interrompido' : 'concluído'}); um evento de fluxo (ex.: flow stage) o traz de volta.`,
+      missingReason: 'falta o motivo da interrupção (--reason "...", ex.: flow item interrupt 12 --reason "O cliente desistiu").',
+      reasonTooLong: 'o motivo tem {length} caracteres; o máximo é {max}.',
     },
   },
   // Worker's reports and maestro's findings (#8).
@@ -544,6 +551,10 @@ USO
       Registra o resultado da Validação HML (→ Validação HML). Use --role owner quando for o dono.
   node bin/flow.js item done <número>
       Conclui o item (→ Concluído): ele sai da lista de ativos e continua consultável.
+  node bin/flow.js item interrupt <número> --reason "..."
+      Interrompe o item que parou no meio e não vai continuar: ele fica na etapa em que parou, marcado como
+      interrompido, e sai da lista de ativos. O motivo é obrigatório. As pendências abertas do item são canceladas.
+      Um evento de fluxo depois (ex.: flow stage) traz o item de volta aos ativos.
   Links (--url, --card) só de trackers: https em github.com, dev.azure.com ou *.visualstudio.com.
   Um evento cuja etapa o projeto não usa é recusado (ex.: hml num projeto sem Validação HML).
 
@@ -641,8 +652,8 @@ JSON PELA ENTRADA PADRÃO (texto com acentos, aspas e várias linhas chega intac
   --json -     os campos vêm num objeto JSON pela entrada padrão; os argumentos valem mais que o JSON
   Campos: number (o item), title, stage, role, agent; task, tasks ([{number, title, blocked_by, out}]), floor,
   worker, branch, mode, sha, sha_before, text, state, progress (tasks e status); state, url, pr, branch (pr);
-  action, outcome, summary (final-adjustment); passed, failed, blocked, card, summary (hml); status,
-  blocked_reason, tests, changes, decisions, risks, shared_files, text, base (report); title, description,
+  action, outcome, summary (final-adjustment); passed, failed, blocked, card, summary (hml); reason (item
+  interrupt); status, blocked_reason, tests, changes, decisions, risks, shared_files, text, base (report); title, description,
   classification, task, new_task, new_task_title, finding (finding).
   Pendências: id, kind, severity, title, context, options (lista de textos), recommendation, workspace, terminal,
   decision, reason.

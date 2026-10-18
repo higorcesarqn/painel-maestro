@@ -29,7 +29,7 @@
         },
         "open": [
           {
-            "id": 100,
+            "id": 104,
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
@@ -58,7 +58,7 @@
             }
           },
           {
-            "id": 73,
+            "id": 77,
             "kind": "hml",
             "severity": "high",
             "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
@@ -83,7 +83,7 @@
             "task": null
           },
           {
-            "id": 85,
+            "id": 89,
             "kind": "task_review",
             "severity": "high",
             "title": "Revisar e integrar a task 3115 (botão de exportar)",
@@ -112,7 +112,7 @@
             }
           },
           {
-            "id": 91,
+            "id": 95,
             "kind": "worker_blocked",
             "severity": "high",
             "title": "Em que formato sai o extrato exportado?",
@@ -141,7 +141,7 @@
             }
           },
           {
-            "id": 94,
+            "id": 98,
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
@@ -166,7 +166,7 @@
             "task": null
           },
           {
-            "id": 98,
+            "id": 102,
             "kind": "decision",
             "severity": "normal",
             "title": "Como chamar o carrinho juntado na tela?",
@@ -244,7 +244,7 @@
       "unassigned": false,
       "hidden": false,
       "project_count": 2,
-      "item_count": 4,
+      "item_count": 5,
       "open_pending_count": 2
     },
     {
@@ -432,7 +432,7 @@
       "done_state": "Closed",
       "maestri_workspace": null,
       "created_at": "2026-10-01T09:00:00-03:00",
-      "item_count": 1
+      "item_count": 2
     },
     {
       "id": "storefront",
@@ -531,7 +531,8 @@
       "stage_since": "2026-10-09T07:30:00-03:00",
       "started_at": "2026-10-09T07:30:00-03:00",
       "updated_at": "2026-10-09T10:10:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "portal/3112",
@@ -553,7 +554,8 @@
       "stage_since": "2026-10-08T10:20:00-03:00",
       "started_at": "2026-10-07T14:00:00-03:00",
       "updated_at": "2026-10-09T10:06:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "scratch/3",
@@ -575,7 +577,8 @@
       "stage_since": "2026-10-09T10:05:00-03:00",
       "started_at": "2026-10-09T10:05:00-03:00",
       "updated_at": "2026-10-09T10:05:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "storefront/48",
@@ -597,7 +600,8 @@
       "stage_since": "2026-10-09T09:40:00-03:00",
       "started_at": "2026-10-02T10:00:00-03:00",
       "updated_at": "2026-10-09T10:05:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "billing-api/2901",
@@ -619,7 +623,8 @@
       "stage_since": "2026-10-09T08:50:00-03:00",
       "started_at": "2026-10-09T08:50:00-03:00",
       "updated_at": "2026-10-09T09:30:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "intranet/12",
@@ -641,7 +646,8 @@
       "stage_since": "2026-10-08T09:30:00-03:00",
       "started_at": "2026-10-07T10:00:00-03:00",
       "updated_at": "2026-10-09T09:10:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "storefront/52",
@@ -663,7 +669,8 @@
       "stage_since": "2026-10-08T20:05:00-03:00",
       "started_at": "2026-10-04T11:00:00-03:00",
       "updated_at": "2026-10-08T20:05:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "billing-api/2875",
@@ -685,7 +692,8 @@
       "stage_since": "2026-10-08T18:10:00-03:00",
       "started_at": "2026-10-03T08:30:00-03:00",
       "updated_at": "2026-10-08T18:10:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "portal/3100",
@@ -707,7 +715,8 @@
       "stage_since": "2026-10-08T09:05:00-03:00",
       "started_at": "2026-10-01T09:10:00-03:00",
       "updated_at": "2026-10-08T16:30:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "relatorios-bi/77",
@@ -729,7 +738,8 @@
       "stage_since": "2026-10-08T15:20:00-03:00",
       "started_at": "2026-10-08T15:20:00-03:00",
       "updated_at": "2026-10-08T15:20:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "design-system/31",
@@ -751,7 +761,8 @@
       "stage_since": "2026-10-08T11:30:00-03:00",
       "started_at": "2026-10-06T14:00:00-03:00",
       "updated_at": "2026-10-08T11:30:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "painel-maestro/2",
@@ -773,7 +784,38 @@
       "stage_since": "2026-10-07T08:12:00-03:00",
       "started_at": "2026-10-06T09:00:00-03:00",
       "updated_at": "2026-10-07T08:12:00-03:00",
-      "active": false
+      "active": false,
+      "interrupted": null
+    },
+    {
+      "key": "erp/1190",
+      "project": {
+        "id": "erp",
+        "name": "ERP Fabrikam",
+        "tracker": "azure_devops",
+        "organization": {
+          "id": "fabrikam",
+          "name": "Fabrikam"
+        }
+      },
+      "number": 1190,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 1190",
+      "title": "Integração com o banco antigo",
+      "stage": "merge",
+      "done_state": "Closed",
+      "stage_since": "2026-10-03T11:00:00-03:00",
+      "started_at": "2026-10-01T10:00:00-03:00",
+      "updated_at": "2026-10-06T16:30:00-03:00",
+      "active": false,
+      "interrupted": {
+        "reason": "O cliente trocou de banco: a integração com o antigo não vai mais ser usada.\nO código mergeado fica desligado.",
+        "at": "2026-10-06T16:30:00-03:00",
+        "by": {
+          "role": "maestro",
+          "name": "Ária"
+        }
+      }
     },
     {
       "key": "erp/1204",
@@ -795,7 +837,8 @@
       "stage_since": "2026-10-06T10:00:00-03:00",
       "started_at": "2026-10-05T09:00:00-03:00",
       "updated_at": "2026-10-06T10:00:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     },
     {
       "key": "intranet/9",
@@ -817,7 +860,8 @@
       "stage_since": "2026-10-05T10:05:00-03:00",
       "started_at": "2026-10-02T09:00:00-03:00",
       "updated_at": "2026-10-05T10:05:00-03:00",
-      "active": false
+      "active": false,
+      "interrupted": null
     },
     {
       "key": "portal/3088",
@@ -839,7 +883,8 @@
       "stage_since": "2026-10-03T16:00:00-03:00",
       "started_at": "2026-09-28T09:00:00-03:00",
       "updated_at": "2026-10-03T16:00:00-03:00",
-      "active": false
+      "active": false,
+      "interrupted": null
     },
     {
       "key": "storefront/55",
@@ -861,7 +906,8 @@
       "stage_since": "2026-10-02T14:00:00-03:00",
       "started_at": "2026-10-02T14:00:00-03:00",
       "updated_at": "2026-10-02T14:00:00-03:00",
-      "active": true
+      "active": true,
+      "interrupted": null
     }
   ],
   "details": {
@@ -886,6 +932,7 @@
       "started_at": "2026-10-09T07:30:00-03:00",
       "updated_at": "2026-10-09T10:10:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -950,7 +997,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 80,
+          "id": 84,
           "at": "2026-10-09T07:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -965,7 +1012,7 @@
           }
         },
         {
-          "id": 81,
+          "id": 85,
           "at": "2026-10-09T07:35:00-03:00",
           "type": "task-dispatched",
           "task_number": 5,
@@ -982,7 +1029,7 @@
           }
         },
         {
-          "id": 82,
+          "id": 86,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 5,
@@ -1008,7 +1055,7 @@
           }
         },
         {
-          "id": 88,
+          "id": 92,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": 5,
@@ -1018,12 +1065,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 82,
+            "pending_decision": 86,
             "decision": "B: vira task nova para triagem."
           }
         },
         {
-          "id": 101,
+          "id": 105,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -1068,6 +1115,7 @@
       "started_at": "2026-10-07T14:00:00-03:00",
       "updated_at": "2026-10-09T10:06:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -1272,7 +1320,7 @@
       "hml": null,
       "reports": [
         {
-          "id": 61,
+          "id": 65,
           "at": "2026-10-08T13:12:00-03:00",
           "task_number": 3113,
           "agent": {
@@ -1347,7 +1395,7 @@
           }
         },
         {
-          "id": 84,
+          "id": 88,
           "at": "2026-10-09T08:42:00-03:00",
           "task_number": 3115,
           "agent": {
@@ -1421,7 +1469,7 @@
           }
         },
         {
-          "id": 99,
+          "id": 103,
           "at": "2026-10-09T10:06:00-03:00",
           "task_number": 3116,
           "agent": {
@@ -1490,7 +1538,7 @@
       ],
       "timeline": [
         {
-          "id": 46,
+          "id": 50,
           "at": "2026-10-07T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -1505,7 +1553,7 @@
           }
         },
         {
-          "id": 53,
+          "id": 57,
           "at": "2026-10-08T10:20:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -1519,7 +1567,7 @@
           }
         },
         {
-          "id": 54,
+          "id": 58,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -1535,7 +1583,7 @@
           }
         },
         {
-          "id": 55,
+          "id": 59,
           "at": "2026-10-08T10:25:00-03:00",
           "type": "task-graph",
           "task_number": null,
@@ -1595,7 +1643,7 @@
           }
         },
         {
-          "id": 56,
+          "id": 60,
           "at": "2026-10-08T10:30:00-03:00",
           "type": "task-dispatched",
           "task_number": 3113,
@@ -1612,7 +1660,7 @@
           }
         },
         {
-          "id": 60,
+          "id": 64,
           "at": "2026-10-08T13:10:00-03:00",
           "type": "task-status",
           "task_number": 3113,
@@ -1632,7 +1680,7 @@
           }
         },
         {
-          "id": 61,
+          "id": 65,
           "at": "2026-10-08T13:12:00-03:00",
           "type": "task-report",
           "task_number": 3113,
@@ -1704,7 +1752,7 @@
           }
         },
         {
-          "id": 62,
+          "id": 66,
           "at": "2026-10-08T13:12:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3113,
@@ -1730,7 +1778,7 @@
           }
         },
         {
-          "id": 63,
+          "id": 67,
           "at": "2026-10-08T13:50:00-03:00",
           "type": "finding-recorded",
           "task_number": 3113,
@@ -1752,7 +1800,7 @@
           }
         },
         {
-          "id": 64,
+          "id": 68,
           "at": "2026-10-08T13:52:00-03:00",
           "type": "finding-recorded",
           "task_number": 3113,
@@ -1771,7 +1819,7 @@
           }
         },
         {
-          "id": 65,
+          "id": 69,
           "at": "2026-10-08T13:55:00-03:00",
           "type": "finding-recorded",
           "task_number": 3113,
@@ -1790,7 +1838,7 @@
           }
         },
         {
-          "id": 66,
+          "id": 70,
           "at": "2026-10-08T14:02:00-03:00",
           "type": "task-integrated",
           "task_number": 3113,
@@ -1805,7 +1853,7 @@
           }
         },
         {
-          "id": 67,
+          "id": 71,
           "at": "2026-10-08T14:04:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -1831,7 +1879,7 @@
           }
         },
         {
-          "id": 68,
+          "id": 72,
           "at": "2026-10-08T14:08:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -1841,12 +1889,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 67,
+            "pending_decision": 71,
             "decision": "Pode paralelizar. A 3115 integra primeiro."
           }
         },
         {
-          "id": 69,
+          "id": 73,
           "at": "2026-10-08T14:10:00-03:00",
           "type": "task-dispatched",
           "task_number": 3114,
@@ -1863,7 +1911,7 @@
           }
         },
         {
-          "id": 70,
+          "id": 74,
           "at": "2026-10-08T14:12:00-03:00",
           "type": "task-dispatched",
           "task_number": 3115,
@@ -1880,7 +1928,7 @@
           }
         },
         {
-          "id": 83,
+          "id": 87,
           "at": "2026-10-09T08:40:00-03:00",
           "type": "task-status",
           "task_number": 3115,
@@ -1900,7 +1948,7 @@
           }
         },
         {
-          "id": 84,
+          "id": 88,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "task-report",
           "task_number": 3115,
@@ -1971,7 +2019,7 @@
           }
         },
         {
-          "id": 85,
+          "id": 89,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3115,
@@ -1999,7 +2047,7 @@
           }
         },
         {
-          "id": 90,
+          "id": 94,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "task_number": 3114,
@@ -2019,7 +2067,7 @@
           }
         },
         {
-          "id": 91,
+          "id": 95,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3114,
@@ -2041,7 +2089,7 @@
           }
         },
         {
-          "id": 95,
+          "id": 99,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "task_number": 3116,
@@ -2058,7 +2106,7 @@
           }
         },
         {
-          "id": 97,
+          "id": 101,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "task_number": 3116,
@@ -2078,7 +2126,7 @@
           }
         },
         {
-          "id": 99,
+          "id": 103,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "task_number": 3116,
@@ -2101,7 +2149,7 @@
           }
         },
         {
-          "id": 100,
+          "id": 104,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -2150,6 +2198,7 @@
       "started_at": "2026-10-09T10:05:00-03:00",
       "updated_at": "2026-10-09T10:05:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -2216,7 +2265,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 96,
+          "id": 100,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2253,6 +2302,7 @@
       "started_at": "2026-10-02T10:00:00-03:00",
       "updated_at": "2026-10-09T10:05:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -2365,7 +2415,7 @@
       "hml": null,
       "reports": [
         {
-          "id": 33,
+          "id": 36,
           "at": "2026-10-05T11:20:00-03:00",
           "task_number": 49,
           "agent": {
@@ -2413,7 +2463,7 @@
           }
         },
         {
-          "id": 74,
+          "id": 78,
           "at": "2026-10-08T16:50:00-03:00",
           "task_number": 50,
           "agent": {
@@ -2454,7 +2504,7 @@
       ],
       "timeline": [
         {
-          "id": 12,
+          "id": 13,
           "at": "2026-10-02T10:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2469,7 +2519,7 @@
           }
         },
         {
-          "id": 15,
+          "id": 17,
           "at": "2026-10-02T16:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -2483,7 +2533,7 @@
           }
         },
         {
-          "id": 16,
+          "id": 18,
           "at": "2026-10-02T16:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -2499,7 +2549,7 @@
           }
         },
         {
-          "id": 17,
+          "id": 19,
           "at": "2026-10-02T16:05:00-03:00",
           "type": "task-graph",
           "task_number": null,
@@ -2528,7 +2578,7 @@
           }
         },
         {
-          "id": 18,
+          "id": 20,
           "at": "2026-10-02T16:10:00-03:00",
           "type": "task-dispatched",
           "task_number": 49,
@@ -2544,7 +2594,7 @@
           }
         },
         {
-          "id": 33,
+          "id": 36,
           "at": "2026-10-05T11:20:00-03:00",
           "type": "task-report",
           "task_number": 49,
@@ -2594,7 +2644,7 @@
           }
         },
         {
-          "id": 34,
+          "id": 37,
           "at": "2026-10-05T11:30:00-03:00",
           "type": "task-integrated",
           "task_number": 49,
@@ -2609,7 +2659,7 @@
           }
         },
         {
-          "id": 35,
+          "id": 38,
           "at": "2026-10-05T11:40:00-03:00",
           "type": "task-dispatched",
           "task_number": 50,
@@ -2625,7 +2675,7 @@
           }
         },
         {
-          "id": 74,
+          "id": 78,
           "at": "2026-10-08T16:50:00-03:00",
           "type": "task-report",
           "task_number": 50,
@@ -2648,7 +2698,7 @@
           }
         },
         {
-          "id": 75,
+          "id": 79,
           "at": "2026-10-08T17:00:00-03:00",
           "type": "task-integrated",
           "task_number": 50,
@@ -2663,7 +2713,7 @@
           }
         },
         {
-          "id": 76,
+          "id": 80,
           "at": "2026-10-08T17:05:00-03:00",
           "type": "finding-recorded",
           "task_number": 50,
@@ -2685,7 +2735,7 @@
           }
         },
         {
-          "id": 93,
+          "id": 97,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -2697,7 +2747,7 @@
           "payload": {}
         },
         {
-          "id": 94,
+          "id": 98,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2723,7 +2773,7 @@
           }
         },
         {
-          "id": 98,
+          "id": 102,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2767,6 +2817,7 @@
       "started_at": "2026-10-09T08:50:00-03:00",
       "updated_at": "2026-10-09T09:30:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -2833,7 +2884,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 86,
+          "id": 90,
           "at": "2026-10-09T08:50:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2848,7 +2899,7 @@
           }
         },
         {
-          "id": 87,
+          "id": 91,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -2872,7 +2923,7 @@
           }
         },
         {
-          "id": 92,
+          "id": 96,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "task_number": null,
@@ -2882,7 +2933,7 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 87,
+            "pending_decision": 91,
             "reason": "Entrou na especificação do item."
           }
         }
@@ -2909,6 +2960,7 @@
       "started_at": "2026-10-07T10:00:00-03:00",
       "updated_at": "2026-10-09T09:10:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -2970,7 +3022,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 45,
+          "id": 49,
           "at": "2026-10-07T10:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -2985,7 +3037,7 @@
           }
         },
         {
-          "id": 52,
+          "id": 56,
           "at": "2026-10-08T09:30:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -2999,7 +3051,7 @@
           }
         },
         {
-          "id": 89,
+          "id": 93,
           "at": "2026-10-09T09:10:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -3047,6 +3099,7 @@
       "started_at": "2026-10-04T11:00:00-03:00",
       "updated_at": "2026-10-08T20:05:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -3116,7 +3169,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 27,
+          "id": 30,
           "at": "2026-10-04T11:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -3131,7 +3184,7 @@
           }
         },
         {
-          "id": 40,
+          "id": 43,
           "at": "2026-10-06T13:20:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3147,7 +3200,7 @@
           }
         },
         {
-          "id": 79,
+          "id": 83,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3183,6 +3236,7 @@
       "started_at": "2026-10-03T08:30:00-03:00",
       "updated_at": "2026-10-08T18:10:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -3299,7 +3353,7 @@
       ],
       "timeline": [
         {
-          "id": 21,
+          "id": 23,
           "at": "2026-10-03T08:30:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -3314,7 +3368,7 @@
           }
         },
         {
-          "id": 22,
+          "id": 24,
           "at": "2026-10-03T08:40:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3330,7 +3384,7 @@
           }
         },
         {
-          "id": 47,
+          "id": 51,
           "at": "2026-10-07T16:45:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -3342,7 +3396,7 @@
           "payload": {}
         },
         {
-          "id": 48,
+          "id": 52,
           "at": "2026-10-07T17:00:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -3368,7 +3422,7 @@
           }
         },
         {
-          "id": 50,
+          "id": 54,
           "at": "2026-10-07T18:20:00-03:00",
           "type": "pending-decision-resolved",
           "task_number": null,
@@ -3378,12 +3432,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 48,
+            "pending_decision": 52,
             "decision": "A: 3 retentativas, com intervalo de 24 h."
           }
         },
         {
-          "id": 57,
+          "id": 61,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -3398,7 +3452,7 @@
           }
         },
         {
-          "id": 59,
+          "id": 63,
           "at": "2026-10-08T11:35:00-03:00",
           "type": "finding-recorded",
           "task_number": null,
@@ -3420,7 +3474,7 @@
           }
         },
         {
-          "id": 71,
+          "id": 75,
           "at": "2026-10-08T15:00:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -3432,7 +3486,7 @@
           "payload": {}
         },
         {
-          "id": 77,
+          "id": 81,
           "at": "2026-10-08T17:50:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -3446,7 +3500,7 @@
           }
         },
         {
-          "id": 78,
+          "id": 82,
           "at": "2026-10-08T18:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -3482,6 +3536,7 @@
       "started_at": "2026-10-01T09:10:00-03:00",
       "updated_at": "2026-10-08T16:30:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -3588,7 +3643,7 @@
       },
       "reports": [
         {
-          "id": 19,
+          "id": 21,
           "at": "2026-10-02T18:05:00-03:00",
           "task_number": 3101,
           "agent": {
@@ -5038,7 +5093,7 @@
           }
         },
         {
-          "id": 7,
+          "id": 8,
           "at": "2026-10-01T15:40:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -5052,7 +5107,7 @@
           }
         },
         {
-          "id": 8,
+          "id": 9,
           "at": "2026-10-01T15:45:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -5068,7 +5123,7 @@
           }
         },
         {
-          "id": 9,
+          "id": 10,
           "at": "2026-10-01T15:45:00-03:00",
           "type": "task-graph",
           "task_number": null,
@@ -5097,7 +5152,7 @@
           }
         },
         {
-          "id": 10,
+          "id": 11,
           "at": "2026-10-01T16:00:00-03:00",
           "type": "task-dispatched",
           "task_number": 3101,
@@ -5113,7 +5168,7 @@
           }
         },
         {
-          "id": 19,
+          "id": 21,
           "at": "2026-10-02T18:05:00-03:00",
           "type": "task-report",
           "task_number": 3101,
@@ -6349,7 +6404,7 @@
           }
         },
         {
-          "id": 20,
+          "id": 22,
           "at": "2026-10-02T18:20:00-03:00",
           "type": "task-integrated",
           "task_number": 3101,
@@ -6364,7 +6419,7 @@
           }
         },
         {
-          "id": 23,
+          "id": 25,
           "at": "2026-10-03T09:00:00-03:00",
           "type": "task-dispatched",
           "task_number": 3102,
@@ -6380,7 +6435,7 @@
           }
         },
         {
-          "id": 31,
+          "id": 34,
           "at": "2026-10-05T10:40:00-03:00",
           "type": "task-integrated",
           "task_number": 3102,
@@ -6395,7 +6450,7 @@
           }
         },
         {
-          "id": 32,
+          "id": 35,
           "at": "2026-10-05T11:02:00-03:00",
           "type": "final-adjustment-opened",
           "task_number": null,
@@ -6407,7 +6462,7 @@
           "payload": {}
         },
         {
-          "id": 36,
+          "id": 39,
           "at": "2026-10-05T16:20:00-03:00",
           "type": "final-adjustment-finished",
           "task_number": null,
@@ -6422,7 +6477,7 @@
           }
         },
         {
-          "id": 39,
+          "id": 42,
           "at": "2026-10-06T10:15:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -6436,7 +6491,7 @@
           }
         },
         {
-          "id": 49,
+          "id": 53,
           "at": "2026-10-07T17:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -6450,7 +6505,7 @@
           }
         },
         {
-          "id": 51,
+          "id": 55,
           "at": "2026-10-08T09:05:00-03:00",
           "type": "hml-recorded",
           "task_number": null,
@@ -6468,7 +6523,7 @@
           }
         },
         {
-          "id": 73,
+          "id": 77,
           "at": "2026-10-08T16:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -6516,6 +6571,7 @@
       "started_at": "2026-10-08T15:20:00-03:00",
       "updated_at": "2026-10-08T15:20:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -6582,7 +6638,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 72,
+          "id": 76,
           "at": "2026-10-08T15:20:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -6619,6 +6675,7 @@
       "started_at": "2026-10-06T14:00:00-03:00",
       "updated_at": "2026-10-08T11:30:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -6680,7 +6737,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 41,
+          "id": 44,
           "at": "2026-10-06T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -6695,7 +6752,7 @@
           }
         },
         {
-          "id": 58,
+          "id": 62,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -6731,6 +6788,7 @@
       "started_at": "2026-10-06T09:00:00-03:00",
       "updated_at": "2026-10-07T08:12:00-03:00",
       "active": false,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -6800,7 +6858,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 37,
+          "id": 40,
           "at": "2026-10-06T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -6815,7 +6873,7 @@
           }
         },
         {
-          "id": 42,
+          "id": 46,
           "at": "2026-10-06T18:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -6831,7 +6889,7 @@
           }
         },
         {
-          "id": 43,
+          "id": 47,
           "at": "2026-10-07T08:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -6845,7 +6903,7 @@
           }
         },
         {
-          "id": 44,
+          "id": 48,
           "at": "2026-10-07T08:12:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -6855,6 +6913,169 @@
           },
           "source": "cli",
           "payload": {}
+        }
+      ]
+    },
+    "erp/1190": {
+      "key": "erp/1190",
+      "project": {
+        "id": "erp",
+        "name": "ERP Fabrikam",
+        "tracker": "azure_devops",
+        "organization": {
+          "id": "fabrikam",
+          "name": "Fabrikam"
+        }
+      },
+      "number": 1190,
+      "tracker": "azure_devops",
+      "tracker_ref": "PBI 1190",
+      "title": "Integração com o banco antigo",
+      "stage": "merge",
+      "done_state": "Closed",
+      "stage_since": "2026-10-03T11:00:00-03:00",
+      "started_at": "2026-10-01T10:00:00-03:00",
+      "updated_at": "2026-10-06T16:30:00-03:00",
+      "active": false,
+      "interrupted": {
+        "reason": "O cliente trocou de banco: a integração com o antigo não vai mais ser usada.\nO código mergeado fica desligado.",
+        "at": "2026-10-06T16:30:00-03:00",
+        "by": {
+          "role": "maestro",
+          "name": "Ária"
+        }
+      },
+      "stages": [
+        {
+          "id": "specification",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "implementation",
+          "status": "done",
+          "entered_at": "2026-10-01T10:00:00-03:00"
+        },
+        {
+          "id": "final_adjustment",
+          "status": "done",
+          "entered_at": null
+        },
+        {
+          "id": "pr_ready",
+          "status": "done",
+          "entered_at": "2026-10-02T15:00:00-03:00"
+        },
+        {
+          "id": "merge",
+          "status": "current",
+          "entered_at": "2026-10-03T11:00:00-03:00"
+        },
+        {
+          "id": "hml_validation",
+          "status": "pending",
+          "entered_at": null
+        },
+        {
+          "id": "done",
+          "status": "pending",
+          "entered_at": null
+        }
+      ],
+      "tasks": [
+        {
+          "number": 1190,
+          "title": "Integração com o banco antigo",
+          "self": true,
+          "state": "waiting",
+          "blocked_by": [],
+          "worker": null,
+          "floor": null,
+          "branch": null,
+          "mode": null,
+          "sha": null,
+          "sha_before": null,
+          "status_text": null,
+          "progress": null,
+          "dispatched_at": null,
+          "integrated_at": null,
+          "updated_at": null,
+          "finding": null
+        }
+      ],
+      "completed_at": null,
+      "pr": {
+        "state": "merged",
+        "url": "https://fabrikam.visualstudio.com/erp/_git/erp-core/pullrequest/77",
+        "number": 77,
+        "branch": "feature/pbi-1190",
+        "opened_at": "2026-10-02T15:00:00-03:00",
+        "ready_at": "2026-10-02T15:00:00-03:00",
+        "merged_at": "2026-10-03T11:00:00-03:00"
+      },
+      "final_adjustment": null,
+      "hml": null,
+      "reports": [],
+      "findings": [],
+      "timeline": [
+        {
+          "id": 7,
+          "at": "2026-10-01T10:00:00-03:00",
+          "type": "item-started",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "title": "Integração com o banco antigo",
+            "stage": "implementation"
+          }
+        },
+        {
+          "id": 16,
+          "at": "2026-10-02T15:00:00-03:00",
+          "type": "pr-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "ready",
+            "url": "https://fabrikam.visualstudio.com/erp/_git/erp-core/pullrequest/77",
+            "branch": "feature/pbi-1190"
+          }
+        },
+        {
+          "id": 26,
+          "at": "2026-10-03T11:00:00-03:00",
+          "type": "pr-changed",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Bento"
+          },
+          "source": "cli",
+          "payload": {
+            "state": "merged"
+          }
+        },
+        {
+          "id": 45,
+          "at": "2026-10-06T16:30:00-03:00",
+          "type": "item-interrupted",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "reason": "O cliente trocou de banco: a integração com o antigo não vai mais ser usada.\nO código mergeado fica desligado."
+          }
         }
       ]
     },
@@ -6879,6 +7100,7 @@
       "started_at": "2026-10-05T09:00:00-03:00",
       "updated_at": "2026-10-06T10:00:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -6945,7 +7167,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 28,
+          "id": 31,
           "at": "2026-10-05T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -6960,7 +7182,7 @@
           }
         },
         {
-          "id": 38,
+          "id": 41,
           "at": "2026-10-06T10:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -6996,6 +7218,7 @@
       "started_at": "2026-10-02T09:00:00-03:00",
       "updated_at": "2026-10-05T10:05:00-03:00",
       "active": false,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -7065,7 +7288,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 11,
+          "id": 12,
           "at": "2026-10-02T09:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -7080,7 +7303,7 @@
           }
         },
         {
-          "id": 26,
+          "id": 29,
           "at": "2026-10-03T17:00:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -7096,7 +7319,7 @@
           }
         },
         {
-          "id": 29,
+          "id": 32,
           "at": "2026-10-05T10:00:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -7110,7 +7333,7 @@
           }
         },
         {
-          "id": 30,
+          "id": 33,
           "at": "2026-10-05T10:05:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -7144,6 +7367,7 @@
       "started_at": "2026-09-28T09:00:00-03:00",
       "updated_at": "2026-10-03T16:00:00-03:00",
       "active": false,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -7302,7 +7526,7 @@
           }
         },
         {
-          "id": 13,
+          "id": 14,
           "at": "2026-10-02T11:00:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -7316,7 +7540,7 @@
           }
         },
         {
-          "id": 24,
+          "id": 27,
           "at": "2026-10-03T15:40:00-03:00",
           "type": "hml-recorded",
           "task_number": null,
@@ -7333,7 +7557,7 @@
           }
         },
         {
-          "id": 25,
+          "id": 28,
           "at": "2026-10-03T16:00:00-03:00",
           "type": "item-done",
           "task_number": null,
@@ -7367,6 +7591,7 @@
       "started_at": "2026-10-02T14:00:00-03:00",
       "updated_at": "2026-10-02T14:00:00-03:00",
       "active": true,
+      "interrupted": null,
       "stages": [
         {
           "id": "specification",
@@ -7428,7 +7653,7 @@
       "findings": [],
       "timeline": [
         {
-          "id": 14,
+          "id": 15,
           "at": "2026-10-02T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -7448,7 +7673,7 @@
   "pending_decisions": {
     "pending_decisions": [
       {
-        "id": 100,
+        "id": 104,
         "kind": "worker_blocked",
         "severity": "critical",
         "status": "open",
@@ -7499,7 +7724,7 @@
         }
       },
       {
-        "id": 73,
+        "id": 77,
         "kind": "hml",
         "severity": "high",
         "status": "open",
@@ -7546,7 +7771,7 @@
         "task": null
       },
       {
-        "id": 85,
+        "id": 89,
         "kind": "task_review",
         "severity": "high",
         "status": "open",
@@ -7654,7 +7879,7 @@
         }
       },
       {
-        "id": 91,
+        "id": 95,
         "kind": "worker_blocked",
         "severity": "high",
         "status": "open",
@@ -7702,7 +7927,7 @@
         }
       },
       {
-        "id": 89,
+        "id": 93,
         "kind": "decision",
         "severity": "normal",
         "status": "open",
@@ -7749,7 +7974,7 @@
         "task": null
       },
       {
-        "id": 94,
+        "id": 98,
         "kind": "finding",
         "severity": "normal",
         "status": "open",
@@ -7796,7 +8021,7 @@
         "task": null
       },
       {
-        "id": 98,
+        "id": 102,
         "kind": "decision",
         "severity": "normal",
         "status": "open",
@@ -7840,7 +8065,7 @@
         "task": null
       },
       {
-        "id": 87,
+        "id": 91,
         "kind": "decision",
         "severity": "low",
         "status": "canceled",
@@ -7890,7 +8115,7 @@
         "task": null
       },
       {
-        "id": 82,
+        "id": 86,
         "kind": "finding",
         "severity": "low",
         "status": "resolved",
@@ -7944,7 +8169,7 @@
         }
       },
       {
-        "id": 51,
+        "id": 55,
         "kind": "hml",
         "severity": "high",
         "status": "resolved",
@@ -7997,7 +8222,7 @@
         "task": null
       },
       {
-        "id": 67,
+        "id": 71,
         "kind": "parallelize",
         "severity": "normal",
         "status": "resolved",
@@ -8047,7 +8272,7 @@
         "task": null
       },
       {
-        "id": 62,
+        "id": 66,
         "kind": "task_review",
         "severity": "normal",
         "status": "resolved",
@@ -8156,7 +8381,7 @@
         }
       },
       {
-        "id": 48,
+        "id": 52,
         "kind": "decision",
         "severity": "normal",
         "status": "resolved",
@@ -8447,7 +8672,7 @@
         },
         "open": [
           {
-            "id": 100,
+            "id": 104,
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
@@ -8476,7 +8701,7 @@
             }
           },
           {
-            "id": 73,
+            "id": 77,
             "kind": "hml",
             "severity": "high",
             "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
@@ -8501,7 +8726,7 @@
             "task": null
           },
           {
-            "id": 85,
+            "id": 89,
             "kind": "task_review",
             "severity": "high",
             "title": "Revisar e integrar a task 3115 (botão de exportar)",
@@ -8530,7 +8755,7 @@
             }
           },
           {
-            "id": 91,
+            "id": 95,
             "kind": "worker_blocked",
             "severity": "high",
             "title": "Em que formato sai o extrato exportado?",
@@ -8559,7 +8784,7 @@
             }
           },
           {
-            "id": 94,
+            "id": 98,
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
@@ -8584,7 +8809,7 @@
             "task": null
           },
           {
-            "id": 98,
+            "id": 102,
             "kind": "decision",
             "severity": "normal",
             "title": "Como chamar o carrinho juntado na tela?",
@@ -8653,7 +8878,7 @@
       "events_today": 21,
       "recent_events": [
         {
-          "id": 101,
+          "id": 105,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "project": {
@@ -8689,7 +8914,7 @@
           }
         },
         {
-          "id": 100,
+          "id": 104,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -8729,7 +8954,7 @@
           }
         },
         {
-          "id": 99,
+          "id": 103,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "project": {
@@ -8765,7 +8990,7 @@
           }
         },
         {
-          "id": 98,
+          "id": 102,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -8800,7 +9025,7 @@
           }
         },
         {
-          "id": 97,
+          "id": 101,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "project": {
@@ -8833,7 +9058,7 @@
           }
         },
         {
-          "id": 96,
+          "id": 100,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "project": {
@@ -8861,7 +9086,7 @@
           }
         },
         {
-          "id": 95,
+          "id": 99,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -8891,7 +9116,7 @@
           }
         },
         {
-          "id": 94,
+          "id": 98,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -8930,7 +9155,7 @@
           }
         },
         {
-          "id": 93,
+          "id": 97,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "project": {
@@ -8955,7 +9180,7 @@
           "payload": {}
         },
         {
-          "id": 92,
+          "id": 96,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "project": {
@@ -8978,12 +9203,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 87,
+            "pending_decision": 91,
             "reason": "Entrou na especificação do item."
           }
         },
         {
-          "id": 91,
+          "id": 95,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -9018,7 +9243,7 @@
           }
         },
         {
-          "id": 90,
+          "id": 94,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "project": {
@@ -9140,7 +9365,7 @@
         },
         "open": [
           {
-            "id": 100,
+            "id": 104,
             "kind": "worker_blocked",
             "severity": "critical",
             "title": "Falta o certificado de homologação para assinar o PDF",
@@ -9169,7 +9394,7 @@
             }
           },
           {
-            "id": 73,
+            "id": 77,
             "kind": "hml",
             "severity": "high",
             "title": "Cenário 4 reprovado em HML: boleto pago em duplicidade",
@@ -9194,7 +9419,7 @@
             "task": null
           },
           {
-            "id": 85,
+            "id": 89,
             "kind": "task_review",
             "severity": "high",
             "title": "Revisar e integrar a task 3115 (botão de exportar)",
@@ -9223,7 +9448,7 @@
             }
           },
           {
-            "id": 91,
+            "id": 95,
             "kind": "worker_blocked",
             "severity": "high",
             "title": "Em que formato sai o extrato exportado?",
@@ -9257,7 +9482,7 @@
       "events_today": 12,
       "recent_events": [
         {
-          "id": 100,
+          "id": 104,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -9297,7 +9522,7 @@
           }
         },
         {
-          "id": 99,
+          "id": 103,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "task-report",
           "project": {
@@ -9333,7 +9558,7 @@
           }
         },
         {
-          "id": 97,
+          "id": 101,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "task-status",
           "project": {
@@ -9366,7 +9591,7 @@
           }
         },
         {
-          "id": 95,
+          "id": 99,
           "at": "2026-10-09T09:50:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -9396,7 +9621,7 @@
           }
         },
         {
-          "id": 92,
+          "id": 96,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "project": {
@@ -9419,12 +9644,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 87,
+            "pending_decision": 91,
             "reason": "Entrou na especificação do item."
           }
         },
         {
-          "id": 91,
+          "id": 95,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -9459,7 +9684,7 @@
           }
         },
         {
-          "id": 90,
+          "id": 94,
           "at": "2026-10-09T09:15:00-03:00",
           "type": "task-status",
           "project": {
@@ -9492,7 +9717,7 @@
           }
         },
         {
-          "id": 87,
+          "id": 91,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -9529,7 +9754,7 @@
           }
         },
         {
-          "id": 86,
+          "id": 90,
           "at": "2026-10-09T08:50:00-03:00",
           "type": "item-started",
           "project": {
@@ -9557,7 +9782,7 @@
           }
         },
         {
-          "id": 85,
+          "id": 89,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -9598,7 +9823,7 @@
           }
         },
         {
-          "id": 84,
+          "id": 88,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "task-report",
           "project": {
@@ -9682,7 +9907,7 @@
           }
         },
         {
-          "id": 83,
+          "id": 87,
           "at": "2026-10-09T08:40:00-03:00",
           "type": "task-status",
           "project": {
@@ -9786,7 +10011,7 @@
         },
         "open": [
           {
-            "id": 94,
+            "id": 98,
             "kind": "finding",
             "severity": "normal",
             "title": "Achado: o carrinho anônimo expira em 24 h",
@@ -9811,7 +10036,7 @@
             "task": null
           },
           {
-            "id": 98,
+            "id": 102,
             "kind": "decision",
             "severity": "normal",
             "title": "Como chamar o carrinho juntado na tela?",
@@ -9880,7 +10105,7 @@
       "events_today": 3,
       "recent_events": [
         {
-          "id": 98,
+          "id": 102,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -9915,7 +10140,7 @@
           }
         },
         {
-          "id": 94,
+          "id": 98,
           "at": "2026-10-09T09:45:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -9954,7 +10179,7 @@
           }
         },
         {
-          "id": 93,
+          "id": 97,
           "at": "2026-10-09T09:40:00-03:00",
           "type": "final-adjustment-opened",
           "project": {
@@ -9979,7 +10204,7 @@
           "payload": {}
         },
         {
-          "id": 79,
+          "id": 83,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -10006,7 +10231,7 @@
           }
         },
         {
-          "id": 76,
+          "id": 80,
           "at": "2026-10-08T17:05:00-03:00",
           "type": "finding-recorded",
           "project": {
@@ -10041,7 +10266,7 @@
           }
         },
         {
-          "id": 75,
+          "id": 79,
           "at": "2026-10-08T17:00:00-03:00",
           "type": "task-integrated",
           "project": {
@@ -10069,7 +10294,7 @@
           }
         },
         {
-          "id": 74,
+          "id": 78,
           "at": "2026-10-08T16:50:00-03:00",
           "type": "task-report",
           "project": {
@@ -10105,7 +10330,34 @@
           }
         },
         {
-          "id": 40,
+          "id": 45,
+          "at": "2026-10-06T16:30:00-03:00",
+          "type": "item-interrupted",
+          "project": {
+            "id": "erp",
+            "name": "ERP Fabrikam",
+            "tracker": "azure_devops",
+            "organization": {
+              "id": "fabrikam",
+              "name": "Fabrikam"
+            }
+          },
+          "item_number": 1190,
+          "item_key": "erp/1190",
+          "item_title": "Integração com o banco antigo",
+          "tracker_ref": "PBI 1190",
+          "task_number": null,
+          "agent": {
+            "role": "maestro",
+            "name": "Ária"
+          },
+          "source": "cli",
+          "payload": {
+            "reason": "O cliente trocou de banco: a integração com o antigo não vai mais ser usada.\nO código mergeado fica desligado."
+          }
+        },
+        {
+          "id": 43,
           "at": "2026-10-06T13:20:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -10134,7 +10386,7 @@
           }
         },
         {
-          "id": 38,
+          "id": 41,
           "at": "2026-10-06T10:00:00-03:00",
           "type": "stage-changed",
           "project": {
@@ -10161,7 +10413,7 @@
           }
         },
         {
-          "id": 35,
+          "id": 38,
           "at": "2026-10-05T11:40:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -10190,7 +10442,7 @@
           }
         },
         {
-          "id": 34,
+          "id": 37,
           "at": "2026-10-05T11:30:00-03:00",
           "type": "task-integrated",
           "project": {
@@ -10215,69 +10467,6 @@
           "payload": {
             "sha": "0b7a6c5d4e3f",
             "sha_before": "aa11bb2"
-          }
-        },
-        {
-          "id": 33,
-          "at": "2026-10-05T11:20:00-03:00",
-          "type": "task-report",
-          "project": {
-            "id": "storefront",
-            "name": "Loja",
-            "tracker": "github",
-            "organization": {
-              "id": "fabrikam",
-              "name": "Fabrikam"
-            }
-          },
-          "item_number": 48,
-          "item_key": "storefront/48",
-          "item_title": "Carrinho salvo entre dispositivos",
-          "tracker_ref": "#48",
-          "task_number": 49,
-          "agent": {
-            "role": "worker",
-            "name": "Ária"
-          },
-          "source": "cli",
-          "payload": {
-            "status": "ok",
-            "blocked_reason": null,
-            "branch": "task/49-carrinho",
-            "sha": "0b7a6c5d4e3f",
-            "tests": "npm test: 0 falhas",
-            "changes": "O carrinho fica salvo na conta do cliente.",
-            "decisions": [
-              "Carrinho guardado por 30 dias."
-            ],
-            "risks": null,
-            "shared_files": [],
-            "text": "Task 49 pronta: o carrinho fica salvo na conta (30 dias). npm test: 0 falhas.",
-            "diff": {
-              "base": "3e2d1c0b9a8f7e6d5c4b3a291807f6e5d4c3b2a1",
-              "base_ref": "feature/issue-48",
-              "files": [
-                {
-                  "path": "src/cart/saved-cart.js",
-                  "added": 57,
-                  "removed": 9,
-                  "binary": false
-                },
-                {
-                  "path": "src/cart/saved-cart.test.js",
-                  "added": 40,
-                  "removed": 0,
-                  "binary": false
-                }
-              ],
-              "total": {
-                "files": 2,
-                "added": 97,
-                "removed": 9
-              },
-              "truncated": false,
-              "uncommitted": 0
-            }
           }
         }
       ]
@@ -10356,7 +10545,7 @@
       "events_today": 5,
       "recent_events": [
         {
-          "id": 101,
+          "id": 105,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "project": {
@@ -10392,7 +10581,7 @@
           }
         },
         {
-          "id": 88,
+          "id": 92,
           "at": "2026-10-09T09:00:00-03:00",
           "type": "pending-decision-resolved",
           "project": {
@@ -10415,12 +10604,12 @@
           },
           "source": "cli",
           "payload": {
-            "pending_decision": 82,
+            "pending_decision": 86,
             "decision": "B: vira task nova para triagem."
           }
         },
         {
-          "id": 82,
+          "id": 86,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "project": {
@@ -10459,7 +10648,7 @@
           }
         },
         {
-          "id": 81,
+          "id": 85,
           "at": "2026-10-09T07:35:00-03:00",
           "type": "task-dispatched",
           "project": {
@@ -10489,7 +10678,7 @@
           }
         },
         {
-          "id": 80,
+          "id": 84,
           "at": "2026-10-09T07:30:00-03:00",
           "type": "item-started",
           "project": {
@@ -10517,7 +10706,7 @@
           }
         },
         {
-          "id": 44,
+          "id": 48,
           "at": "2026-10-07T08:12:00-03:00",
           "type": "item-done",
           "project": {
@@ -10542,7 +10731,7 @@
           "payload": {}
         },
         {
-          "id": 43,
+          "id": 47,
           "at": "2026-10-07T08:10:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -10569,7 +10758,7 @@
           }
         },
         {
-          "id": 42,
+          "id": 46,
           "at": "2026-10-06T18:30:00-03:00",
           "type": "pr-changed",
           "project": {
@@ -10598,7 +10787,7 @@
           }
         },
         {
-          "id": 37,
+          "id": 40,
           "at": "2026-10-06T09:00:00-03:00",
           "type": "item-started",
           "project": {
@@ -10698,7 +10887,7 @@
       "events_today": 1,
       "recent_events": [
         {
-          "id": 96,
+          "id": 100,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "project": {
@@ -10726,7 +10915,7 @@
           }
         },
         {
-          "id": 72,
+          "id": 76,
           "at": "2026-10-08T15:20:00-03:00",
           "type": "item-started",
           "project": {
@@ -12415,7 +12604,7 @@
         "task": null,
         "active_tasks": 1,
         "last_event": {
-          "id": 82,
+          "id": 86,
           "at": "2026-10-09T08:30:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 5,
@@ -12490,7 +12679,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 101,
+          "id": 105,
           "at": "2026-10-09T10:10:00-03:00",
           "type": "task-status",
           "task_number": 5,
@@ -12554,7 +12743,7 @@
         "task": null,
         "active_tasks": 3,
         "last_event": {
-          "id": 100,
+          "id": 104,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -12634,7 +12823,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 91,
+          "id": 95,
           "at": "2026-10-09T09:20:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3114,
@@ -12709,7 +12898,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 85,
+          "id": 89,
           "at": "2026-10-09T08:42:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3115,
@@ -12787,7 +12976,7 @@
         },
         "active_tasks": null,
         "last_event": {
-          "id": 100,
+          "id": 104,
           "at": "2026-10-09T10:06:00-03:00",
           "type": "pending-decision-opened",
           "task_number": 3116,
@@ -12855,7 +13044,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 96,
+          "id": 100,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -12895,7 +13084,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 98,
+          "id": 102,
           "at": "2026-10-09T10:05:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -12958,7 +13147,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 92,
+          "id": 96,
           "at": "2026-10-09T09:30:00-03:00",
           "type": "pending-decision-canceled",
           "task_number": null,
@@ -12967,7 +13156,7 @@
             "name": "Bento"
           },
           "payload": {
-            "pending_decision": 87,
+            "pending_decision": 91,
             "reason": "Entrou na especificação do item."
           }
         },
@@ -12998,7 +13187,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 89,
+          "id": 93,
           "at": "2026-10-09T09:10:00-03:00",
           "type": "pending-decision-opened",
           "task_number": null,
@@ -13065,7 +13254,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 79,
+          "id": 83,
           "at": "2026-10-08T20:05:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -13104,7 +13293,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 78,
+          "id": 82,
           "at": "2026-10-08T18:10:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -13151,7 +13340,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 49,
+          "id": 53,
           "at": "2026-10-07T17:30:00-03:00",
           "type": "pr-changed",
           "task_number": null,
@@ -13198,7 +13387,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 72,
+          "id": 76,
           "at": "2026-10-08T15:20:00-03:00",
           "type": "item-started",
           "task_number": null,
@@ -13238,7 +13427,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 58,
+          "id": 62,
           "at": "2026-10-08T11:30:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -13277,7 +13466,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 38,
+          "id": 41,
           "at": "2026-10-06T10:00:00-03:00",
           "type": "stage-changed",
           "task_number": null,
@@ -13316,7 +13505,7 @@
         "task": null,
         "active_tasks": 0,
         "last_event": {
-          "id": 14,
+          "id": 15,
           "at": "2026-10-02T14:00:00-03:00",
           "type": "item-started",
           "task_number": null,

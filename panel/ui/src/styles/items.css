@@ -20,6 +20,8 @@ table.items td.col-ref { color: var(--text); }
 .item-number { font-size: 15px; color: var(--text); }
 .item-title { font-size: 25px; font-weight: 300; line-height: 1.3; letter-spacing: -.01em; max-width: 980px; text-transform: none; }
 .item-current { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.item-interrupted { display: flex; flex-direction: column; gap: 4px; max-width: 980px; padding: 10px 12px; border: 1px solid var(--border-strong); border-left: 3px solid var(--warning); border-radius: 10px; }
+.item-interrupted-reason { white-space: pre-wrap; overflow-wrap: anywhere; }
 .item-conclude { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .item-conclude-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 10px; }
 .item-conclude-actions { display: flex; gap: 8px; }
@@ -36,6 +38,8 @@ table.items td.col-ref { color: var(--text); }
 .stage.current .stage-mark { border-color: var(--blue); }
 .stage-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
 .stage.pending .stage-name { color: var(--muted); }
+.stage.current.interrupted { background: var(--warning-bg); box-shadow: inset 2px 0 0 var(--warning); }
+.stage.current.interrupted .stage-mark { border-color: var(--warning); color: var(--warning); }
 .stage-when { text-align: right; font-variant-numeric: tabular-nums; }
 
 .item-timeline { list-style: none; display: flex; flex-direction: column; gap: 1px; }

@@ -76,6 +76,7 @@ const adjustmentOpened = ['final-adjustment-opened', {}];
 const adjustment = (outcome, summary) => ['final-adjustment-finished', summary ? { outcome, summary } : { outcome }];
 const hml = (passed, failed, blocked, card, summary) => ['hml-recorded', { passed, failed, blocked, card_url: card, ...(summary ? { summary } : {}) }, 'owner'];
 const itemDone = ['item-done', {}];
+const itemInterrupted = (reason) => ['item-interrupted', { reason }];
 
 // [project, number, title, [ [ISO moment, stage | event], ... ] ]: the first moment starts the item at that stage.
 const ITEMS = [
@@ -107,6 +108,11 @@ const ITEMS = [
     ['2026-10-07T08:12:00', itemDone]]],
   ['scratch', 3, 'Testar o layout do relatório', [['2026-10-09T10:05:00', 'specification']]],
   ['design-system', 31, 'Tokens de cor para o modo escuro', [['2026-10-06T14:00:00', 'implementation'], ['2026-10-08T11:30:00', 'pr_ready']]],
+  // Interrupted on Merge (#69): it stays there, out of the active list, with the reason.
+  ['erp', 1190, 'Integração com o banco antigo', [['2026-10-01T10:00:00', 'implementation'],
+    ['2026-10-02T15:00:00', pr('ready', { url: 'https://fabrikam.visualstudio.com/erp/_git/erp-core/pullrequest/77', branch: 'feature/pbi-1190' })],
+    ['2026-10-03T11:00:00', pr('merged')],
+    ['2026-10-06T16:30:00', itemInterrupted('O cliente trocou de banco: a integração com o antigo não vai mais ser usada.\nO código mergeado fica desligado.')]]],
   ['erp', 1204, 'Nota fiscal de serviço eletrônica', [['2026-10-05T09:00:00', 'specification'], ['2026-10-06T10:00:00', 'implementation']]],
   ['relatorios-bi', 77, 'Painel de vendas por região', [['2026-10-08T15:20:00', 'implementation']]],
   // The hidden Northwind (#50): an item in progress and a done one.
