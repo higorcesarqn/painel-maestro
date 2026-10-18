@@ -4,7 +4,7 @@
 // Confirmed, POST /api/items/<project>/<number>/done (or .../interrupt with { reason }) records the event as the owner
 // and cancels the item's open pending decisions. An item out of the active list shows nothing: there is no reopen
 // button (a later flow event brings the item back). The tracker never changes.
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { concludeItem, interruptItem } from '../data/api.js';
 import { MAX_DECISION } from '../data/domain.js';
 import { txt } from '../data/format.js';
@@ -18,6 +18,9 @@ export function ItemConclude({ item, onChange }) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState(null);
   const [closed, setClosed] = useState(false);
+  // Once the page reads the item out of the active list, the local mark is no longer needed: if a later flow event
+  // brings the item back, the buttons come back with it.
+  useEffect(() => { if (item.active === false) setClosed(false); }, [item.active]);
   if (item.active === false || closed) return null;
   const trimmed = reason.replace(/\r\n?/g, '\n').trim();
   const tooLong = trimmed.length > MAX_DECISION;
@@ -34,6 +37,9 @@ export function ItemConclude({ item, onChange }) {
     }
     // Closed: the buttons leave at once, and a failed reload is not a failed closing (the page reads again on its own).
     setClosed(true);
+    setAsking(null);
+    setReason('');
+    setBusy(false);
     if (onChange) onChange();
   };
   const cancel = () => { setAsking(null); setFailure(null); };

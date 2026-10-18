@@ -241,7 +241,20 @@ async function mockAnswerPending(idText, body) {
   if (decision.length > MAX_DECISION) throw error('answer_too_long', 400, { length: decision.length, max: MAX_DECISION });
   const at = new Date().toISOString();
   const owner = { role: 'owner', name: null };
-  Object.assign(p, { status: 'resolved', resolution: 'decision', decision, closed_at: at, closed_by: owner });
+  closePending(m, list, p, { status: 'resolved', resolution: 'decision', decision, closed_at: at, closed_by: owner });
+  const item = obj(m.details) && m.details[p.item.key];
+  if (item) {
+    item.timeline = [...arr(item.timeline), {
+      id: Date.now(), at, type: 'pending-decision-resolved', task_number: p.task ? p.task.number : null, agent: owner, source: 'panel',
+      payload: { pending_decision: id, decision },
+    }];
+  }
+  return JSON.parse(JSON.stringify(p));
+}
+
+/** Closes an open pending decision of the mock with fields: it moves to the closed ones and leaves the menu counter. */
+function closePending(m, list, p, fields) {
+  Object.assign(p, fields);
   // The server's order: the open ones, then the closed ones, the most recently closed first.
   list.splice(list.indexOf(p), 1);
   const firstClosed = list.findIndex((x) => x.status !== 'open');
@@ -252,14 +265,30 @@ async function mockAnswerPending(idText, body) {
     if (obj(counter.by_severity) && counter.by_severity[p.severity] > 0) counter.by_severity[p.severity]--;
     counter.open = arr(counter.open).filter((x) => !obj(x) || x.id !== p.id);
   }
-  const item = obj(m.details) && m.details[p.item.key];
-  if (item) {
-    item.timeline = [...arr(item.timeline), {
-      id: Date.now(), at, type: 'pending-decision-resolved', task_number: p.task ? p.task.number : null, agent: owner, source: 'panel',
-      payload: { pending_decision: id, decision },
-    }];
+}
+
+/**
+ * The open pending decisions of an item the owner concludes or interrupts, closed like the server does (bin/flow-close.js):
+ * on a conclusion the derived HML one is resolved by item-done itself (resolution item_done, no event), every other one
+ * gets a pending-decision-canceled with the reason, recorded by the owner, on the item's timeline.
+ */
+function closeItemPending(m, item, at, concluded) {
+  const owner = { role: 'owner', name: null };
+  const reason = concluded ? t('mock.concludedReason') : t('mock.interruptedReason');
+  const list = arr(obj(m.pending_decisions) && m.pending_decisions.pending_decisions);
+  const events = [];
+  for (const p of list.filter((x) => x.status === 'open' && x.item.key === item.key)) {
+    if (concluded && p.derived_from) {
+      closePending(m, list, p, { status: 'resolved', resolution: 'item_done', closed_at: at, closed_by: owner });
+      continue;
+    }
+    closePending(m, list, p, { status: 'canceled', reason, closed_at: at, closed_by: owner });
+    events.push({
+      id: Date.now() + events.length + 1, at, type: 'pending-decision-canceled', task_number: p.task ? p.task.number : null, agent: owner, source: 'panel',
+      payload: { pending_decision: p.id, reason },
+    });
   }
-  return JSON.parse(JSON.stringify(p));
+  item.timeline = [...arr(item.timeline), ...events];
 }
 
 /**
@@ -399,12 +428,13 @@ async function mockLog(p, sp) {
   };
 }
 
-/** "Mark as merged" (#11) in the mock: changes the item in memory only (like the server: only a ready PR). */
+/** "Mark as merged" (#11) in the mock: changes the item in memory only (like the server: only a ready PR of an active item). */
 async function mockMarkMerged(project, number) {
   const m = await loadMockItems();
   const key = `${project}/${number}`;
   const item = obj(m.details) && m.details[key];
   if (!item) throw error('item_not_found', 404, { project, number });
+  if (item.active === false) throw error('item_not_active', 409, { project, number });
   const pr = obj(item.pr);
   if (!pr || pr.state !== 'ready') throw error('pr_not_ready', 409, { project, number, state: pr ? pr.state : null });
   const at = new Date().toISOString();
@@ -424,7 +454,10 @@ async function mockMarkMerged(project, number) {
   return { item };
 }
 
-/** "Concluir" (#68) in the mock: concludes an active item in memory only (Done when the project uses it, out of the active list). */
+/**
+ * "Concluir" (#68) in the mock: concludes an active item in memory only (Done when the project uses it, out of the active
+ * list), with its open pending decisions closed.
+ */
 async function mockConclude(project, number) {
   const m = await loadMockItems();
   const key = `${project}/${number}`;
@@ -442,6 +475,7 @@ async function mockConclude(project, number) {
   item.active = false;
   item.merge_check = null;
   item.timeline = [...arr(item.timeline), { id: Date.now(), at, type: 'item-done', task_number: null, agent: { role: 'owner', name: null }, source: 'panel', payload: {} }];
+  closeItemPending(m, item, at, true);
   item.updated_at = at;
   const listed = arr(m.items).find((it) => it.key === key);
   if (listed) Object.assign(listed, { stage: item.stage, stage_since: item.stage_since, updated_at: at, active: false });
@@ -450,7 +484,8 @@ async function mockConclude(project, number) {
 
 /**
  * "Interromper" (#70) in the mock: interrupts an active item in memory only, like the server: the reason is required (up
- * to MAX_DECISION characters) and the item stays on its stage, out of the active list.
+ * to MAX_DECISION characters; a copy of interruptionReason in bin/flow-close.js, which the page cannot import) and the
+ * item stays on its stage, out of the active list, with its open pending decisions canceled.
  */
 async function mockInterrupt(project, number, body) {
   if (!obj(body)) throw error('json_object_required', 400);
@@ -469,6 +504,7 @@ async function mockInterrupt(project, number, body) {
   item.interrupted = { reason: text, at, by: { role: 'owner', name: null } };
   item.merge_check = null;
   item.timeline = [...arr(item.timeline), { id: Date.now(), at, type: 'item-interrupted', task_number: null, agent: { role: 'owner', name: null }, source: 'panel', payload: { reason: text } }];
+  closeItemPending(m, item, at, false);
   item.updated_at = at;
   const listed = arr(m.items).find((it) => it.key === key);
   if (listed) Object.assign(listed, { updated_at: at, active: false, interrupted: item.interrupted });

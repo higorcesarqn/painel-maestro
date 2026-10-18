@@ -88,6 +88,10 @@ export default {
   },
 
   mock: {
+    // The reason the demo records on the pending decisions it cancels when the owner concludes or interrupts an item: the
+    // server's own (delivery.concludedReason / interruptedReason in bin/i18n/pt-BR.js).
+    concludedReason: 'item concluído pelo dono',
+    interruptedReason: 'item interrompido pelo dono',
     loadFailed: 'Modo de teste: não consegui ler tests/mock-items.json ({detail}). Sirva a pasta com "npm run demo" e abra a página com ?mock=1.',
   },
 

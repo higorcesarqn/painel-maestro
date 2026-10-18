@@ -331,6 +331,57 @@ suite.test('item interrompido (#69): the mock has an item interrupted on Merge, 
   assert.ok(/items\.stageStatus\.\$\{stopped\(s\) \? 'interrupted'/.test(items), 'the stage line marks the current stage interrupted');
   assert.ok(/'item-interrupted'/.test(source['screens/ItemDelivery.jsx']), 'the timeline names the event');
   assert.ok(js.includes('Interrompido em {stage}') && js.includes('Item interrompido: {reason}'), 'the texts are in the build');
+  // Concluded in a project without the Done stage (no completed_at): the Conclusão block says Concluído, not "ainda ativo".
+  const delivery = source['screens/ItemDelivery.jsx'];
+  assert.ok(/closed=\{item\.active === false\}/.test(delivery) && /\) : at \|\| closed \? \(/.test(delivery), 'a closed item without completed_at shows as concluded');
+  // The buttons' local "closed" mark gives way to the item read again, so they come back when a flow event reopens it.
+  const conclude = source['screens/ItemConclude.jsx'];
+  assert.ok(/useEffect\(\(\) => \{ if \(item\.active === false\) setClosed\(false\); \}, \[item\.active\]\)/.test(conclude), 'the mark is dropped once the item reads as closed');
+  assert.ok(/setClosed\(true\);\s+setAsking\(null\);\s+setReason\(''\);\s+setBusy\(false\);/.test(conclude), 'and the confirmation starts over');
+});
+
+suite.test('concluding or interrupting in the demo (#68, #70) closes the item\'s open pending decisions like the server', async () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-items.json'), 'utf8'));
+  const openOf = (key) => m.pending_decisions.pending_decisions.filter((p) => p.status === 'open' && p.item.key === key);
+  const [interrupted, concluded] = Object.keys(m.details).filter((k) => m.details[k].active && openOf(k).length >= 2);
+  assert.ok(interrupted && concluded, 'two active items with two or more open pending decisions in the demo');
+  // A derived HML pending decision on the one concluded: item-done resolves it (item_done), with no cancel event.
+  const [derived, ...others] = openOf(concluded);
+  derived.derived_from = { hml: 1 };
+  const ids = { interrupted: openOf(interrupted).map((p) => p.id), concluded: others.map((p) => p.id) };
+  const total = m.state.kpis.pending_decisions.total;
+  // Exception to the seam rule, as above: the mock lives only in the page (?mock=1).
+  const saved = { location: globalThis.location, fetch: globalThis.fetch };
+  globalThis.location = new URL('http://127.0.0.1:4795/?mock=1');
+  globalThis.fetch = async () => ({ ok: true, json: async () => m });
+  try {
+    const { mockApi } = await import(`${require('url').pathToFileURL(path.join(SOURCE, 'data', 'mock.js')).href}?close`);
+    const route = (key, action) => `/api/items/${key}/${action}`;
+    const canceledOn = (item) => item.timeline.filter((e) => e.type === 'pending-decision-canceled');
+    // The mock's copy of the reason rule (interruptionReason in bin/flow-close.js): the same codes, nothing written.
+    await assert.rejects(mockApi(route(interrupted, 'interrupt'), 'POST', { reason: ' \r\n ' }), (e) => e.status === 400 && e.error.code === 'reason_empty');
+    await assert.rejects(mockApi(route(interrupted, 'interrupt'), 'POST', { reason: 'x'.repeat(2001) }),
+      (e) => e.status === 400 && e.error.code === 'reason_too_long' && e.error.length === 2001 && e.error.max === 2000);
+    assert.strictEqual(openOf(interrupted).length, ids.interrupted.length, 'a refused reason closes nothing');
+    const a = (await mockApi(route(interrupted, 'interrupt'), 'POST', { reason: ' Parou\r\naqui ' })).item;
+    assert.strictEqual(a.interrupted.reason, 'Parou\naqui');
+    // "Mark as merged" on the closed item: 409 item_not_active, as the server (even with a ready PR).
+    m.details[interrupted].pr = { ...(m.details[interrupted].pr || {}), state: 'ready' };
+    await assert.rejects(mockApi(route(interrupted, 'merged'), 'POST'), (e) => e.status === 409 && e.error.code === 'item_not_active');
+    assert.deepStrictEqual(canceledOn(a).map((e) => [e.payload.pending_decision, e.payload.reason, e.agent.role]),
+      ids.interrupted.map((id) => [id, 'item interrompido pelo dono', 'owner']));
+    const b = (await mockApi(route(concluded, 'done'), 'POST')).item;
+    assert.deepStrictEqual(canceledOn(b).map((e) => [e.payload.pending_decision, e.payload.reason]), ids.concluded.map((id) => [id, 'item concluído pelo dono']));
+    const list = (await mockApi('/api/pending-decisions', 'GET')).pending_decisions;
+    const byId = (id) => list.find((p) => p.id === id);
+    for (const id of [...ids.interrupted, ...ids.concluded]) assert.deepStrictEqual([byId(id).status, byId(id).closed_by.role], ['canceled', 'owner'], `P-${id}`);
+    assert.deepStrictEqual([byId(derived.id).status, byId(derived.id).resolution], ['resolved', 'item_done'], 'the derived HML one');
+    assert.ok(!list.some((p) => p.status === 'open' && [interrupted, concluded].includes(p.item.key)), 'none stays open');
+    assert.strictEqual(m.state.kpis.pending_decisions.total, total - ids.interrupted.length - ids.concluded.length - 1, 'the menu counter drops');
+  } finally {
+    globalThis.location = saved.location;
+    globalThis.fetch = saved.fetch;
+  }
 });
 
 suite.test('organizations (#6): the demo has two organizations and "Pessoal" with GitHub and Azure DevOps projects; the selector is remembered', () => {

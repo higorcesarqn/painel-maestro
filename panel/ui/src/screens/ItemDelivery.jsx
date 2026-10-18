@@ -25,7 +25,7 @@ export function ItemDelivery({ item, onChange }) {
         </PrBlock>
         <AdjustmentBlock adjustment={obj(item.final_adjustment)} />
         <HmlBlock hml={obj(item.hml)} uses={usesHml} />
-        <CompletionBlock at={item.completed_at} interrupted={obj(item.interrupted)} stage={item.stage} />
+        <CompletionBlock at={item.completed_at} closed={item.active === false} interrupted={obj(item.interrupted)} stage={item.stage} />
       </div>
     </Card>
   );
@@ -146,7 +146,8 @@ function HmlBlock({ hml: h, uses }) {
   );
 }
 
-function CompletionBlock({ at, interrupted, stage }) {
+/** Interrupted, concluded (a project without the Done stage has no completed_at: the badge without a date, #67) or still active. */
+function CompletionBlock({ at, closed, interrupted, stage }) {
   return (
     <Block title={t('delivery.completion.title')}>
       {interrupted ? (
@@ -154,10 +155,10 @@ function CompletionBlock({ at, interrupted, stage }) {
           <div class="delivery-line"><Badge tone="warning">{t('delivery.completion.interrupted', { stage: t(`items.stages.${stage}`) })}</Badge></div>
           <p class="muted small">{t('delivery.completion.at', { when: dateTime(interrupted.at), age: age(interrupted.at) })}</p>
         </div>
-      ) : at ? (
+      ) : at || closed ? (
         <div class="delivery-stack">
           <div class="delivery-line"><Badge tone="ok">{t('delivery.completion.done')}</Badge></div>
-          <p class="muted small">{t('delivery.completion.at', { when: dateTime(at), age: age(at) })}</p>
+          {at ? <p class="muted small">{t('delivery.completion.at', { when: dateTime(at), age: age(at) })}</p> : null}
         </div>
       ) : <p class="muted small">{t('delivery.completion.pending')}</p>}
     </Block>

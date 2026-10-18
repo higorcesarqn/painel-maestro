@@ -8,8 +8,8 @@
 const path = require('path');
 
 const { openStore, flowDir, RE_ID } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
-const { projectItem, trackerRef, MAX_PENDING_DECISION } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
-const { concludeItem, interruptItem } = require(path.join(__dirname, '..', 'bin', 'flow-close.js'));
+const { projectItem, trackerRef } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
+const { concludeItem, interruptItem, interruptionReason } = require(path.join(__dirname, '..', 'bin', 'flow-close.js'));
 
 const RE_NUMBER = /^[1-9]\d{0,8}$/;
 
@@ -148,8 +148,8 @@ function markItemDone(source, projectId, number, at) {
 }
 
 /**
- * The reason of the "Interromper" button (#70) from the raw JSON body { reason }, as `flow item interrupt` keeps it (line
- * breaks as \n, trimmed, up to MAX_PENDING_DECISION characters): { reason } or { error } (400).
+ * The reason of the "Interromper" button (#70) from the raw JSON body { reason }, under the rule shared with `flow item
+ * interrupt` (interruptionReason in bin/flow-close.js): { reason } or { error } (400).
  */
 function interruptionInput(body) {
   let input;
@@ -161,10 +161,7 @@ function interruptionInput(body) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return { error: { code: 'json_object_required' } };
   const { reason } = input;
   if (reason !== undefined && reason !== null && typeof reason !== 'string') return { error: { code: 'invalid_field', field: 'reason', value: String(reason).slice(0, 20) } };
-  const s = typeof reason === 'string' ? reason.replace(/\r\n?/g, '\n').trim() : '';
-  if (!s) return { error: { code: 'reason_empty' } };
-  if (s.length > MAX_PENDING_DECISION) return { error: { code: 'reason_too_long', length: s.length, max: MAX_PENDING_DECISION } };
-  return { reason: s };
+  return interruptionReason(reason);
 }
 
 /**

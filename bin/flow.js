@@ -324,7 +324,7 @@ function resolveProject(store, origin, at) {
 // only refuses what the project does not use and links outside the trackers' domains.
 
 const projection = require('./flow-projection');
-const { concludeItem, interruptItem } = require('./flow-close');
+const { concludeItem, interruptItem, interruptionReason } = require('./flow-close');
 
 const MAX_SUMMARY = 4000;
 const MAX_BRANCH = 200;
@@ -377,12 +377,12 @@ function scenarioCount(value, option) {
   return Number(s);
 }
 
-/** The reason of flow item interrupt (#69): required, multi-line, up to MAX_PENDING_DECISION characters. */
-function interruptionReason(value) {
-  const s = value === undefined ? '' : String(value).replace(/\r\n?/g, '\n').trim();
-  if (!s) throw new InvalidData('delivery.errors.missingReason');
-  if (s.length > MAX_PENDING_DECISION) throw new InvalidData('delivery.errors.reasonTooLong', { length: s.length, max: MAX_PENDING_DECISION });
-  return s;
+/** The reason of flow item interrupt (#69), under the rule shared with the panel (interruptionReason in bin/flow-close.js). */
+function interruptReason(value) {
+  const { reason, error } = interruptionReason(value);
+  if (error && error.code === 'reason_empty') throw new InvalidData('delivery.errors.missingReason');
+  if (error) throw new InvalidData('delivery.errors.reasonTooLong', { length: error.length, max: error.max });
+  return reason;
 }
 
 /** Validated fields of a delivery command (pr, final-adjustment, hml, item done, item interrupt). */
@@ -431,7 +431,7 @@ function parseDelivery(command, args) {
   if (command === 'item-interrupt') {
     const { opts, pos, json } = prepare(args, 'item-interrupt', 1);
     const number = itemNumber(pick(pos[0], jsonNumber(json, 'number')));
-    return { kind: 'item-interrupt', number, reason: interruptionReason(pick(opts.reason, jsonText(json, 'reason'))), ...agentFields(opts, json) };
+    return { kind: 'item-interrupt', number, reason: interruptReason(pick(opts.reason, jsonText(json, 'reason'))), ...agentFields(opts, json) };
   }
   // item done
   const { opts, pos, json } = prepare(args, 'item-done', 1);

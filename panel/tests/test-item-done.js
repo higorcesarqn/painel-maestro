@@ -167,12 +167,6 @@ suite.test('POST .../done without maestro.db answers 404 and creates nothing', a
   assert.ok(!fs.existsSync(path.join(r.data, 'maestro.db')));
 });
 
-suite.test('the page translates item_not_active (pt-BR dictionary)', async () => {
-  const { pathToFileURL } = require('url');
-  const { translateCode } = await import(pathToFileURL(path.join(REPO, 'panel', 'ui', 'src', 'i18n', 'index.js')).href);
-  assert.strictEqual(translateCode({ code: 'item_not_active', project: 'widgets', number: 14 }), 'O item já não está mais ativo.');
-});
-
 suite.run().finally(() => {
   if (!process.env.KEEP_TMP) for (const d of roots) remove(d);
 });

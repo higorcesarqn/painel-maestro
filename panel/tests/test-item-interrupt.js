@@ -168,13 +168,6 @@ suite.test('POST .../interrupt without maestro.db answers 404 and creates nothin
   assert.ok(!fs.existsSync(path.join(r.data, 'maestro.db')));
 });
 
-suite.test('the page translates reason_empty and reason_too_long (pt-BR dictionary)', async () => {
-  const { pathToFileURL } = require('url');
-  const { translateCode } = await import(pathToFileURL(path.join(REPO, 'panel', 'ui', 'src', 'i18n', 'index.js')).href);
-  assert.strictEqual(translateCode({ code: 'reason_empty' }), 'Escreva o motivo da interrupção.');
-  assert.strictEqual(translateCode({ code: 'reason_too_long', length: 2001, max: 2000 }), 'Motivo longo demais: 2001 caracteres; o limite é 2000.');
-});
-
 suite.run().finally(() => {
   if (!process.env.KEEP_TMP) for (const d of roots) remove(d);
 });

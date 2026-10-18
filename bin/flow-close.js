@@ -14,8 +14,13 @@
  *   open after it (the derived HML one is resolved by item-done itself, bin/flow-projection.js, and canceled like the
  *   others on an interruption), with the reason "item concluído pelo dono" / "item interrompido pelo dono" and the role
  *   of whoever recorded, so a maestro in `flow pending wait` wakes up.
+ *
+ *   interruptionReason(text) → { reason } | { error: { code: 'reason_empty' } | { code: 'reason_too_long', length, max } }
+ *     The rule of the reason, the same for `flow item interrupt` and the "Interromper" button (panel/api-items.js; the
+ *     demo's mock keeps a copy, panel/ui/src/data/mock.js): required, line breaks as \n, trimmed, up to
+ *     MAX_PENDING_DECISION characters. text is a string, or undefined/null when absent.
  */
-const { projectItem, EVENT_TYPES } = require('./flow-projection');
+const { projectItem, EVENT_TYPES, MAX_PENDING_DECISION } = require('./flow-projection');
 const { t } = require('./i18n');
 
 function closeItem(store, project, number, { type, payload, reason }, { at, agentRole, agentName = null, source }) {
@@ -41,4 +46,11 @@ function interruptItem(store, project, number, reason, who) {
   return closeItem(store, project, number, { type: EVENT_TYPES.itemInterrupted, payload: { reason }, reason: t('delivery.interruptedReason') }, who);
 }
 
-module.exports = { concludeItem, interruptItem };
+function interruptionReason(text) {
+  const reason = typeof text === 'string' ? text.replace(/\r\n?/g, '\n').trim() : '';
+  if (!reason) return { error: { code: 'reason_empty' } };
+  if (reason.length > MAX_PENDING_DECISION) return { error: { code: 'reason_too_long', length: reason.length, max: MAX_PENDING_DECISION } };
+  return { reason };
+}
+
+module.exports = { concludeItem, interruptItem, interruptionReason };

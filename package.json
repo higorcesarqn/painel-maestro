@@ -1,6 +1,6 @@
 {
   "name": "painel-maestro",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Painel web local do fluxo dos itens (Issues do GitHub e PBIs do Azure DevOps) implementados com agentes Claude Code e Maestri, por organização e projeto: etapas, tasks, relatórios, pendências do dono, log e uso do plano.",
   "license": "MIT",
   "private": true,

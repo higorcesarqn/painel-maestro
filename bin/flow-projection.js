@@ -309,7 +309,7 @@ function deliveryState() {
     }
     if (e.type === EVENT_TYPES.itemInterrupted) {
       closed = true;
-      interrupted = { reason: text(p.reason), at: e.at, by: { role: (e.agent && e.agent.role) || null, name: (e.agent && e.agent.name) || null } };
+      interrupted = { reason: text(p.reason), at: e.at, by: agentOf(e) };
       return null;
     }
     return null;
