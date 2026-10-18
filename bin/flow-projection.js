@@ -159,10 +159,12 @@ function projectItem(events, project) {
       title = typeof p.title === 'string' ? p.title : null;
       stage = typeof p.stage === 'string' ? p.stage : flow[0] || null;
     } else if (e.type === EVENT_TYPES.stageChanged && typeof p.stage === 'string') {
+      delivery.reopen(p.stage);
       if (p.stage === stage) { updatedAt = e.at; continue; }
       stage = p.stage;
     } else if (DELIVERY_TYPES.has(e.type)) {
       const target = delivery.apply(e, p, stage, flow);
+      if (target) delivery.reopen(target);
       if (!target || target === stage) { updatedAt = e.at; continue; }
       stage = target;
     } else {
@@ -205,9 +207,13 @@ function projectItem(events, project) {
 //   final-adjustment-finished   payload { outcome: 'passed' | 'failed', summary? } (the stage stays)
 //   hml-recorded                payload { passed, failed, blocked, card_url?, summary? } → HML validation
 //   item-done                   payload {}                                        → Done
+//                                 (in a project without Done the stage stays, but the item leaves the active list too)
+// After item-done, any flow event that sets a stage (stage-changed, even to the stage the item is on, or a delivery event
+// with a stage of its own) brings it back to the active list, on that event's stage.
 //
 // Fields added to ItemState:
-//   active            false while the item is in Done (it leaves the active list but can still be read)
+//   active            false while the item is in Done, or after item-done in a project without Done (it leaves the
+//                     active list but can still be read)
 //   completed_at      when the item entered Done, or null
 //   pr                { state, url, number, branch, opened_at, ready_at, merged_at } | null
 //   final_adjustment  { status: 'open' | 'passed' | 'failed', opened_at, finished_at, summary } | null
@@ -254,6 +260,7 @@ function deliveryState() {
   let pr = null;
   let adjustment = null;
   let hml = null;
+  let closed = false; // item-done recorded and no flow event moved the item since
   /** Records the event; returns the stage it moves the item to (null: it does not move). */
   function apply(e, p, stage, flow) {
     const uses = (s) => (flow.includes(s) ? s : null);
@@ -289,19 +296,26 @@ function deliveryState() {
       hml = { outcome, passed, failed, blocked, card_url: trackerUrl(p.card_url), summary: text(p.summary), recorded_at: e.at };
       return uses('hml_validation');
     }
-    if (e.type === EVENT_TYPES.itemDone) return uses('done');
+    if (e.type === EVENT_TYPES.itemDone) {
+      closed = true;
+      return uses('done');
+    }
     return null;
+  }
+  /** A flow event moved the item to target: it is active again, unless that is Done. */
+  function reopen(target) {
+    if (target !== 'done') closed = false;
   }
   function result(stage, stageSince) {
     return {
-      active: stage !== 'done',
+      active: stage !== 'done' && !closed,
       completed_at: stage === 'done' ? stageSince : null,
       pr: pr && { ...pr },
       final_adjustment: adjustment && { ...adjustment },
       hml: hml && { ...hml },
     };
   }
-  return { apply, result };
+  return { apply, reopen, result };
 }
 
 // ---------- pending decisions (#10) ----------

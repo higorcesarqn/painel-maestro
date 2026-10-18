@@ -3,7 +3,7 @@
 // and POST /api/recalculate, the organizations and projects routes (#6, POST /api/organizations, POST /api/organizations/<id>/rename,
 // POST /api/organizations/<id>/remove, POST /api/organizations/<id>/hide|unhide and POST /api/projects/<id>/organization in memory,
 // the hidden organizations only with ?hidden=include, #50),
-// /api/items, /api/items/<project>/<number> (and POST .../merged in memory), /api/pending-decisions (and POST
+// /api/items, /api/items/<project>/<number> (and POST .../merged and .../done in memory), /api/pending-decisions (and POST
 // /api/pending-decisions/<id>/answer in memory, #32), /api/log,
 // /api/log/<id> (the raw commands are made up on the spot), /api/overview, /api/usage and /api/agents, answering in the
 // API shape (English fields and codes), as the real server does. Items, pending decisions, the Log, the Overview, usage
@@ -264,6 +264,7 @@ async function mockAnswerPending(idText, body) {
 
 /**
  * /api/items[?organization=&project=&stage=&tracker=], /api/items/<project>/<number>, POST /api/items/<project>/<number>/merged,
+ * POST /api/items/<project>/<number>/done,
  * /api/pending-decisions[?organization=&...] and POST /api/pending-decisions/<id>/answer from tests/mock-items.json; null for any
  * other path.
  */
@@ -272,6 +273,8 @@ async function mockItems(u, method, body) {
   const sp = u.searchParams;
   const merged = /^\/api\/items\/([^/]+)\/([^/]+)\/merged$/.exec(p);
   if (merged && method === 'POST') return mockMarkMerged(decodeURIComponent(merged[1]), Number(merged[2]));
+  const done = /^\/api\/items\/([^/]+)\/([^/]+)\/done$/.exec(p);
+  if (done && method === 'POST') return mockConclude(decodeURIComponent(done[1]), Number(done[2]));
   const answer = /^\/api\/pending-decisions\/([^/]+)\/answer$/.exec(p);
   if (answer) {
     if (method !== 'POST') throw error('method_not_allowed', 405, { method, allowed: ['POST'] });
@@ -416,6 +419,30 @@ async function mockMarkMerged(project, number) {
   const listed = arr(m.items).find((it) => it.key === key);
   if (listed) Object.assign(listed, { stage: item.stage, stage_since: item.stage_since, updated_at: at });
   item.updated_at = at;
+  return { item };
+}
+
+/** "Concluir" (#68) in the mock: concludes an active item in memory only (Done when the project uses it, out of the active list). */
+async function mockConclude(project, number) {
+  const m = await loadMockItems();
+  const key = `${project}/${number}`;
+  const item = obj(m.details) && m.details[key];
+  if (!item) throw error('item_not_found', 404, { project, number });
+  if (item.active === false) throw error('item_not_active', 409, { project, number });
+  const at = new Date().toISOString();
+  const current = arr(item.stages).findIndex((s) => s.id === 'done');
+  if (current >= 0) {
+    item.stage = 'done';
+    item.stage_since = at;
+    item.completed_at = at;
+    item.stages = item.stages.map((s, i) => ({ ...s, status: i < current ? 'done' : i === current ? 'current' : 'pending', entered_at: i === current ? at : i < current ? s.entered_at || null : null }));
+  }
+  item.active = false;
+  item.merge_check = null;
+  item.timeline = [...arr(item.timeline), { id: Date.now(), at, type: 'item-done', task_number: null, agent: { role: 'owner', name: null }, source: 'panel', payload: {} }];
+  item.updated_at = at;
+  const listed = arr(m.items).find((it) => it.key === key);
+  if (listed) Object.assign(listed, { stage: item.stage, stage_since: item.stage_since, updated_at: at, active: false });
   return { item };
 }
 

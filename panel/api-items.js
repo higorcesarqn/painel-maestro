@@ -1,5 +1,6 @@
 'use strict';
-// api-items.js · items of the new model (#5): GET /api/items and GET /api/items/<project>/<number>.
+// api-items.js · items of the new model (#5): GET /api/items and GET /api/items/<project>/<number>, and the "Concluir"
+// button (#68): POST /api/items/<project>/<number>/done.
 // Reads the events of maestro.db (bin/flow-store.js, MAESTRO_DIR or ~/.painel-maestro) and computes each item's
 // state with the pure projection (bin/flow-projection.js); nothing derived is stored (ADR 0002).
 // The number goes out as in the tracker (tracker_ref: "#12" on GitHub, "PBI 3100" on Azure DevOps) and the key
@@ -8,6 +9,7 @@ const path = require('path');
 
 const { openStore, flowDir, RE_ID } = require(path.join(__dirname, '..', 'bin', 'flow-store.js'));
 const { projectItem, trackerRef } = require(path.join(__dirname, '..', 'bin', 'flow-projection.js'));
+const { concludeItem } = require(path.join(__dirname, '..', 'bin', 'flow-close.js'));
 
 const RE_NUMBER = /^[1-9]\d{0,8}$/;
 
@@ -126,6 +128,23 @@ function deliveryDetail(state) {
   return { completed_at: state.completed_at, pr: state.pr, final_adjustment: state.final_adjustment, hml: state.hml };
 }
 
+/**
+ * The "Concluir" button (#68): records the same item-done as `flow item done`, as the owner (role owner, no agent name,
+ * source panel), and cancels the item's open pending decisions (bin/flow-close.js), in one transaction. The item may be on
+ * any stage. { status: 200 } or { status, error }: 404 item_not_found (also without maestro.db, which is not created),
+ * 409 item_not_active when it already left the active list.
+ */
+function markItemDone(source, projectId, number, at) {
+  const notFound = { status: 404, error: { code: 'item_not_found', project: projectId, number } };
+  const store = source.store();
+  const project = store && store.project(projectId);
+  if (!project) return notFound;
+  const x = store.transaction(() => concludeItem(store, project, number, { at, agentRole: 'owner', source: 'panel' }));
+  if (!x.state) return notFound;
+  if (!x.recorded) return { status: 409, error: { code: 'item_not_active', project: projectId, number } };
+  return { status: 200, canceled: x.canceled };
+}
+
 // ---------- reports and findings (#8) ----------
 // The item page also carries the workers' reports (every one, oldest first, with the texts exactly as recorded)
 // and the maestro's findings; the tasks that came from a finding carry its number (tasks[].finding).
@@ -146,4 +165,4 @@ function parseItemPath(projectText, numberText) {
   return { project, number: Number(numberText) };
 }
 
-module.exports = { createItemsSource, listItems, itemDetail, parseItemPath, activeFilter, projectInfo, hiddenOrganizations, visibleItems };
+module.exports = { createItemsSource, listItems, itemDetail, markItemDone, parseItemPath, activeFilter, projectInfo, hiddenOrganizations, visibleItems };

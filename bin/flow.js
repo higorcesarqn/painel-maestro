@@ -316,11 +316,13 @@ function resolveProject(store, origin, at) {
 //   flow final-adjustment <number> open                                               → final-adjustment-opened
 //   flow final-adjustment <number> result --outcome passed|failed [--summary "..."]   → final-adjustment-finished
 //   flow hml <number> --passed N --failed N --blocked N [--card URL] [--summary "..."] → hml-recorded
-//   flow item done <number>                                                           → item-done
+//   flow item done <number>                                                           → item-done, and
+//                                                       pending-decision-canceled for each open pending decision (#68)
 // The stage each event moves the item to is computed by the projection (bin/flow-projection.js); here the command
 // only refuses what the project does not use and links outside the trackers' domains.
 
 const projection = require('./flow-projection');
+const { concludeItem } = require('./flow-close');
 
 const MAX_SUMMARY = 4000;
 const MAX_BRANCH = 200;
@@ -450,9 +452,10 @@ function recordDelivery(store, cmd, { project, events, base, key, ref }) {
     if (cmd.summary) payload.summary = cmd.summary;
     append(T.hmlRecorded, payload);
   } else {
-    needs('done');
-    if (before.stage === 'done') throw new InvalidData('delivery.errors.alreadyDone', { key, ref });
-    append(T.itemDone, {});
+    // In a project without Done the item stays on its stage, out of the active list (#68).
+    const closed = concludeItem(store, project, cmd.number, base);
+    if (!closed.recorded) throw new InvalidData('delivery.errors.alreadyDone', { key, ref });
+    return t('delivery.done.item-done', { key, ref, canceled: closed.canceled.length });
   }
   const after = projection.projectItem(store.itemEvents(project.id, cmd.number), project);
   return t(`delivery.done.${cmd.kind}`, { key, ref, stage: after.stage, state: cmd.state, outcome: cmd.outcome, passed: cmd.passed, failed: cmd.failed, blocked: cmd.blocked });

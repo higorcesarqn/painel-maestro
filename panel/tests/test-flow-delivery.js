@@ -6,7 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const { assert, REPO, createSuite, tmpDir, remove, freePort, request } = require('./util');
 
 const FLOW = path.join(REPO, 'bin', 'flow.js');
@@ -212,6 +212,102 @@ suite.test('links only for the trackers\' domains; invalid data ends with exit c
     const item = (await get('/api/items/widgets/5')).item;
     assert.deepStrictEqual(item.timeline.map((e) => e.type), ['item-started', 'final-adjustment-opened', 'item-done']);
     assert.strictEqual(item.pr, null);
+  });
+});
+
+/** flow pending wait as a real process (polling every 50 ms); started() resolves once it says it is waiting. */
+function startWait(r, id) {
+  const env = Object.assign({}, process.env, { MAESTRO_DIR: r.data, MAESTRO_NOW: '', NODE_OPTIONS: '', FLOW_WAIT_INTERVAL_MS: '50' });
+  const child = spawn(process.execPath, [FLOW, 'pending', 'wait', String(id)], { cwd: r.repo, env, windowsHide: true });
+  let stdout = '';
+  let stderr = '';
+  let onOut = () => {};
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (s) => { stdout += s; onOut(); });
+  child.stderr.on('data', (s) => { stderr += s; });
+  child.stdin.end('');
+  const timer = setTimeout(() => child.kill(), 30000);
+  const done = new Promise((resolve) => child.on('close', (status) => {
+    clearTimeout(timer);
+    resolve({ status, stdout, stderr });
+  }));
+  const started = () => new Promise((resolve, reject) => {
+    const check = () => { if (/^Esperando a pendência P-\d+/m.test(stdout)) resolve(); };
+    onOut = check;
+    check();
+    done.then((x) => reject(new Error(`the wait ended before waiting: exit ${x.status}\n${x.stdout}\n${x.stderr}`)));
+  });
+  return { started, done };
+}
+
+function openedId(x) {
+  ok(x);
+  const m = /\bP-(\d+)\b/.exec(x.stdout);
+  assert.ok(m, x.stdout);
+  return Number(m[1]);
+}
+
+suite.test('item done cancels the item\'s open pending decisions ("item concluído pelo dono") and a waiting maestro wakes up', async () => {
+  const r = buildRoot('done-pending');
+  ok(flow(r, ['item', 'start', '12', '--title', 'Com pendências', '--stage', 'merge']));
+  ok(flow(r, ['item', 'start', '13', '--title', 'Outro item', '--stage', 'merge']));
+  const waited = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Seguir?']));
+  const other = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Outra']));
+  const resolved = openedId(flow(r, ['pending', 'open', '12', '--kind', 'decision', '--title', 'Já resolvida']));
+  const elsewhere = openedId(flow(r, ['pending', 'open', '13', '--kind', 'decision', '--title', 'De outro item']));
+  ok(flow(r, ['pending', 'resolve', String(resolved), '--decision', 'A']));
+  const wait = startWait(r, waited);
+  await wait.started();
+  const x = flow(r, ['item', 'done', '12', '--agent', 'Maestro']);
+  ok(x);
+  assert.match(x.stdout, /2 pendência\(s\) aberta\(s\) cancelada\(s\)/);
+  const w = await wait.done;
+  assert.strictEqual(w.status, 0, w.stderr);
+  assert.match(w.stdout, /fechou: cancelada\./);
+  assert.match(w.stdout, /Motivo: item concluído pelo dono/);
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/12')).item;
+    const byId = new Map((await get('/api/pending-decisions')).pending_decisions.map((p) => [p.id, p]));
+    for (const id of [waited, other]) {
+      assert.deepStrictEqual([byId.get(id).status, byId.get(id).reason, byId.get(id).closed_by.role], ['canceled', 'item concluído pelo dono', 'maestro']);
+    }
+    assert.deepStrictEqual([byId.get(resolved).status, byId.get(resolved).reason], ['resolved', null], 'a closed one is left alone');
+    assert.deepStrictEqual(item.timeline.slice(-3).map((e) => e.type), ['item-done', 'pending-decision-canceled', 'pending-decision-canceled']);
+    assert.strictEqual(byId.get(elsewhere).status, 'open', 'another item\'s pending decisions stay open');
+  });
+});
+
+suite.test('item done in a project without the Done stage takes the item out of the active list; a later stage brings it back', async () => {
+  const r = buildRoot('no-done');
+  ok(flow(r, ['org', 'add', 'personal', '--name', 'Pessoal']));
+  ok(flow(r, ['project', 'add', 'widgets', '--name', 'Widgets', '--org', 'personal', '--stages', 'specification,implementation,pr_ready,merge']));
+  ok(flow(r, ['item', 'start', '7', '--title', 'Sem Concluído', '--stage', 'merge']));
+  ok(flow(r, ['item', 'start', '8', '--title', 'Ativo', '--stage', 'implementation']));
+  ok(flow(r, ['item', 'done', '7']));
+  invalid(flow(r, ['item', 'done', '7']), /já está concluído/);
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/7')).item;
+    assert.deepStrictEqual([item.stage, item.active, item.completed_at], ['merge', false, null], 'it stays on its stage, out of the active list');
+    assert.deepStrictEqual((await get('/api/items?active=1')).items.map((i) => i.key), ['widgets/8']);
+    assert.deepStrictEqual((await get('/api/items?active=0')).items.map((i) => i.key), ['widgets/7']);
+  });
+  ok(flow(r, ['stage', '7', 'merge']));
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/7')).item;
+    assert.deepStrictEqual([item.stage, item.active], ['merge', true], 'a later flow event brings it back');
+  });
+});
+
+suite.test('a flow event after item done brings the item back to the active list, on that event\'s stage', async () => {
+  const r = buildRoot('back');
+  ok(flow(r, ['item', 'start', '9', '--title', 'Volta', '--stage', 'implementation']));
+  ok(flow(r, ['item', 'done', '9']));
+  ok(flow(r, ['pr', '9', 'ready', '--url', 'https://github.com/acme/widgets/pull/90']));
+  await withServer(r, async (get) => {
+    const item = (await get('/api/items/widgets/9')).item;
+    assert.deepStrictEqual([item.stage, item.active, item.completed_at], ['pr_ready', true, null]);
+    assert.deepStrictEqual((await get('/api/items?active=1')).items.map((i) => i.key), ['widgets/9']);
   });
 });
 

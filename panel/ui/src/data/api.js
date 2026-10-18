@@ -52,6 +52,9 @@ export const readPendingDecisions = (params) => api(withQuery('/api/pending-deci
 export const answerPendingDecision = (id, option, text) => api(`/api/pending-decisions/${encodeURIComponent(id)}/answer`, { method: 'POST', body: { option, text } });
 // "Mark as merged" (#11): records the PR merge by hand when the merge check cannot read it. Returns { item }.
 export const markItemMerged = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}/merged`, { method: 'POST' });
+// "Concluir" (#68): the owner concludes an active item on any stage, as flow item done does. Returns { item }; 409 when it
+// already left the active list.
+export const concludeItem = (project, number) => api(`/api/items/${encodeURIComponent(project)}/${encodeURIComponent(number)}/done`, { method: 'POST' });
 // Usage and agents per item (#13). filters: the organization selector's organizationFilter ({ organization }) and/or { project }.
 export const readUsage = (filters) => api(withQuery('/api/usage', filters));
 export const readAgents = (filters) => api(withQuery('/api/agents', filters));

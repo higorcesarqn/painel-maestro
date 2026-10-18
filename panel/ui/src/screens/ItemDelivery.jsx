@@ -77,7 +77,7 @@ function MergeCheck({ item, onChange }) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState(null);
   const pr = obj(item.pr);
-  if (!pr || pr.state !== 'ready') return null;
+  if (!pr || pr.state !== 'ready' || item.active === false) return null;
   const check = obj(item.merge_check);
   let status;
   if (check && check.error) {

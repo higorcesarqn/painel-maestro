@@ -178,7 +178,8 @@ function readPr(config, env, url, round) {
 
 // ---------- the check ----------
 
-const waitsForMerge = (state) => !!(state && state.pr && state.pr.state === 'ready');
+// A concluded item (#68) is left alone: a merge recorded afterwards would bring it back to the active list.
+const waitsForMerge = (state) => !!(state && state.active && state.pr && state.pr.state === 'ready');
 
 /**
  * The server's merge check. options: { config (parseConfig), env, items (api-items source), now, log, logError }.
@@ -312,6 +313,7 @@ function createMergeCheck({ config, env, items, now, log = () => {}, logError = 
       if (!project) return { status: 404, error: { code: 'item_not_found', project: projectId, number } };
       const x = recordMerge(store, project, number, 'owner');
       if (!x.state) return { status: 404, error: { code: 'item_not_found', project: projectId, number } };
+      if (!x.recorded && !x.state.active) return { status: 409, error: { code: 'item_not_active', project: projectId, number } };
       if (!x.recorded) return { status: 409, error: { code: 'pr_not_ready', project: projectId, number, state: x.state.pr ? x.state.pr.state : null } };
       statuses.delete(`${projectId}/${number}`);
       log(t('server.log.markedMerged', { key: `${projectId}/${number}` }));

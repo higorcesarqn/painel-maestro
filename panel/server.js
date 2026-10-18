@@ -20,6 +20,7 @@
 //   GET  /api/overview[?organization=]        Overview (api-overview.js)
 //   GET  /api/items[?active=&organization=&project=], GET /api/items/<project>/<number>   items (api-items.js)
 //   POST /api/items/<project>/<number>/merged "mark as merged" (merge-check.js)
+//   POST /api/items/<project>/<number>/done   "Concluir": the owner concludes the item (api-items.js, #68)
 //   GET  /api/pending-decisions               pending decisions (api-pending-decisions.js)
 //   POST /api/pending-decisions/<id>/answer   the owner's answer to an open pending decision (#32)
 //   GET  /api/log, GET /api/log/<id>, GET /api/raw   the Log and the raw log (api-log.js)
@@ -435,10 +436,10 @@ function findRoute(urlPath) {
     const it = itemsApi.parseItemPath(mi[1], mi[2]);
     return it ? { name: 'item', methods: ['GET', 'HEAD'], project: it.project, number: it.number } : null;
   }
-  const mm = /^\/api\/items\/([^/]+)\/([^/]+)\/merged$/.exec(urlPath);
+  const mm = /^\/api\/items\/([^/]+)\/([^/]+)\/(merged|done)$/.exec(urlPath);
   if (mm) {
     const it = itemsApi.parseItemPath(mm[1], mm[2]);
-    return it ? { name: 'item-merged', methods: ['POST'], project: it.project, number: it.number } : null;
+    return it ? { name: `item-${mm[3]}`, methods: ['POST'], project: it.project, number: it.number } : null;
   }
   const ma = /^\/api\/pending-decisions\/([^/]+)\/answer$/.exec(urlPath);
   if (ma) {
@@ -554,6 +555,12 @@ async function route(ctx, req, res) {
     case 'item-merged': {
       const marked = ctx.mergeCheck.markMerged(r.project, r.number);
       if (marked.error) return respondError(req, res, marked.status, marked.error);
+      return respondJson(req, res, 200, withMergeCheck(ctx, itemsApi.itemDetail(ctx.items, r.project, r.number)));
+    }
+    case 'item-done': {
+      const done = itemsApi.markItemDone(ctx.items, r.project, r.number, isoSP(ctx.now()));
+      if (done.error) return respondError(req, res, done.status, done.error);
+      ctx.log(t('server.log.itemConcluded', { key: `${r.project}/${r.number}`, canceled: done.canceled.length }));
       return respondJson(req, res, 200, withMergeCheck(ctx, itemsApi.itemDetail(ctx.items, r.project, r.number)));
     }
     case 'pending-decisions':

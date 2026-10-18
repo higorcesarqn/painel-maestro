@@ -253,6 +253,7 @@ Variáveis: PANEL_PORT, MAESTRO_DIR (padrão ~/.painel-maestro), MAESTRI_DATA_DI
       mergeRecorded: 'PR de {key} mergeado no tracker: gravado (origem painel)',
       mergeCheckFailed: 'Falha na verificação de merge: {detail}',
       markedMerged: 'PR de {key} marcado como mergeado pelo painel',
+      itemConcluded: (p) => `Item ${p.key} concluído pelo painel${p.canceled ? ` (${p.canceled} pendência(s) cancelada(s))` : ''}`,
       pendingAnswered: 'Pendência P-{id} de {key} respondida pelo painel',
     },
   },
@@ -444,12 +445,15 @@ CÓDIGOS DE SAÍDA
   },
   // PR, final adjustment, HML and conclusion (#9).
   delivery: {
+    // The reason recorded on the pending decisions canceled when the item is concluded (#68), by the CLI or the panel.
+    concludedReason: 'item concluído pelo dono',
     done: {
       pr: (p) => `Item ${p.key} (${p.ref}): PR ${PR_STATES[p.state] || p.state} registrado. Etapa: ${STAGES[p.stage] || p.stage}.`,
       'adjustment-open': (p) => `Item ${p.key} (${p.ref}): ajuste final aberto. Etapa: ${STAGES[p.stage] || p.stage}.`,
       'adjustment-result': (p) => `Item ${p.key} (${p.ref}): ajuste final ${p.outcome === 'passed' ? 'aprovado' : 'reprovado'}. Etapa: ${STAGES[p.stage] || p.stage}.`,
       hml: (p) => `Item ${p.key} (${p.ref}): Validação HML registrada (${p.passed} aprovado(s), ${p.failed} reprovado(s), ${p.blocked} bloqueado(s)). Etapa: ${STAGES[p.stage] || p.stage}.`,
-      'item-done': (p) => `Item ${p.key} (${p.ref}) concluído. Ele sai da lista de ativos e continua consultável no painel.`,
+      'item-done': (p) => `Item ${p.key} (${p.ref}) concluído. Ele sai da lista de ativos e continua consultável no painel.`
+        + `${p.canceled ? ` ${p.canceled} pendência(s) aberta(s) cancelada(s).` : ''}`,
     },
     errors: {
       missingPrState: 'falta o estado do PR (ex.: flow pr 12 draft --url https://github.com/org/repo/pull/34).',

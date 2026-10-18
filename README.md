@@ -255,7 +255,7 @@ flow final-adjustment 12 result --outcome passed --summary "Testes e build ok"
 flow pr 12 ready                                                                    # → PR pronto
 flow pr 12 merged                                                                   # quando o maestro faz o merge → Merge
 flow hml 3100 --passed 7 --failed 1 --blocked 0 --card https://dev.azure.com/org/proj/_workitems/edit/3100 --role owner   # → Validação HML
-flow item done 12                                                                   # → Concluído
+flow item done 12                                                                   # → Concluído (cancela as pendências abertas do item)
 ```
 
 **Organizações e projetos (dono, em qualquer pasta):**

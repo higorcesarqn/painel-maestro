@@ -13,6 +13,7 @@ import { STAGES, TRACKERS } from '../data/domain.js';
 import { Icon, Workflow, ArrowLeft, Check, CircleDashed } from '../components/Icon.jsx';
 import { ItemTasks } from './ItemTasks.jsx';
 import { ItemDelivery, deliveryEventText, useDoneFilter } from './ItemDelivery.jsx';
+import { ItemConclude } from './ItemConclude.jsx';
 import { UnassignedProjects } from './UnassignedProjects.jsx';
 import { ItemReports, ItemFindings, reviewEventText } from './ItemReview.jsx';
 import '../styles/items.css';
@@ -164,6 +165,7 @@ function ItemPage({ project, number: itemNumber }) {
             <StageBadge stage={item.stage} doneState={item.done_state} />
             <span class="muted small">{t('items.since', { when: dateTime(item.stage_since), age: age(item.stage_since) })}</span>
           </div>
+          <ItemConclude key={item.key} item={item} onChange={reload} />
         </div>
       </Card>
       <ItemDelivery item={item} onChange={reload} />

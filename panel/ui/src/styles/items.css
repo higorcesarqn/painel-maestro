@@ -20,6 +20,11 @@ table.items td.col-ref { color: var(--text); }
 .item-number { font-size: 15px; color: var(--text); }
 .item-title { font-size: 25px; font-weight: 300; line-height: 1.3; letter-spacing: -.01em; max-width: 980px; text-transform: none; }
 .item-current { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.item-conclude { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.item-conclude-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 10px; }
+.item-conclude-actions { display: flex; gap: 8px; }
+.item-conclude-error { display: flex; align-items: flex-start; gap: 6px; color: var(--danger); }
+.item-conclude-error .icon { flex: none; margin-top: 2px; }
 .item-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--gap); min-height: 0; }
 .item-grid .card { min-height: 0; }
 
