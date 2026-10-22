@@ -69,7 +69,7 @@ If one of them fails, stop: tell the owner which one failed and offer the subage
 
 2. **Explore (optional).** If the Tasks require understanding code, dispatch an explorer subagent (Agent tool) that saves markdown notes in the session's scratchpad. The Workers receive the path as a pointer.
 
-3. **Prepare the integration branch.** From the origin branch (the user's when invoking the skill), create the integration branch (`feature/<type>-<id>` unless there is a local convention), push it and open the PR as a **draft** through the adapter, linked to the parent Item and the Tasks. Record: `flow pr <n> draft --url <PR URL> --branch <integration branch>`. Leave the integration branch checked out on the Ground: the floors start from its HEAD.
+3. **Prepare the integration branch.** First check that the origin branch is level with its remote (`git status -sb` shows no `ahead`): an unpushed local commit rides into the Item's PR and leaves the local branch diverged after a squash merge (PBI #3202); if it is ahead, ask the owner whether to push it first. From the origin branch (the user's when invoking the skill), create the integration branch (`feature/<type>-<id>` unless there is a local convention), push it and open the PR as a **draft** through the adapter, linked to the parent Item and the Tasks. Record: `flow pr <n> draft --url <PR URL> --branch <integration branch>`. Leave the integration branch checked out on the Ground: the floors start from its HEAD.
 
 4. **Open the panel on the canvas.** With the panel's server up (`npm start` in painel-maestro's folder; ask the user if `http://127.0.0.1:4777` does not answer), open a portal on the Item's page:
    ```bash

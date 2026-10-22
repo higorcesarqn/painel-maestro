@@ -66,7 +66,7 @@ Verified on Orca 1.4.224 (2026-10-12), with throwaway Workers and worktrees, alr
 - `worker-start` exits with 0 only for `ready`. On `failed` or `outcome_unknown` it exits with 1 and the JSON has `failedStage`, `residualResources` and the recovery commands: **do not relaunch it blindly**.
 - **`git -C ""` acts on the current folder.** A worktree path held in a shell variable that comes out empty turns the branch rename into a rename of the maestro's own integration branch (PBI #3194, after an `rtk` hook rewrite left the variable unset). `scripts/create-worktree.sh` renames on the path the Orca answered and refuses when the maestro leaves the integration branch.
 - **The `rtk` hook reformats `grep` in a pipeline** (its compact "N matches in 1 files" output), so `check --wait ... | grep -v _keepalive` breaks the JSON. `scripts/wait-workers.sh` skips the keep-alive lines in its own parser.
-- **Each unacknowledged heartbeat costs the maestro a turn**: it reaches the maestro's terminal as "You have 1 orchestration message". `scripts/wait-workers.sh` acknowledges heartbeat-only batches by itself.
+- **Each unacknowledged heartbeat costs the maestro a turn**: it reaches the maestro's terminal as "You have 1 orchestration message". `scripts/wait-workers.sh` wakes on heartbeats (`heartbeat` in its `--types`) and acknowledges heartbeat-only batches by itself; without `heartbeat` in `--types` the check never woke on them and every heartbeat reached the maestro (PBI #3202).
 
 ## Steps
 
@@ -78,7 +78,7 @@ Verified on Orca 1.4.224 (2026-10-12), with throwaway Workers and worktrees, alr
 
 2. **Explore (optional).** If the Tasks require understanding code, dispatch an explorer subagent (Agent tool) that saves markdown notes in the session's scratchpad. The Workers receive the path as a pointer.
 
-3. **Prepare the integration branch.** From the origin branch (the user's when invoking the skill), create the integration branch (`feature/<type>-<id>` unless there is a local convention), push it and open the PR as a **draft** through the adapter, linked to the parent Item and the Tasks. Note the **origin SHA** (`git rev-parse --short HEAD` right after creating the branch): the briefings and the final adjustment's reviews take the range `<origin SHA>..HEAD`, because the origin branch keeps moving while the Item runs. Record: `flow pr <n> draft --url <PR URL> --branch <integration branch>`. Leave the integration branch checked out in your worktree: the Orca worktrees start from it.
+3. **Prepare the integration branch.** First check that the origin branch is level with its remote (`git status -sb` shows no `ahead`): an unpushed local commit rides into the Item's PR and leaves the local branch diverged after a squash merge (PBI #3202); if it is ahead, ask the owner whether to push it first. From the origin branch (the user's when invoking the skill), create the integration branch (`feature/<type>-<id>` unless there is a local convention), push it and open the PR as a **draft** through the adapter, linked to the parent Item and the Tasks. Note the **origin SHA** (`git rev-parse --short HEAD` right after creating the branch): the briefings and the final adjustment's reviews take the range `<origin SHA>..HEAD`, because the origin branch keeps moving while the Item runs. Record: `flow pr <n> draft --url <PR URL> --branch <integration branch>`. Leave the integration branch checked out in your worktree: the Orca worktrees start from it.
 
 4. **Bind a Run.** One Orca Run per Item: it is your inbox for the Workers' questions and reports.
    ```bash
@@ -118,11 +118,11 @@ Verified on Orca 1.4.224 (2026-10-12), with throwaway Workers and worktrees, alr
    ```bash
    bash ~/.claude/docs/orchestration-orca/scripts/wait-workers.sh --run <run_id>
    ```
-   It loops on `orca orchestration check --wait --types "worker_done,escalation,question"`, acknowledges by itself the batches with only heartbeats, and ends at the first **Delivery** with a real message, printed as `esperar: entrega <delivery_id> (...)` and one `--- <type> <message_id> · <subject>` block per message (payload and body below). That Delivery is not acknowledged: process **every** message of it, then leave the next wait running with its ack:
+   It loops on `orca orchestration check --wait --types "worker_done,escalation,question,heartbeat"`, acknowledges by itself the batches with only heartbeats, and ends at the first **Delivery** with a real message, printed as `esperar: entrega <delivery_id> (...)` and one `--- <type> <message_id> · <subject>` block per message (payload and body below). That Delivery is not acknowledged: process **every** message of it, then leave the next wait running with its ack:
    ```bash
    bash ~/.claude/docs/orchestration-orca/scripts/wait-workers.sh --run <run_id> --ack <delivery_id>
    ```
-   Exit 3 is three empty waits in a row (see below); exit 1, the CLI failed (its answer is on stderr). An "orchestration message" notice in your terminal while the script runs is that same wait's business: let the script take it.
+   Exit 3 is three empty waits in a row (see below); exit 1, the CLI failed (its answer is on stderr). The script wakes on heartbeats too and acknowledges them, so an "orchestration message" notice in your terminal while it runs is rare; if one comes, run `orca orchestration check --run <run_id> --json` and, for a heartbeat-only batch, ack it with `--ack <delivery_id>`.
    - `heartbeat`: the Worker is alive; the script already acknowledged it.
    - `question`: step 8.
    - `escalation`: the Worker is blocked; treat it as a question that needs you or the user (step 8), answering with `orca orchestration send --to dispatch:<dispatch_id> --subject "..." --body "$(cat <file>)" --json`.

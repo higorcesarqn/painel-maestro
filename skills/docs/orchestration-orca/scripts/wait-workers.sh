@@ -71,7 +71,7 @@ let s = ""; process.stdin.on("data", (c) => (s += c)).on("end", () => {
 
 empty=0
 while :; do
-    args=(orchestration check --wait --types "worker_done,escalation,question" --timeout-ms "$TIMEOUT" --json)
+    args=(orchestration check --wait --types "worker_done,escalation,question,heartbeat" --timeout-ms "$TIMEOUT" --json)
     [ -n "$RUN" ] && args+=(--run "$RUN")
     [ -n "$ACK" ] && args+=(--ack "$ACK")
     if ! OUT="$("$O" "${args[@]}" 2>&1)"; then
