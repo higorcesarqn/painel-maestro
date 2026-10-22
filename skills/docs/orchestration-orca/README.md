@@ -64,6 +64,9 @@ Verified on Orca 1.4.224 (2026-10-12), with throwaway Workers and worktrees, alr
 - **`orca orchestration check --wait` returns the whole FIFO batch** (heartbeats included), whatever `--types` says (`--types` only decides when it wakes up), and replays the same batch until `--ack <delivery_id>`.
 - **Just clicking on the Worker's terminal counts as `user_takeover`**: `worker-release` then answers `retained` and closes nothing. Whoever cleans up is `orca worktree rm`, which closes the terminal (retained or not) and deletes the branch (it keeps a branch it cannot prove merged: `integrate.sh` merges first, then removes).
 - `worker-start` exits with 0 only for `ready`. On `failed` or `outcome_unknown` it exits with 1 and the JSON has `failedStage`, `residualResources` and the recovery commands: **do not relaunch it blindly**.
+- **`git -C ""` acts on the current folder.** A worktree path held in a shell variable that comes out empty turns the branch rename into a rename of the maestro's own integration branch (PBI #3194, after an `rtk` hook rewrite left the variable unset). `scripts/create-worktree.sh` renames on the path the Orca answered and refuses when the maestro leaves the integration branch.
+- **The `rtk` hook reformats `grep` in a pipeline** (its compact "N matches in 1 files" output), so `check --wait ... | grep -v _keepalive` breaks the JSON. `scripts/wait-workers.sh` skips the keep-alive lines in its own parser.
+- **Each unacknowledged heartbeat costs the maestro a turn**: it reaches the maestro's terminal as "You have 1 orchestration message". `scripts/wait-workers.sh` acknowledges heartbeat-only batches by itself.
 
 ## Steps
 
@@ -75,7 +78,7 @@ Verified on Orca 1.4.224 (2026-10-12), with throwaway Workers and worktrees, alr
 
 2. **Explore (optional).** If the Tasks require understanding code, dispatch an explorer subagent (Agent tool) that saves markdown notes in the session's scratchpad. The Workers receive the path as a pointer.
 
-3. **Prepare the integration branch.** From the origin branch (the user's when invoking the skill), create the integration branch (`feature/<type>-<id>` unless there is a local convention), push it and open the PR as a **draft** through the adapter, linked to the parent Item and the Tasks. Record: `flow pr <n> draft --url <PR URL> --branch <integration branch>`. Leave the integration branch checked out in your worktree: the Orca worktrees start from it.
+3. **Prepare the integration branch.** From the origin branch (the user's when invoking the skill), create the integration branch (`feature/<type>-<id>` unless there is a local convention), push it and open the PR as a **draft** through the adapter, linked to the parent Item and the Tasks. Note the **origin SHA** (`git rev-parse --short HEAD` right after creating the branch): the briefings and the final adjustment's reviews take the range `<origin SHA>..HEAD`, because the origin branch keeps moving while the Item runs. Record: `flow pr <n> draft --url <PR URL> --branch <integration branch>`. Leave the integration branch checked out in your worktree: the Orca worktrees start from it.
 
 4. **Bind a Run.** One Orca Run per Item: it is your inbox for the Workers' questions and reports.
    ```bash
@@ -96,16 +99,12 @@ Verified on Orca 1.4.224 (2026-10-12), with throwaway Workers and worktrees, alr
    - each Task gets the exclusive resources the local convention asks for (e.g. its own test database per Task).
 
    For each Task, from your worktree, in this order:
-   1. **Create the worktree** from the integration branch, as a child of yours:
+   1. **Create the worktree** from the integration branch, as a child of yours, with the script:
       ```bash
-      orca worktree create --name task-<id>-<slug> --base-branch <integration branch> --parent-worktree current --issue <task> --json
+      bash ~/.claude/docs/orchestration-orca/scripts/create-worktree.sh <id> <slug> <integration branch>
       ```
-      `--issue <task>` links the GitHub issue to the worktree's card; leave it out on Azure DevOps. Keep `result.worktree.id` (`<repo-id>::<path>`) and `result.worktree.path`.
-   2. **Rename the branch** to the convention (the Orca created `<GitHub user>/task-<id>-<slug>`):
-      ```bash
-      git -C "<worktree path>" branch -m task/<id>-<slug>
-      ```
-      Check it with `orca worktree show --worktree "id:<worktree id>" --json` (`branch: refs/heads/task/<id>-<slug>`). The `flow`, the hook and the usage per agent recognize the Task by that branch.
+      It runs `orca worktree create --name task-<id>-<slug> --base-branch <integration branch> --parent-worktree current --json` and prints `worktree: <worktree id>`, `path: <worktree path>` and `branch: task/<id>-<slug>`: take the values from there. Exit 1 is a refusal that says why (`worktree: ...`); read it before anything else. On GitHub, link the issue to the worktree's card afterwards with `orca worktree set --worktree "id:<worktree id>" --issue <task> --json`.
+   2. **The branch is already renamed**: the script renames the one the Orca created (`<GitHub user>/task-<id>-<slug>`) to `task/<id>-<slug>` on the path the Orca answered, and checks that your worktree is still on the integration branch. The `flow`, the hook and the usage per agent recognize the Task by that branch.
    3. **Record the dispatch**: `flow task dispatch <n> <task> --floor "task-<id>-<slug>" --worker "<worker>" --branch task/<id>-<slug> --mode orca --role maestro --agent maestro` (`--floor` takes the worktree's name). Give the Workers short, distinct code names (no accents).
    4. **Start the Worker**, with the briefing (template below) written with the Write tool to `<scratchpad>/brief-<id>.txt`:
       ```bash
@@ -115,20 +114,21 @@ Verified on Orca 1.4.224 (2026-10-12), with throwaway Workers and worktrees, alr
 
    Start the whole frontier before waiting.
 
-7. **Wait for the Workers.** Do not keep polling and do not schedule wake-ups: leave the orchestrator's wait running in the background (Bash with `run_in_background: true`), next to the `flow pending wait` of each PendingDecision:
+7. **Wait for the Workers.** Do not keep polling and do not schedule wake-ups: leave the wait script running in the background (Bash with `run_in_background: true`), next to the `flow pending wait` of each PendingDecision:
    ```bash
-   orca orchestration check --wait --types "worker_done,escalation,question" --timeout-ms 900000 --json
+   bash ~/.claude/docs/orchestration-orca/scripts/wait-workers.sh --run <run_id>
    ```
-   Claude Code wakes you up with its output: a **Delivery** (its id and the whole FIFO batch of messages, heartbeats included) or an empty result (the timeout, a checkpoint, not a failure). Process **every** message of the batch, then leave the next wait running with the ack of the batch you processed:
+   It loops on `orca orchestration check --wait --types "worker_done,escalation,question"`, acknowledges by itself the batches with only heartbeats, and ends at the first **Delivery** with a real message, printed as `esperar: entrega <delivery_id> (...)` and one `--- <type> <message_id> · <subject>` block per message (payload and body below). That Delivery is not acknowledged: process **every** message of it, then leave the next wait running with its ack:
    ```bash
-   orca orchestration check --ack <delivery_id> --wait --types "worker_done,escalation,question" --timeout-ms 900000 --json
+   bash ~/.claude/docs/orchestration-orca/scripts/wait-workers.sh --run <run_id> --ack <delivery_id>
    ```
-   - `heartbeat`: the Worker is alive; nothing to do.
+   Exit 3 is three empty waits in a row (see below); exit 1, the CLI failed (its answer is on stderr). An "orchestration message" notice in your terminal while the script runs is that same wait's business: let the script take it.
+   - `heartbeat`: the Worker is alive; the script already acknowledged it.
    - `question`: step 8.
    - `escalation`: the Worker is blocked; treat it as a question that needs you or the user (step 8), answering with `orca orchestration send --to dispatch:<dispatch_id> --subject "..." --body "$(cat <file>)" --json`.
    - `worker_done`: check that its Task and Dispatch ids are the ones you started; then step 9 (the report). After you accept it, release the Worker's terminal with `orca orchestration worker-release --dispatch <dispatch_id> --json`: `retained` is a normal answer (the owner clicked on the terminal, a `user_takeover`); `integrate.sh` closes it with the worktree.
 
-   After three empty waits in a row, look instead of waiting blindly: `orca orchestration worker-list --run <run_id> --json` and each row's `projection.liveness` and `projection.nextAction`. Only an `exited` Worker without `worker_done` is lost; `unverifiable` is not proof of anything: keep waiting. Before asking the user for any OK, check the panel too: a Task in `review` with no `worker_done` received has its report on the Item's timeline.
+   After three empty waits in a row (the script's exit 3), look instead of waiting blindly: `orca orchestration worker-list --run <run_id> --json` and each row's `projection.liveness` and `projection.nextAction`. Only an `exited` Worker without `worker_done` is lost; `unverifiable` is not proof of anything: keep waiting. Before asking the user for any OK, check the panel too: a Task in `review` with no `worker_done` received has its report on the Item's timeline.
 
 8. **Answer the Workers.** A Worker asks with the `ask` of its preamble and waits, blocked, for your answer:
    - **yours** (scope, the briefing, how something in the repo works): answer with `orca orchestration reply --id <message_id> --body "$(cat <scratchpad>/reply-<id>.txt)" --json`;
@@ -155,9 +155,9 @@ Verified on Orca 1.4.224 (2026-10-12), with throwaway Workers and worktrees, alr
 
 12. **Recompute the frontier** and go back to step 6 until every Task is integrated or reported as blocked.
 
-13. **Final adjustment.** Record `flow final-adjustment <n> open` and create a worktree `task-<n>-ajuste-final` (step 6, items 1 and 2: branch renamed to `task/<n>-ajuste-final`, with no `task dispatch`: the final adjustment is not a Task of the graph), then start a Worker in it with a briefing that asks, in this order, for:
+13. **Final adjustment.** Record `flow final-adjustment <n> open` and create its worktree with `create-worktree.sh <n> ajuste-final <integration branch>` (step 6: branch `task/<n>-ajuste-final`, with no `task dispatch`: the final adjustment is not a Task of the graph), then start a Worker in it with a briefing that asks, in this order, for:
     1. the fixes the user already approved for the end;
-    2. the two reviews over the whole integration branch against the origin branch: `mattpocock-skills:code-review` and the native `code-review` at the `medium` level. Tie-break: when a simplification finding contradicts a repo standard or the spec, the standard/spec wins;
+    2. the two reviews over the range `<origin SHA>..HEAD` (step 3), written out in the briefing with the SHA, after the Worker checks with `git log --oneline <origin SHA>..HEAD` that it holds exactly the Tasks integrated in this run: `mattpocock-skills:code-review` and the native `code-review` at the `medium` level. Tie-break: when a simplification finding contradicts a repo standard or the spec, the standard/spec wins. List in the briefing what the user already accepted in the reviews, so it is not raised again;
     3. classifying each finding: **a clear defect with no design choice** → fixed with a test; **depends on the user** → not fixed, brought with a recommendation; **discarded** → one line on why;
     4. the full suite, compared with the failures already known before calling anything a regression;
     5. the version bump, if the project's `docs/agents/` asks for a version bump in the final adjustment;
@@ -186,7 +186,7 @@ READING
 - The task and the parent item: <the adapter's read command>
 - Explorer notes: <path, if any>
 - Project memory: <absolute path of MEMORY.md> (and the files that matter for this task)
-- What is already on the integration branch: git log <origin sha>..HEAD
+- What is already on the integration branch: git log <origin SHA>..HEAD (origin SHA from step 3)
 
 SCOPE
 <what the task delivers, the agreed test points, what to reuse>
