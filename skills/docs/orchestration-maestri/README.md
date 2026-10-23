@@ -121,7 +121,7 @@ If one of them fails, stop: tell the owner which one failed and offer the subage
 
 11. **Finish.** Update the PR description (what each Task delivered, rules decided in the review, what changes for whoever consumes the API, tests, what was left for later) and take it out of draft through the adapter; record `flow pr <n> ready`. The merge belongs to the user; if they ask you to do it, record `flow pr <n> merged` afterwards. Mark the parent Item done in the tracker, if the local convention says so. The Item is only **Concluído** in the panel (`flow item done <n>`) after the merge and, if the project uses HML Validation, after the HML is recorded: if the session ends before that, these commands go into the report as the user's next steps.
 
-    **HML reminder**: HML validation follows the `especificacao-atdd-hml` skill; the result goes to the panel with `flow hml <n> --passed <n> --failed <n> --blocked <n> --card <card URL> --role owner` (a failed or blocked scenario that waits for a decision: an `hml` PendingDecision).
+    **HML reminder**: HML validation follows the `atdd-spec` skill; the result goes to the panel with `flow hml <n> --passed <n> --failed <n> --blocked <n> --card <card URL> --role owner` (a failed or blocked scenario that waits for a decision: an `hml` PendingDecision).
 
 12. **Clean up.** `maestri floor list` with only the Ground; `git worktree list` with only the repo; no local `task/*` branch. Report: the PR link, the Item's page in the panel, integrated Tasks, blocked Tasks, new items opened, PendingDecisions still open and what was not recorded in the panel (with the CLI's message).
 
