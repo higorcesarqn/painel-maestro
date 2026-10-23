@@ -20,17 +20,18 @@ This skill is in English because it is a contract read by agents. Talk to the ow
 
 ## Common rules
 
-1. **Status.** When you start: `flow status "Lendo a #<id>"`. At real milestones: `flow status "<where you are>" --progress n/m`. If you need the user: `--state blocked`. Ready to integrate: `--state review`.
-2. **Read first.** Read the Task and the parent Item with the briefing's command, the repo's `docs/agents/` and the project memory the briefing points to (this worktree does not load it by itself). Read what is already on the integration branch (the `git log` given).
-3. **Only your Task.** What the briefing marks as another Task's is not done here. If your design needs to anticipate something for it, leave only what is needed and say so in the report.
-4. **Exclusive resources.** Use only the resources the briefing reserved for you (e.g. the Task's test database, recreated empty before each run). Never the shared resource.
-5. **Tests.** TDD at the agreed seams. Before the commit: the module's suite and the integration tests in scope, **two runs in a row** when there is a database. A failure that existed before your change is not a regression: compare with the base (the local convention usually lists the known failures).
-6. **Review before the commit.** `/implement` ends with `/code-review`; fix the findings that are yours.
-7. **Commit on your worktree's branch**, semantic, citing the Task. **Do not push, do not touch the tracker, do not merge.**
-8. **Rebase when the maestro asks.** If the integration branch moves, `git rebase <integration branch>`, run the tests again and report the new SHA (a new report through `flow report`, as below).
-9. **A decision that is not yours** (business rule, public contract, exposed name): do not guess. Post `--state blocked` and ask the maestro (your Host's section says how), or decide the minimum and bring it in the report as a "decision for the user".
-10. **Do not schedule wake-ups or loops** (`/loop`, `ScheduleWakeup`, routines). The maestro is the one who waits.
-11. **A production behavior change outside the scope** (a bug found along the way): stop, `--state blocked`, tell the maestro before fixing it.
+1. **Check the base first.** Before anything else, confirm you are on the briefing's `task/<id>-<slug>` branch (`git branch --show-current`) and that it starts from the integration branch at the briefing's SHA (`git merge-base --is-ancestor <sha> HEAD`). If not, and you have no commits of your own yet, put it there with `git reset --hard <integration branch>`; if you already have commits, stop, post `--state blocked` and tell the maestro.
+2. **Status.** When you start: `flow status "Lendo a #<id>"`. At real milestones: `flow status "<where you are>" --progress n/m`. If you need the user: `--state blocked`. Ready to integrate: `--state review`.
+3. **Read first.** Read the Task and the parent Item with the briefing's command, the repo's `docs/agents/` and the project memory the briefing points to (this worktree does not load it by itself). Read what is already on the integration branch (the `git log` given).
+4. **Only your Task.** What the briefing marks as another Task's is not done here. If your design needs to anticipate something for it, leave only what is needed and say so in the report.
+5. **Exclusive resources.** Use only the resources the briefing reserved for you (e.g. the Task's test database, recreated empty before each run). Never the shared resource.
+6. **Tests.** TDD at the agreed seams. Before the commit: the module's suite and the integration tests in scope, **two runs in a row** when there is a database. A failure that existed before your change is not a regression: compare with the base (the local convention usually lists the known failures).
+7. **Review before the commit.** `/implement` ends with `/code-review`; fix the findings that are yours.
+8. **Commit on your worktree's branch**, semantic, citing the Task. **Do not push, do not touch the tracker, do not merge into the integration branch.**
+9. **Be on top of the integration branch before reporting.** The maestro only integrates a fast-forward. Right before the report, check `git merge-base --is-ancestor <integration branch> HEAD`; if the integration branch moved (another Task was integrated), `git rebase <integration branch>` and resolve the conflicts yourself, with the `mattpocock-skills:resolving-merge-conflicts` skill: you know the code you wrote. Then run the tests again. The same when the maestro asks for a rebase after your report: rebase, test and report the new SHA (a new report through `flow report`, as below).
+10. **A decision that is not yours** (business rule, public contract, exposed name): do not guess. Post `--state blocked` and ask the maestro (your Host's section says how), or decide the minimum and bring it in the report as a "decision for the user".
+11. **Do not schedule wake-ups or loops** (`/loop`, `ScheduleWakeup`, routines). The maestro is the one who waits.
+12. **A production behavior change outside the scope** (a bug found along the way): stop, `--state blocked`, tell the maestro before fixing it.
 
 ## Report
 
@@ -58,7 +59,7 @@ The report, in Portuguese, short running text, in this order:
 You are on a Maestri **floor**; the maestro is a Claude Code terminal on the workspace's Ground, with the name the briefing gave.
 
 - **Status**: `flow status` also runs `maestri floor status` for you (your terminal has `MAESTRI_TERMINAL_ID`). Without the panel (exit code 1, the panel did not answer), post the same status directly with `"$MAESTRI_CLI" floor status "<text>" [--state ...] [--progress n/m]`.
-- **Asking the maestro** (common rule 9): `maestri ask "<maestro>" "<question>"`, after posting `--state blocked`.
+- **Asking the maestro** (common rule 10): `maestri ask "<maestro>" "<question>"`, after posting `--state blocked`.
 - **Delivering the report** (step 3 of the Report): answer the maestro by the name the briefing gave:
   ```bash
   maestri ask "<maestro>" "<report>"
@@ -71,10 +72,10 @@ You are on a Maestri **floor**; the maestro is a Claude Code terminal on the wor
 You are in an **Orca worktree**, started by the Orca's orchestrator (`worker-start`); the maestro is the coordinator of the Orca Run. Your terminal has `ORCA_TERMINAL_HANDLE` and `ORCA_WORKTREE_ID`. The flow is `~/.claude/docs/orchestration-orca/README.md`.
 
 - **The preamble is authoritative.** Above the briefing, the Orca pasted a preamble with your Task and Dispatch IDs and the exact `ask`, `check`, heartbeat and `worker_done` commands (executable, `--from` handle and IDs). Copy those commands as they are, adding only what this section says; never rebuild their flags.
-- **The `implement` process.** The briefing has no slash command (the Orca pastes it as text, so a `/` would not run). Read the `SKILL.md` of `mattpocock-skills:implement` (Glob `~/.claude/plugins/cache/*/mattpocock-skills/*/skills/engineering/implement/SKILL.md`, the highest version) and follow it for your Task, together with the common rules above. Its last step (`/code-review`) is common rule 6.
+- **The `implement` process.** The briefing has no slash command (the Orca pastes it as text, so a `/` would not run). Read the `SKILL.md` of `mattpocock-skills:implement` (Glob `~/.claude/plugins/cache/*/mattpocock-skills/*/skills/engineering/implement/SKILL.md`, the highest version) and follow it for your Task, together with the common rules above. Its last step (`/code-review`) is common rule 7.
 - **Status**: `flow status` also moves your worktree's card on the Orca board (`orca worktree set --worktree current --workspace-status ...`: `working` and `blocked` → `in-progress`, `blocked` also marks it unread; `review` → `in-review`). Without the panel (exit code 1, the panel did not answer), post the same status directly: `orca worktree set --worktree current --workspace-status in-progress|in-review --comment "<text>" --json` (add `--unread` when blocked).
 - **Heartbeats** only at the cadence the preamble asks for, and never while blocked in an `ask`.
-- **Asking the maestro** (common rule 9): post `--state blocked`, then run the preamble's `ask` command with your question (`--question "<question>"`, and `--options "<a>,<b>"` when there are choices). It blocks until the maestro replies; the answer may take a while when it is the user's. If it times out, resume the **same** question with the preamble's `ask` and `--resume <message_id>`; never ask it again as a new one. Never open a local question prompt (the `AskUserQuestion` tool): nobody answers it.
+- **Asking the maestro** (common rule 10): post `--state blocked`, then run the preamble's `ask` command with your question (`--question "<question>"`, and `--options "<a>,<b>"` when there are choices). It blocks until the maestro replies; the answer may take a while when it is the user's. If it times out, resume the **same** question with the preamble's `ask` and `--resume <message_id>`; never ask it again as a new one. Never open a local question prompt (the `AskUserQuestion` tool): nobody answers it.
 - **Follow-ups from the maestro** (e.g. "the integration branch moved, rebase"): they do not interrupt you. Read them at each natural checkpoint (before a new file, after a test run) with the preamble's `check` (`orca orchestration check --terminal "$ORCA_TERMINAL_HANDLE" --json`), and once more right before `worker_done`. If `check` answers `consumer_fenced`, your Dispatch is no longer yours: stop and do not send `worker_done`.
 - **Delivering the report** (step 3 of the Report): after `flow report`, run the `check` one last time, then send the preamble's `worker_done` command **once**, with:
   - `--subject` a short status and `--body` three sentences (what changed, what you found, what is left), in Portuguese;
