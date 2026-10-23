@@ -94,7 +94,7 @@ In the steps below, `flow <command>` abbreviates that line. `node "$PAINEL_MAEST
 The merge usually happens in the tracker's interface, and the panel detects it by itself. When these moments happen in this session (or in a resumption at the user's request), record:
 
 - **A merge done by you**, at the user's request: `flow pr <n> merged`.
-- **HML validation**, when the user validates with the `especificacao-atdd-hml` skill (it does not record in the panel): `flow hml <n> --passed <n> --failed <n> --blocked <n> --card <card URL> --json - < hml.json` (`{"summary": "..."}`); if the user is the one who validated, `--role owner`.
+- **HML validation**, when the user validates with the `atdd-spec` skill (it does not record in the panel): `flow hml <n> --passed <n> --failed <n> --blocked <n> --card <card URL> --json - < hml.json` (`{"summary": "..."}`); if the user is the one who validated, `--role owner`.
 - **Completion**, when the Item finished the project's flow (merged and, if the project uses it, validated in HML): `flow item done <n>`.
 
 A Stage the project does not use exits with code 2: skip the command.
