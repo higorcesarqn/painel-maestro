@@ -15,7 +15,7 @@
 # If the panel does not record it, the integration still stands: the script exits with 0 and ends with
 # "integrar: aviso: o painel não registrou ..." on stderr, followed by the command to run again.
 # Recorded: the last line of the output is "integrar: painel: task <task> integrada no item <item>".
-# The task/<id>-ajuste-final branch (the final adjustment floor) is not a task: nothing is recorded; the last line
+# The task/<id>-ajuste-final[-<slug>] branch (the final adjustment floor) is not a task: nothing is recorded; the last line
 # reminds of `flow final-adjustment <item> result`.
 # The checks, the merge, the record in the panel and the closing lines are in integrate-common.sh (next to this file,
 # shared with the Orca's integrate.sh); this script keeps its arguments and the cleanup of the floor.

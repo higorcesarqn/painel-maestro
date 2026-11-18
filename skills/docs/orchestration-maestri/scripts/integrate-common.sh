@@ -48,10 +48,10 @@ integrate_merge() {
 
 # Records the task as integrated in the panel. The merge is already on the remote, so a failure here only warns.
 # Branch convention (the same as parseBranch in the panel's bin/flow-repo.js): feature/issue-<n> or feature/pbi-<n> is
-# the item's integration branch; task/<item>-ajuste-final is the final adjustment (not a task: nothing is recorded);
+# the item's integration branch; task/<item>-ajuste-final[-<slug>] is the final adjustment (not a task: nothing is recorded);
 # task/<id>-… is the task. Bash 3.2 only ([[ ]] regex through a variable, no sed with GNU extensions).
 integrate_record() {
-    local re_item='^feature/(issue|pbi)-([0-9]+)$' re_final='^task/([0-9]+)-ajuste-final$' re_task='^task/([0-9]+)(-.*)?$'
+    local re_item='^feature/(issue|pbi)-([0-9]+)$' re_final='^task/([0-9]+)-ajuste-final(-[A-Za-z0-9][A-Za-z0-9-]*)?$' re_task='^task/([0-9]+)(-.*)?$'
     local final="" output agent=()
     [ -z "$AGENT_NAME" ] || agent=(--agent "$AGENT_NAME")
     if [ -z "$ITEM" ] && [[ $INTEGRATION =~ $re_item ]]; then ITEM="${BASH_REMATCH[2]}"; fi

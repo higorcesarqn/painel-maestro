@@ -116,6 +116,31 @@ for (const [mode, message] of [['maestro', /o Orca respondeu o path do próprio 
   });
 }
 
+suite.test('wait-workers.sh on Orca 1.4.258+ (no deliveryId, full record): skips heartbeats, never acks, prints the payload and the report path', () => {
+  const r = buildRoot('wait-1258');
+  // The full record (--full) carries the payload as a JSON string and no deliveryId: the check already marked it read.
+  const full = (...messages) => ({ ok: true, result: { messages, count: messages.length, acknowledged: true, runId: 'run_1' } });
+  answer(r, 1, { _keepalive: true, elapsedMs: 15000 }, full(heartbeat('msg_1')));
+  answer(r, 2, full(
+    { id: 'msg_2', type: 'worker_done', subject: 'Ajuste final ok', body: 'Corrigi dois defeitos.',
+      payload: JSON.stringify({ taskId: 'task_1', dispatchId: 'ctx_1', outcome: 'succeeded', reportPath: '/tmp/x/report.json' }) },
+    { id: 'msg_3', type: 'question', subject: 'Question', body: 'Número ausente: 400 ou []?',
+      payload: { taskId: 'task_2', question: 'Número ausente: 400 ou []?', options: [] } }));
+  const x = run(r, 'wait-workers.sh', ['--run', 'run_1', '--timeout-ms', '1000']);
+  ok(x);
+  assert.match(x.stdout, /^esperar: entrega lida \(2 mensagem\(ns\)\)$/m);
+  assert.match(x.stdout, /^payload: \{"taskId":"task_1","dispatchId":"ctx_1","outcome":"succeeded","reportPath":"\/tmp\/x\/report.json"\}$/m);
+  assert.match(x.stdout, /^relatório: \/tmp\/x\/report\.json$/m);
+  assert.match(x.stdout, /^payload: \{"taskId":"task_2","options":\[\]\}$/m);
+  assert.doesNotMatch(x.stdout, /undefined|\[object Object\]/);
+  const calls = orcaLog(r);
+  assert.strictEqual(calls.length, 2);
+  for (const c of calls) {
+    assert.match(c, /--full --json --run run_1$/);
+    assert.doesNotMatch(c, /--ack/);
+  }
+});
+
 suite.test('wait-workers.sh acks a heartbeat-only batch by itself and prints the next real delivery without acking it', () => {
   const r = buildRoot('wait');
   answer(r, 1, { _keepalive: true, _heartbeat: true, elapsedMs: 15000 }, batch('delivery_1', heartbeat('msg_1')));
@@ -130,7 +155,7 @@ suite.test('wait-workers.sh acks a heartbeat-only batch by itself and prints the
   assert.doesNotMatch(x.stdout, /heartbeat|msg_2|_keepalive/);
   const calls = orcaLog(r);
   assert.strictEqual(calls.length, 2);
-  assert.match(calls[0], /orchestration check --wait --types worker_done,escalation,question --timeout-ms 1000 --json --run run_1 --ack delivery_0$/);
+  assert.match(calls[0], /orchestration check --wait --types worker_done,escalation,question,heartbeat --timeout-ms 1000 --full --json --run run_1 --ack delivery_0$/);
   assert.match(calls[1], /--ack delivery_1$/);
 });
 

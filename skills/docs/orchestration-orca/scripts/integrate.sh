@@ -15,7 +15,7 @@
 # and the task from the branch (task/<id>-...), unless they come as arguments. If the panel does not record it, the
 # integration still stands: the script exits with 0 and warns "integrar: aviso: o painel não registrou ..." on stderr,
 # followed by the command to run again. Recorded: "integrar: painel: task <task> integrada no item <item>".
-# The task/<id>-ajuste-final branch (the final adjustment worktree) is not a task: nothing is recorded; the line
+# The task/<id>-ajuste-final[-<slug>] branch (the final adjustment worktree) is not a task: nothing is recorded; the line
 # reminds of `flow final-adjustment <item> result`.
 #
 # Cleanup: `orca worktree rm --worktree branch:<task-branch> --json` (ORCA_CLI, else `orca` on the PATH), which closes

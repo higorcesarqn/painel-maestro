@@ -192,6 +192,17 @@ suite.test('the final adjustment worktree is integrated but is not a task: the p
   assert.match(orcaLog(r), /worktree rm --worktree branch:task\/12-ajuste-final --json/);
 });
 
+suite.test('a fix approved after the final adjustment was integrated (task/<item>-ajuste-final-<slug>) is still the final adjustment, not a task', async () => {
+  const r = buildRoot('ajuste-cib', { branch: 'task/12-ajuste-final-cib' });
+  startItem(r);
+  const x = integrate(r, [r.branch, r.integration]);
+  ok(x);
+  assert.match(x.stdout, /integrar: painel: ajuste final integrado; registre o resultado com flow final-adjustment 12 result/);
+  assert.doesNotMatch(x.stderr, /aviso/);
+  const timeline = (await apiGet(r, '/api/items/widgets/12')).item.timeline.map((e) => e.type);
+  assert.ok(!timeline.includes('task-integrated'), timeline.join(', '));
+});
+
 suite.test('a task branch that is not on top of the integration branch is refused before anything changes', async () => {
   const r = buildRoot('stale');
   startItem(r);
