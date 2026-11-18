@@ -210,6 +210,15 @@ suite.test('the final adjustment floor (task/<item>-ajuste-final) is not a task:
   });
 });
 
+suite.test('parseBranch: task/<item>-ajuste-final-<slug> (a fix after the final adjustment was integrated) is the final adjustment too', () => {
+  const { parseBranch } = require('../../bin/flow-repo');
+  assert.deepStrictEqual(parseBranch('task/60-ajuste-final'), { kind: 'final_adjustment', item: 60 });
+  assert.deepStrictEqual(parseBranch('task/60-ajuste-final-cib'), { kind: 'final_adjustment', item: 60 });
+  assert.deepStrictEqual(parseBranch('task/60-ajuste-final-cib-v81'), { kind: 'final_adjustment', item: 60 });
+  assert.strictEqual(parseBranch('task/60-ajuste-finalizado').kind, 'task');
+  assert.strictEqual(parseBranch('task/60-ajuste-cib').kind, 'task');
+});
+
 suite.test('when maestri floor status fails the event is still recorded and the command ends with exit 1', async () => {
   const r = buildRoot('maestri-fails');
   ok(flow(r, ['item', 'start', '50', '--title', 'Falha do Maestri', '--stage', 'implementation']));

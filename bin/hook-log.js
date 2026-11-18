@@ -11,7 +11,7 @@
 // inside a floor's worktree), normalized like the flow CLI does, must be in maestro.db. Anything else exits in a
 // few ms, writing nothing. The session is linked to the item and the task by the current branch:
 //   task/<id>-… (or task/<id>)            the task <id> (its item comes from maestro.db when known)
-//   task/<item>-ajuste-final               the item (the final adjustment floor is not a task: counts as its maestro)
+//   task/<item>-ajuste-final[-<slug>]      the item (the final adjustment floor is not a task: counts as its maestro)
 //   feature/pbi-<id> or feature/issue-<n>  the maestro of the item
 // (the convention lives in parseBranch of bin/flow-repo.js)
 // Entry in bruto.db (bin/raw-store.js): {at, t, session_id, project_id, item_number, task_number, branch,

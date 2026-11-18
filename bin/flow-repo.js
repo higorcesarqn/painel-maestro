@@ -10,7 +10,7 @@
  *   describeRemote(url)    → { remote, tracker: 'github' | 'azure_devops', repo }  (repo: the repository name)
  *   repoInfo(cwd)          → { origin, branch } read from the .git files (the hook's fast path), or null
  *   parseBranch(name)      → what a branch name says about the flow (the single home of the branch convention):
- *       task/<item>-ajuste-final               { kind: 'final_adjustment', item }  the final adjustment floor: not a task
+ *       task/<item>-ajuste-final[-<slug>]      { kind: 'final_adjustment', item }  the final adjustment floor: not a task
  *       task/<id>, task/<id>-…                 { kind: 'task', task }               the worker of task <id>
  *       feature/issue-<n>, feature/pbi-<id>…   { kind: 'maestro', item }            the maestro of the item (integration branch)
  *       anything else (or none)                { kind: 'other' }
@@ -36,7 +36,8 @@ function branchOf(cwd) {
   return String(r.stdout || '').trim() || null;
 }
 
-const RE_FINAL_ADJUSTMENT_BRANCH = /^task\/(\d{1,9})-ajuste-final$/i;
+// task/<item>-ajuste-final, or task/<item>-ajuste-final-<slug> for a fix approved after the first one was integrated.
+const RE_FINAL_ADJUSTMENT_BRANCH = /^task\/(\d{1,9})-ajuste-final(?:-[a-z0-9][a-z0-9-]*)?$/i;
 const RE_TASK_BRANCH = /^task\/(\d{1,9})(?:[-_/.].*)?$/i;
 const RE_ITEM_BRANCH = /^feature\/(?:pbi|issue)-(\d{1,9})(?:[-_/.].*)?$/i;
 

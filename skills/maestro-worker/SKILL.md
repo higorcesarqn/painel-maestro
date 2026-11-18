@@ -65,7 +65,7 @@ You are on a Maestri **floor**; the maestro is a Claude Code terminal on the wor
   maestri ask "<maestro>" "<report>"
   ```
   Use `"$MAESTRI_CLI"` if `maestri` is not on the PATH.
-- **Final adjustment floor** (branch `task/<id>-ajuste-final`): it is not a Task in the panel. Post the status directly with `"$MAESTRI_CLI" floor status` and skip step 2 of the Report; the maestro records the result.
+- **Final adjustment floor** (branch `task/<id>-ajuste-final` or `task/<id>-ajuste-final-<slug>`): it is not a Task in the panel. Post the status directly with `"$MAESTRI_CLI" floor status` and skip step 2 of the Report; the maestro records the result.
 
 ## Orca
 
@@ -83,5 +83,5 @@ You are in an **Orca worktree**, started by the Orca's orchestrator (`worker-sta
   - `--outcome succeeded` when the Task is done (`status: ok`), `--outcome failed` when it is not (`status: blocked`); never hide a failure in the text.
 
   Then stop and stay idle: no polling, no new work, do not close your terminal. The maestro reads the report in the panel. A new instruction from the user typed in your terminal is new work of theirs.
-- **Final adjustment worktree** (branch `task/<id>-ajuste-final`): it is not a Task in the panel. Post the status directly with `orca worktree set --worktree current ...` (as above) and skip `flow report`; write the `report.json` all the same and send it in the `worker_done` (`--report-path`); the maestro records the result.
+- **Final adjustment worktree** (branch `task/<id>-ajuste-final` or `task/<id>-ajuste-final-<slug>`): it is not a Task in the panel. Post the status directly with `orca worktree set --worktree current ...` (as above) and skip `flow report`; write the `report.json` all the same and send it in the `worker_done` (`--report-path`); the maestro records the result.
 - **Do not** run `orca worktree rm`, `worker-release` or `terminal close`: cleaning up is the maestro's.
